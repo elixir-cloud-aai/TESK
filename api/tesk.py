@@ -25,7 +25,7 @@ app.wsgi_app = ProxyFix(app.wsgi_app)
 def queue(request):
     connection = pika.BlockingConnection(pika.ConnectionParameters('rabbitmq-service'))
     channel = connection.channel()
-    channel.basic_publish(exchange'',
+    channel.basic_publish(exchange='',
             routing_key='job1',
             body=request)
     print("Sent json to queue: ", request)
