@@ -1,0 +1,45 @@
+{
+    "name":        "MD5 example",
+    "description": "Task which runs md5sum on the input file.",
+    "project":     "tes-example-project-id",
+    "tags": {
+      "custom-tag": "tag-value"
+    },
+    "inputs": [
+      {
+        "name": "infile",
+        "description": "md5sum input file",
+        "url":  "/path/to/input_file",
+        "path": "/container/input",
+        "type": "FILE"
+      }
+    ],
+    "outputs" : [
+      {
+        "url" :  "/path/to/output_file",
+        "path" : "/container/output"
+      }
+    ],
+    "resources" : {
+      "cpu_cores": 1,
+      "ram_gb":    1.0,
+      "size_gb":   100.0,
+      "preemptible": false
+    },
+    "executors" : [
+      {
+        "image_name" : "ubuntu",
+        "cmd" : ["md5sum", "/container/input"],
+        "stdout" : "/container/output",
+        "stderr" : "/container/stderr",
+        "workdir": "/tmp"
+      },
+      {
+        "image_name" : "ubuntu",
+        "cmd" : ["perl", "-Mbignum=bpi", "-wle", "print bpi(80)"],
+        "stdout" : "/container/output",
+        "stderr" : "/container/stderr",
+        "workdir": "/tmp"
+      }
+    ]
+}
