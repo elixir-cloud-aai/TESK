@@ -9,8 +9,6 @@
       "storage": "10Gi"
     },
     "accessModes": [ "ReadWriteOnce" ],
-    "hostPath": {
-      "path": "/tmp/data-pv"
-    }
+    "storageClassName": "standard"
   }
 }

@@ -7,6 +7,6 @@
   "spec": {
     "accessModes": [ "ReadWriteOnce" ] ,
     "resources": { "requests" : { "storage": "512Mi" } },
-    "storageClassName": "standard"
+    "storageClassName": "gold"
   }
 }
