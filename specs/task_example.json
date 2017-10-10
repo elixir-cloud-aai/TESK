@@ -35,7 +35,7 @@
         "workdir": "/tmp"
       },
       {
-        "image_name" : "ubuntu",
+        "image_name" : "perl",
         "cmd" : ["perl", "-Mbignum=bpi", "-wle", "print bpi(80)"],
         "stdout" : "/container/output",
         "stderr" : "/container/stderr",
