@@ -7,7 +7,7 @@ import time
 import sys
 from kubernetes import client, config
 
-# translates TES JSON into 1 Job spec for each executor
+# translates TES JSON into 1 Job spec per executor
 def generate_job_specs( file ):
   tes = json.load(file)
   exe_i = 0
@@ -78,6 +78,7 @@ def main(argv):
   specs = generate_job_specs(args.file)
   
   config.load_kube_config(config)
+
 
   state = run_executors(specs, polling_interval)
   print("Finished with state %s" % state)
