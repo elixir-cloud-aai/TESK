@@ -4,40 +4,32 @@
         "template": {
             "spec": {
                 "restartPolicy": "Never",
-                "containers": [ {
-                    "image": "perl",
-                    "command": [
-                        "perl",
-                        "-Mbignum=bpi",
-                        "-wle",
-                        "print bpi(100000)", ">", "/data/pi.txt"
-                    ],
-                    "name": "idxxxxx-task-exe-1",
-                    "resources": {
-                        "requests": {
-                            "cpu": 1,
-                            "memory": "1.0Gi"
+                "containers": [
+                    {
+                        "image": "perl",
+                        "command": [
+                            "perl",
+                            "-Mbignum=bpi",
+                            "-wle",
+                            "print bpi(10000)"
+                        ],
+                        "name": "md5-example-ex1",
+                        "resources": {
+                            "requests": {
+                                "cpu": 1,
+                                "memory": "1.0Gi"
+                            }
                         }
-                    },
-                    "volumeMounts": [ {
-                      "name": "data",
-                      "mountPath": "/data"
-                    } ]
-                } ],
-                "volumes": [ {
-                  "name": "data",
-                  "persistentVolumeClaim": {
-                    "claimName": "data-pv-claim"
-                  }
-                } ]
+                    }
+                ]
             },
             "metadata": {
-                "name": "idxxxxx-task"
+                "name": "md5-example"
             }
         }
     },
     "apiVersion": "batch/v1",
     "metadata": {
-        "name": "id2-task"
+        "name": "md5-example7"
     }
 }
