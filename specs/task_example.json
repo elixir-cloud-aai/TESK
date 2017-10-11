@@ -28,15 +28,15 @@
     },
     "executors" : [
       {
-        "image_name" : "ubuntu",
-        "cmd" : ["md5sum", "/container/input"],
+        "image_name" : "perl",
+        "cmd" : ["perl", "-Mbignum=bpi", "-wle", "print bpi(1000)"],
         "stdout" : "/container/output",
         "stderr" : "/container/stderr",
         "workdir": "/tmp"
       },
       {
         "image_name" : "perl",
-        "cmd" : ["perl", "-Mbignum=bpi", "-wle", "print bpi(80)"],
+        "cmd" : ["perl", "-Mbignum=bpi", "-wle", "print bpi(1000)"],
         "stdout" : "/container/output",
         "stderr" : "/container/stderr",
         "workdir": "/tmp"
