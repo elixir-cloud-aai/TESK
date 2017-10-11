@@ -7,8 +7,8 @@ import binascii
 import json
 from kubernetes import client, config
 
-jobspec = '../specs/pijob.json'
-failspec = '../specs/pifail.json'
+jobspec = '../specs/pi_job.json'
+failspec = '../specs/pi_fail.json'
 
 pilen = 2000
 cmd = 'print bpi('+str(pilen)+')'
