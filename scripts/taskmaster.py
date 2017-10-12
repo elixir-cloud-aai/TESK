@@ -75,12 +75,27 @@ def run_executors(specs, polling_interval, namespace):
 
   return 'Complete' # No failures, so return successful finish
 
+def generate_config(user, cert_auth, client_cert, client_key):
+  config = {'apiVersion': 'v1', 'kind': 'Config', 'clusters': [], 'users': [], 'contexts': [], 'current-context': user+'@kubernetes', 'preferences': {}}
+  config['clusters'].append( {'name': 'kubernetes', 'cluster': 0} )
+  config['clusters'][0]['cluster'] = {'server': 'kubernetes:6443', 'certificate-authority-data': cert_auth}
+  config['users'].append( { 'name': user, 'user':0} )
+  config['users'][0]['user'] = { 'client-certificate-data': client_cert, 'client-key-data': client_key }
+  config['contexts'].append( { 'name': user+'@kubernetes', 'context': 0 } )
+  config['contexts'][0]['context'] = { 'cluster': 'kubernetes', 'user': user }
+  return config
+
 def main(argv):
   parser = argparse.ArgumentParser(description='TaskMaster main module')
   parser.add_argument('file', help='file containing TES JSON request', nargs='?', type=argparse.FileType('r'), default=sys.stdin)
 
   config_def = os.path.join(os.environ["HOME"], '.kube/config')
   parser.add_argument('-c', '--config', help='kubernetes connection configuration', default=config_def)
+
+  parser.add_argument('-ca', '--certificate-authority', help='Certificate authority data for the kubernetes cluster')
+  parser.add_argument('-cc', '--client-cert', help='Client Certificate for the kubernetes user')
+  parser.add_argument('-ck', '--client-key', help='Client Key data for the kubernetes user')
+  parser.add_argument('-u', '--user', help='Kubernetes user who will create exec jobs')
 
   parser.add_argument('-p', '--polling-interval', help='Job polling interval', default=5)
   parser.add_argument('-n', '--namespace', help='Kubernetes namespace to run in', default='default')
@@ -89,6 +104,7 @@ def main(argv):
   tes = json.load(args.file)
   specs = generate_job_specs(tes)
 
+  generate_config(user, certificate_authority, client_cert, client_key)
   config.load_kube_config(args.config)
 
   state = run_executors(specs, args.polling_interval, args.namespace)
