@@ -10,8 +10,7 @@ import sys
 from kubernetes import client, config
 
 # translates TES JSON into 1 Job spec per executor
-def generate_job_specs(tesfile):
-  tes = json.load(open(tesfile))
+def generate_job_specs(tes):
   exe_i = 0
   specs = []
 
@@ -72,21 +71,23 @@ def run_executors(specs, polling_interval, namespace):
           #print("hit else, failing")
           return 'Failed' # something we don't know happened, fail
       except TypeError: # The condition is not initialized, so it is not complete yet, wait for it
-        print("sleeping")
         time.sleep(polling_interval)
 
   return 'Complete' # No failures, so return successful finish
 
 def main(argv):
   parser = argparse.ArgumentParser(description='TaskMaster main module')
-  parser.add_argument('file', help='file containing TES JSON request')
+  parser.add_argument('file', help='file containing TES JSON request', nargs='?', type=argparse.FileType('r'), default=sys.stdin)
+
   config_def = os.path.join(os.environ["HOME"], '.kube/config')
   parser.add_argument('-c', '--config', help='kubernetes connection configuration', default=config_def)
+
   parser.add_argument('-p', '--polling-interval', help='Job polling interval', default=5)
   parser.add_argument('-n', '--namespace', help='Kubernetes namespace to run in', default='default')
   args = parser.parse_args()
 
-  specs = generate_job_specs(args.file)
+  tes = json.load(args.file)
+  specs = generate_job_specs(tes)
 
   config.load_kube_config(args.config)
 

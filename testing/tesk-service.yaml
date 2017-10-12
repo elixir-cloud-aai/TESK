@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    component: tesk
+  name: tesk-service
+spec:
+  ports:
+  - port: 80
+  - port: 443
+  selector:
+    app: tesk

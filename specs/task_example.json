@@ -29,14 +29,14 @@
     "executors" : [
       {
         "image_name" : "perl",
-        "cmd" : ["perl", "-Mbignum=bpi", "-wle", "print bpi(1000)"],
+        "cmd" : ["perl", "-Mbignum=bpi", "-wle", "print bpi(10000)"],
         "stdout" : "/container/output",
         "stderr" : "/container/stderr",
         "workdir": "/tmp"
       },
       {
         "image_name" : "perl",
-        "cmd" : ["perl", "-Mbignum=bpi", "-wle", "print bpi(1000)"],
+        "cmd" : ["perl", "-Mbignum=bpi", "-wle", "print bpi(10000)"],
         "stdout" : "/container/output",
         "stderr" : "/container/stderr",
         "workdir": "/tmp"
