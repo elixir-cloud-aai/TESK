@@ -1,4 +1,4 @@
 steps:
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['build', '-t', 'eu.gcr.io/tes-wes/taskmaster:$TAG_NAME', '-f', 'dockerfiles/taskmaster/Dockerfile']
+  args: ['build', '-t', 'eu.gcr.io/tes-wes/taskmaster:$TAG_NAME', '-f', 'dockerfiles/taskmaster/Dockerfile', '.']
 images: ['eu.gcr.io/tes-wes/taskmaster:$TAG_NAME']
