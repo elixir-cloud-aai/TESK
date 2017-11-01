@@ -8,9 +8,9 @@
     "containers": [
       {
         "name": "taskmaster",
-        "image": "eu.gcr.io/tes-wes/taskmaster:v0.0.4.2",
-        "command": [
-          "&", "sh", "-c", "sleep 10000"
+        "image": "eu.gcr.io/tes-wes/taskmaster:v0.0.5",
+        "args": [
+          "/root/tes.json"
         ],
         "ports": [
           {
