@@ -1,0 +1,607 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "task_execution.proto",
+    "version": "version not set"
+  },
+  "schemes": [
+    "http",
+    "https"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/v1/tasks": {
+      "get": {
+        "summary": "List tasks.\nTaskView is requested as such: \"v1/tasks?view=BASIC\"",
+        "operationId": "ListTasks",
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/tesListTasksResponse"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "project",
+            "description": "OPTIONAL. Filter the task list to include tasks in this project.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "name_prefix",
+            "description": "OPTIONAL. Filter the list to include tasks where the name matches this prefix.\nIf unspecified, no task name filtering is done.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "page_size",
+            "description": "OPTIONAL. Number of tasks to return in one page.\nMust be less than 2048. Defaults to 256.",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int64"
+          },
+          {
+            "name": "page_token",
+            "description": "OPTIONAL. Page token is used to retrieve the next page of results.\nIf unspecified, returns the first page of results.\nSee ListTasksResponse.next_page_token",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "view",
+            "description": "OPTIONAL. Affects the fields included in the returned Task messages.\nSee TaskView below.\n\n - MINIMAL: Task message will include ONLY the fields:\n  Task.Id\n  Task.State\n - BASIC: Task message will include all fields EXCEPT:\n  Task.ExecutorLog.stdout\n  Task.ExecutorLog.stderr\n  TaskParameter.Contents in Task.Inputs\n - FULL: Task message includes all fields.",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "MINIMAL",
+              "BASIC",
+              "FULL"
+            ],
+            "default": "MINIMAL"
+          }
+        ],
+        "tags": [
+          "TaskService"
+        ]
+      },
+      "post": {
+        "summary": "Create a new task.",
+        "operationId": "CreateTask",
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/tesCreateTaskResponse"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/tesTask"
+            }
+          }
+        ],
+        "tags": [
+          "TaskService"
+        ]
+      }
+    },
+    "/v1/tasks/service-info": {
+      "get": {
+        "summary": "GetServiceInfo provides information about the service,\nsuch as storage details, resource availability, and \nother documentation.",
+        "operationId": "GetServiceInfo",
+        "consumes": ["*/*"],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/tesServiceInfo"
+            }
+          }
+        },
+        "tags": [
+          "TaskService"
+        ]
+      }
+    },
+    "/v1/tasks/{id}": {
+      "get": {
+        "summary": "Get a task.\nTaskView is requested as such: \"v1/tasks/{id}?view=FULL\"",
+        "operationId": "GetTask",
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/tesTask"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "view",
+            "description": "OPTIONAL. Affects the fields included in the returned Task messages.\nSee TaskView below.\n\n - MINIMAL: Task message will include ONLY the fields:\n  Task.Id\n  Task.State\n - BASIC: Task message will include all fields EXCEPT:\n  Task.ExecutorLog.stdout\n  Task.ExecutorLog.stderr\n  TaskParameter.Contents in Task.Inputs\n - FULL: Task message includes all fields.",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "MINIMAL",
+              "BASIC",
+              "FULL"
+            ],
+            "default": "MINIMAL"
+          }
+        ],
+        "tags": [
+          "TaskService"
+        ]
+      }
+    },
+    "/v1/tasks/{id}:cancel": {
+      "post": {
+        "summary": "Cancel a task.",
+        "operationId": "CancelTask",
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/tesCancelTaskResponse"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "TaskService"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "tesCancelTaskResponse": {
+      "type": "object",
+      "description": "CancelTaskResponse describes a response from the CancelTask endpoint.",
+      "title": "OUTPUT ONLY"
+    },
+    "tesCreateTaskResponse": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Task identifier assigned by the server.",
+          "title": "REQUIRED"
+        }
+      },
+      "description": "CreateTaskResponse describes a response from the CreateTask endpoint.",
+      "title": "OUTPUT ONLY"
+    },
+    "tesExecutor": {
+      "type": "object",
+      "properties": {
+        "image_name": {
+          "type": "string",
+          "description": "Name of the container image, for example:\nubuntu\nquay.io/aptible/ubuntu\ngcr.io/my-org/my-image\netc...",
+          "title": "REQUIRED"
+        },
+        "cmd": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "A sequence of program arguments to execute, where the first argument\nis the program to execute (i.e. argv).",
+          "title": "REQUIRED"
+        },
+        "workdir": {
+          "type": "string",
+          "description": "The working directory that the command will be executed in.\nDefaults to the directory set by the container image.",
+          "title": "OPTIONAL"
+        },
+        "stdin": {
+          "type": "string",
+          "description": "Path inside the container to a file which will be piped\nto the executor's stdin. Must be an absolute path.",
+          "title": "OPTIONAL"
+        },
+        "stdout": {
+          "type": "string",
+          "description": "Path inside the container to a file where the executor's\nstdout will be written to. Must be an absolute path.",
+          "title": "OPTIONAL"
+        },
+        "stderr": {
+          "type": "string",
+          "description": "Path inside the container to a file where the executor's\nstderr will be written to. Must be an absolute path.",
+          "title": "OPTIONAL"
+        },
+        "ports": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/tesPorts"
+          },
+          "description": "A list of port bindings between the container and host.\nFor example, a Docker implementation might map this to `docker run -p host:container`.\n\nPort bindings are included in ExecutorLogs, which allows TES clients\nto discover port bindings and communicate with running tasks/executors.",
+          "title": "OPTIONAL"
+        },
+        "environ": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Enviromental variables to set within the container.",
+          "title": "OPTIONAL"
+        }
+      },
+      "description": "Executor describes a command to be executed, and its environment."
+    },
+    "tesExecutorLog": {
+      "type": "object",
+      "properties": {
+        "start_time": {
+          "type": "string",
+          "description": "Time the executor started, in RFC 3339 format.",
+          "title": "OPTIONAL"
+        },
+        "end_time": {
+          "type": "string",
+          "description": "Time the executor ended, in RFC 3339 format.",
+          "title": "OPTIONAL"
+        },
+        "stdout": {
+          "type": "string",
+          "description": "Stdout tail.\nThis is not guaranteed to be the entire log.\nImplementations determine the maximum size.",
+          "title": "OPTIONAL"
+        },
+        "stderr": {
+          "type": "string",
+          "description": "Stderr tail.\nThis is not guaranteed to be the entire log.\nImplementations determine the maximum size.",
+          "title": "OPTIONAL"
+        },
+        "exit_code": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Exit code.",
+          "title": "REQUIRED"
+        },
+        "host_ip": {
+          "type": "string",
+          "description": "IP address of the host.",
+          "title": "OPTIONAL"
+        },
+        "ports": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/tesPorts"
+          },
+          "description": "Ports bound between the Executor's container and host.\n\nTES clients can use these logs to discover port bindings\nand communicate with running tasks/executors.",
+          "title": "OPTIONAL"
+        }
+      },
+      "description": "ExecutorLog describes logging information related to an Executor.",
+      "title": "OUTPUT ONLY"
+    },
+    "tesFileType": {
+      "type": "string",
+      "enum": [
+        "FILE",
+        "DIRECTORY"
+      ],
+      "default": "FILE"
+    },
+    "tesListTasksResponse": {
+      "type": "object",
+      "properties": {
+        "tasks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/tesTask"
+          },
+          "description": "List of tasks.",
+          "title": "REQUIRED"
+        },
+        "next_page_token": {
+          "type": "string",
+          "description": "Token used to return the next page of results.\nSee TaskListRequest.next_page_token",
+          "title": "OPTIONAL"
+        }
+      },
+      "description": "ListTasksResponse describes a response from the ListTasks endpoint.",
+      "title": "OUTPUT ONLY"
+    },
+    "tesOutputFileLog": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "string",
+          "description": "URL of the file in storage, e.g. s3://bucket/file.txt",
+          "title": "REQUIRED"
+        },
+        "path": {
+          "type": "string",
+          "description": "Path of the file inside the container. Must be an absolute path.",
+          "title": "REQUIRED"
+        },
+        "size_bytes": {
+          "type": "string",
+          "format": "int64",
+          "description": "Size of the file in bytes.",
+          "title": "REQUIRED"
+        }
+      },
+      "description": "OutputFileLog describes a single output file. This describes\nfile details after the task has completed successfully,\nfor logging purposes.",
+      "title": "OUTPUT ONLY"
+    },
+    "tesPorts": {
+      "type": "object",
+      "properties": {
+        "container": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Port number opened inside the container.",
+          "title": "REQUIRED"
+        },
+        "host": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Port number opened on the host.\nDefaults to 0, which assigns a random port on the host.",
+          "title": "OPTIONAL"
+        }
+      },
+      "description": "Ports describes the port binding between the container and host.\nFor example, a Docker implementation might map this to `docker run -p host:container`."
+    },
+    "tesResources": {
+      "type": "object",
+      "properties": {
+        "cpu_cores": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Requested number of CPUs",
+          "title": "OPTIONAL"
+        },
+        "preemptible": {
+          "type": "boolean",
+          "format": "boolean",
+          "description": "Is the task allowed to run on preemptible compute instances (e.g. AWS Spot)?",
+          "title": "OPTIONAL"
+        },
+        "ram_gb": {
+          "type": "number",
+          "format": "double",
+          "description": "Requested RAM required in gigabytes (GB)",
+          "title": "OPTIONAL"
+        },
+        "disk_size_gb": {
+          "type": "number",
+          "format": "double",
+          "description": "Requested disk size in gigabytes (GB)",
+          "title": "OPTIONAL"
+        },
+        "zones": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Request that the task be run in these compute zones.",
+          "title": "OPTIONAL"
+        }
+      },
+      "description": "Resources describes the resources requested by a task."
+    },
+    "tesServiceInfo": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Returns the name of the service, e.g. \"ohsu-compbio-funnel\"."
+        },
+        "doc": {
+          "type": "string",
+          "description": "Returns a documentation string, e.g. \"Hey, we're OHSU Comp. Bio!\"."
+        },
+        "storage": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Lists some, but not necessarily all, storage locations supported by the service.\n\nMust be in a valid URL format.\ne.g. \nfile:///path/to/local/funnel-storage\ns3://ohsu-compbio-funnel/storage\netc."
+        }
+      },
+      "description": "ServiceInfo describes information about the service,\nsuch as storage details, resource availability,\nand other documentation.",
+      "title": "OUTPUT ONLY"
+    },
+    "tesState": {
+      "type": "string",
+      "enum": [
+        "UNKNOWN",
+        "QUEUED",
+        "INITIALIZING",
+        "RUNNING",
+        "PAUSED",
+        "COMPLETE",
+        "ERROR",
+        "SYSTEM_ERROR",
+        "CANCELED"
+      ],
+      "default": "UNKNOWN",
+      "description": "Task states.\n\n - PAUSED: An implementation *may* have the ability to pause a task,\nbut this is not required.",
+      "title": "OUTPUT ONLY"
+    },
+    "tesTask": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Task identifier assigned by the server.",
+          "title": "OUTPUT ONLY"
+        },
+        "state": {
+          "$ref": "#/definitions/tesState",
+          "title": "OUTPUT ONLY"
+        },
+        "name": {
+          "type": "string",
+          "title": "OPTIONAL"
+        },
+        "project": {
+          "type": "string",
+          "description": "Describes the project this task is associated with.\nCommonly used for billing on cloud providers (AWS, Google Cloud, etc).",
+          "title": "OPTIONAL"
+        },
+        "description": {
+          "type": "string",
+          "title": "OPTIONAL"
+        },
+        "inputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/tesTaskParameter"
+          },
+          "description": "Input files.\nInputs will be downloaded and mounted into the executor container.",
+          "title": "OPTIONAL"
+        },
+        "outputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/tesTaskParameter"
+          },
+          "description": "Output files.\nOutputs will be uploaded from the executor container to long-term storage.",
+          "title": "OPTIONAL"
+        },
+        "resources": {
+          "$ref": "#/definitions/tesResources",
+          "description": "Request that the task be run with these resources.",
+          "title": "OPTIONAL"
+        },
+        "executors": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/tesExecutor"
+          },
+          "description": "A list of executors to be run, sequentially. Execution stops\non the first error.",
+          "title": "REQUIRED"
+        },
+        "volumes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Declared volumes.\nVolumes are shared between executors. Volumes for inputs and outputs are \ninferred and should not be declared here.",
+          "title": "OPTIONAL"
+        },
+        "tags": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "A key-value map of arbitrary tags.",
+          "title": "OPTIONAL"
+        },
+        "logs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/tesTaskLog"
+          },
+          "description": "Task logging information.\nNormally, this will contain only one entry, but in the case where\na task fails and is retried, an entry will be appended to this list.",
+          "title": "OUTPUT ONLY"
+        }
+      },
+      "description": "Task describes an instance of a task."
+    },
+    "tesTaskLog": {
+      "type": "object",
+      "properties": {
+        "logs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/tesExecutorLog"
+          },
+          "description": "Logs for each executor",
+          "title": "REQUIRED"
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Arbitrary logging metadata included by the implementation.",
+          "title": "OPTIONAL"
+        },
+        "start_time": {
+          "type": "string",
+          "description": "When the task started, in RFC 3339 format.",
+          "title": "OPTIONAL"
+        },
+        "end_time": {
+          "type": "string",
+          "description": "When the task ended, in RFC 3339 format.",
+          "title": "OPTIONAL"
+        },
+        "outputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/tesOutputFileLog"
+          },
+          "description": "Information about all output files. Directory outputs are\nflattened into separate items.",
+          "title": "REQUIRED"
+        }
+      },
+      "description": "TaskLog describes logging information related to a Task.",
+      "title": "OUTPUT ONLY"
+    },
+    "tesTaskParameter": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "title": "OPTIONAL"
+        },
+        "description": {
+          "type": "string",
+          "title": "OPTIONAL"
+        },
+        "url": {
+          "type": "string",
+          "description": "REQUIRED, unless \"contents\" is set.\n\nURL in long term storage, for example:\ns3://my-object-store/file1\ngs://my-bucket/file2\nfile:///path/to/my/file\n/path/to/my/file\netc..."
+        },
+        "path": {
+          "type": "string",
+          "description": "Path of the file inside the container.\nMust be an absolute path.",
+          "title": "REQUIRED"
+        },
+        "type": {
+          "$ref": "#/definitions/tesFileType",
+          "description": "Type of the file, FILE or DIRECTORY",
+          "title": "REQUIRED"
+        },
+        "contents": {
+          "type": "string",
+          "description": "File contents literal. \nImplementations should support a minimum of 128 KiB in this field and may define its own maximum.\nUTF-8 encoded\n\nIf contents is not empty, \"url\" must be ignored.",
+          "title": "OPTIONAL"
+        }
+      },
+      "description": "TaskParameter describes input and output files for a Task."
+    }
+  }
+}
