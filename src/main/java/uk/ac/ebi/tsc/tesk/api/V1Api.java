@@ -5,6 +5,8 @@
  */
 package uk.ac.ebi.tsc.tesk.api;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import io.kubernetes.client.ApiException;
 import uk.ac.ebi.tsc.tesk.model.TesCancelTaskResponse;
 import uk.ac.ebi.tsc.tesk.model.TesCreateTaskResponse;
 import uk.ac.ebi.tsc.tesk.model.TesListTasksResponse;
@@ -49,7 +51,7 @@ public interface V1Api {
         produces = { "application/json" }, 
         consumes = { "application/json" },
         method = RequestMethod.POST)
-    ResponseEntity<TesCreateTaskResponse> createTask(@ApiParam(value = "" ,required=true )  @Valid @RequestBody TesTask body);
+    ResponseEntity<TesCreateTaskResponse> createTask(@ApiParam(value = "" ,required=true )  @Valid @RequestBody TesTask body) throws JsonProcessingException, ApiException;
 
 
     @ApiOperation(value = "GetServiceInfo provides information about the service, such as storage details, resource availability, and  other documentation.", notes = "", response = TesServiceInfo.class, tags={ "TaskService", })

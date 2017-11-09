@@ -1,5 +1,7 @@
 package uk.ac.ebi.tsc.tesk.api;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
 import io.kubernetes.client.ApiException;
 import io.kubernetes.client.apis.BatchV1Api;
@@ -23,7 +25,7 @@ import java.util.function.Supplier;
 public class V1ApiController implements V1Api {
 
     @Autowired
-    private Gson gson;
+    private ObjectMapper jacksonObjectMapper;
 
     @Autowired
     private BatchV1Api batchV1Api;
@@ -37,20 +39,14 @@ public class V1ApiController implements V1Api {
         return new ResponseEntity<TesCancelTaskResponse>(HttpStatus.OK);
     }
 
-    public ResponseEntity<TesCreateTaskResponse> createTask(@ApiParam(value = "", required = true) @Valid @RequestBody TesTask body) {
+    public ResponseEntity<TesCreateTaskResponse> createTask(@ApiParam(value = "", required = true) @Valid @RequestBody TesTask body) throws JsonProcessingException, ApiException {
 
         V1Job job = this.jobTemplateSupplier.get();
-        String task = this.gson.toJson(body);
+        String task = this.jacksonObjectMapper.writeValueAsString(body);
         job.getSpec().getTemplate().getSpec().getContainers().get(0).getEnv().stream().filter(x -> x.getName().equals("JSON_INPUT")).forEach(x -> x.setValue(task));
-        V1Job createdJob = null;
-        try {
-            createdJob = this.batchV1Api.createNamespacedJob("default", job, "false");
-        } catch (ApiException e) {
-            //TODO exception handling
-            e.printStackTrace();
-        }
+        V1Job createdJob = this.batchV1Api.createNamespacedJob("default", job, "false");
         TesCreateTaskResponse response = new TesCreateTaskResponse().id(createdJob.getMetadata().getName());
-        return new ResponseEntity<TesCreateTaskResponse>(response, HttpStatus.OK);
+        return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
     public ResponseEntity<TesServiceInfo> getServiceInfo() {

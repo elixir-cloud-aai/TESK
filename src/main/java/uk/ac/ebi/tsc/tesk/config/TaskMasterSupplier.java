@@ -7,10 +7,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
 import io.kubernetes.client.models.V1Job;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
+import java.io.*;
 import java.util.UUID;
 import java.util.function.Supplier;
 
@@ -26,14 +23,15 @@ public class TaskMasterSupplier {
     @Bean
     @Scope(value = "prototype")
     public V1Job jobTemplate() {
-        File file = new File(getClass().getClassLoader().getResource("taskmaster.json").getFile());
-        try {
-            V1Job job = gson.fromJson(new BufferedReader(new FileReader(file)), V1Job.class);
+        try (InputStream inputStream = getClass().getClassLoader().getResourceAsStream("taskmaster.json");
+             Reader reader = new BufferedReader(new InputStreamReader(inputStream))) {
+            V1Job job = gson.fromJson(reader, V1Job.class);
             job.getMetadata().setName("task-" + UUID.randomUUID());
             return job;
-        } catch (FileNotFoundException ex) {
+        } catch (IOException ex) {
             throw new RuntimeException(ex);
         }
+
 
     }
 
