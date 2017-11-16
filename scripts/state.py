@@ -53,7 +53,7 @@ def main(argv):
   config.load_incluster_config()
   status = {}
 
-  # get state file
+  # get state file TODO
 
   exec_state(exe_f, state)
   control_state(control_f, state)
