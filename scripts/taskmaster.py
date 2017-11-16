@@ -8,6 +8,7 @@ import re
 import time
 import sys
 from kubernetes import client, config
+from datetime import datetime
 
 # translates TES JSON into 1 Job spec per executor
 def generate_job_specs(tes):
@@ -81,6 +82,7 @@ def main(argv):
 
   parser.add_argument('-p', '--polling-interval', help='Job polling interval', default=5)
   parser.add_argument('-n', '--namespace', help='Kubernetes namespace to run in', default='default')
+  parser.add_argument('-s', '--state-file', help='State file for state.py script', default='/tmp/.teskstate')
   args = parser.parse_args()
 
   tes = json.load(args.file)
