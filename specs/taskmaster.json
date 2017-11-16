@@ -1,53 +1,56 @@
 {
-  "kind": "Pod",
-  "apiVersion": "v1",
+  "kind": "Job",
+  "apiVersion": "batch/v1",
   "metadata": {
-    "name": "kubectl-tester"
+    "name": "kubectl-taskmaster"
   },
   "spec": {
-    "containers": [
-      {
-        "name": "taskmaster",
-        "image": "eu.gcr.io/tes-wes/taskmaster:v0.0.4.2",
-        "command": [
-          "&", "sh", "-c", "sleep 10000"
-        ],
-        "ports": [
+    "template": {
+
+      "metadata": { "name": "kubectl-taskmaster" },
+      "spec": {
+        "containers": [
           {
-            "containerPort": 8080
+            "name": "taskmaster",
+            "image": "eu.gcr.io/tes-wes/taskmaster:v0.0.5.2",
+            "args": [
+              "$(JSON_INPUT)"
+            ],
+            "ports": [
+              {
+                "containerPort": 8080
+              }
+            ],
+            "env": [
+              {
+                "name": "KUBERNETES_RO_SERVICE_HOST",
+                "value": "127.0.0.1"
+              },
+              {
+                "name": "KUBERNETES_RO_SERVICE_PORT",
+                "value": "8001"
+              },
+              { 
+                "name": "JSON_INPUT",
+                "value": "{    \"name\":        \"MD5 example\",    \"description\": \"Task which runs md5sum on the input file.\",    \"project\":     \"tes-example-project-id\",    \"tags\": {      \"custom-tag\": \"tag-value\"    },    \"inputs\": [      {        \"name\": \"infile\",        \"description\": \"md5sum input file\",        \"url\":  \"/path/to/input_file\",        \"path\": \"/container/input\",        \"type\": \"FILE\"      }    ],    \"outputs\" : [      {        \"url\" :  \"/path/to/output_file\",        \"path\" : \"/container/output\"      }    ],    \"resources\" : {      \"cpu_cores\": 1,      \"ram_gb\":    1.0,      \"size_gb\":   100.0,      \"preemptible\": false    },    \"executors\" : [      {        \"image_name\" : \"perl\",        \"cmd\" : [\"perl\", \"-Mbignum=bpi\", \"-wle\", \"print bpi(10000)\"],        \"stdout\" : \"/container/output\",        \"stderr\" : \"/container/stderr\",        \"workdir\": \"/tmp\"      },      {        \"image_name\" : \"perl\",        \"cmd\" : [\"perl\", \"-Mbignum=bpi\", \"-wle\", \"print bpi(10000)\"],        \"stdout\" : \"/container/output\",        \"stderr\" : \"/container/stderr\",        \"workdir\": \"/tmp\"      }    ]}"
+              }
+            ],
+          "volumeMounts": [
+              {
+                "name": "test-volume",
+                "mountPath": "/mount/test-volume"
+              }
+            ]
           }
         ],
-        "env": [
-          {
-            "name": "KUBERNETES_RO_SERVICE_HOST",
-            "value": "127.0.0.1"
-          },
-          {
-            "name": "KUBERNETES_RO_SERVICE_PORT",
-            "value": "8001"
-          }
-        ],
-        "volumeMounts": [
+        "volumes": [
           {
             "name": "test-volume",
-            "mountPath": "/mount/test-volume"
+            "emptyDir": {}
           }
-        ]
-      },
-      {
-        "name": "kubectl",
-        "image": "gcr.io/google_containers/kubectl:v0.18.0-120-gaeb4ac55ad12b1-dirty",
-        "imagePullPolicy": "Always",
-        "args": [
-          "proxy", "-p", "8001"
-        ]
+        ],
+        "restartPolicy": "Never"
       }
-    ],
-    "volumes": [
-      {
-        "name": "test-volume",
-        "emptyDir": {}
-      }
-    ]
+    }
   }
 }

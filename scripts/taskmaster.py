@@ -78,14 +78,22 @@ def run_executors(specs, polling_interval, namespace):
 
 def main(argv):
   parser = argparse.ArgumentParser(description='TaskMaster main module')
-  parser.add_argument('file', help='file containing TES JSON request', nargs='?', type=argparse.FileType('r'), default=sys.stdin)
+  group = parser.add_mutually_exclusive_group(required=True)
+  group.add_argument('json', help='string containing json TES request, required if -f is not given', nargs='?')
+  group.add_argument('-f', '--file', help='TES request as a file or \'-\' for stdin, required if json is not given')
 
   parser.add_argument('-p', '--polling-interval', help='Job polling interval', default=5)
   parser.add_argument('-n', '--namespace', help='Kubernetes namespace to run in', default='default')
   parser.add_argument('-s', '--state-file', help='State file for state.py script', default='/tmp/.teskstate')
   args = parser.parse_args()
 
-  tes = json.load(args.file)
+  if args.file is None:
+    tes = json.loads(args.json)
+  elif args.file == '-':
+    tes = json.load(sys.stdin)
+  else:
+    tes = json.load(open(args.file))
+
   specs = generate_job_specs(tes)
 
   config.load_incluster_config()
