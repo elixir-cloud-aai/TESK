@@ -14,7 +14,7 @@ import javax.validation.constraints.*;
  * Resources describes the resources requested by a task.
  */
 @ApiModel(description = "Resources describes the resources requested by a task.")
-@javax.annotation.Generated(value = "io.swagger.codegen.languages.SpringCodegen", date = "2017-11-07T14:45:12.993Z")
+@javax.annotation.Generated(value = "io.swagger.codegen.languages.SpringCodegen", date = "2017-11-16T12:59:29.706Z")
 
 public class TesResources   {
   @JsonProperty("cpu_cores")
@@ -26,8 +26,8 @@ public class TesResources   {
   @JsonProperty("ram_gb")
   private Double ramGb = null;
 
-  @JsonProperty("disk_size_gb")
-  private Double diskSizeGb = null;
+  @JsonProperty("disk_gb")
+  private Double diskGb = null;
 
   @JsonProperty("zones")
   private List<String> zones = null;
@@ -92,24 +92,24 @@ public class TesResources   {
     this.ramGb = ramGb;
   }
 
-  public TesResources diskSizeGb(Double diskSizeGb) {
-    this.diskSizeGb = diskSizeGb;
+  public TesResources diskGb(Double diskGb) {
+    this.diskGb = diskGb;
     return this;
   }
 
    /**
    * Requested disk size in gigabytes (GB)
-   * @return diskSizeGb
+   * @return diskGb
   **/
   @ApiModelProperty(value = "Requested disk size in gigabytes (GB)")
 
 
-  public Double getDiskSizeGb() {
-    return diskSizeGb;
+  public Double getDiskGb() {
+    return diskGb;
   }
 
-  public void setDiskSizeGb(Double diskSizeGb) {
-    this.diskSizeGb = diskSizeGb;
+  public void setDiskGb(Double diskGb) {
+    this.diskGb = diskGb;
   }
 
   public TesResources zones(List<String> zones) {
@@ -153,13 +153,13 @@ public class TesResources   {
     return Objects.equals(this.cpuCores, tesResources.cpuCores) &&
         Objects.equals(this.preemptible, tesResources.preemptible) &&
         Objects.equals(this.ramGb, tesResources.ramGb) &&
-        Objects.equals(this.diskSizeGb, tesResources.diskSizeGb) &&
+        Objects.equals(this.diskGb, tesResources.diskGb) &&
         Objects.equals(this.zones, tesResources.zones);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(cpuCores, preemptible, ramGb, diskSizeGb, zones);
+    return Objects.hash(cpuCores, preemptible, ramGb, diskGb, zones);
   }
 
   @Override
@@ -170,7 +170,7 @@ public class TesResources   {
     sb.append("    cpuCores: ").append(toIndentedString(cpuCores)).append("\n");
     sb.append("    preemptible: ").append(toIndentedString(preemptible)).append("\n");
     sb.append("    ramGb: ").append(toIndentedString(ramGb)).append("\n");
-    sb.append("    diskSizeGb: ").append(toIndentedString(diskSizeGb)).append("\n");
+    sb.append("    diskGb: ").append(toIndentedString(diskGb)).append("\n");
     sb.append("    zones: ").append(toIndentedString(zones)).append("\n");
     sb.append("}");
     return sb.toString();

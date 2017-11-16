@@ -10,10 +10,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import uk.ac.ebi.tsc.tesk.model.TesExecutor;
+import uk.ac.ebi.tsc.tesk.model.TesInput;
+import uk.ac.ebi.tsc.tesk.model.TesOutput;
 import uk.ac.ebi.tsc.tesk.model.TesResources;
 import uk.ac.ebi.tsc.tesk.model.TesState;
 import uk.ac.ebi.tsc.tesk.model.TesTaskLog;
-import uk.ac.ebi.tsc.tesk.model.TesTaskParameter;
 import javax.validation.Valid;
 import javax.validation.constraints.*;
 
@@ -21,7 +22,7 @@ import javax.validation.constraints.*;
  * Task describes an instance of a task.
  */
 @ApiModel(description = "Task describes an instance of a task.")
-@javax.annotation.Generated(value = "io.swagger.codegen.languages.SpringCodegen", date = "2017-11-07T14:45:12.993Z")
+@javax.annotation.Generated(value = "io.swagger.codegen.languages.SpringCodegen", date = "2017-11-16T12:59:29.706Z")
 
 public class TesTask   {
   @JsonProperty("id")
@@ -33,17 +34,14 @@ public class TesTask   {
   @JsonProperty("name")
   private String name = null;
 
-  @JsonProperty("project")
-  private String project = null;
-
   @JsonProperty("description")
   private String description = null;
 
   @JsonProperty("inputs")
-  private List<TesTaskParameter> inputs = null;
+  private List<TesInput> inputs = null;
 
   @JsonProperty("outputs")
-  private List<TesTaskParameter> outputs = null;
+  private List<TesOutput> outputs = null;
 
   @JsonProperty("resources")
   private TesResources resources = null;
@@ -59,6 +57,9 @@ public class TesTask   {
 
   @JsonProperty("logs")
   private List<TesTaskLog> logs = null;
+
+  @JsonProperty("creation_time")
+  private String creationTime = null;
 
   public TesTask id(String id) {
     this.id = id;
@@ -121,26 +122,6 @@ public class TesTask   {
     this.name = name;
   }
 
-  public TesTask project(String project) {
-    this.project = project;
-    return this;
-  }
-
-   /**
-   * Describes the project this task is associated with. Commonly used for billing on cloud providers (AWS, Google Cloud, etc).
-   * @return project
-  **/
-  @ApiModelProperty(value = "Describes the project this task is associated with. Commonly used for billing on cloud providers (AWS, Google Cloud, etc).")
-
-
-  public String getProject() {
-    return project;
-  }
-
-  public void setProject(String project) {
-    this.project = project;
-  }
-
   public TesTask description(String description) {
     this.description = description;
     return this;
@@ -161,14 +142,14 @@ public class TesTask   {
     this.description = description;
   }
 
-  public TesTask inputs(List<TesTaskParameter> inputs) {
+  public TesTask inputs(List<TesInput> inputs) {
     this.inputs = inputs;
     return this;
   }
 
-  public TesTask addInputsItem(TesTaskParameter inputsItem) {
+  public TesTask addInputsItem(TesInput inputsItem) {
     if (this.inputs == null) {
-      this.inputs = new ArrayList<TesTaskParameter>();
+      this.inputs = new ArrayList<TesInput>();
     }
     this.inputs.add(inputsItem);
     return this;
@@ -182,22 +163,22 @@ public class TesTask   {
 
   @Valid
 
-  public List<TesTaskParameter> getInputs() {
+  public List<TesInput> getInputs() {
     return inputs;
   }
 
-  public void setInputs(List<TesTaskParameter> inputs) {
+  public void setInputs(List<TesInput> inputs) {
     this.inputs = inputs;
   }
 
-  public TesTask outputs(List<TesTaskParameter> outputs) {
+  public TesTask outputs(List<TesOutput> outputs) {
     this.outputs = outputs;
     return this;
   }
 
-  public TesTask addOutputsItem(TesTaskParameter outputsItem) {
+  public TesTask addOutputsItem(TesOutput outputsItem) {
     if (this.outputs == null) {
-      this.outputs = new ArrayList<TesTaskParameter>();
+      this.outputs = new ArrayList<TesOutput>();
     }
     this.outputs.add(outputsItem);
     return this;
@@ -211,11 +192,11 @@ public class TesTask   {
 
   @Valid
 
-  public List<TesTaskParameter> getOutputs() {
+  public List<TesOutput> getOutputs() {
     return outputs;
   }
 
-  public void setOutputs(List<TesTaskParameter> outputs) {
+  public void setOutputs(List<TesOutput> outputs) {
     this.outputs = outputs;
   }
 
@@ -283,10 +264,10 @@ public class TesTask   {
   }
 
    /**
-   * Declared volumes. Volumes are shared between executors. Volumes for inputs and outputs are  inferred and should not be declared here.
+   * Volumes are directories which may be used to share data between Executors. Volumes are initialized as empty directories by the system when the task starts and are mounted at the same path in each Executor.  For example, given a volume defined at \"/vol/A\", executor 1 may write a file to \"/vol/A/exec1.out.txt\", then executor 2 may read from that file.  (Essentially, this translates to a `docker run -v` flag where the container path is the same for each executor).
    * @return volumes
   **/
-  @ApiModelProperty(value = "Declared volumes. Volumes are shared between executors. Volumes for inputs and outputs are  inferred and should not be declared here.")
+  @ApiModelProperty(value = "Volumes are directories which may be used to share data between Executors. Volumes are initialized as empty directories by the system when the task starts and are mounted at the same path in each Executor.  For example, given a volume defined at \"/vol/A\", executor 1 may write a file to \"/vol/A/exec1.out.txt\", then executor 2 may read from that file.  (Essentially, this translates to a `docker run -v` flag where the container path is the same for each executor).")
 
 
   public List<String> getVolumes() {
@@ -354,6 +335,26 @@ public class TesTask   {
     this.logs = logs;
   }
 
+  public TesTask creationTime(String creationTime) {
+    this.creationTime = creationTime;
+    return this;
+  }
+
+   /**
+   * Date + time the task was created, in RFC 3339 format. This is set by the system, not the client.
+   * @return creationTime
+  **/
+  @ApiModelProperty(value = "Date + time the task was created, in RFC 3339 format. This is set by the system, not the client.")
+
+
+  public String getCreationTime() {
+    return creationTime;
+  }
+
+  public void setCreationTime(String creationTime) {
+    this.creationTime = creationTime;
+  }
+
 
   @Override
   public boolean equals(java.lang.Object o) {
@@ -367,7 +368,6 @@ public class TesTask   {
     return Objects.equals(this.id, tesTask.id) &&
         Objects.equals(this.state, tesTask.state) &&
         Objects.equals(this.name, tesTask.name) &&
-        Objects.equals(this.project, tesTask.project) &&
         Objects.equals(this.description, tesTask.description) &&
         Objects.equals(this.inputs, tesTask.inputs) &&
         Objects.equals(this.outputs, tesTask.outputs) &&
@@ -375,12 +375,13 @@ public class TesTask   {
         Objects.equals(this.executors, tesTask.executors) &&
         Objects.equals(this.volumes, tesTask.volumes) &&
         Objects.equals(this.tags, tesTask.tags) &&
-        Objects.equals(this.logs, tesTask.logs);
+        Objects.equals(this.logs, tesTask.logs) &&
+        Objects.equals(this.creationTime, tesTask.creationTime);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(id, state, name, project, description, inputs, outputs, resources, executors, volumes, tags, logs);
+    return Objects.hash(id, state, name, description, inputs, outputs, resources, executors, volumes, tags, logs, creationTime);
   }
 
   @Override
@@ -391,7 +392,6 @@ public class TesTask   {
     sb.append("    id: ").append(toIndentedString(id)).append("\n");
     sb.append("    state: ").append(toIndentedString(state)).append("\n");
     sb.append("    name: ").append(toIndentedString(name)).append("\n");
-    sb.append("    project: ").append(toIndentedString(project)).append("\n");
     sb.append("    description: ").append(toIndentedString(description)).append("\n");
     sb.append("    inputs: ").append(toIndentedString(inputs)).append("\n");
     sb.append("    outputs: ").append(toIndentedString(outputs)).append("\n");
@@ -400,6 +400,7 @@ public class TesTask   {
     sb.append("    volumes: ").append(toIndentedString(volumes)).append("\n");
     sb.append("    tags: ").append(toIndentedString(tags)).append("\n");
     sb.append("    logs: ").append(toIndentedString(logs)).append("\n");
+    sb.append("    creationTime: ").append(toIndentedString(creationTime)).append("\n");
     sb.append("}");
     return sb.toString();
   }

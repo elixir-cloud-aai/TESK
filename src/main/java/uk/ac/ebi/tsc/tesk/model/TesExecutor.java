@@ -9,7 +9,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import uk.ac.ebi.tsc.tesk.model.TesPorts;
 import javax.validation.Valid;
 import javax.validation.constraints.*;
 
@@ -17,14 +16,14 @@ import javax.validation.constraints.*;
  * Executor describes a command to be executed, and its environment.
  */
 @ApiModel(description = "Executor describes a command to be executed, and its environment.")
-@javax.annotation.Generated(value = "io.swagger.codegen.languages.SpringCodegen", date = "2017-11-07T14:45:12.993Z")
+@javax.annotation.Generated(value = "io.swagger.codegen.languages.SpringCodegen", date = "2017-11-16T12:59:29.706Z")
 
 public class TesExecutor   {
-  @JsonProperty("image_name")
-  private String imageName = null;
+  @JsonProperty("image")
+  private String image = null;
 
-  @JsonProperty("cmd")
-  private List<String> cmd = null;
+  @JsonProperty("command")
+  private List<String> command = null;
 
   @JsonProperty("workdir")
   private String workdir = null;
@@ -38,58 +37,55 @@ public class TesExecutor   {
   @JsonProperty("stderr")
   private String stderr = null;
 
-  @JsonProperty("ports")
-  private List<TesPorts> ports = null;
+  @JsonProperty("env")
+  private Map<String, String> env = null;
 
-  @JsonProperty("environ")
-  private Map<String, String> environ = null;
-
-  public TesExecutor imageName(String imageName) {
-    this.imageName = imageName;
+  public TesExecutor image(String image) {
+    this.image = image;
     return this;
   }
 
    /**
    * Name of the container image, for example: ubuntu quay.io/aptible/ubuntu gcr.io/my-org/my-image etc...
-   * @return imageName
+   * @return image
   **/
   @ApiModelProperty(value = "Name of the container image, for example: ubuntu quay.io/aptible/ubuntu gcr.io/my-org/my-image etc...")
 
 
-  public String getImageName() {
-    return imageName;
+  public String getImage() {
+    return image;
   }
 
-  public void setImageName(String imageName) {
-    this.imageName = imageName;
+  public void setImage(String image) {
+    this.image = image;
   }
 
-  public TesExecutor cmd(List<String> cmd) {
-    this.cmd = cmd;
+  public TesExecutor command(List<String> command) {
+    this.command = command;
     return this;
   }
 
-  public TesExecutor addCmdItem(String cmdItem) {
-    if (this.cmd == null) {
-      this.cmd = new ArrayList<String>();
+  public TesExecutor addCommandItem(String commandItem) {
+    if (this.command == null) {
+      this.command = new ArrayList<String>();
     }
-    this.cmd.add(cmdItem);
+    this.command.add(commandItem);
     return this;
   }
 
    /**
    * A sequence of program arguments to execute, where the first argument is the program to execute (i.e. argv).
-   * @return cmd
+   * @return command
   **/
   @ApiModelProperty(value = "A sequence of program arguments to execute, where the first argument is the program to execute (i.e. argv).")
 
 
-  public List<String> getCmd() {
-    return cmd;
+  public List<String> getCommand() {
+    return command;
   }
 
-  public void setCmd(List<String> cmd) {
-    this.cmd = cmd;
+  public void setCommand(List<String> command) {
+    this.command = command;
   }
 
   public TesExecutor workdir(String workdir) {
@@ -172,61 +168,32 @@ public class TesExecutor   {
     this.stderr = stderr;
   }
 
-  public TesExecutor ports(List<TesPorts> ports) {
-    this.ports = ports;
+  public TesExecutor env(Map<String, String> env) {
+    this.env = env;
     return this;
   }
 
-  public TesExecutor addPortsItem(TesPorts portsItem) {
-    if (this.ports == null) {
-      this.ports = new ArrayList<TesPorts>();
+  public TesExecutor putEnvItem(String key, String envItem) {
+    if (this.env == null) {
+      this.env = new HashMap<String, String>();
     }
-    this.ports.add(portsItem);
-    return this;
-  }
-
-   /**
-   * A list of port bindings between the container and host. For example, a Docker implementation might map this to `docker run -p host:container`.  Port bindings are included in ExecutorLogs, which allows TES clients to discover port bindings and communicate with running tasks/executors.
-   * @return ports
-  **/
-  @ApiModelProperty(value = "A list of port bindings between the container and host. For example, a Docker implementation might map this to `docker run -p host:container`.  Port bindings are included in ExecutorLogs, which allows TES clients to discover port bindings and communicate with running tasks/executors.")
-
-  @Valid
-
-  public List<TesPorts> getPorts() {
-    return ports;
-  }
-
-  public void setPorts(List<TesPorts> ports) {
-    this.ports = ports;
-  }
-
-  public TesExecutor environ(Map<String, String> environ) {
-    this.environ = environ;
-    return this;
-  }
-
-  public TesExecutor putEnvironItem(String key, String environItem) {
-    if (this.environ == null) {
-      this.environ = new HashMap<String, String>();
-    }
-    this.environ.put(key, environItem);
+    this.env.put(key, envItem);
     return this;
   }
 
    /**
    * Enviromental variables to set within the container.
-   * @return environ
+   * @return env
   **/
   @ApiModelProperty(value = "Enviromental variables to set within the container.")
 
 
-  public Map<String, String> getEnviron() {
-    return environ;
+  public Map<String, String> getEnv() {
+    return env;
   }
 
-  public void setEnviron(Map<String, String> environ) {
-    this.environ = environ;
+  public void setEnv(Map<String, String> env) {
+    this.env = env;
   }
 
 
@@ -239,19 +206,18 @@ public class TesExecutor   {
       return false;
     }
     TesExecutor tesExecutor = (TesExecutor) o;
-    return Objects.equals(this.imageName, tesExecutor.imageName) &&
-        Objects.equals(this.cmd, tesExecutor.cmd) &&
+    return Objects.equals(this.image, tesExecutor.image) &&
+        Objects.equals(this.command, tesExecutor.command) &&
         Objects.equals(this.workdir, tesExecutor.workdir) &&
         Objects.equals(this.stdin, tesExecutor.stdin) &&
         Objects.equals(this.stdout, tesExecutor.stdout) &&
         Objects.equals(this.stderr, tesExecutor.stderr) &&
-        Objects.equals(this.ports, tesExecutor.ports) &&
-        Objects.equals(this.environ, tesExecutor.environ);
+        Objects.equals(this.env, tesExecutor.env);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(imageName, cmd, workdir, stdin, stdout, stderr, ports, environ);
+    return Objects.hash(image, command, workdir, stdin, stdout, stderr, env);
   }
 
   @Override
@@ -259,14 +225,13 @@ public class TesExecutor   {
     StringBuilder sb = new StringBuilder();
     sb.append("class TesExecutor {\n");
     
-    sb.append("    imageName: ").append(toIndentedString(imageName)).append("\n");
-    sb.append("    cmd: ").append(toIndentedString(cmd)).append("\n");
+    sb.append("    image: ").append(toIndentedString(image)).append("\n");
+    sb.append("    command: ").append(toIndentedString(command)).append("\n");
     sb.append("    workdir: ").append(toIndentedString(workdir)).append("\n");
     sb.append("    stdin: ").append(toIndentedString(stdin)).append("\n");
     sb.append("    stdout: ").append(toIndentedString(stdout)).append("\n");
     sb.append("    stderr: ").append(toIndentedString(stderr)).append("\n");
-    sb.append("    ports: ").append(toIndentedString(ports)).append("\n");
-    sb.append("    environ: ").append(toIndentedString(environ)).append("\n");
+    sb.append("    env: ").append(toIndentedString(env)).append("\n");
     sb.append("}");
     return sb.toString();
   }

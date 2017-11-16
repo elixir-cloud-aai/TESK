@@ -18,7 +18,7 @@ import javax.validation.constraints.*;
  * TaskLog describes logging information related to a Task.
  */
 @ApiModel(description = "TaskLog describes logging information related to a Task.")
-@javax.annotation.Generated(value = "io.swagger.codegen.languages.SpringCodegen", date = "2017-11-07T14:45:12.993Z")
+@javax.annotation.Generated(value = "io.swagger.codegen.languages.SpringCodegen", date = "2017-11-16T12:59:29.706Z")
 
 public class TesTaskLog   {
   @JsonProperty("logs")
@@ -35,6 +35,9 @@ public class TesTaskLog   {
 
   @JsonProperty("outputs")
   private List<TesOutputFileLog> outputs = null;
+
+  @JsonProperty("system_logs")
+  private List<String> systemLogs = null;
 
   public TesTaskLog logs(List<TesExecutorLog> logs) {
     this.logs = logs;
@@ -162,6 +165,34 @@ public class TesTaskLog   {
     this.outputs = outputs;
   }
 
+  public TesTaskLog systemLogs(List<String> systemLogs) {
+    this.systemLogs = systemLogs;
+    return this;
+  }
+
+  public TesTaskLog addSystemLogsItem(String systemLogsItem) {
+    if (this.systemLogs == null) {
+      this.systemLogs = new ArrayList<String>();
+    }
+    this.systemLogs.add(systemLogsItem);
+    return this;
+  }
+
+   /**
+   * System logs are any logs the system decides are relevant, which are not tied directly to an Executor process. Content is implementation specific: format, size, etc.  System logs may be collected here to provide convenient access.  For example, the system may include the name of the host where the task is executing, an error message that caused a SYSTEM_ERROR state (e.g. disk is full), etc.  System logs are only included in the FULL task view.
+   * @return systemLogs
+  **/
+  @ApiModelProperty(value = "System logs are any logs the system decides are relevant, which are not tied directly to an Executor process. Content is implementation specific: format, size, etc.  System logs may be collected here to provide convenient access.  For example, the system may include the name of the host where the task is executing, an error message that caused a SYSTEM_ERROR state (e.g. disk is full), etc.  System logs are only included in the FULL task view.")
+
+
+  public List<String> getSystemLogs() {
+    return systemLogs;
+  }
+
+  public void setSystemLogs(List<String> systemLogs) {
+    this.systemLogs = systemLogs;
+  }
+
 
   @Override
   public boolean equals(java.lang.Object o) {
@@ -176,12 +207,13 @@ public class TesTaskLog   {
         Objects.equals(this.metadata, tesTaskLog.metadata) &&
         Objects.equals(this.startTime, tesTaskLog.startTime) &&
         Objects.equals(this.endTime, tesTaskLog.endTime) &&
-        Objects.equals(this.outputs, tesTaskLog.outputs);
+        Objects.equals(this.outputs, tesTaskLog.outputs) &&
+        Objects.equals(this.systemLogs, tesTaskLog.systemLogs);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(logs, metadata, startTime, endTime, outputs);
+    return Objects.hash(logs, metadata, startTime, endTime, outputs, systemLogs);
   }
 
   @Override
@@ -194,6 +226,7 @@ public class TesTaskLog   {
     sb.append("    startTime: ").append(toIndentedString(startTime)).append("\n");
     sb.append("    endTime: ").append(toIndentedString(endTime)).append("\n");
     sb.append("    outputs: ").append(toIndentedString(outputs)).append("\n");
+    sb.append("    systemLogs: ").append(toIndentedString(systemLogs)).append("\n");
     sb.append("}");
     return sb.toString();
   }

@@ -27,7 +27,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 import javax.validation.constraints.*;
 import javax.validation.Valid;
-@javax.annotation.Generated(value = "io.swagger.codegen.languages.SpringCodegen", date = "2017-11-07T14:45:12.993Z")
+@javax.annotation.Generated(value = "io.swagger.codegen.languages.SpringCodegen", date = "2017-11-16T12:59:29.706Z")
 
 @Api(value = "v1", description = "the v1 API")
 public interface V1Api {
@@ -73,7 +73,7 @@ public interface V1Api {
         produces = { "application/json" }, 
         consumes = { "application/json" },
         method = RequestMethod.GET)
-    ResponseEntity<TesTask> getTask(@ApiParam(value = "",required=true ) @PathVariable("id") String id,@ApiParam(value = "OPTIONAL. Affects the fields included in the returned Task messages. See TaskView below.   - MINIMAL: Task message will include ONLY the fields:   Task.Id   Task.State  - BASIC: Task message will include all fields EXCEPT:   Task.ExecutorLog.stdout   Task.ExecutorLog.stderr   TaskParameter.Contents in Task.Inputs  - FULL: Task message includes all fields.", allowableValues = "MINIMAL, BASIC, FULL", defaultValue = "MINIMAL") @RequestParam(value = "view", required = false, defaultValue="MINIMAL") String view);
+    ResponseEntity<TesTask> getTask(@ApiParam(value = "",required=true ) @PathVariable("id") String id,@ApiParam(value = "OPTIONAL. Affects the fields included in the returned Task messages. See TaskView below.   - MINIMAL: Task message will include ONLY the fields:   Task.Id   Task.State  - BASIC: Task message will include all fields EXCEPT:   Task.ExecutorLog.stdout   Task.ExecutorLog.stderr   Input.content   TaskLog.system_logs  - FULL: Task message includes all fields.", allowableValues = "MINIMAL, BASIC, FULL", defaultValue = "MINIMAL") @RequestParam(value = "view", required = false, defaultValue="MINIMAL") String view);
 
 
     @ApiOperation(value = "List tasks. TaskView is requested as such: \"v1/tasks?view=BASIC\"", notes = "", response = TesListTasksResponse.class, tags={ "TaskService", })
@@ -84,6 +84,6 @@ public interface V1Api {
         produces = { "application/json" }, 
         consumes = { "application/json" },
         method = RequestMethod.GET)
-    ResponseEntity<TesListTasksResponse> listTasks(@ApiParam(value = "OPTIONAL. Filter the task list to include tasks in this project.") @RequestParam(value = "project", required = false) String project,@ApiParam(value = "OPTIONAL. Filter the list to include tasks where the name matches this prefix. If unspecified, no task name filtering is done.") @RequestParam(value = "name_prefix", required = false) String namePrefix,@ApiParam(value = "OPTIONAL. Number of tasks to return in one page. Must be less than 2048. Defaults to 256.") @RequestParam(value = "page_size", required = false) Long pageSize,@ApiParam(value = "OPTIONAL. Page token is used to retrieve the next page of results. If unspecified, returns the first page of results. See ListTasksResponse.next_page_token") @RequestParam(value = "page_token", required = false) String pageToken,@ApiParam(value = "OPTIONAL. Affects the fields included in the returned Task messages. See TaskView below.   - MINIMAL: Task message will include ONLY the fields:   Task.Id   Task.State  - BASIC: Task message will include all fields EXCEPT:   Task.ExecutorLog.stdout   Task.ExecutorLog.stderr   TaskParameter.Contents in Task.Inputs  - FULL: Task message includes all fields.", allowableValues = "MINIMAL, BASIC, FULL", defaultValue = "MINIMAL") @RequestParam(value = "view", required = false, defaultValue="MINIMAL") String view);
+    ResponseEntity<TesListTasksResponse> listTasks(@ApiParam(value = "OPTIONAL. Filter the list to include tasks where the name matches this prefix. If unspecified, no task name filtering is done.") @RequestParam(value = "name_prefix", required = false) String namePrefix,@ApiParam(value = "OPTIONAL. Number of tasks to return in one page. Must be less than 2048. Defaults to 256.") @RequestParam(value = "page_size", required = false) Long pageSize,@ApiParam(value = "OPTIONAL. Page token is used to retrieve the next page of results. If unspecified, returns the first page of results. See ListTasksResponse.next_page_token") @RequestParam(value = "page_token", required = false) String pageToken,@ApiParam(value = "OPTIONAL. Affects the fields included in the returned Task messages. See TaskView below.   - MINIMAL: Task message will include ONLY the fields:   Task.Id   Task.State  - BASIC: Task message will include all fields EXCEPT:   Task.ExecutorLog.stdout   Task.ExecutorLog.stderr   Input.content   TaskLog.system_logs  - FULL: Task message includes all fields.", allowableValues = "MINIMAL, BASIC, FULL", defaultValue = "MINIMAL") @RequestParam(value = "view", required = false, defaultValue="MINIMAL") String view);
 
 }
