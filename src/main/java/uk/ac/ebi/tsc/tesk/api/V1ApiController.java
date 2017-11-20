@@ -8,6 +8,7 @@ import io.kubernetes.client.apis.BatchV1Api;
 import io.kubernetes.client.models.V1Job;
 import io.swagger.annotations.ApiParam;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import uk.ac.ebi.tsc.tesk.model.*;
+import uk.ac.ebi.tsc.tesk.service.TesService;
 
 import javax.validation.Valid;
 import java.util.function.Supplier;
@@ -24,28 +26,17 @@ import java.util.function.Supplier;
 @Controller
 public class V1ApiController implements V1Api {
 
-    @Autowired
-    private ObjectMapper jacksonObjectMapper;
 
     @Autowired
-    private BatchV1Api batchV1Api;
-
-    @Autowired
-    Supplier<V1Job> jobTemplateSupplier;
-
+    private TesService tesService;
 
     public ResponseEntity<TesCancelTaskResponse> cancelTask(@ApiParam(value = "", required = true) @PathVariable("id") String id) {
         // do some magic!
         return new ResponseEntity<TesCancelTaskResponse>(HttpStatus.OK);
     }
 
-    public ResponseEntity<TesCreateTaskResponse> createTask(@ApiParam(value = "", required = true) @Valid @RequestBody TesTask body) throws JsonProcessingException, ApiException {
-
-        V1Job job = this.jobTemplateSupplier.get();
-        String task = this.jacksonObjectMapper.writeValueAsString(body);
-        job.getSpec().getTemplate().getSpec().getContainers().get(0).getEnv().stream().filter(x -> x.getName().equals("JSON_INPUT")).forEach(x -> x.setValue(task));
-        V1Job createdJob = this.batchV1Api.createNamespacedJob("default", job, "false");
-        TesCreateTaskResponse response = new TesCreateTaskResponse().id(createdJob.getMetadata().getName());
+    public ResponseEntity<TesCreateTaskResponse> createTask(@ApiParam(value = "", required = true) @Valid @RequestBody TesTask body) {
+        TesCreateTaskResponse response = this.tesService.createTask(body);
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
