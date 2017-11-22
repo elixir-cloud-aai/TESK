@@ -12,7 +12,7 @@
         "containers": [
           {
             "name": "taskmaster",
-            "image": "eu.gcr.io/tes-wes/taskmaster:v0.0.5.2",
+            "image": "eu.gcr.io/tes-wes/taskmaster:v0.0.6",
             "args": [
               "$(JSON_INPUT)"
             ],
@@ -32,7 +32,7 @@
               },
               { 
                 "name": "JSON_INPUT",
-                "value": "{    \"name\":        \"MD5 example\",    \"description\": \"Task which runs md5sum on the input file.\",    \"project\":     \"tes-example-project-id\",    \"tags\": {      \"custom-tag\": \"tag-value\"    },    \"inputs\": [      {        \"name\": \"infile\",        \"description\": \"md5sum input file\",        \"url\":  \"/path/to/input_file\",        \"path\": \"/container/input\",        \"type\": \"FILE\"      }    ],    \"outputs\" : [      {        \"url\" :  \"/path/to/output_file\",        \"path\" : \"/container/output\"      }    ],    \"resources\" : {      \"cpu_cores\": 1,      \"ram_gb\":    1.0,      \"size_gb\":   100.0,      \"preemptible\": false    },    \"executors\" : [      {        \"image_name\" : \"perl\",        \"cmd\" : [\"perl\", \"-Mbignum=bpi\", \"-wle\", \"print bpi(10000)\"],        \"stdout\" : \"/container/output\",        \"stderr\" : \"/container/stderr\",        \"workdir\": \"/tmp\"      },      {        \"image_name\" : \"perl\",        \"cmd\" : [\"perl\", \"-Mbignum=bpi\", \"-wle\", \"print bpi(10000)\"],        \"stdout\" : \"/container/output\",        \"stderr\" : \"/container/stderr\",        \"workdir\": \"/tmp\"      }    ]}"
+                "value": "{\"executors\":[{\"apiVersion\":\"batch/v1\",\"kind\":\"Job\",\"metadata\":{\"name\":\"task-0852-ex0\"},\"spec\":{\"template\":{\"metadata\":{\"name\":\"md5-example\"},\"spec\":{\"containers\":[{\"command\":[\"perl\",\"-Mbignum\u003dbpi\",\"-wle\",\"print bpi(10000)\"],\"image\":\"perl\",\"name\":\"md5-example-ex0\",\"resources\":{\"requests\":{\"memory\":\"1.0Gi\",\"cpu\":\"1\"}}}],\"restartPolicy\":\"Never\"}}}},{\"apiVersion\":\"batch/v1\",\"kind\":\"Job\",\"metadata\":{\"name\":\"task-0852-ex1\"},\"spec\":{\"template\":{\"metadata\":{\"name\":\"md5-example\"},\"spec\":{\"containers\":[{\"command\":[\"perl\",\"-Mbignum\u003dbpi\",\"-wle\",\"print bpi(10000)\"],\"image\":\"perl\",\"name\":\"md5-example-ex1\",\"resources\":{\"requests\":{\"memory\":\"1.0Gi\",\"cpu\":\"1\"}}}],\"restartPolicy\":\"Never\"}}}}]}"
               }
             ],
           "volumeMounts": [
