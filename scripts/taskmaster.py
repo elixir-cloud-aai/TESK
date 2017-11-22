@@ -10,6 +10,8 @@ import sys
 from kubernetes import client, config
 from datetime import datetime
 
+debug = False
+
 # translates TES JSON into 1 Job spec per executor
 def generate_job_specs(tes):
   exe_i = 0
@@ -52,8 +54,8 @@ def run_executors(specs, polling_interval, namespace):
   v1 = client.BatchV1Api()
 
   for executor in specs:
-    jobname = executor['metadata']['name']+'-'+binascii.hexlify(os.urandom(4))
-    executor['metadata']['name'] = jobname
+    jobname = executor['metadata']['name']
+    #executor['metadata']['name'] = jobname
     job = v1.create_namespaced_job(body=executor, namespace=namespace)
     print("Created job with metadata='%s'" % str(job.metadata))
     finished = False
@@ -85,20 +87,26 @@ def main(argv):
   parser.add_argument('-p', '--polling-interval', help='Job polling interval', default=5)
   parser.add_argument('-n', '--namespace', help='Kubernetes namespace to run in', default='default')
   parser.add_argument('-s', '--state-file', help='State file for state.py script', default='/tmp/.teskstate')
+  parser.add_argument('-d', '--debug', help='Set debug mode', action='store_true')
   args = parser.parse_args()
 
+  debug = args.debug
+
   if args.file is None:
-    tes = json.loads(args.json)
+    data = json.loads(args.json)
   elif args.file == '-':
-    tes = json.load(sys.stdin)
+    data = json.load(sys.stdin)
   else:
-    tes = json.load(open(args.file))
+    data = json.load(open(args.file))
 
-  specs = generate_job_specs(tes)
+  #specs = generate_job_specs(tes)
 
-  config.load_incluster_config()
+  if not debug:
+    config.load_incluster_config()
+  else:
+    config.load_kube_config()
 
-  state = run_executors(specs, args.polling_interval, args.namespace)
+  state = run_executors(data['executors'], args.polling_interval, args.namespace)
   print("Finished with state %s" % state)
 
 if __name__ == "__main__":
