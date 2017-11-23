@@ -2,6 +2,7 @@ package uk.ac.ebi.tsc.tesk.config;
 
 import io.kubernetes.client.ApiClient;
 import io.kubernetes.client.apis.BatchV1Api;
+import io.kubernetes.client.apis.CoreV1Api;
 import io.kubernetes.client.util.Config;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -25,6 +26,12 @@ public class KubernetesClientConfig {
     public BatchV1Api batchApi(ApiClient apiClient) {
 
         return new BatchV1Api(apiClient);
+
+    }
+    @Bean
+    public CoreV1Api coreApi(ApiClient apiClient) {
+
+        return new CoreV1Api(apiClient);
 
     }
 }

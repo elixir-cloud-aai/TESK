@@ -2,12 +2,13 @@
   "kind": "Job",
   "apiVersion": "batch/v1",
   "metadata": {
-    "name": "kubectl-taskmaster"
+    "name": "taskmaster"
   },
   "spec": {
     "template": {
-
-      "metadata": { "name": "kubectl-taskmaster" },
+      "metadata": {
+        "name": "taskmaster"
+      },
       "spec": {
         "containers": [
           {
@@ -30,12 +31,12 @@
                 "name": "KUBERNETES_RO_SERVICE_PORT",
                 "value": "8001"
               },
-              { 
+              {
                 "name": "JSON_INPUT",
-                "value": "{    \"name\":        \"MD5 example\",    \"description\": \"Task which runs md5sum on the input file.\",    \"project\":     \"tes-example-project-id\",    \"tags\": {      \"custom-tag\": \"tag-value\"    },    \"inputs\": [      {        \"name\": \"infile\",        \"description\": \"md5sum input file\",        \"url\":  \"/path/to/input_file\",        \"path\": \"/container/input\",        \"type\": \"FILE\"      }    ],    \"outputs\" : [      {        \"url\" :  \"/path/to/output_file\",        \"path\" : \"/container/output\"      }    ],    \"resources\" : {      \"cpu_cores\": 1,      \"ram_gb\":    1.0,      \"size_gb\":   100.0,      \"preemptible\": false    },    \"executors\" : [      {        \"image_name\" : \"perl\",        \"cmd\" : [\"perl\", \"-Mbignum=bpi\", \"-wle\", \"print bpi(10000)\"],        \"stdout\" : \"/container/output\",        \"stderr\" : \"/container/stderr\",        \"workdir\": \"/tmp\"      },      {        \"image_name\" : \"perl\",        \"cmd\" : [\"perl\", \"-Mbignum=bpi\", \"-wle\", \"print bpi(10000)\"],        \"stdout\" : \"/container/output\",        \"stderr\" : \"/container/stderr\",        \"workdir\": \"/tmp\"      }    ]}"
+                "value": ""
               }
             ],
-          "volumeMounts": [
+            "volumeMounts": [
               {
                 "name": "test-volume",
                 "mountPath": "/mount/test-volume"

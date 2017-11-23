@@ -70,8 +70,7 @@ public interface V1Api {
         @ApiResponse(code = 200, message = "", response = TesTask.class) })
     
     @RequestMapping(value = "/v1/tasks/{id}",
-        produces = { "application/json" }, 
-        consumes = { "application/json" },
+        produces = { "application/json" },
         method = RequestMethod.GET)
     ResponseEntity<TesTask> getTask(@ApiParam(value = "",required=true ) @PathVariable("id") String id,@ApiParam(value = "OPTIONAL. Affects the fields included in the returned Task messages. See TaskView below.   - MINIMAL: Task message will include ONLY the fields:   Task.Id   Task.State  - BASIC: Task message will include all fields EXCEPT:   Task.ExecutorLog.stdout   Task.ExecutorLog.stderr   Input.content   TaskLog.system_logs  - FULL: Task message includes all fields.", allowableValues = "MINIMAL, BASIC, FULL", defaultValue = "MINIMAL") @RequestParam(value = "view", required = false, defaultValue="MINIMAL") String view);
 
