@@ -11,16 +11,17 @@ import org.springframework.util.CollectionUtils;
 import uk.ac.ebi.tsc.tesk.exception.KubernetesException;
 import uk.ac.ebi.tsc.tesk.model.TesCreateTaskResponse;
 import uk.ac.ebi.tsc.tesk.model.TesExecutorLog;
+import uk.ac.ebi.tsc.tesk.model.TesListTasksResponse;
 import uk.ac.ebi.tsc.tesk.model.TesTask;
 import uk.ac.ebi.tsc.tesk.util.JobNameGenerator;
 import uk.ac.ebi.tsc.tesk.util.KubernetesClientWrapper;
-import uk.ac.ebi.tsc.tesk.util.ListView;
+import uk.ac.ebi.tsc.tesk.util.TaskView;
 import uk.ac.ebi.tsc.tesk.util.TesKubernetesConverter;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.StringJoiner;
+import java.util.Optional;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -32,7 +33,6 @@ import static uk.ac.ebi.tsc.tesk.util.KubernetesConstants.*;
  */
 @Service
 public class TesService {
-
 
 
     @Autowired
@@ -76,11 +76,15 @@ public class TesService {
         }
     }
 
-    public TesTask getTask(String taskId, ListView view) {
-
+    public TesTask getTask(String taskId, TaskView view) {
         V1Job taskMasterJob = this.kubernetesClientWrapper.readNamespacedJob(taskId, DEFAULT_NAMESPACE);
-        V1JobList executorJobs = this.kubernetesClientWrapper.listNamespacedJob(DEFAULT_NAMESPACE, new StringJoiner("=").add(LABEL_TESTASK_ID_KEY).add(taskId).toString());
-        if (view == ListView.MINIMAL)
+        return this.getTask(taskMasterJob, view);
+    }
+
+    public TesTask getTask(V1Job taskMasterJob, TaskView view) {
+
+        V1JobList executorJobs = this.kubernetesClientWrapper.listTaskExecutorJobs(DEFAULT_NAMESPACE, taskMasterJob.getMetadata().getName());
+        if (view == TaskView.MINIMAL)
             return this.converter.fromK8sJobsToTesTaskMinimal(taskMasterJob, executorJobs.getItems());
 
         TesTask task = this.converter.fromK8sJobsToTesTask(taskMasterJob, executorJobs.getItems());
@@ -88,14 +92,14 @@ public class TesService {
             V1PodList executorJobPods = this.kubernetesClientWrapper.listNamespacedPod(DEFAULT_NAMESPACE, this.converter.getPodsSelectorFromJob(executorJob));
             if (!CollectionUtils.isEmpty(executorJobPods.getItems())) {
                 TesExecutorLog executorLog = this.converter.extractExecutorLogFromK8sJobAndPod(executorJob, executorJobPods.getItems().get(0));
-                if (view == ListView.FULL) {
+                if (view == TaskView.FULL) {
                     String executorPodLog = this.kubernetesClientWrapper.readNamespacedPodLog(executorJobPods.getItems().get(0).getMetadata().getName(), DEFAULT_NAMESPACE);
                     executorLog.setStdout(executorPodLog);
                 }
                 task.getLogs().get(0).addLogsItem(executorLog);
             }
         }
-        if (view == ListView.BASIC) return task;
+        if (view == TaskView.BASIC) return task;
 
         V1PodList taskMasterPods = this.kubernetesClientWrapper.listNamespacedPod(DEFAULT_NAMESPACE, this.converter.getPodsSelectorFromJob(taskMasterJob));
         if (!CollectionUtils.isEmpty(taskMasterPods.getItems())) {
@@ -104,6 +108,21 @@ public class TesService {
         }
         return task;
 
+
+    }
+
+
+    public TesListTasksResponse listTasks(String namePrefix,
+                                          Long pageSize,
+                                          String pageToken,
+                                          TaskView view) {
+
+        V1JobList taskmasterJobs = this.kubernetesClientWrapper.listTaskmasterJobs(DEFAULT_NAMESPACE, pageToken, Optional.ofNullable(pageSize).map(Long::intValue).orElse(null));
+        List<TesTask> tasks = taskmasterJobs.getItems().stream().map(job->this.getTask(job, view)).collect(Collectors.toList());
+        TesListTasksResponse response = new TesListTasksResponse();
+        response.tasks(tasks).nextPageToken(taskmasterJobs.getMetadata().getContinue());
+
+        return response;
 
     }
 

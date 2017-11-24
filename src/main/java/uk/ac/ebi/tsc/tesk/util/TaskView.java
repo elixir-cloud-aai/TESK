@@ -1,25 +1,23 @@
 package uk.ac.ebi.tsc.tesk.util;
 
-import java.util.Arrays;
-
 /**
  * @author Ania Niewielska <aniewielska@ebi.ac.uk>
  */
-public enum ListView {
+public enum TaskView {
     MINIMAL("MINIMAL"), BASIC("BASIC"), FULL("FULL");
 
     private String value;
 
-    ListView(String value) {
+    TaskView(String value) {
         this.value = value;
     }
 
-    public static ListView fromString(String view) {
-        for (ListView item : ListView.values()) {
+    public static TaskView fromString(String view) {
+        for (TaskView item : TaskView.values()) {
             if (view.toUpperCase().equals(item.value)) {
                 return item;
             }
         }
-        return ListView.MINIMAL;
+        return TaskView.MINIMAL;
     }
 }

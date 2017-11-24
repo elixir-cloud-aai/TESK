@@ -9,6 +9,12 @@ import io.kubernetes.client.models.V1PodList;
 import org.springframework.stereotype.Component;
 import uk.ac.ebi.tsc.tesk.exception.KubernetesException;
 
+import java.util.StringJoiner;
+
+import static uk.ac.ebi.tsc.tesk.util.KubernetesConstants.LABEL_JOBTYPE_KEY;
+import static uk.ac.ebi.tsc.tesk.util.KubernetesConstants.LABEL_JOBTYPE_VALUE_TASKM;
+import static uk.ac.ebi.tsc.tesk.util.KubernetesConstants.LABEL_TESTASK_ID_KEY;
+
 /**
  * @author Ania Niewielska <aniewielska@ebi.ac.uk>
  */
@@ -37,12 +43,20 @@ public class KubernetesClientWrapper {
             throw KubernetesException.fromApiException(e);
         }
     }
-    public V1JobList listNamespacedJob(String namespace, String labelSelector) {
+    public V1JobList listNamespacedJob(String namespace, String _continue, String labelSelector, Integer limit) {
         try {
-            return this.batchApi.listNamespacedJob(namespace, null, null, null, null, labelSelector, null, null, null, null);
+            return this.batchApi.listNamespacedJob(namespace, null, _continue, null, null, labelSelector, limit, null, null, null);
         } catch (ApiException e) {
             throw KubernetesException.fromApiException(e);
         }
+    }
+    public V1JobList listTaskExecutorJobs(String namespace, String taskId) {
+        String labelSelector =  new StringJoiner("=").add(LABEL_TESTASK_ID_KEY).add(taskId).toString();
+        return this.listNamespacedJob(namespace, null, labelSelector, null);
+    }
+    public V1JobList listTaskmasterJobs(String namespace, String pageToken, Integer itemsPerPage) {
+        String labelSelector =  new StringJoiner("=").add(LABEL_JOBTYPE_KEY).add(LABEL_JOBTYPE_VALUE_TASKM).toString();
+        return this.listNamespacedJob(namespace, pageToken, labelSelector, itemsPerPage);
     }
     public V1PodList listNamespacedPod(String namespace, String labelSelector) {
         try {
