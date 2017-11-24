@@ -65,7 +65,7 @@ public class TesService {
         int attemptsNo = 0;
         while (true) {
             try {
-                V1Job createdJob = this.kubernetesClientWrapper.createNamespacedJob(DEFAULT_NAMESPACE, taskMasterJob);
+                V1Job createdJob = this.kubernetesClientWrapper.createJob(taskMasterJob);
                 return this.converter.fromK8sJobToTesCreateTaskResponse(createdJob);
             } catch (KubernetesException e) {
                 if (!e.isObjectNameDuplicated() || ++attemptsNo >= JOB_CREATE_ATTEMPTS_NO) {
@@ -77,23 +77,23 @@ public class TesService {
     }
 
     public TesTask getTask(String taskId, TaskView view) {
-        V1Job taskMasterJob = this.kubernetesClientWrapper.readNamespacedJob(taskId, DEFAULT_NAMESPACE);
+        V1Job taskMasterJob = this.kubernetesClientWrapper.readTaskmasterJob(taskId);
         return this.getTask(taskMasterJob, view);
     }
 
-    public TesTask getTask(V1Job taskMasterJob, TaskView view) {
+    private TesTask getTask(V1Job taskMasterJob, TaskView view) {
 
-        V1JobList executorJobs = this.kubernetesClientWrapper.listTaskExecutorJobs(DEFAULT_NAMESPACE, taskMasterJob.getMetadata().getName());
+        V1JobList executorJobs = this.kubernetesClientWrapper.listTaskExecutorJobs(taskMasterJob.getMetadata().getName());
         if (view == TaskView.MINIMAL)
             return this.converter.fromK8sJobsToTesTaskMinimal(taskMasterJob, executorJobs.getItems());
 
         TesTask task = this.converter.fromK8sJobsToTesTask(taskMasterJob, executorJobs.getItems());
         for (V1Job executorJob : executorJobs.getItems()) {
-            V1PodList executorJobPods = this.kubernetesClientWrapper.listNamespacedPod(DEFAULT_NAMESPACE, this.converter.getPodsSelectorFromJob(executorJob));
+            V1PodList executorJobPods = this.kubernetesClientWrapper.listJobPods(executorJob);
             if (!CollectionUtils.isEmpty(executorJobPods.getItems())) {
                 TesExecutorLog executorLog = this.converter.extractExecutorLogFromK8sJobAndPod(executorJob, executorJobPods.getItems().get(0));
                 if (view == TaskView.FULL) {
-                    String executorPodLog = this.kubernetesClientWrapper.readNamespacedPodLog(executorJobPods.getItems().get(0).getMetadata().getName(), DEFAULT_NAMESPACE);
+                    String executorPodLog = this.kubernetesClientWrapper.readPodLog(executorJobPods.getItems().get(0).getMetadata().getName());
                     executorLog.setStdout(executorPodLog);
                 }
                 task.getLogs().get(0).addLogsItem(executorLog);
@@ -101,9 +101,9 @@ public class TesService {
         }
         if (view == TaskView.BASIC) return task;
 
-        V1PodList taskMasterPods = this.kubernetesClientWrapper.listNamespacedPod(DEFAULT_NAMESPACE, this.converter.getPodsSelectorFromJob(taskMasterJob));
+        V1PodList taskMasterPods = this.kubernetesClientWrapper.listJobPods(taskMasterJob);
         if (!CollectionUtils.isEmpty(taskMasterPods.getItems())) {
-            String taskMasterPodLog = this.kubernetesClientWrapper.readNamespacedPodLog(taskMasterPods.getItems().get(0).getMetadata().getName(), DEFAULT_NAMESPACE);
+            String taskMasterPodLog = this.kubernetesClientWrapper.readPodLog(taskMasterPods.getItems().get(0).getMetadata().getName());
             task.getLogs().get(0).addSystemLogsItem(taskMasterPodLog);
         }
         return task;
@@ -117,7 +117,7 @@ public class TesService {
                                           String pageToken,
                                           TaskView view) {
 
-        V1JobList taskmasterJobs = this.kubernetesClientWrapper.listTaskmasterJobs(DEFAULT_NAMESPACE, pageToken, Optional.ofNullable(pageSize).map(Long::intValue).orElse(null));
+        V1JobList taskmasterJobs = this.kubernetesClientWrapper.listTaskmasterJobs(pageToken, Optional.ofNullable(pageSize).map(Long::intValue).orElse(null));
         List<TesTask> tasks = taskmasterJobs.getItems().stream().map(job->this.getTask(job, view)).collect(Collectors.toList());
         TesListTasksResponse response = new TesListTasksResponse();
         response.tasks(tasks).nextPageToken(taskmasterJobs.getMetadata().getContinue());

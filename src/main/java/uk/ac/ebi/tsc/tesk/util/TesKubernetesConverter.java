@@ -11,7 +11,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
+
 import static uk.ac.ebi.tsc.tesk.util.KubernetesConstants.*;
 
 /**
@@ -35,10 +35,6 @@ public class TesKubernetesConverter {
         job.getSpec().getTemplate().getSpec().getContainers().get(0).setName(newName);
     }
 
-    public String getPodsSelectorFromJob(V1Job job) {
-        return job.getSpec().getSelector().getMatchLabels().entrySet().stream().map(entry -> entry.getKey() + "=" + entry.getValue()).collect(Collectors.joining(", "));
-    }
-
     public V1Job fromTesExecutorToK8sJob(String generatedTaskId, String tesTaskName, TesExecutor executor, int executorIndex, TesResources resources) {
         V1Job job = executorTemplateSupplier.get();
         this.changeJobName(job, this.jobNameGenerator.getExecutorName(generatedTaskId, executorIndex));
@@ -57,6 +53,7 @@ public class TesKubernetesConverter {
     public TesCreateTaskResponse fromK8sJobToTesCreateTaskResponse(V1Job job) {
         return new TesCreateTaskResponse().id(job.getMetadata().getName());
     }
+
     public TesState extractStateFromK8sJobs(V1Job taskMasterJob, List<V1Job> executorJobs) {
         String taskMasterJobName = taskMasterJob.getMetadata().getName();
         Optional<V1Job> lastExecutor = executorJobs.stream().max(Comparator.comparing(
@@ -76,8 +73,8 @@ public class TesKubernetesConverter {
     }
     public TesExecutorLog extractExecutorLogFromK8sJobAndPod(V1Job executorJob, V1Pod executorPod) {
         TesExecutorLog log = new TesExecutorLog();
-        log.setStartTime(ISODateTimeFormat.dateTime().print(executorJob.getMetadata().getCreationTimestamp()));
-        log.setEndTime(executorJob.getStatus().getCompletionTime() == null? null: ISODateTimeFormat.dateTime().print(executorJob.getStatus().getCompletionTime()));
+        log.setStartTime(Optional.ofNullable(executorJob.getStatus().getStartTime()).map(time -> ISODateTimeFormat.dateTime().print(time)).orElse(null));
+        log.setEndTime(Optional.ofNullable(executorJob.getStatus().getCompletionTime()).map(time -> ISODateTimeFormat.dateTime().print(time)).orElse(null));
         log.setExitCode(Optional.ofNullable(executorPod.getStatus()).
                 map(status -> status.getContainerStatuses()).
                 map(list -> list.size() > 0 ? list.get(0): null).
@@ -87,18 +84,21 @@ public class TesKubernetesConverter {
                 orElse(null));
         return log;
     }
+
     public TesTask fromK8sJobsToTesTaskMinimal(V1Job taskMasterJob, List<V1Job> executorJobs) {
         TesTask task = new TesTask();
         task.setId(taskMasterJob.getMetadata().getName());
         task.setState(this.extractStateFromK8sJobs(taskMasterJob, executorJobs));
         return task;
     }
+
     public TesTask fromK8sJobsToTesTask(V1Job taskMasterJob, List<V1Job> executorJobs) {
         TesTask task = this.fromK8sJobsToTesTaskMinimal(taskMasterJob, executorJobs);
+        task.setCreationTime(ISODateTimeFormat.dateTime().print(taskMasterJob.getMetadata().getCreationTimestamp()));
         TesTaskLog log = new TesTaskLog();
         task.addLogsItem(log);
-        log.setStartTime(ISODateTimeFormat.dateTime().print(taskMasterJob.getMetadata().getCreationTimestamp()));
-        log.setEndTime(taskMasterJob.getStatus().getCompletionTime() == null? null: ISODateTimeFormat.dateTime().print(taskMasterJob.getStatus().getCompletionTime()));
+        log.setStartTime(Optional.ofNullable(taskMasterJob.getStatus().getStartTime()).map(time -> ISODateTimeFormat.dateTime().print(time)).orElse(null));
+        log.setEndTime(Optional.ofNullable(taskMasterJob.getStatus().getCompletionTime()).map(time -> ISODateTimeFormat.dateTime().print(time)).orElse(null));
         return task;
     }
 
