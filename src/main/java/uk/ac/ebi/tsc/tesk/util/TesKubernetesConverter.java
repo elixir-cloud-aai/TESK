@@ -1,12 +1,17 @@
 package uk.ac.ebi.tsc.tesk.util;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.kubernetes.client.models.*;
 import org.joda.time.format.ISODateTimeFormat;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import uk.ac.ebi.tsc.tesk.model.*;
+import uk.ac.ebi.tsc.tesk.service.TesService;
 
+import java.io.IOException;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
@@ -20,14 +25,21 @@ import static uk.ac.ebi.tsc.tesk.util.KubernetesConstants.*;
 @Component
 public class TesKubernetesConverter {
 
+    private final static Logger logger = LoggerFactory.getLogger(TesKubernetesConverter.class);
+
     private static final Integer TRUE = 1;
 
-    @Autowired
-    @Qualifier("executor")
-    private Supplier<V1Job> executorTemplateSupplier;
+    private final Supplier<V1Job> executorTemplateSupplier;
 
-    @Autowired
-    private JobNameGenerator jobNameGenerator;
+    private final JobNameGenerator jobNameGenerator;
+
+    private final ObjectMapper objectMapper;
+
+    public TesKubernetesConverter(@Qualifier("executor") Supplier<V1Job> executorTemplateSupplier, JobNameGenerator jobNameGenerator, ObjectMapper objectMapper) {
+        this.executorTemplateSupplier = executorTemplateSupplier;
+        this.jobNameGenerator = jobNameGenerator;
+        this.objectMapper = objectMapper;
+    }
 
     public void changeJobName(V1Job job, String newName) {
         job.getMetadata().name(newName);
@@ -57,7 +69,7 @@ public class TesKubernetesConverter {
     public TesState extractStateFromK8sJobs(V1Job taskMasterJob, List<V1Job> executorJobs) {
         String taskMasterJobName = taskMasterJob.getMetadata().getName();
         Optional<V1Job> lastExecutor = executorJobs.stream().max(Comparator.comparing(
-                job->this.jobNameGenerator.extractExecutorNumberFromName(taskMasterJobName, job.getMetadata().getName())));
+                job -> this.jobNameGenerator.extractExecutorNumberFromName(taskMasterJobName, job.getMetadata().getName())));
         boolean taskMasterRunning = TRUE.equals(taskMasterJob.getStatus().getActive());
         //boolean taskMasterFailed = TRUE.equals(taskMasterJob.getStatus().getFailed());
         boolean taskMasterCompleted = TRUE.equals(taskMasterJob.getStatus().getSucceeded());
@@ -71,13 +83,14 @@ public class TesKubernetesConverter {
         if (taskMasterCompleted && lastExecutorFailed) return TesState.EXECUTOR_ERROR;
         return TesState.SYSTEM_ERROR;
     }
+
     public TesExecutorLog extractExecutorLogFromK8sJobAndPod(V1Job executorJob, V1Pod executorPod) {
         TesExecutorLog log = new TesExecutorLog();
         log.setStartTime(Optional.ofNullable(executorJob.getStatus().getStartTime()).map(time -> ISODateTimeFormat.dateTime().print(time)).orElse(null));
         log.setEndTime(Optional.ofNullable(executorJob.getStatus().getCompletionTime()).map(time -> ISODateTimeFormat.dateTime().print(time)).orElse(null));
         log.setExitCode(Optional.ofNullable(executorPod.getStatus()).
                 map(status -> status.getContainerStatuses()).
-                map(list -> list.size() > 0 ? list.get(0): null).
+                map(list -> list.size() > 0 ? list.get(0) : null).
                 map(V1ContainerStatus::getState).
                 map(V1ContainerState::getTerminated).
                 map(V1ContainerStateTerminated::getExitCode).
@@ -92,8 +105,19 @@ public class TesKubernetesConverter {
         return task;
     }
 
-    public TesTask fromK8sJobsToTesTask(V1Job taskMasterJob, List<V1Job> executorJobs) {
-        TesTask task = this.fromK8sJobsToTesTaskMinimal(taskMasterJob, executorJobs);
+    public TesTask fromK8sJobsToTesTask(V1Job taskMasterJob, List<V1Job> executorJobs, boolean nullifyInputContent) {
+        TesTask task = new TesTask();
+        String inputJson = Optional.ofNullable(taskMasterJob.getMetadata().getAnnotations().get(ANN_JSON_INPUT_KEY)).orElse("");
+        try {
+            task = this.objectMapper.readValue(inputJson, TesTask.class);
+            if (nullifyInputContent && task.getInputs() != null) {
+                task.getInputs().forEach(input->input.setContent(null));
+            }
+        } catch (IOException ex) {
+            logger.info(String.format("Deserializing task %s from JSON failed", taskMasterJob.getMetadata().getName()), ex);
+        }
+        task.setId(taskMasterJob.getMetadata().getName());
+        task.setState(this.extractStateFromK8sJobs(taskMasterJob, executorJobs));
         task.setCreationTime(ISODateTimeFormat.dateTime().print(taskMasterJob.getMetadata().getCreationTimestamp()));
         TesTaskLog log = new TesTaskLog();
         task.addLogsItem(log);

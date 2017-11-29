@@ -1,9 +1,13 @@
 package uk.ac.ebi.tsc.tesk.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
 import io.kubernetes.client.models.V1Job;
 import io.kubernetes.client.models.V1JobList;
 import io.kubernetes.client.models.V1PodList;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
@@ -39,6 +43,9 @@ public class TesService {
     private Gson gson;
 
     @Autowired
+    private ObjectMapper objectMapper;
+
+    @Autowired
     private KubernetesClientWrapper kubernetesClientWrapper;
 
     @Autowired
@@ -51,10 +58,17 @@ public class TesService {
     @Autowired
     private JobNameGenerator nameGenerator;
 
+    private final static Logger logger = LoggerFactory.getLogger(TesService.class);
+
     public TesCreateTaskResponse createTask(TesTask task) {
 
         V1Job taskMasterJob = this.jobTemplateSupplier.get();
         taskMasterJob.getMetadata().putAnnotationsItem(ANN_TESTASK_NAME_KEY, task.getName());
+        try {
+            taskMasterJob.getMetadata().putAnnotationsItem(ANN_JSON_INPUT_KEY, this.objectMapper.writeValueAsString(task));
+        } catch (JsonProcessingException ex) {
+            logger.info(String.format("Serializing task %s to JSON failed", taskMasterJob.getMetadata().getName()), ex);
+        }
         List<V1Job> executorsAsJobs = IntStream.range(0, task.getExecutors().size()).
                 mapToObj(i -> this.converter.fromTesExecutorToK8sJob(taskMasterJob.getMetadata().getName(), task.getName(), task.getExecutors().get(i), i, task.getResources())).
                 collect(Collectors.toList());
@@ -87,7 +101,7 @@ public class TesService {
         if (view == TaskView.MINIMAL)
             return this.converter.fromK8sJobsToTesTaskMinimal(taskMasterJob, executorJobs.getItems());
 
-        TesTask task = this.converter.fromK8sJobsToTesTask(taskMasterJob, executorJobs.getItems());
+        TesTask task = this.converter.fromK8sJobsToTesTask(taskMasterJob, executorJobs.getItems(), view == TaskView.BASIC);
         for (V1Job executorJob : executorJobs.getItems()) {
             V1PodList executorJobPods = this.kubernetesClientWrapper.listJobPods(executorJob);
             if (!CollectionUtils.isEmpty(executorJobPods.getItems())) {

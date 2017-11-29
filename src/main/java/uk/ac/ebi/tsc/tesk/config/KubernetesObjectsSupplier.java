@@ -23,7 +23,6 @@ import static uk.ac.ebi.tsc.tesk.util.KubernetesConstants.*;
 public class KubernetesObjectsSupplier {
 
 
-
     @Autowired
     private Gson gson;
 

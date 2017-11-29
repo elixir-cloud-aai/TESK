@@ -58,6 +58,11 @@ public class KubernetesConstants {
     public static final String ANN_TESTASK_NAME_KEY = "tes-task-name";
 
     /**
+     * Key of the annotation, that stores whole input TES task serialized to JSON
+     */
+    public static final String ANN_JSON_INPUT_KEY = "json-input";
+
+    /**
      * Key of the label, that stores taskmaster's name (==TES task generated ID) in executor jobs
      */
     public static final String LABEL_TESTASK_ID_KEY = "taskmaster-name";

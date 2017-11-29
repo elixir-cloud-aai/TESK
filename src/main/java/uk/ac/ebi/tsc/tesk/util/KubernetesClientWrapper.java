@@ -6,6 +6,8 @@ import io.kubernetes.client.apis.CoreV1Api;
 import io.kubernetes.client.models.V1Job;
 import io.kubernetes.client.models.V1JobList;
 import io.kubernetes.client.models.V1PodList;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import uk.ac.ebi.tsc.tesk.exception.KubernetesException;
@@ -21,6 +23,8 @@ import static uk.ac.ebi.tsc.tesk.util.KubernetesConstants.*;
  */
 @Component
 public class KubernetesClientWrapper {
+
+    private static Logger logger = LoggerFactory.getLogger(KubernetesClientWrapper.class);
 
     private final BatchV1Api batchApi;
 
@@ -82,8 +86,9 @@ public class KubernetesClientWrapper {
         try {
             return this.coreApi.readNamespacedPodLog(podName, DEFAULT_NAMESPACE, null, null, null, null, null, null, null, null);
         } catch (ApiException e) {
-            throw KubernetesException.fromApiException(e);
+            logger.info("Getting logs for pod " + podName + " failed.", e);
         }
+        return null;
     }
 
 
