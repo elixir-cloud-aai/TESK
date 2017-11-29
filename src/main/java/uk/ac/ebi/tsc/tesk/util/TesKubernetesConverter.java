@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 import uk.ac.ebi.tsc.tesk.model.*;
 import uk.ac.ebi.tsc.tesk.service.TesService;
 
+import javax.swing.text.html.Option;
 import java.io.IOException;
 import java.util.Comparator;
 import java.util.List;
@@ -55,10 +56,14 @@ public class TesKubernetesConverter {
         job.getMetadata().putAnnotationsItem(ANN_TESTASK_NAME_KEY, tesTaskName);
         V1Container container = job.getSpec().getTemplate().getSpec().getContainers().get(0);
         container.image(executor.getImage());
-        executor.getCommand().stream().forEach(container::addCommandItem);
-        container.getResources().
-                putRequestsItem(RESOURCE_CPU_KEY, resources.getCpuCores().toString()).
-                putRequestsItem(RESOURCE_MEM_KEY, resources.getRamGb().toString() + RESOURCE_MEM_UNIT);
+        //Should it be command here (==ENTRYPOINT) or args (==CMD)
+        executor.getCommand().stream().forEach(container::addArgsItem);
+        if (executor.getEnv() != null) {
+            executor.getEnv().forEach((key, value) -> container.addEnvItem(new V1EnvVar().name(key).value(value)));
+        }
+        container.setWorkingDir(executor.getWorkdir());
+        Optional.ofNullable(resources).map(TesResources::getCpuCores).ifPresent(cpuCores -> container.getResources().putRequestsItem(RESOURCE_CPU_KEY, cpuCores.toString()));
+        Optional.ofNullable(resources).map(TesResources::getRamGb).ifPresent(ramGb -> container.getResources().putRequestsItem(RESOURCE_MEM_KEY, ramGb.toString() + RESOURCE_MEM_UNIT));
         return job;
     }
 
