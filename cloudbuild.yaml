@@ -1,0 +1,10 @@
+steps:
+- name: 'openjdk:8-jdk-alpine'
+  entrypoint: 'bash'
+  args: ['-c', './mvnw clean package']
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['build',
+         '-t', 'eu.gcr.io/$PROJECT_ID/$REPO_NAME:$TAG_NAME',
+         '-f', 'Dockerfile', '.']
+images:
+- 'eu.gcr.io/$PROJECT_ID/$REPO_NAME:$TAG_NAME'
