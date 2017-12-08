@@ -5,13 +5,10 @@ import io.kubernetes.client.models.*;
 import org.joda.time.format.ISODateTimeFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import uk.ac.ebi.tsc.tesk.model.*;
-import uk.ac.ebi.tsc.tesk.service.TesService;
 
-import javax.swing.text.html.Option;
 import java.io.IOException;
 import java.util.Comparator;
 import java.util.List;
@@ -28,13 +25,13 @@ public class TesKubernetesConverter {
 
     private final static Logger logger = LoggerFactory.getLogger(TesKubernetesConverter.class);
 
-    private static final Integer TRUE = 1;
-
     private final Supplier<V1Job> executorTemplateSupplier;
 
     private final JobNameGenerator jobNameGenerator;
 
     private final ObjectMapper objectMapper;
+
+    private enum JOB_STATUS {ACTIVE, SUCCEEDED, FAILED};
 
     public TesKubernetesConverter(@Qualifier("executor") Supplier<V1Job> executorTemplateSupplier, JobNameGenerator jobNameGenerator, ObjectMapper objectMapper) {
         this.executorTemplateSupplier = executorTemplateSupplier;
@@ -70,19 +67,33 @@ public class TesKubernetesConverter {
     public TesCreateTaskResponse fromK8sJobToTesCreateTaskResponse(V1Job job) {
         return new TesCreateTaskResponse().id(job.getMetadata().getName());
     }
+    private boolean isJobInStatus(V1JobStatus testedObject, JOB_STATUS testObjective) {
+        Integer result = null;
+        switch (testObjective) {
+           case ACTIVE:
+                result = testedObject.getActive();
+                break;
+            case SUCCEEDED:
+                result = testedObject.getSucceeded();
+                break;
+            case FAILED:
+                result = testedObject.getFailed();
+                break;
+        }
+        return Optional.ofNullable(result).map(failed -> failed.intValue() > 0).orElse(false);
+    }
 
     public TesState extractStateFromK8sJobs(V1Job taskMasterJob, List<V1Job> executorJobs) {
         String taskMasterJobName = taskMasterJob.getMetadata().getName();
         Optional<V1Job> lastExecutor = executorJobs.stream().max(Comparator.comparing(
                 job -> this.jobNameGenerator.extractExecutorNumberFromName(taskMasterJobName, job.getMetadata().getName())));
-        boolean taskMasterRunning = TRUE.equals(taskMasterJob.getStatus().getActive());
-        //boolean taskMasterFailed = TRUE.equals(taskMasterJob.getStatus().getFailed());
-        boolean taskMasterCompleted = TRUE.equals(taskMasterJob.getStatus().getSucceeded());
+        boolean taskMasterRunning = this.isJobInStatus(taskMasterJob.getStatus(), JOB_STATUS.ACTIVE);
+        boolean taskMasterCompleted = this.isJobInStatus(taskMasterJob.getStatus(), JOB_STATUS.SUCCEEDED);
         boolean executorPresent = lastExecutor.isPresent();
-        //boolean lastExecutorRunning = executorPresent && TRUE.equals(lastExecutor.get().getStatus().getActive());
-        boolean lastExecutorFailed = executorPresent && TRUE.equals(lastExecutor.get().getStatus().getFailed());
-        boolean lastExecutorCompleted = executorPresent && TRUE.equals(lastExecutor.get().getStatus().getSucceeded());
+        boolean lastExecutorFailed = executorPresent && this.isJobInStatus(lastExecutor.get().getStatus(), JOB_STATUS.FAILED);
+        boolean lastExecutorCompleted = executorPresent && this.isJobInStatus(lastExecutor.get().getStatus(), JOB_STATUS.SUCCEEDED);
 
+        if (taskMasterRunning && !executorPresent) return TesState.INITIALIZING;
         if (taskMasterRunning) return TesState.RUNNING;
         if (taskMasterCompleted && lastExecutorCompleted) return TesState.COMPLETE;
         if (taskMasterCompleted && lastExecutorFailed) return TesState.EXECUTOR_ERROR;
