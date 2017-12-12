@@ -9,6 +9,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.hibernate.validator.constraints.NotEmpty;
 import uk.ac.ebi.tsc.tesk.model.TesExecutor;
 import uk.ac.ebi.tsc.tesk.model.TesInput;
 import uk.ac.ebi.tsc.tesk.model.TesOutput;
@@ -46,6 +48,7 @@ public class TesTask   {
   @JsonProperty("resources")
   private TesResources resources = null;
 
+  @NotEmpty
   @JsonProperty("executors")
   private List<TesExecutor> executors = null;
 

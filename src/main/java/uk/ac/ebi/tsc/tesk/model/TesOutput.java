@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
+import org.hibernate.validator.constraints.NotBlank;
 import uk.ac.ebi.tsc.tesk.model.TesFileType;
 import javax.validation.Valid;
 import javax.validation.constraints.*;
@@ -22,12 +23,15 @@ public class TesOutput   {
   @JsonProperty("description")
   private String description = null;
 
+  @NotBlank
   @JsonProperty("url")
   private String url = null;
 
+  @NotBlank
   @JsonProperty("path")
   private String path = null;
 
+  @NotNull
   @JsonProperty("type")
   private TesFileType type = null;
 

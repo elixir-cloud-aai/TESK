@@ -5,16 +5,18 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
+import org.hibernate.validator.constraints.NotBlank;
+import org.hibernate.validator.constraints.ScriptAssert;
 import uk.ac.ebi.tsc.tesk.model.TesFileType;
 import javax.validation.Valid;
 import javax.validation.constraints.*;
 
 /**
- * Input describes Task input files.
+ * Input describes Task input.json files.
  */
-@ApiModel(description = "Input describes Task input files.")
+@ApiModel(description = "Input describes Task input.json files.")
 @javax.annotation.Generated(value = "io.swagger.codegen.languages.SpringCodegen", date = "2017-11-16T12:59:29.706Z")
-
+@ScriptAssert(lang = "javascript", script = "(_this.url != null && (_this.url.trim().length) > 0) || (_this.content != null && _this.content.length > 0)", message = "URL or content required")
 public class TesInput   {
   @JsonProperty("name")
   private String name = null;
@@ -25,9 +27,11 @@ public class TesInput   {
   @JsonProperty("url")
   private String url = null;
 
+  @NotBlank
   @JsonProperty("path")
   private String path = null;
 
+  @NotNull
   @JsonProperty("type")
   private TesFileType type = null;
 

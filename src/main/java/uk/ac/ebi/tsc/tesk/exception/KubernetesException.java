@@ -16,7 +16,7 @@ public class KubernetesException extends RuntimeException {
         return new KubernetesException(apiException);
     }
 
-    public KubernetesException(ApiException apiException) {
+    private KubernetesException(ApiException apiException) {
         super(apiException.getMessage(), apiException.getCause());
         this.apiException = apiException;
     }
