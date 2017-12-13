@@ -1,4 +1,4 @@
-package uk.ac.ebi.tsc.tesk.util;
+package uk.ac.ebi.tsc.tesk.util.component;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -10,19 +10,28 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import uk.ac.ebi.tsc.tesk.model.*;
+import uk.ac.ebi.tsc.tesk.util.constant.K8sConstants;
+import uk.ac.ebi.tsc.tesk.util.dto.Job;
+import uk.ac.ebi.tsc.tesk.util.dto.JobWithExecutors;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import static uk.ac.ebi.tsc.tesk.util.KubernetesConstants.*;
+import static uk.ac.ebi.tsc.tesk.util.constant.Constants.*;
+import static uk.ac.ebi.tsc.tesk.util.constant.K8sConstants.RESOURCE_CPU_KEY;
+import static uk.ac.ebi.tsc.tesk.util.constant.K8sConstants.RESOURCE_MEM_KEY;
+import static uk.ac.ebi.tsc.tesk.util.constant.K8sConstants.RESOURCE_MEM_UNIT;
 
 /**
  * @author Ania Niewielska <aniewielska@ebi.ac.uk>
- *
- *     Conversion of TES objects to and from Kubernetes Objects
+ * <p>
+ * Conversion of TES objects to and from Kubernetes Objects
  */
 @Component
 public class TesKubernetesConverter {
@@ -52,7 +61,8 @@ public class TesKubernetesConverter {
 
     /**
      * Changes job name
-     * @param job - input job
+     *
+     * @param job     - input job
      * @param newName - new name
      */
     private void changeJobName(V1Job job, String newName) {
@@ -63,6 +73,7 @@ public class TesKubernetesConverter {
 
     /**
      * Converts TES task to Job object with random generated name
+     *
      * @param task - TES Task input object
      * @return K8s Job Object
      */
@@ -107,11 +118,12 @@ public class TesKubernetesConverter {
      * Converts TES executor to K8s Job, that is passed to taskMaster
      * as part of input parameters
      * Name of executor job relies on taskMaster job's name (taskmaster's jobs name + constant suffix)
+     *
      * @param generatedTaskId - random generated job's name == task id
-     * @param tesTaskName - input task name
-     * @param executor - TES executor input object
-     * @param executorIndex - ordinal number of executor
-     * @param resources - input task resources
+     * @param tesTaskName     - input task name
+     * @param executor        - TES executor input object
+     * @param executorIndex   - ordinal number of executor
+     * @param resources       - input task resources
      * @return - executor K8s job object. To be placed in taskMaster input JSON map in the list of executors
      */
     public V1Job fromTesExecutorToK8sJob(String generatedTaskId, String tesTaskName, TesExecutor executor, int executorIndex, TesResources resources) {
@@ -141,6 +153,7 @@ public class TesKubernetesConverter {
     /**
      * Retrieves TesCreateTaskResponse from K8s job
      * At the moment - only wraps job's name/task's id
+     *
      * @param job - K8s taskMaster job
      * @return - TesCreateTaskResponse wrapping task ID
      */
@@ -151,7 +164,8 @@ public class TesKubernetesConverter {
     /**
      * Resolver of K8s V1JobStatus object.
      * Tests if job is in a given state
-     * @param testedObject - V1JobStatus of a job
+     *
+     * @param testedObject  - V1JobStatus of a job
      * @param testObjective - status to be checked against
      * @return - if Job is in the given status
      */
@@ -174,45 +188,53 @@ public class TesKubernetesConverter {
     /**
      * Derives TES task's status from taskMasterJob Object and executorJobs object
      * (possibly will need additional processing of executor jobs pods)
-     * @param taskMasterJob - taskMaster's job object
-     * @param executorJobs - executors' job objects
+     *
+     * @param taskmasterWithExecutors - taskMaster's  full object graph
      * @return TES task status
      */
-    public TesState extractStateFromK8sJobs(V1Job taskMasterJob, List<V1Job> executorJobs) {
-        String taskMasterJobName = taskMasterJob.getMetadata().getName();
-        Optional<V1Job> lastExecutor = executorJobs.stream().max(Comparator.comparing(
-                job -> this.jobNameGenerator.extractExecutorNumberFromName(taskMasterJobName, job.getMetadata().getName())));
+    public TesState extractStateFromK8sJobs(JobWithExecutors taskmasterWithExecutors) {
+        V1Job taskMasterJob = taskmasterWithExecutors.getTaskmaster().getJob();
+        Optional<Job> lastExecutor = taskmasterWithExecutors.getLastExecutor();
         boolean taskMasterRunning = this.isJobInStatus(taskMasterJob.getStatus(), JOB_STATUS.ACTIVE);
         boolean taskMasterCompleted = this.isJobInStatus(taskMasterJob.getStatus(), JOB_STATUS.SUCCEEDED);
         boolean executorPresent = lastExecutor.isPresent();
-        boolean lastExecutorFailed = executorPresent && this.isJobInStatus(lastExecutor.get().getStatus(), JOB_STATUS.FAILED);
-        boolean lastExecutorCompleted = executorPresent && this.isJobInStatus(lastExecutor.get().getStatus(), JOB_STATUS.SUCCEEDED);
+        boolean lastExecutorFailed = executorPresent && this.isJobInStatus(lastExecutor.get().getJob().getStatus(), JOB_STATUS.FAILED);
+        boolean lastExecutorCompleted = executorPresent && this.isJobInStatus(lastExecutor.get().getJob().getStatus(), JOB_STATUS.SUCCEEDED);
+        String pending = K8sConstants.PodPhase.PENDING.getCode();
+        boolean taskMasterPending = taskmasterWithExecutors.getTaskmaster().getPods().stream().anyMatch(pod -> pending.equals(pod.getStatus().getPhase()));
+        boolean lastExecutorPending = executorPresent && lastExecutor.get().getPods().stream().anyMatch(pod -> pending.equals(pod.getStatus().getPhase()));
 
-        if (taskMasterRunning && !executorPresent) return TesState.INITIALIZING;
-        if (taskMasterRunning) return TesState.RUNNING;
         if (taskMasterCompleted && lastExecutorCompleted) return TesState.COMPLETE;
         if (taskMasterCompleted && lastExecutorFailed) return TesState.EXECUTOR_ERROR;
+        if (taskMasterPending) return TesState.QUEUED;
+        if (taskMasterRunning && !executorPresent) return TesState.INITIALIZING;
+        if (lastExecutorPending) return TesState.QUEUED;
+        if (taskMasterRunning) return TesState.RUNNING;
         return TesState.SYSTEM_ERROR;
     }
 
     /**
      * Extracts TesExecutorLog from executor job and pod objects
      * !! does not contain stdout (which needs access to pod log)
-     * @param executorJob - job object
-     * @param executorPod - pod object
+     *
+     * @param executor - executor job and pods object
      * @return - TesExecutorLog object (part of the BASIC output)
      */
-    public TesExecutorLog extractExecutorLogFromK8sJobAndPod(V1Job executorJob, V1Pod executorPod) {
+    public TesExecutorLog extractExecutorLogFromK8sJobAndPod(Job executor) {
         TesExecutorLog log = new TesExecutorLog();
+        V1Job executorJob = executor.getJob();
+        //TODO - better return controller startTime (now it behaves as if started, even if it is pending)
         log.setStartTime(Optional.ofNullable(executorJob.getStatus().getStartTime()).map(time -> ISODateTimeFormat.dateTime().print(time)).orElse(null));
         log.setEndTime(Optional.ofNullable(executorJob.getStatus().getCompletionTime()).map(time -> ISODateTimeFormat.dateTime().print(time)).orElse(null));
-        log.setExitCode(Optional.ofNullable(executorPod.getStatus()).
-                map(V1PodStatus::getContainerStatuses).
-                map(list -> list.size() > 0 ? list.get(0) : null).
-                map(V1ContainerStatus::getState).
-                map(V1ContainerState::getTerminated).
-                map(V1ContainerStateTerminated::getExitCode).
-                orElse(null));
+        if (executor.hasPods()) {
+            log.setExitCode(Optional.ofNullable(executor.getFirstPod().getStatus()).
+                    map(V1PodStatus::getContainerStatuses).
+                    map(list -> list.size() > 0 ? list.get(0) : null).
+                    map(V1ContainerStatus::getState).
+                    map(V1ContainerState::getTerminated).
+                    map(V1ContainerStateTerminated::getExitCode).
+                    orElse(null));
+        }
         return log;
     }
 
@@ -220,20 +242,19 @@ public class TesKubernetesConverter {
      * Extracts minimal view of TesTask from taskMaster's and executors' job objects
      * (will probably need pods, if status needs them)
      */
-    public TesTask fromK8sJobsToTesTaskMinimal(V1Job taskMasterJob, List<V1Job> executorJobs) {
+    public TesTask fromK8sJobsToTesTaskMinimal(JobWithExecutors taskmasterWithExecutors) {
         TesTask task = new TesTask();
-        task.setId(taskMasterJob.getMetadata().getName());
-        task.setState(this.extractStateFromK8sJobs(taskMasterJob, executorJobs));
+        task.setId(taskmasterWithExecutors.getTaskmaster().getJob().getMetadata().getName());
+        task.setState(this.extractStateFromK8sJobs(taskmasterWithExecutors));
         return task;
     }
+
     /**
-     * Extracts partial view of TesTask from taskMaster's and executors' job objects
-     * without parts that need access to pods and pod logs:
-     * TesExecutorLog objects and system_logs
-     * (but will probably need pods, if status needs them)
+     * Extracts basic view of TesTask from taskMaster's and executors' job and pod objects
      */
-    public TesTask fromK8sJobsToTesTask(V1Job taskMasterJob, List<V1Job> executorJobs, boolean nullifyInputContent) {
+    public TesTask fromK8sJobsToTesTaskBasic(JobWithExecutors taskmasterWithExecutors, boolean nullifyInputContent) {
         TesTask task = new TesTask();
+        V1Job taskMasterJob = taskmasterWithExecutors.getTaskmaster().getJob();
         String inputJson = Optional.ofNullable(taskMasterJob.getMetadata().getAnnotations().get(ANN_JSON_INPUT_KEY)).orElse("");
         try {
             task = this.objectMapper.readValue(inputJson, TesTask.class);
@@ -244,12 +265,16 @@ public class TesKubernetesConverter {
             logger.info(String.format("Deserializing task %s from JSON failed", taskMasterJob.getMetadata().getName()), ex);
         }
         task.setId(taskMasterJob.getMetadata().getName());
-        task.setState(this.extractStateFromK8sJobs(taskMasterJob, executorJobs));
+        task.setState(this.extractStateFromK8sJobs(taskmasterWithExecutors));
         task.setCreationTime(ISODateTimeFormat.dateTime().print(taskMasterJob.getMetadata().getCreationTimestamp()));
         TesTaskLog log = new TesTaskLog();
         task.addLogsItem(log);
         log.setStartTime(Optional.ofNullable(taskMasterJob.getStatus().getStartTime()).map(time -> ISODateTimeFormat.dateTime().print(time)).orElse(null));
         log.setEndTime(Optional.ofNullable(taskMasterJob.getStatus().getCompletionTime()).map(time -> ISODateTimeFormat.dateTime().print(time)).orElse(null));
+        for (Job executorJob : taskmasterWithExecutors.getExecutors()) {
+            TesExecutorLog executorLog = this.extractExecutorLogFromK8sJobAndPod(executorJob);
+            task.getLogs().get(0).addLogsItem(executorLog);
+        }
         return task;
     }
 

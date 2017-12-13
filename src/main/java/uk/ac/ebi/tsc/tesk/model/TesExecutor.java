@@ -2,7 +2,6 @@ package uk.ac.ebi.tsc.tesk.model;
 
 import java.util.Objects;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonCreator;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 
@@ -10,11 +9,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import javax.validation.Valid;
 import javax.validation.constraints.*;
 
-import static uk.ac.ebi.tsc.tesk.util.KubernetesConstants.ABSOLUTE_PATH_MESSAGE;
-import static uk.ac.ebi.tsc.tesk.util.KubernetesConstants.ABSOLUTE_PATH_REGEXP;
+import static uk.ac.ebi.tsc.tesk.util.constant.Constants.ABSOLUTE_PATH_MESSAGE;
+import static uk.ac.ebi.tsc.tesk.util.constant.Constants.ABSOLUTE_PATH_REGEXP;
 
 /**
  * Executor describes a command to be executed, and its environment.

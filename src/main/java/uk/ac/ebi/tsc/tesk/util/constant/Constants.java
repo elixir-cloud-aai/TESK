@@ -1,9 +1,9 @@
-package uk.ac.ebi.tsc.tesk.util;
+package uk.ac.ebi.tsc.tesk.util.constant;
 
 /**
  * @author Ania Niewielska <aniewielska@ebi.ac.uk>
  */
-public class KubernetesConstants {
+public class Constants {
 
     /**
      * ENV var that serves as taskmaster script input (JSON format)
@@ -14,16 +14,6 @@ public class KubernetesConstants {
      * Key in JSON taskmaster input, which holds list of executors
      */
     public static final String TASKMASTER_INPUT_EXEC_KEY = "executors";
-
-    public static final String K8S_BATCH_API_VERSION = "batch/v1";
-
-    /**
-     * Kubernetes Job object type
-     */
-    public static final String K8S_BATCH_API_JOB_TYPE = "Job";
-
-
-    public static final String JOB_RESTART_POLICY = "Never";
 
     /**
      *
@@ -91,18 +81,7 @@ public class KubernetesConstants {
      * Key of the label, that holds executor number for executor jobs
      */
     public static final String LABEL_EXECNO_KEY = "executor-no";
-    /**
-     * Executor CPU resource label
-     */
-    public static final String RESOURCE_CPU_KEY = "cpu";
-    /**
-     * Executor memory resource label
-     */
-    public static final String RESOURCE_MEM_KEY = "memory";
-    /**
-     * Executor memory resource unit
-     */
-    public static final String RESOURCE_MEM_UNIT = "Gi";
+
 
     /**
      * Pattern to validate paths
@@ -113,4 +92,6 @@ public class KubernetesConstants {
      * Message for absolute path validation (to avoid message.properties)
      */
     public static final String ABSOLUTE_PATH_MESSAGE = "must be an absolute path";
+
+
 }

@@ -1,4 +1,4 @@
-package uk.ac.ebi.tsc.tesk.util;
+package uk.ac.ebi.tsc.tesk.util.component;
 
 import com.google.common.base.Strings;
 import org.springframework.stereotype.Component;
@@ -7,7 +7,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import static uk.ac.ebi.tsc.tesk.util.KubernetesConstants.*;
+import static uk.ac.ebi.tsc.tesk.util.constant.Constants.*;
 
 /**
  * @author Ania Niewielska <aniewielska@ebi.ac.uk>
@@ -26,7 +26,4 @@ public class JobNameGenerator {
                 append(Strings.padStart(String.valueOf(executorIndex), JOB_NAME_EXEC_NO_LENGTH, '0')).toString();
     }
 
-    public int extractExecutorNumberFromName(String taskMasterName, String executorName) {
-        return Integer.parseInt(executorName.substring(taskMasterName.length() + JOB_NAME_EXEC_PREFIX.length()), JOB_NAME_EXEC_NO_LENGTH);
-    }
 }

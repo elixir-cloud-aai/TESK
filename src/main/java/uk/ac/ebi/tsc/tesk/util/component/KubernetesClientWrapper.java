@@ -1,4 +1,4 @@
-package uk.ac.ebi.tsc.tesk.util;
+package uk.ac.ebi.tsc.tesk.util.component;
 
 import io.kubernetes.client.ApiException;
 import io.kubernetes.client.apis.BatchV1Api;
@@ -16,7 +16,7 @@ import uk.ac.ebi.tsc.tesk.exception.TaskNotFoundException;
 import java.util.StringJoiner;
 import java.util.stream.Collectors;
 
-import static uk.ac.ebi.tsc.tesk.util.KubernetesConstants.*;
+import static uk.ac.ebi.tsc.tesk.util.constant.Constants.*;
 
 /**
  * @author Ania Niewielska <aniewielska@ebi.ac.uk>
@@ -63,18 +63,29 @@ public class KubernetesClientWrapper {
         }
     }
 
-    public V1JobList listTaskExecutorJobs(String taskId) {
-        String labelSelector = new StringJoiner("=").add(LABEL_TESTASK_ID_KEY).add(taskId).toString();
-        return this.listJobs(null, labelSelector, null);
-    }
-
-    public V1JobList listTaskmasterJobs(String pageToken, Integer itemsPerPage) {
+    public V1JobList listAllTaskmasterJobs(String pageToken, Integer itemsPerPage) {
         String labelSelector = new StringJoiner("=").add(LABEL_JOBTYPE_KEY).add(LABEL_JOBTYPE_VALUE_TASKM).toString();
         return this.listJobs(pageToken, labelSelector, itemsPerPage);
     }
+    public V1JobList listSingleTaskExecutorJobs(String taskId) {
+        String labelSelector = new StringJoiner("=").add(LABEL_TESTASK_ID_KEY).add(taskId).toString();
+        return this.listJobs(null, labelSelector, null);
+    }
+    public V1JobList listAllTaskExecutorJobs() {
+        String labelSelector = new StringJoiner("=").add(LABEL_JOBTYPE_KEY).add(LABEL_JOBTYPE_VALUE_EXEC).toString();
+        return this.listJobs(null, labelSelector, null);
+    }
 
-    public V1PodList listJobPods(V1Job job) {
+    public V1PodList listSingleJobPods(V1Job job) {
         String labelSelector = job.getSpec().getSelector().getMatchLabels().entrySet().stream().map(entry -> entry.getKey() + "=" + entry.getValue()).collect(Collectors.joining(","));
+        try {
+            return this.coreApi.listNamespacedPod(DEFAULT_NAMESPACE, null, null, null, null, labelSelector, null, null, null, null);
+        } catch (ApiException e) {
+            throw KubernetesException.fromApiException(e);
+        }
+    }
+    public V1PodList listAllJobPods() {
+        String labelSelector = "job-name";
         try {
             return this.coreApi.listNamespacedPod(DEFAULT_NAMESPACE, null, null, null, null, labelSelector, null, null, null, null);
         } catch (ApiException e) {

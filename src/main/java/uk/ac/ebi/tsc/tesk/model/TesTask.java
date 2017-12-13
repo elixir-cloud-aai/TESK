@@ -2,7 +2,6 @@ package uk.ac.ebi.tsc.tesk.model;
 
 import java.util.Objects;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonCreator;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import java.util.ArrayList;
@@ -10,19 +9,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.hibernate.validator.constraints.Email;
-import uk.ac.ebi.tsc.tesk.model.TesExecutor;
-import uk.ac.ebi.tsc.tesk.model.TesInput;
-import uk.ac.ebi.tsc.tesk.model.TesOutput;
-import uk.ac.ebi.tsc.tesk.model.TesResources;
-import uk.ac.ebi.tsc.tesk.model.TesState;
-import uk.ac.ebi.tsc.tesk.model.TesTaskLog;
 import javax.validation.Valid;
 import javax.validation.constraints.*;
-import javax.validation.executable.ValidateOnExecution;
 
-import static uk.ac.ebi.tsc.tesk.util.KubernetesConstants.ABSOLUTE_PATH_MESSAGE;
-import static uk.ac.ebi.tsc.tesk.util.KubernetesConstants.ABSOLUTE_PATH_REGEXP;
+import static uk.ac.ebi.tsc.tesk.util.constant.Constants.ABSOLUTE_PATH_MESSAGE;
+import static uk.ac.ebi.tsc.tesk.util.constant.Constants.ABSOLUTE_PATH_REGEXP;
 
 /**
  * Task describes an instance of a task.

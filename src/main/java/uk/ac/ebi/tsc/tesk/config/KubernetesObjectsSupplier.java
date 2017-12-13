@@ -6,14 +6,15 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
-import uk.ac.ebi.tsc.tesk.util.JobNameGenerator;
+import uk.ac.ebi.tsc.tesk.util.component.JobNameGenerator;
 
 import java.io.*;
 import java.util.ArrayList;
 import java.util.StringJoiner;
 import java.util.function.Supplier;
 
-import static uk.ac.ebi.tsc.tesk.util.KubernetesConstants.*;
+import static uk.ac.ebi.tsc.tesk.util.constant.Constants.*;
+import static uk.ac.ebi.tsc.tesk.util.constant.K8sConstants.*;
 
 /**
  * @author Ania Niewielska <aniewielska@ebi.ac.uk>
