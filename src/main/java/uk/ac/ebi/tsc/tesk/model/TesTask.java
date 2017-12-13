@@ -10,7 +10,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.hibernate.validator.constraints.NotEmpty;
+import org.hibernate.validator.constraints.Email;
 import uk.ac.ebi.tsc.tesk.model.TesExecutor;
 import uk.ac.ebi.tsc.tesk.model.TesInput;
 import uk.ac.ebi.tsc.tesk.model.TesOutput;
@@ -19,6 +19,10 @@ import uk.ac.ebi.tsc.tesk.model.TesState;
 import uk.ac.ebi.tsc.tesk.model.TesTaskLog;
 import javax.validation.Valid;
 import javax.validation.constraints.*;
+import javax.validation.executable.ValidateOnExecution;
+
+import static uk.ac.ebi.tsc.tesk.util.KubernetesConstants.ABSOLUTE_PATH_MESSAGE;
+import static uk.ac.ebi.tsc.tesk.util.KubernetesConstants.ABSOLUTE_PATH_REGEXP;
 
 /**
  * Task describes an instance of a task.
@@ -53,7 +57,7 @@ public class TesTask   {
   private List<TesExecutor> executors = null;
 
   @JsonProperty("volumes")
-  private List<String> volumes = null;
+  private List<@Pattern(regexp = ABSOLUTE_PATH_REGEXP, message = ABSOLUTE_PATH_MESSAGE) String> volumes = null;
 
   @JsonProperty("tags")
   private Map<String, String> tags = null;

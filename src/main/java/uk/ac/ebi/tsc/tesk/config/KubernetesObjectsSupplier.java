@@ -2,7 +2,6 @@ package uk.ac.ebi.tsc.tesk.config;
 
 import com.google.gson.Gson;
 import io.kubernetes.client.models.*;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -23,11 +22,14 @@ import static uk.ac.ebi.tsc.tesk.util.KubernetesConstants.*;
 public class KubernetesObjectsSupplier {
 
 
-    @Autowired
-    private Gson gson;
+    private final Gson gson;
 
-    @Autowired
-    private JobNameGenerator jobNameGenerator;
+    private final JobNameGenerator jobNameGenerator;
+
+    public KubernetesObjectsSupplier(Gson gson, JobNameGenerator jobNameGenerator) {
+        this.gson = gson;
+        this.jobNameGenerator = jobNameGenerator;
+    }
 
     @Bean
     @Scope(value = "prototype")
@@ -53,8 +55,11 @@ public class KubernetesObjectsSupplier {
     public V1Job executorTemplate() {
         V1Container container = new V1Container().
                 command(new ArrayList<>()).
-                resources(new V1ResourceRequirements());
-        V1Job job = new V1Job().
+                resources(new V1ResourceRequirements());/*.
+                addVolumeMountsItem(new V1VolumeMount().
+                        readOnly(Boolean.FALSE).
+                        name(VOLUME_NAME));*/
+        return new V1Job().
                 apiVersion(K8S_BATCH_API_VERSION).kind(K8S_BATCH_API_JOB_TYPE).
                 metadata(new V1ObjectMeta().
                         putLabelsItem(LABEL_JOBTYPE_KEY, LABEL_JOBTYPE_VALUE_EXEC)).
@@ -63,8 +68,11 @@ public class KubernetesObjectsSupplier {
                                 metadata(new V1ObjectMeta()).
                                 spec(new V1PodSpec().
                                         addContainersItem(container).
-                                        restartPolicy(JOB_RESTART_POLICY))));
-        return job;
+                                        restartPolicy(JOB_RESTART_POLICY))));/*.
+                                        addVolumesItem(new V1Volume().
+                                                name(VOLUME_NAME).
+                                                persistentVolumeClaim(new V1PersistentVolumeClaimVolumeSource().
+                                                        readOnly(Boolean.FALSE))))));*/
 
 
     }

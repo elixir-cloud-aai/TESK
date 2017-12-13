@@ -5,11 +5,13 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
-import org.hibernate.validator.constraints.NotBlank;
 import org.hibernate.validator.constraints.ScriptAssert;
 import uk.ac.ebi.tsc.tesk.model.TesFileType;
 import javax.validation.Valid;
 import javax.validation.constraints.*;
+
+import static uk.ac.ebi.tsc.tesk.util.KubernetesConstants.ABSOLUTE_PATH_MESSAGE;
+import static uk.ac.ebi.tsc.tesk.util.KubernetesConstants.ABSOLUTE_PATH_REGEXP;
 
 /**
  * Input describes Task input.json files.
@@ -27,6 +29,7 @@ public class TesInput   {
   @JsonProperty("url")
   private String url = null;
 
+  @Pattern(regexp = ABSOLUTE_PATH_REGEXP, message = ABSOLUTE_PATH_MESSAGE)
   @NotBlank
   @JsonProperty("path")
   private String path = null;

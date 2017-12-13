@@ -11,7 +11,7 @@ public class KubernetesConstants {
     public static final String TASKMASTER_INPUT = "JSON_INPUT";
 
     /**
-     * Key in JSON taskmaster input, whoich holds list of executors
+     * Key in JSON taskmaster input, which holds list of executors
      */
     public static final String TASKMASTER_INPUT_EXEC_KEY = "executors";
 
@@ -24,6 +24,11 @@ public class KubernetesConstants {
 
 
     public static final String JOB_RESTART_POLICY = "Never";
+
+    /**
+     *
+     */
+    public static final String VOLUME_NAME = "PVC";
 
     /**
      * Name of a default K8s namespace
@@ -98,4 +103,14 @@ public class KubernetesConstants {
      * Executor memory resource unit
      */
     public static final String RESOURCE_MEM_UNIT = "Gi";
+
+    /**
+     * Pattern to validate paths
+     */
+    public static final String ABSOLUTE_PATH_REGEXP = "^\\/.*";
+
+    /**
+     * Message for absolute path validation (to avoid message.properties)
+     */
+    public static final String ABSOLUTE_PATH_MESSAGE = "must be an absolute path";
 }

@@ -5,8 +5,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
-import org.hibernate.validator.constraints.NotBlank;
-import org.hibernate.validator.constraints.NotEmpty;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -14,6 +12,9 @@ import java.util.List;
 import java.util.Map;
 import javax.validation.Valid;
 import javax.validation.constraints.*;
+
+import static uk.ac.ebi.tsc.tesk.util.KubernetesConstants.ABSOLUTE_PATH_MESSAGE;
+import static uk.ac.ebi.tsc.tesk.util.KubernetesConstants.ABSOLUTE_PATH_REGEXP;
 
 /**
  * Executor describes a command to be executed, and its environment.
@@ -30,15 +31,19 @@ public class TesExecutor   {
   @JsonProperty("command")
   private List<String> command = null;
 
+  @Pattern(regexp = ABSOLUTE_PATH_REGEXP, message = ABSOLUTE_PATH_MESSAGE)
   @JsonProperty("workdir")
   private String workdir = null;
 
+  @Pattern(regexp = ABSOLUTE_PATH_REGEXP, message = ABSOLUTE_PATH_MESSAGE)
   @JsonProperty("stdin")
   private String stdin = null;
 
+  @Pattern(regexp = ABSOLUTE_PATH_REGEXP, message = ABSOLUTE_PATH_MESSAGE)
   @JsonProperty("stdout")
   private String stdout = null;
 
+  @Pattern(regexp = ABSOLUTE_PATH_REGEXP, message = ABSOLUTE_PATH_MESSAGE)
   @JsonProperty("stderr")
   private String stderr = null;
 
