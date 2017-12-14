@@ -2,6 +2,8 @@ package uk.ac.ebi.tsc.tesk.util.constant;
 
 /**
  * @author Ania Niewielska <aniewielska@ebi.ac.uk>
+ *
+ * Kubernetes specific constants (parts of K8s API)
  */
 public class K8sConstants {
 

@@ -18,6 +18,9 @@ import static uk.ac.ebi.tsc.tesk.util.constant.K8sConstants.*;
 
 /**
  * @author Ania Niewielska <aniewielska@ebi.ac.uk>
+ *
+ * Templates for tasmaster's and executor's job object.
+ *
  */
 @Configuration
 public class KubernetesObjectsSupplier {
@@ -32,6 +35,14 @@ public class KubernetesObjectsSupplier {
         this.jobNameGenerator = jobNameGenerator;
     }
 
+    /**
+     * Creates a new empty taskmaster's K8s job object with auto-generated name.
+     * Uses JSON file from resources as a template and adds generated name to it.
+     * Additionally, places appropriately taskmaster's image name and version from parameters
+     * @param imageName - taskmaster's image name
+     * @param imageVersion - taskmaster's image name
+     * @return - new K8s Job object with auto-generated name.
+     */
     @Bean
     @Scope(value = "prototype")
     public V1Job taskMasterTemplate(@Value("${tesk.api.taskmaster.image.name}") String imageName, @Value("tesk.api.taskmaster.image.version") String imageVersion) {
@@ -51,6 +62,12 @@ public class KubernetesObjectsSupplier {
         }
     }
 
+    /**
+     * Creates a new empty executor's K8s job object (without a name),
+     * by initializing required objects in the graph (new new new)
+     * and putting constants.
+     * @return
+     */
     @Bean
     @Scope(value = "prototype")
     public V1Job executorTemplate() {

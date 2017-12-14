@@ -1,4 +1,4 @@
-package uk.ac.ebi.tsc.tesk.util.dto;
+package uk.ac.ebi.tsc.tesk.util.data;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -8,32 +8,58 @@ import static uk.ac.ebi.tsc.tesk.util.constant.Constants.JOB_NAME_EXEC_PREFIX;
 
 /**
  * @author Ania Niewielska <aniewielska@ebi.ac.uk>
+ *
+ * A composite that represents Kubernetes object's graph of a single TES task:
+ * taskmaster job with its pods
+ * and executor jobs with its pods
  */
-public class JobWithExecutors {
-
+public class Task {
+    /**
+     * Taskmaster job (with corresponding pods)
+     */
     private Job taskmaster;
+    /**
+     * All executor objects (each with corresponding pods)
+     * mapped by their K8s job object name
+     * (Random order -> sorting in getExecutors)
+     */
     private Map<String, Job> executorsByName = new HashMap<>();
 
 
-    public JobWithExecutors(Job taskmaster) {
+    public Task(Job taskmaster) {
         this.taskmaster = taskmaster;
     }
 
+    /**
+     * Adds new executor object to Task
+     * @param executor - executor job with corresponsing pods
+     */
     public void addExecutor(Job executor) {
         this.executorsByName.putIfAbsent(executor.getJob().getMetadata().getName(), executor);
     }
 
+    /**
+     * Returns taskmaster's object
+     */
     public Job getTaskmaster() {
         return this.taskmaster;
     }
 
+    /**
+     * Returns a shallow copy of executor's list
+     * sorted by executor number or empty list, if no executors.
+     */
     public List<Job> getExecutors() {
         List<Job> executors = new ArrayList<>();
         executors.addAll(this.executorsByName.values().stream().sorted(Comparator.comparing(
-                job -> extractExecutorNumber(job))).collect(Collectors.toList()));
+                job -> this.extractExecutorNumber(job))).collect(Collectors.toList()));
         return executors;
     }
 
+    /**
+     * Returns last executor from executor's list
+     * sorted by executor number or empty Optional, if no executors.
+     */
     public Optional<Job> getLastExecutor() {
         if (this.executorsByName.values().isEmpty())
             return Optional.empty();

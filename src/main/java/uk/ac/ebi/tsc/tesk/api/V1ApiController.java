@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import uk.ac.ebi.tsc.tesk.model.*;
 import uk.ac.ebi.tsc.tesk.service.TesService;
-import uk.ac.ebi.tsc.tesk.util.TaskView;
+import uk.ac.ebi.tsc.tesk.util.constant.TaskView;
 
 import javax.validation.Valid;
 

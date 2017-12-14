@@ -2,6 +2,8 @@ package uk.ac.ebi.tsc.tesk.util.constant;
 
 /**
  * @author Ania Niewielska <aniewielska@ebi.ac.uk>
+ *
+ * TESK implementation specific constants
  */
 public class Constants {
 

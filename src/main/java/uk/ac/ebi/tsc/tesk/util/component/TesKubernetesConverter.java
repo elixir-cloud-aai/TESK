@@ -11,8 +11,8 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import uk.ac.ebi.tsc.tesk.model.*;
 import uk.ac.ebi.tsc.tesk.util.constant.K8sConstants;
-import uk.ac.ebi.tsc.tesk.util.dto.Job;
-import uk.ac.ebi.tsc.tesk.util.dto.JobWithExecutors;
+import uk.ac.ebi.tsc.tesk.util.data.Job;
+import uk.ac.ebi.tsc.tesk.util.data.Task;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -72,7 +72,7 @@ public class TesKubernetesConverter {
     }
 
     /**
-     * Converts TES task to Job object with random generated name
+     * Converts TES task to new K8s Job object with random generated name
      *
      * @param task - TES Task input object
      * @return K8s Job Object
@@ -115,7 +115,7 @@ public class TesKubernetesConverter {
     }
 
     /**
-     * Converts TES executor to K8s Job, that is passed to taskMaster
+     * Converts TES executor to new K8s Job object, that is passed to taskMaster
      * as part of input parameters
      * Name of executor job relies on taskMaster job's name (taskmaster's jobs name + constant suffix)
      *
@@ -127,12 +127,12 @@ public class TesKubernetesConverter {
      * @return - executor K8s job object. To be placed in taskMaster input JSON map in the list of executors
      */
     public V1Job fromTesExecutorToK8sJob(String generatedTaskId, String tesTaskName, TesExecutor executor, int executorIndex, TesResources resources) {
-        //gets template executor Job object
+        //get new template executor Job object
         V1Job job = executorTemplateSupplier.get();
         //set executors name based on taskmaster's job name
         this.changeJobName(job, this.jobNameGenerator.getExecutorName(generatedTaskId, executorIndex));
         //put arbitrary labels and annotations:
-        //taskId - to search for executors of a given task
+        //the important one --> taskId - to search for executors of a given task
         job.getMetadata().putLabelsItem(LABEL_TESTASK_ID_KEY, generatedTaskId);
         job.getMetadata().putLabelsItem(LABEL_EXECNO_KEY, Integer.valueOf(executorIndex).toString());
         job.getMetadata().putAnnotationsItem(ANN_TESTASK_NAME_KEY, tesTaskName);
@@ -186,13 +186,13 @@ public class TesKubernetesConverter {
     }
 
     /**
-     * Derives TES task's status from taskMasterJob Object and executorJobs object
-     * (possibly will need additional processing of executor jobs pods)
+     * Derives TES task's status from task's object graph (packed into {@link Task} object)
+     * Uses status of taskmaster's and executor's jobs and taskmaster's and executor's pods
      *
      * @param taskmasterWithExecutors - taskMaster's  full object graph
      * @return TES task status
      */
-    public TesState extractStateFromK8sJobs(JobWithExecutors taskmasterWithExecutors) {
+    public TesState extractStateFromK8sJobs(Task taskmasterWithExecutors) {
         V1Job taskMasterJob = taskmasterWithExecutors.getTaskmaster().getJob();
         Optional<Job> lastExecutor = taskmasterWithExecutors.getLastExecutor();
         boolean taskMasterRunning = this.isJobInStatus(taskMasterJob.getStatus(), JOB_STATUS.ACTIVE);
@@ -208,6 +208,8 @@ public class TesKubernetesConverter {
         if (taskMasterCompleted && lastExecutorFailed) return TesState.EXECUTOR_ERROR;
         if (taskMasterPending) return TesState.QUEUED;
         if (taskMasterRunning && !executorPresent) return TesState.INITIALIZING;
+        //each executor job's pod can wait for execution as Pending
+        // --> Job status can change from Queued to Running and back again to Queued, if more than one executor.
         if (lastExecutorPending) return TesState.QUEUED;
         if (taskMasterRunning) return TesState.RUNNING;
         return TesState.SYSTEM_ERROR;
@@ -218,12 +220,12 @@ public class TesKubernetesConverter {
      * !! does not contain stdout (which needs access to pod log)
      *
      * @param executor - executor job and pods object
-     * @return - TesExecutorLog object (part of the BASIC output)
+     * @return - TesExecutorLog object (part of the BASIC/FULL output)
      */
     public TesExecutorLog extractExecutorLogFromK8sJobAndPod(Job executor) {
         TesExecutorLog log = new TesExecutorLog();
         V1Job executorJob = executor.getJob();
-        //TODO - better return controller startTime (now it behaves as if started, even if it is pending)
+        //TODO - better return controller startTime, when possible (now it behaves as if started, even if it is pending)
         log.setStartTime(Optional.ofNullable(executorJob.getStatus().getStartTime()).map(time -> ISODateTimeFormat.dateTime().print(time)).orElse(null));
         log.setEndTime(Optional.ofNullable(executorJob.getStatus().getCompletionTime()).map(time -> ISODateTimeFormat.dateTime().print(time)).orElse(null));
         if (executor.hasPods()) {
@@ -239,10 +241,9 @@ public class TesKubernetesConverter {
     }
 
     /**
-     * Extracts minimal view of TesTask from taskMaster's and executors' job objects
-     * (will probably need pods, if status needs them)
+     * Extracts minimal view of TesTask from taskMaster's and executors' job and pod objects
      */
-    public TesTask fromK8sJobsToTesTaskMinimal(JobWithExecutors taskmasterWithExecutors) {
+    public TesTask fromK8sJobsToTesTaskMinimal(Task taskmasterWithExecutors) {
         TesTask task = new TesTask();
         task.setId(taskmasterWithExecutors.getTaskmaster().getJob().getMetadata().getName());
         task.setState(this.extractStateFromK8sJobs(taskmasterWithExecutors));
@@ -251,8 +252,9 @@ public class TesKubernetesConverter {
 
     /**
      * Extracts basic view of TesTask from taskMaster's and executors' job and pod objects
+     * @param nullifyInputContent - true, if input.content has to be removed from the result (in BASIC view)
      */
-    public TesTask fromK8sJobsToTesTaskBasic(JobWithExecutors taskmasterWithExecutors, boolean nullifyInputContent) {
+    public TesTask fromK8sJobsToTesTaskBasic(Task taskmasterWithExecutors, boolean nullifyInputContent) {
         TesTask task = new TesTask();
         V1Job taskMasterJob = taskmasterWithExecutors.getTaskmaster().getJob();
         String inputJson = Optional.ofNullable(taskMasterJob.getMetadata().getAnnotations().get(ANN_JSON_INPUT_KEY)).orElse("");
