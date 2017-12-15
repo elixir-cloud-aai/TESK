@@ -12,6 +12,7 @@ from kubernetes import client, config
 from datetime import datetime
 
 debug = False
+polling_interval = 5
 
 # translates TES JSON into 1 Job spec per executor
 def generate_job_specs(tes):
@@ -49,7 +50,7 @@ def generate_job_specs(tes):
     exe_i += 1
   return specs
 
-def run_executors(specs, polling_interval, namespace):
+def run_executors(specs, namespace):
 
   # init Kubernetes Job API
   v1 = client.BatchV1Api()
@@ -59,23 +60,30 @@ def run_executors(specs, polling_interval, namespace):
     #executor['metadata']['name'] = jobname
     job = v1.create_namespaced_job(body=executor, namespace=namespace)
     print("Created job with metadata='%s'" % str(job.metadata))
-    finished = False
+    if wait_for_job(jobname, namespace) == 'Failed':
+      return 'Failed'
 
-    # Job polling loop
-    while not finished:
-      job = v1.read_namespaced_job(jobname, namespace)
-      try:
-        #print("job.status.conditions[0].type: %s" % job.status.conditions[0].type)
-        if job.status.conditions[0].type == 'Complete' and job.status.conditions[0].status:
-          finished = True
-        elif job.status.conditions[0].type == 'Failed' and job.status.conditions[0].status:
-          finished = True
-          return 'Failed' # If an executor failed we break out of running the executors
-        else:
-          #print("hit else, failing")
-          return 'Failed' # something we don't know happened, fail
-      except TypeError: # The condition is not initialized, so it is not complete yet, wait for it
-        time.sleep(polling_interval)
+  return 'Complete'
+
+def wait_for_job(jobname, namespace):
+  bv1 = client.BatchV1Api()
+
+  finished = False
+  # Job polling loop
+  while not finished:
+    job = bv1.read_namespaced_job(jobname, namespace)
+    try:
+      #print("job.status.conditions[0].type: %s" % job.status.conditions[0].type)
+      if job.status.conditions[0].type == 'Complete' and job.status.conditions[0].status:
+        finished = True
+      elif job.status.conditions[0].type == 'Failed' and job.status.conditions[0].status:
+        finished = True
+        return 'Failed' # If an executor failed we break out of running the executors
+      else:
+        #print("hit else, failing")
+        return 'Failed' # something we don't know happened, fail
+    except TypeError: # The condition is not initialized, so it is not complete yet, wait for it
+      time.sleep(polling_interval)
 
   return 'Complete' # No failures, so return successful finish
 
@@ -98,11 +106,11 @@ def create_pvc(data, namespace):
   cv1.create_namespaced_persistent_volume_claim(namespace, pvc)
   return pvc_name
 
-def get_filer_template(filer_version):
+def get_filer_template(filer_version, name):
   filer = {
               "kind": "Job",
               "apiVersion": "batch/v1",
-              "metadata": { "name": "tesk-filer" },
+              "metadata": { "name": name },
               "spec": {
                 "template": {
                   "metadata": { "name": "tesk-filer" },
@@ -127,12 +135,17 @@ def get_filer_template(filer_version):
     filer['spec']['template']['spec']['containers'][0]['env'].append({ "name": "TESK_FTP_PASSWORD", "value": os.environ['TESK_FTP_PASSWORD'] })
 
   return filer
-  
+
+def append_mount(volume_mounts, name, path):
+  duplicate = next((mount for mount in volume_mounts if mount['mountPath'] == path), None)
+  if duplicate is None:
+    volume_mounts.append({ 'name': name, 'mountPath': path })
+
 def populate_pvc(data, namespace, pvc_name, filer_version):
   volume_mounts = []
   volume_name = 'task-volume'
   for idx, volume in enumerate(data['volumes']):
-    volume_mounts.append({"name": volume_name, "mountPath": volume })
+    append_mount(volume_mounts, volume_name, volume)
 
   for idx, aninput in enumerate(data['inputs']):
     if aninput['type'] == 'FILE':
@@ -141,32 +154,36 @@ def populate_pvc(data, namespace, pvc_name, filer_version):
     elif aninput['type'] == 'DIRECTORY':
       basepath = aninput['path']
 
-    volume_mounts.append({"name": volume_name, "mountPath": basepath})
+    append_mount(volume_mounts, volume_name, basepath)
 
-  pretask = get_filer_template(filer_version)
+  name = data['executors'][0]['metadata']['labels']['taskmaster-name']
+  pretask = get_filer_template(filer_version, name+'-filer')
   pretask['spec']['template']['spec']['containers'][0]['env'].append({ "name": "JSON_INPUT", "value": json.dumps(data) })
   pretask['spec']['template']['spec']['containers'][0]['args'].append("inputs")
   pretask['spec']['template']['spec']['containers'][0]['args'].append("$(JSON_INPUT)")
   pretask['spec']['template']['spec']['containers'][0]['volumeMounts'] = volume_mounts
-  pretask['spec']['template']['volumes'] = [ { "name": volume_name, "persistentVolumeClaim": { "claimName": pvc_name} } ]
+  pretask['spec']['template']['spec']['volumes'] = [ { "name": volume_name, "persistentVolumeClaim": { "claimName": pvc_name} } ]
 
   print(json.dumps(pretask, indent=2), file=sys.stderr)
   
   bv1 = client.BatchV1Api()
-  job = v1.create_namespaced_job(body=pretask, namespace=namespace)
+  job = bv1.create_namespaced_job(body=pretask, namespace=namespace)
+  wait_for_job(pretask['metadata']['name'], namespace)
 
   return volume_mounts
 
 def cleanup_pvc(data, namespace, volume_mounts, pvc_name, filer_version):
-  posttask = get_filer_template(filer_version)
+  name = data['executors'][0]['metadata']['labels']['taskmaster-name']
+  posttask = get_filer_template(filer_version, name+'-filer')
   posttask['spec']['template']['spec']['containers'][0]['env'].append({ "name": "JSON_INPUT", "value": json.dumps(data) })
   posttask['spec']['template']['spec']['containers'][0]['args'].append("outputs")
   posttask['spec']['template']['spec']['containers'][0]['args'].append("$(JSON_INPUT)")
   posttask['spec']['template']['spec']['containers'][0]['volumeMounts'] = volume_mounts
-  posttask['spec']['template']['volumes'] = [ { "name": "task-volume", "persistentVolumeClaim": { "claimName": pvc_name} } ]
+  posttask['spec']['template']['spec']['volumes'] = [ { "name": "task-volume", "persistentVolumeClaim": { "claimName": pvc_name} } ]
 
   bv1 = client.BatchV1Api()
-  job = v1.create_namespaced_job(body=posttask, namespace=namespace)
+  job = bv1.create_namespaced_job(body=posttask, namespace=namespace)
+  wait_for_job(posttask['metadata']['name'], namespace)
 
   print(json.dumps(posttask, indent=2), file=sys.stderr)
 
@@ -185,6 +202,8 @@ def main(argv):
   parser.add_argument('-s', '--state-file', help='State file for state.py script', default='/tmp/.teskstate')
   parser.add_argument('-d', '--debug', help='Set debug mode', action='store_true')
   args = parser.parse_args()
+
+  polling_interval = args.polling_interval
 
   debug = args.debug
 
@@ -206,7 +225,7 @@ def main(argv):
 
   volume_mounts = populate_pvc(data, args.namespace, pvc_name, args.filer_version)
 
-  #state = run_executors(data['executors'], args.polling_interval, args.namespace)
+  #state = run_executors(data['executors'], args.namespace)
   #print("Finished with state %s" % state)
  
   cleanup_pvc(data, args.namespace, volume_mounts, pvc_name, args.filer_version)
