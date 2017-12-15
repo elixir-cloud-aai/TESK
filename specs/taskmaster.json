@@ -12,7 +12,7 @@
         "containers": [
           {
             "name": "taskmaster",
-            "image": "eu.gcr.io/tes-wes/taskmaster:v0.1.2",
+            "image": "eu.gcr.io/tes-wes/taskmaster:v0.1.3",
             "args": [
               "$(JSON_INPUT)",
               "-fv",
