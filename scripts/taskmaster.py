@@ -98,7 +98,7 @@ def create_pvc(data, namespace):
   cv1.create_namespaced_persistent_volume_claim(namespace, pvc)
   return pvc_name
 
-def get_filer_template():
+def get_filer_template(filer_version):
   filer = {
               "kind": "Job",
               "apiVersion": "batch/v1",
@@ -109,7 +109,7 @@ def get_filer_template():
                   "spec": {
                     "containers": [ {
                         "name": "filer",
-                        "image": "eu.gcr.io/tes-wes/filer:v0.1.0",
+                        "image": "eu.gcr.io/tes-wes/filer:"+filer_version,
                         "args": [],
                         "env": [],
                         "volumeMounts": []
@@ -123,7 +123,7 @@ def get_filer_template():
             }
   return filer
   
-def populate_pvc(data, namespace, pvc_name):
+def populate_pvc(data, namespace, pvc_name, filer_version):
   volume_mounts = []
   volume_name = 'task-volume'
   for idx, volume in enumerate(data['volumes']):
@@ -138,7 +138,7 @@ def populate_pvc(data, namespace, pvc_name):
 
     volume_mounts.append({"name": volume_name, "mountPath": basepath})
 
-  pretask = get_filer_template()
+  pretask = get_filer_template(filer_version)
   pretask['spec']['template']['spec']['containers'][0]['env'].append({ "name": "JSON_INPUT", "value": json.dumps(data) })
   pretask['spec']['template']['spec']['containers'][0]['args'].append("inputs")
   pretask['spec']['template']['spec']['containers'][0]['args'].append("$(JSON_INPUT)")
@@ -152,8 +152,8 @@ def populate_pvc(data, namespace, pvc_name):
 
   return volume_mounts
 
-def cleanup_pvc(data, namespace, volume_mounts, pvc_name):
-  posttask = get_filer_template()
+def cleanup_pvc(data, namespace, volume_mounts, pvc_name, filer_version):
+  posttask = get_filer_template(filer_version)
   posttask['spec']['template']['spec']['containers'][0]['env'].append({ "name": "JSON_INPUT", "value": json.dumps(data) })
   posttask['spec']['template']['spec']['containers'][0]['args'].append("outputs")
   posttask['spec']['template']['spec']['containers'][0]['args'].append("$(JSON_INPUT)")
@@ -175,6 +175,7 @@ def main(argv):
   group.add_argument('-f', '--file', help='TES request as a file or \'-\' for stdin, required if json is not given')
 
   parser.add_argument('-p', '--polling-interval', help='Job polling interval', default=5)
+  parser.add_argument('-fv', '--filer-version', help='Filer image version', default='v0.1.2')
   parser.add_argument('-n', '--namespace', help='Kubernetes namespace to run in', default='default')
   parser.add_argument('-s', '--state-file', help='State file for state.py script', default='/tmp/.teskstate')
   parser.add_argument('-d', '--debug', help='Set debug mode', action='store_true')
@@ -198,12 +199,12 @@ def main(argv):
 
   pvc_name = create_pvc(data, args.namespace)
 
-  volume_mounts = populate_pvc(data, args.namespace, pvc_name)
+  volume_mounts = populate_pvc(data, args.namespace, pvc_name, args.filer_version)
 
   #state = run_executors(data['executors'], args.polling_interval, args.namespace)
   #print("Finished with state %s" % state)
  
-  cleanup_pvc(data, args.namespace, volume_mounts, pvc_name)
+  cleanup_pvc(data, args.namespace, volume_mounts, pvc_name, args.filer_version)
 
 if __name__ == "__main__":
   main(sys.argv)
