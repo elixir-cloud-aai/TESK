@@ -1,8 +1,8 @@
 {
   "outputs": [
     {
-      "url": "",
-      "path": "/container/output",
+      "url": "ftp://ftp-private.ebi.ac.uk/upload/tesk-test-output",
+      "path": "/container/input2",
       "type": "FILE"
     }
   ],
@@ -10,8 +10,15 @@
     {
       "name": "infile",
       "description": "md5sum input file",
-      "url": "http://ftp.ebi.ac.uk/pub/blast/db/16SMicrobial.tar.gz",
-      "path": "/container/input",
+      "url": "ftp://ftp-private.ebi.ac.uk/upload/tesk-test-random",
+      "path": "/container/input1",
+      "type": "FILE"
+    },
+    {
+      "name": "infile",
+      "description": "md5sum input file 2",
+      "url": "https://raw.githubusercontent.com/EMBL-EBI-TSI/cloud-portal-documentation/master/docs/index.md",
+      "path": "/container/input2",
       "type": "FILE"
     }
   ],
