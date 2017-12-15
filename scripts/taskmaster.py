@@ -121,6 +121,11 @@ def get_filer_template(filer_version):
                 }
               }
             }
+
+  if os.environ.get('TESK_FTP_USERNAME') is not None:
+    filer['spec']['template']['spec']['containers'][0]['env'].append({ "name": "TESK_FTP_USERNAME", "value": os.environ['TESK_FTP_USERNAME'] })
+    filer['spec']['template']['spec']['containers'][0]['env'].append({ "name": "TESK_FTP_PASSWORD", "value": os.environ['TESK_FTP_PASSWORD'] })
+
   return filer
   
 def populate_pvc(data, namespace, pvc_name, filer_version):
@@ -147,8 +152,8 @@ def populate_pvc(data, namespace, pvc_name, filer_version):
 
   print(json.dumps(pretask, indent=2), file=sys.stderr)
   
-  #bv1 = client.BatchV1Api()
-  #job = v1.create_namespaced_job(body=pretask, namespace=namespace)
+  bv1 = client.BatchV1Api()
+  job = v1.create_namespaced_job(body=pretask, namespace=namespace)
 
   return volume_mounts
 
@@ -160,8 +165,8 @@ def cleanup_pvc(data, namespace, volume_mounts, pvc_name, filer_version):
   posttask['spec']['template']['spec']['containers'][0]['volumeMounts'] = volume_mounts
   posttask['spec']['template']['volumes'] = [ { "name": "task-volume", "persistentVolumeClaim": { "claimName": pvc_name} } ]
 
-  #bv1 = client.BatchV1Api()
-  #job = v1.create_namespaced_job(body=posttask, namespace=namespace)
+  bv1 = client.BatchV1Api()
+  job = v1.create_namespaced_job(body=posttask, namespace=namespace)
 
   print(json.dumps(posttask, indent=2), file=sys.stderr)
 
