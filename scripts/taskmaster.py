@@ -125,8 +125,9 @@ def get_filer_template():
   
 def populate_pvc(data, namespace, pvc_name):
   volume_mounts = []
+  volume_name = 'task-volume'
   for idx, volume in enumerate(data['volumes']):
-    volume_mounts.append({"name": "volume"+str(idx), "mountPath": volume })
+    volume_mounts.append({"name": volume_name, "mountPath": volume })
 
   for idx, aninput in enumerate(data['inputs']):
     if aninput['type'] == 'FILE':
@@ -135,14 +136,14 @@ def populate_pvc(data, namespace, pvc_name):
     elif aninput['type'] == 'DIRECTORY':
       basepath = aninput['path']
 
-    volume_mounts.append({"name": "input_volume"+str(idx), "mountPath": basepath})
+    volume_mounts.append({"name": volume_name, "mountPath": basepath})
 
   pretask = get_filer_template()
   pretask['spec']['template']['spec']['containers'][0]['env'].append({ "name": "JSON_INPUT", "value": json.dumps(data) })
   pretask['spec']['template']['spec']['containers'][0]['args'].append("inputs")
   pretask['spec']['template']['spec']['containers'][0]['args'].append("$(JSON_INPUT)")
   pretask['spec']['template']['spec']['containers'][0]['volumeMounts'] = volume_mounts
-  pretask['spec']['template']['volumes'] = [ { "name": "task-volume", "persistentVolumeClaim": { "claimName": pvc_name} } ]
+  pretask['spec']['template']['volumes'] = [ { "name": volume_name, "persistentVolumeClaim": { "claimName": pvc_name} } ]
 
   print(json.dumps(pretask, indent=2), file=sys.stderr)
   
@@ -162,8 +163,10 @@ def cleanup_pvc(data, namespace, volume_mounts, pvc_name):
   #bv1 = client.BatchV1Api()
   #job = v1.create_namespaced_job(body=posttask, namespace=namespace)
 
+  print(json.dumps(posttask, indent=2), file=sys.stderr)
+
   cv1 = client.CoreV1Api()
-  cv1.delete_namespaced_persistent_volume_claim(pvc_name, namespace, client.V1DeleteOptions)
+  cv1.delete_namespaced_persistent_volume_claim(pvc_name, namespace, client.V1DeleteOptions())
 
 def main(argv):
   parser = argparse.ArgumentParser(description='TaskMaster main module')
