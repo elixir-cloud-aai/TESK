@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+from __future__ import print_function
 import argparse
 import json
 import os
@@ -78,6 +79,92 @@ def run_executors(specs, polling_interval, namespace):
 
   return 'Complete' # No failures, so return successful finish
 
+def create_pvc(data, namespace):
+  task_name = data['executors'][0]['metadata']['labels']['taskmaster-name']
+  pvc_name = task_name + '-pvc'
+  size = data['resources']['disk_gb']
+
+  pvc = { 'apiVersion': 'v1',
+          'kind': 'PersistentVolumeClaim',
+          'metadata': { 'name': pvc_name },
+          'spec': {
+            'accessModes': [ 'ReadWriteOnce'],
+            'resources': { 'requests' : { 'storage': str(size)+'Gi' } },
+            'storageClassName': 'gold'
+          }
+        }
+
+  cv1 = client.CoreV1Api()
+  cv1.create_namespaced_persistent_volume_claim(namespace, pvc)
+  return pvc_name
+
+def get_filer_template():
+  filer = {
+              "kind": "Job",
+              "apiVersion": "batch/v1",
+              "metadata": { "name": "tesk-filer" },
+              "spec": {
+                "template": {
+                  "metadata": { "name": "tesk-filer" },
+                  "spec": {
+                    "containers": [ {
+                        "name": "filer",
+                        "image": "eu.gcr.io/tes-wes/filer:v0.1.0",
+                        "args": [],
+                        "env": [],
+                        "volumeMounts": []
+                      }
+                    ],
+                    "volumes": [],
+                    "restartPolicy": "Never"
+                  }
+                }
+              }
+            }
+  return filer
+  
+def populate_pvc(data, namespace, pvc_name):
+  volume_mounts = []
+  for idx, volume in enumerate(data['volumes']):
+    volume_mounts.append({"name": "volume"+str(idx), "mountPath": volume })
+
+  for idx, aninput in enumerate(data['inputs']):
+    if aninput['type'] == 'FILE':
+      p = re.compile('(.*)/')
+      basepath = p.match(aninput['path']).group(1)
+    elif aninput['type'] == 'DIRECTORY':
+      basepath = aninput['path']
+
+    volume_mounts.append({"name": "input_volume"+str(idx), "mountPath": basepath})
+
+  pretask = get_filer_template()
+  pretask['spec']['template']['spec']['containers'][0]['env'].append({ "name": "JSON_INPUT", "value": json.dumps(data) })
+  pretask['spec']['template']['spec']['containers'][0]['args'].append("inputs")
+  pretask['spec']['template']['spec']['containers'][0]['args'].append("$(JSON_INPUT)")
+  pretask['spec']['template']['spec']['containers'][0]['volumeMounts'] = volume_mounts
+  pretask['spec']['template']['volumes'] = [ { "name": "task-volume", "persistentVolumeClaim": { "claimName": pvc_name} } ]
+
+  print(json.dumps(pretask, indent=2), file=sys.stderr)
+  
+  #bv1 = client.BatchV1Api()
+  #job = v1.create_namespaced_job(body=pretask, namespace=namespace)
+
+  return volume_mounts
+
+def cleanup_pvc(data, namespace, volume_mounts, pvc_name):
+  posttask = get_filer_template()
+  posttask['spec']['template']['spec']['containers'][0]['env'].append({ "name": "JSON_INPUT", "value": json.dumps(data) })
+  posttask['spec']['template']['spec']['containers'][0]['args'].append("outputs")
+  posttask['spec']['template']['spec']['containers'][0]['args'].append("$(JSON_INPUT)")
+  posttask['spec']['template']['spec']['containers'][0]['volumeMounts'] = volume_mounts
+  posttask['spec']['template']['volumes'] = [ { "name": "task-volume", "persistentVolumeClaim": { "claimName": pvc_name} } ]
+
+  #bv1 = client.BatchV1Api()
+  #job = v1.create_namespaced_job(body=posttask, namespace=namespace)
+
+  cv1 = client.CoreV1Api()
+  cv1.delete_namespaced_persistent_volume_claim(pvc_name, namespace, client.V1DeleteOptions)
+
 def main(argv):
   parser = argparse.ArgumentParser(description='TaskMaster main module')
   group = parser.add_mutually_exclusive_group(required=True)
@@ -106,8 +193,14 @@ def main(argv):
   else:
     config.load_kube_config()
 
-  state = run_executors(data['executors'], args.polling_interval, args.namespace)
-  print("Finished with state %s" % state)
+  pvc_name = create_pvc(data, args.namespace)
+
+  volume_mounts = populate_pvc(data, args.namespace, pvc_name)
+
+  #state = run_executors(data['executors'], args.polling_interval, args.namespace)
+  #print("Finished with state %s" % state)
+ 
+  cleanup_pvc(data, args.namespace, volume_mounts, pvc_name)
 
 if __name__ == "__main__":
   main(sys.argv)
