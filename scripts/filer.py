@@ -64,18 +64,14 @@ def process_file(ftype, afile):
 
 def main(argv):
   parser = argparse.ArgumentParser(description='Filer script for down- and uploading files')
+  parser.add_argument('filetype', help='filetype given, either \'inputs\' or \'outputs\' ')
   parser.add_argument('data', help='file description data, see docs for structure')
   args = parser.parse_args()
 
   data = json.loads(args.data)
 
-  if data.get('outputs') is not None:
-    ftype = 'outputs'
-  else:
-    ftype = 'inputs'
-  
-  for afile in data[ftype]:
-    if process_file(ftype, afile):
+  for afile in data[args.filetype]:
+    if process_file(args.filetype, afile):
       print('something went wrong', file=sys.stderr)
       return 1
     else:
