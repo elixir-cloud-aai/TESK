@@ -1,0 +1,138 @@
+{
+  "outputs": [
+    {
+      "url": "/path/to/output_file.txt",
+      "path": "/tes/output.txt",
+      "type": "FILE"
+    },
+    {
+      "url": "/path/to/output",
+      "path": "/outputs/output",
+      "type": "DIRECTORY"
+    }
+  ],
+  "inputs": [
+    {
+      "name": "input1",
+      "description": "Example",
+      "url": "ftp://example.org/resource.txt",
+      "path": "/some/volume/input.txt",
+      "type": "FILE"
+    },
+    {
+      "url": "http://example.org/resources",
+      "path": "/tes/volumes/input",
+      "type": "DIRECTORY"
+    },
+    {
+      "content": "aaabbbcccddd",
+      "path": "/container/input/other.txt",
+      "type": "FILE"
+    }
+  ],
+  "volumes": [
+    "/tmp/tmp1",
+    "/tmp/tmp2"
+  ],
+  "executors": [
+    {
+      "apiVersion": "batch/v1",
+      "kind": "Job",
+      "metadata": {
+        "annotations": {
+          "tes-task-name": "taskFull"
+        },
+        "labels": {
+          "job-type": "executor",
+          "taskmaster-name": "task-35605447",
+          "executor-no": "0"
+        },
+        "name": "task-35605447-ex-00"
+      },
+      "spec": {
+        "template": {
+          "metadata": {
+            "name": "task-35605447-ex-00"
+          },
+          "spec": {
+            "containers": [
+              {
+                "args": [
+                  "echo",
+                  "hello world"
+                ],
+                "command": [],
+                "image": "ubuntu",
+                "name": "task-35605447-ex-00",
+                "resources": {
+                  "requests": {
+                    "cpu": "4",
+                    "memory": "15.0G"
+                  }
+                }
+              }
+            ],
+            "restartPolicy": "Never"
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "batch/v1",
+      "kind": "Job",
+      "metadata": {
+        "annotations": {
+          "tes-task-name": "taskFull"
+        },
+        "labels": {
+          "job-type": "executor",
+          "taskmaster-name": "task-35605447",
+          "executor-no": "1"
+        },
+        "name": "task-35605447-ex-01"
+      },
+      "spec": {
+        "template": {
+          "metadata": {
+            "name": "task-35605447-ex-01"
+          },
+          "spec": {
+            "containers": [
+              {
+                "args": [
+                  "sh",
+                  "-c",
+                  "md5sum $src"
+                ],
+                "command": [],
+                "env": [
+                  {
+                    "name": "src",
+                    "value": "/container/input/other.txt"
+                  },
+                  {
+                    "name": "sth",
+                    "value": "sthElse"
+                  }
+                ],
+                "image": "alpine",
+                "name": "task-35605447-ex-01",
+                "resources": {
+                  "requests": {
+                    "cpu": "4",
+                    "memory": "15.0G"
+                  }
+                },
+                "workingDir": "/starthere"
+              }
+            ],
+            "restartPolicy": "Never"
+          }
+        }
+      }
+    }
+  ],
+  "resources": {
+    "disk_gb": 100
+  }
+}

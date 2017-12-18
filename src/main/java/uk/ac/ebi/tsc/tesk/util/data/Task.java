@@ -1,5 +1,9 @@
 package uk.ac.ebi.tsc.tesk.util.data;
 
+import com.google.common.base.Strings;
+import io.kubernetes.client.models.V1Job;
+import io.kubernetes.client.models.V1ObjectMeta;
+
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -8,7 +12,7 @@ import static uk.ac.ebi.tsc.tesk.util.constant.Constants.JOB_NAME_EXEC_PREFIX;
 
 /**
  * @author Ania Niewielska <aniewielska@ebi.ac.uk>
- *
+ * <p>
  * A composite that represents Kubernetes object's graph of a single TES task:
  * taskmaster job with its pods
  * and executor jobs with its pods
@@ -30,8 +34,15 @@ public class Task {
         this.taskmaster = taskmaster;
     }
 
+    public Task(String taskmasterName) {
+        V1Job job = new V1Job();
+        job.metadata(new V1ObjectMeta().name(taskmasterName));
+        this.taskmaster = new Job(job);
+    }
+
     /**
      * Adds new executor object to Task
+     *
      * @param executor - executor job with corresponsing pods
      */
     public void addExecutor(Job executor) {
@@ -69,7 +80,13 @@ public class Task {
 
 
     private int extractExecutorNumber(Job executor) {
+        String taskmasterName = this.taskmaster.getJobName();
+        return Integer.parseInt(executor.getJobName().substring(taskmasterName.length() + JOB_NAME_EXEC_PREFIX.length()), JOB_NAME_EXEC_NO_LENGTH);
+    }
+
+    public String getExecutorName(int executorIndex) {
         String taskmasterName = this.taskmaster.getJob().getMetadata().getName();
-        return Integer.parseInt(executor.getJob().getMetadata().getName().substring(taskmasterName.length() + JOB_NAME_EXEC_PREFIX.length()), JOB_NAME_EXEC_NO_LENGTH);
+        return new StringBuilder(taskmasterName).append(JOB_NAME_EXEC_PREFIX).
+                append(Strings.padStart(String.valueOf(executorIndex), JOB_NAME_EXEC_NO_LENGTH, '0')).toString();
     }
 }

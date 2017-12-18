@@ -41,7 +41,7 @@ public class K8sConstants {
     /**
      * Executor memory resource unit
      */
-    public static final String RESOURCE_MEM_UNIT = "Gi";
+    public static final String RESOURCE_MEM_UNIT = "G";
 
 
 }

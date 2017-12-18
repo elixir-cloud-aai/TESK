@@ -42,8 +42,6 @@ public class TesKubernetesConverter {
 
     private final Supplier<V1Job> taskmasterTemplateSupplier;
 
-    private final JobNameGenerator jobNameGenerator;
-
     private final ObjectMapper objectMapper;
 
     private final Gson gson;
@@ -51,24 +49,11 @@ public class TesKubernetesConverter {
     private enum JOB_STATUS {ACTIVE, SUCCEEDED, FAILED}
 
     public TesKubernetesConverter(@Qualifier("executor") Supplier<V1Job> executorTemplateSupplier, @Qualifier("taskmaster")
-            Supplier<V1Job> taskmasterTemplateSupplier, JobNameGenerator jobNameGenerator, ObjectMapper objectMapper, Gson gson) {
+            Supplier<V1Job> taskmasterTemplateSupplier, ObjectMapper objectMapper, Gson gson) {
         this.executorTemplateSupplier = executorTemplateSupplier;
         this.taskmasterTemplateSupplier = taskmasterTemplateSupplier;
-        this.jobNameGenerator = jobNameGenerator;
         this.objectMapper = objectMapper;
         this.gson = gson;
-    }
-
-    /**
-     * Changes job name
-     *
-     * @param job     - input job
-     * @param newName - new name
-     */
-    private void changeJobName(V1Job job, String newName) {
-        job.getMetadata().name(newName);
-        job.getSpec().getTemplate().getMetadata().name(newName);
-        job.getSpec().getTemplate().getSpec().getContainers().get(0).setName(newName);
     }
 
     /**
@@ -130,7 +115,7 @@ public class TesKubernetesConverter {
         //get new template executor Job object
         V1Job job = executorTemplateSupplier.get();
         //set executors name based on taskmaster's job name
-        this.changeJobName(job, this.jobNameGenerator.getExecutorName(generatedTaskId, executorIndex));
+        new Job(job).changeJobName(new Task(generatedTaskId).getExecutorName(executorIndex));
         //put arbitrary labels and annotations:
         //the important one --> taskId - to search for executors of a given task
         job.getMetadata().putLabelsItem(LABEL_TESTASK_ID_KEY, generatedTaskId);

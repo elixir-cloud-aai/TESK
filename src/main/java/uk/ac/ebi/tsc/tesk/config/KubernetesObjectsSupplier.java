@@ -7,6 +7,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
 import uk.ac.ebi.tsc.tesk.util.component.JobNameGenerator;
+import uk.ac.ebi.tsc.tesk.util.data.Job;
 
 import java.io.*;
 import java.util.ArrayList;
@@ -53,9 +54,7 @@ public class KubernetesObjectsSupplier {
                     setImage(new StringJoiner(":").add(imageName).add(imageVersion).toString());
             job.getMetadata().putLabelsItem(LABEL_JOBTYPE_KEY, LABEL_JOBTYPE_VALUE_TASKM);
             String taskMasterName = this.jobNameGenerator.getTaskMasterName();
-            job.getMetadata().setName(taskMasterName);
-            job.getSpec().getTemplate().getMetadata().setName(taskMasterName);
-            job.getSpec().getTemplate().getSpec().getContainers().get(0).setName(taskMasterName);
+            new Job(job).changeJobName(taskMasterName);
             return job;
         } catch (IOException ex) {
             throw new RuntimeException(ex);

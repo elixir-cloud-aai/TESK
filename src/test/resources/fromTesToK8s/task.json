@@ -1,0 +1,73 @@
+{
+  "name": "taskFull",
+  "description": "whatever",
+  "inputs": [
+    {
+      "name": "input1",
+      "description": "Example",
+      "url": "ftp://example.org/resource.txt",
+      "path": "/some/volume/input.txt",
+      "type": "FILE"
+    },
+    {
+      "url": "http://example.org/resources",
+      "path": "/tes/volumes/input",
+      "type": "DIRECTORY"
+    },
+    {
+      "content": "aaabbbcccddd",
+      "path": "/container/input/other.txt",
+      "type": "FILE"
+    }
+  ],
+  "outputs": [
+    {
+      "url": "/path/to/output_file.txt",
+      "path": "/tes/output.txt",
+      "type": "FILE"
+    },
+    {
+      "url": "/path/to/output",
+      "path": "/outputs/output",
+      "type": "DIRECTORY"
+    }
+  ],
+  "resources": {
+    "cpu_cores": 4,
+    "ram_gb": 15,
+    "disk_gb": 100
+  },
+  "executors": [
+    {
+      "image": "ubuntu",
+      "command": [
+        "echo",
+        "hello world"
+      ],
+      "stdout": "/tmp/stdout"
+    },
+    {
+      "image": "alpine",
+      "command": [
+        "sh",
+        "-c",
+        "md5sum $src"
+      ],
+      "workdir": "/starthere",
+      "stdout": "/tes/output.txt",
+      "stderr": "/tes/err.txt",
+      "env": {
+        "src": "/container/input/other.txt",
+        "sth": "sthElse"
+      }
+    }
+  ],
+  "volumes": [
+    "/tmp/tmp1",
+    "/tmp/tmp2"
+  ],
+  "tags" : {
+    "project": "important",
+    "author": "janedoe"
+  }
+}

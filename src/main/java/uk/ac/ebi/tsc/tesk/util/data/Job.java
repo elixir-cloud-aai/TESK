@@ -62,5 +62,13 @@ public class Job {
         if (!hasPods()) return new ArrayList<>();
         return this.pods;
     }
+    public void changeJobName(String newName) {
+        this.job.getMetadata().name(newName);
+        this.job.getSpec().getTemplate().getMetadata().name(newName);
+        this.job.getSpec().getTemplate().getSpec().getContainers().get(0).setName(newName);
+    }
+    public String getJobName() {
+        return this.job.getMetadata().getName();
+    }
 
 }
