@@ -1,0 +1,57 @@
+{
+  "kind": "Job", 
+  "spec": {
+    "template": {
+      "spec": {
+        "restartPolicy": "Never", 
+        "volumes": [], 
+        "containers": [
+          {
+            "image": "eu.gcr.io/tes-wes/filer:v0.1.3", 
+            "args": [
+              "inputs", 
+              "$(JSON_INPUT)"
+            ], 
+            "volumeMounts": [
+              {
+                "mountPath": "/tmp/tmp1", 
+                "name": "task-volume"
+              }, 
+              {
+                "mountPath": "/tmp/tmp2", 
+                "name": "task-volume"
+              }, 
+              {
+                "mountPath": "/container", 
+                "name": "task-volume"
+              }
+            ], 
+            "name": "filer", 
+            "env": [
+              {
+                "name": "JSON_INPUT", 
+                "value": "{\"outputs\": [{\"url\": \"ftp://ftp-private.ebi.ac.uk/upload/tesk-test-output\", \"path\": \"/container/input2\", \"type\": \"FILE\"}], \"executors\": [{\"kind\": \"Job\", \"spec\": {\"template\": {\"spec\": {\"restartPolicy\": \"Never\", \"volumes\": [{\"name\": \"PVC\", \"persistentVolumeClaim\": {\"readOnly\": false}}], \"containers\": [{\"name\": \"task-5473c590-ex-00\", \"workingDir\": \"/tmp\", \"image\": \"perl\", \"args\": [\"perl\", \"-Mbignum=bpi\", \"-wle\", \"printbpi(10000)\"], \"volumeMounts\": [{\"readOnly\": false, \"name\": \"PVC\"}], \"command\": [], \"resources\": {\"requests\": {\"cpu\": \"1\", \"memory\": \"1.0Gi\"}}}]}, \"metadata\": {\"name\": \"task-5473c590-ex-00\"}}}, \"apiVersion\": \"batch/v1\", \"metadata\": {\"labels\": {\"taskmaster-name\": \"task-5473c590\", \"executor-no\": \"0\", \"job-type\": \"executor\"}, \"annotations\": {\"tes-task-name\": \"MD5example\"}, \"name\": \"task-5473c590-ex-00\"}}, {\"kind\": \"Job\", \"spec\": {\"template\": {\"spec\": {\"restartPolicy\": \"Never\", \"volumes\": [{\"name\": \"PVC\", \"persistentVolumeClaim\": {\"readOnly\": false}}], \"containers\": [{\"name\": \"task-5473c590-ex-01\", \"workingDir\": \"/tmp\", \"image\": \"perl\", \"args\": [\"perl\", \"-Mbignum=bpi\", \"-wle\", \"printbpi(10000)\"], \"volumeMounts\": [{\"readOnly\": false, \"name\": \"PVC\"}], \"command\": [], \"resources\": {\"requests\": {\"cpu\": \"1\", \"memory\": \"1.0Gi\"}}}]}, \"metadata\": {\"name\": \"task-5473c590-ex-01\"}}}, \"apiVersion\": \"batch/v1\", \"metadata\": {\"labels\": {\"taskmaster-name\": \"task-5473c590\", \"executor-no\": \"1\", \"job-type\": \"executor\"}, \"annotations\": {\"tes-task-name\": \"MD5example\"}, \"name\": \"task-5473c590-ex-01\"}}], \"resources\": {\"disk_gb\": 100.0}, \"volumes\": [\"/tmp/tmp1\", \"/tmp/tmp2\"], \"inputs\": [{\"url\": \"ftp://ftp-private.ebi.ac.uk/upload/tesk-test-random\", \"path\": \"/container/input1\", \"type\": \"FILE\", \"name\": \"infile\", \"description\": \"md5suminputfile\"}, {\"url\": \"https://raw.githubusercontent.com/EMBL-EBI-TSI/cloud-portal-documentation/master/docs/index.md\", \"path\": \"/container/input2\", \"type\": \"FILE\", \"name\": \"infile\", \"description\": \"md5suminputfile2\"}]}"
+              }
+            ]
+          }
+        ],
+        "volumes": [
+          {
+            "name": "task-volume", 
+            "persistentVolumeClaim": {
+              "claimName": "task-5473c590-pvc"
+            }
+          }
+        ]
+      }, 
+      "metadata": {
+        "name": "tesk-filer"
+      }
+    }
+  }, 
+  "apiVersion": "batch/v1", 
+  "metadata": {
+    "name": "tesk-filer"
+  }
+}
+
