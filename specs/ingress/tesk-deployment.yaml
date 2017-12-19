@@ -1,0 +1,19 @@
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  name: tesk-api
+spec:
+  selector:
+    matchLabels:
+      app: tesk-api
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: tesk-api
+    spec:
+      containers:
+      - name: tesk-api
+        image: eu.gcr.io/tes-wes/tesk-api:v0.0.0.2 
+        ports:
+        - containerPort: 8080
