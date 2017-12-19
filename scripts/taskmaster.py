@@ -13,6 +13,7 @@ from datetime import datetime
 
 debug = False
 polling_interval = 5
+task_volume_name = 'task-volume'
 
 # translates TES JSON into 1 Job spec per executor
 def generate_job_specs(tes):
@@ -50,14 +51,18 @@ def generate_job_specs(tes):
     exe_i += 1
   return specs
 
-def run_executors(specs, namespace):
+def run_executors(specs, namespace, volume_mounts, pvc_name):
 
   # init Kubernetes Job API
   v1 = client.BatchV1Api()
 
   for executor in specs:
     jobname = executor['metadata']['name']
-    #executor['metadata']['name'] = jobname
+    
+    executor['spec']['template']['spec']['containers'][0]['volumeMounts'] = volume_mounts
+    executor['spec']['template']['spec']['volumes'] = []
+    executor['spec']['template']['spec']['volumes'].append( { 'name': task_volume_name, 'persistentVolumeClaim': { 'readonly': False, 'claimName': pvc_name } } )
+
     job = v1.create_namespaced_job(body=executor, namespace=namespace)
     print("Created job with metadata='%s'" % str(job.metadata))
     if wait_for_job(jobname, namespace) == 'Failed':
@@ -143,7 +148,7 @@ def append_mount(volume_mounts, name, path):
 
 def populate_pvc(data, namespace, pvc_name, filer_version):
   volume_mounts = []
-  volume_name = 'task-volume'
+  volume_name = task_volume_name
   for idx, volume in enumerate(data['volumes']):
     append_mount(volume_mounts, volume_name, volume)
 
@@ -157,7 +162,7 @@ def populate_pvc(data, namespace, pvc_name, filer_version):
     append_mount(volume_mounts, volume_name, basepath)
 
   name = data['executors'][0]['metadata']['labels']['taskmaster-name']
-  pretask = get_filer_template(filer_version, name+'-filer')
+  pretask = get_filer_template(filer_version, name+'-inputs-filer')
   pretask['spec']['template']['spec']['containers'][0]['env'].append({ "name": "JSON_INPUT", "value": json.dumps(data) })
   pretask['spec']['template']['spec']['containers'][0]['args'].append("inputs")
   pretask['spec']['template']['spec']['containers'][0]['args'].append("$(JSON_INPUT)")
@@ -174,12 +179,12 @@ def populate_pvc(data, namespace, pvc_name, filer_version):
 
 def cleanup_pvc(data, namespace, volume_mounts, pvc_name, filer_version):
   name = data['executors'][0]['metadata']['labels']['taskmaster-name']
-  posttask = get_filer_template(filer_version, name+'-filer')
+  posttask = get_filer_template(filer_version, name+'-outputs-filer')
   posttask['spec']['template']['spec']['containers'][0]['env'].append({ "name": "JSON_INPUT", "value": json.dumps(data) })
   posttask['spec']['template']['spec']['containers'][0]['args'].append("outputs")
   posttask['spec']['template']['spec']['containers'][0]['args'].append("$(JSON_INPUT)")
   posttask['spec']['template']['spec']['containers'][0]['volumeMounts'] = volume_mounts
-  posttask['spec']['template']['spec']['volumes'] = [ { "name": "task-volume", "persistentVolumeClaim": { "claimName": pvc_name} } ]
+  posttask['spec']['template']['spec']['volumes'] = [ { "name": task_volume_name, "persistentVolumeClaim": { "claimName": pvc_name} } ]
 
   bv1 = client.BatchV1Api()
   job = bv1.create_namespaced_job(body=posttask, namespace=namespace)
@@ -225,8 +230,8 @@ def main(argv):
 
   volume_mounts = populate_pvc(data, args.namespace, pvc_name, args.filer_version)
 
-  #state = run_executors(data['executors'], args.namespace)
-  #print("Finished with state %s" % state)
+  state = run_executors(data['executors'], args.namespace, volume_mounts, pvc_name)
+  print("Finished with state %s" % state)
  
   cleanup_pvc(data, args.namespace, volume_mounts, pvc_name, args.filer_version)
 
