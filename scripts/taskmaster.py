@@ -202,7 +202,7 @@ def main(argv):
   group.add_argument('-f', '--file', help='TES request as a file or \'-\' for stdin, required if json is not given')
 
   parser.add_argument('-p', '--polling-interval', help='Job polling interval', default=5)
-  parser.add_argument('-fv', '--filer-version', help='Filer image version', default='v0.1.2')
+  parser.add_argument('-fv', '--filer-version', help='Filer image version', default='v0.1.5')
   parser.add_argument('-n', '--namespace', help='Kubernetes namespace to run in', default='default')
   parser.add_argument('-s', '--state-file', help='State file for state.py script', default='/tmp/.teskstate')
   parser.add_argument('-d', '--debug', help='Set debug mode', action='store_true')
