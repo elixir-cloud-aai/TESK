@@ -1,0 +1,17 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: ingress-rules
+spec:
+  rules:
+  - host: tesk.ingress.com
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: tesk-svc
+          servicePort: 8080
+      - path: /test
+        backend:
+          serviceName: test-svc
+          servicePort: 80
