@@ -15,10 +15,7 @@ import uk.ac.ebi.tsc.tesk.util.data.Job;
 import uk.ac.ebi.tsc.tesk.util.data.Task;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -84,8 +81,11 @@ public class TesKubernetesConverter {
         try {
             //converting original inputs, outputs, volumes and disk size back again to JSON (will be part of taskMaster's input parameter)
             //Jackson - for TES objects
-            String jobAsJson = this.objectMapper.writeValueAsString(new TesTask().inputs(task.getInputs()).outputs(task.getOutputs()).volumes(task.getVolumes()).
-                    resources(new TesResources().diskGb(Optional.ofNullable(task.getResources()).map(TesResources::getDiskGb).orElse(null))));
+            List<TesInput> inputs = task.getInputs() == null ? new ArrayList<>() : task.getInputs();
+            List<TesOutput> outputs = task.getOutputs() == null ? new ArrayList<>() : task.getOutputs();
+            List<String> volumes = task.getVolumes() == null ? new ArrayList<>() : task.getVolumes();
+            String jobAsJson = this.objectMapper.writeValueAsString(new TesTask().inputs(inputs).outputs(outputs).volumes(volumes).
+                    resources(new TesResources().diskGb(Optional.ofNullable(task.getResources()).map(TesResources::getDiskGb).orElse(0.1))));
             //merging 2 JSONs together into one map
             Map<String, Object> jobAsMap = gson.fromJson(jobAsJson, Map.class);
             taskMasterInput.putAll(jobAsMap);
