@@ -67,6 +67,6 @@ public class TraceInterceptorConfiguration {
     public Advisor getTaskTraceAdvisor() {
         AspectJExpressionPointcut pointcut = new AspectJExpressionPointcut();
         pointcut.setExpression("uk.ac.ebi.tsc.tesk.config.TraceInterceptorConfiguration.getMethods()");
-        return new DefaultPointcutAdvisor(pointcut, createTaskInterceptor());
+        return new DefaultPointcutAdvisor(pointcut, getTaskInterceptor());
     }
 }
