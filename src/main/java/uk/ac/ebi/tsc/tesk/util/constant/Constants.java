@@ -95,5 +95,7 @@ public class Constants {
      */
     public static final String ABSOLUTE_PATH_MESSAGE = "must be an absolute path";
 
+    public static final double RESOURCE_DISK_DEFAULT = 0.1;
+
 
 }

@@ -85,7 +85,7 @@ public class TesKubernetesConverter {
             List<TesOutput> outputs = task.getOutputs() == null ? new ArrayList<>() : task.getOutputs();
             List<String> volumes = task.getVolumes() == null ? new ArrayList<>() : task.getVolumes();
             String jobAsJson = this.objectMapper.writeValueAsString(new TesTask().inputs(inputs).outputs(outputs).volumes(volumes).
-                    resources(new TesResources().diskGb(Optional.ofNullable(task.getResources()).map(TesResources::getDiskGb).orElse(0.1))));
+                    resources(new TesResources().diskGb(Optional.ofNullable(task.getResources()).map(TesResources::getDiskGb).orElse(RESOURCE_DISK_DEFAULT))));
             //merging 2 JSONs together into one map
             Map<String, Object> jobAsMap = gson.fromJson(jobAsJson, Map.class);
             taskMasterInput.putAll(jobAsMap);
