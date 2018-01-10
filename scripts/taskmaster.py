@@ -17,38 +17,36 @@ task_volume_name = 'task-volume'
 
 # translates TES JSON into 1 Job spec per executor
 def generate_job_specs(tes):
-  exe_i = 0
   specs = []
+  name = re.sub(r" ", "-", tes['name'].lower())
 
   for executor in tes['executors']:
-    valid_name = tes['name']
-    valid_name = valid_name.lower()
-    valid_name = re.sub(r" ", "-", valid_name)
-    
-    specs.append({'apiVersion': 'batch/v1', 'kind': 'Job'})
-    specs[exe_i]['metadata'] = {'name': valid_name}
+    descriptor = {
+        'apiVersion': 'batch/v1',
+        'kind': 'Job',
+        'metadata': {'name': name},
+        'spec': {
+            'template': {
+                'metadata': {'name': name},
+                'spec': {
+                    'restartPolicy': 'Never',
+                    'containers': [{
+                        'name': name + '-ex' + len(specs),
+                        'image': executor['image_name'],
+                        'command': executor['cmd'],
+                        'resources': {
+                            'requests': {
+                                'cpu': tes['resources']['cpu_cores'],
+                                'memory': str(tes['resources']['ram_gb']) + 'Gi'
+                            }
+                        }
+                    }]
+                }
+            }
+        }
+    }
+    specs.append(descriptor)
 
-    specs[exe_i]['spec'] = {'template': 0}
-    specs[exe_i]['spec']['template'] = { 'metadata' : 0, 'spec': 0}
-    
-    specs[exe_i]['spec']['template']['metadata'] = {'name': valid_name}
-
-    specs[exe_i]['spec']['template']['spec'] = { 'containers': 0, 'restartPolicy': 'Never'}
-
-    specs[exe_i]['spec']['template']['spec']['containers'] = []
-
-    specs[exe_i]['spec']['template']['spec']['containers'] = []
-    specs[exe_i]['spec']['template']['spec']['containers'].append({ 
-                                                         'name': valid_name+'-ex'+str(exe_i),
-                                                         'image': executor['image_name'], 
-                                                         'command': executor['cmd'],
-                                                         'resources': {'requests': 0 }
-                                                        })
-    specs[exe_i]['spec']['template']['spec']['containers'][0]['resources']['requests'] = { 
-                                                           'cpu': tes['resources']['cpu_cores'], 
-                                                           'memory': str(tes['resources']['ram_gb'])+'Gi'}
-    
-    exe_i += 1
   return specs
 
 def run_executors(specs, namespace, volume_mounts, pvc_name):
@@ -58,10 +56,10 @@ def run_executors(specs, namespace, volume_mounts, pvc_name):
 
   for executor in specs:
     jobname = executor['metadata']['name']
-    
-    executor['spec']['template']['spec']['containers'][0]['volumeMounts'] = volume_mounts
-    executor['spec']['template']['spec']['volumes'] = []
-    executor['spec']['template']['spec']['volumes'].append( { 'name': task_volume_name, 'persistentVolumeClaim': { 'readonly': False, 'claimName': pvc_name } } )
+    spec = executor['spec']['template']['spec']
+
+    spec['containers'][0]['volumeMounts'] = volume_mounts
+    spec['volumes'] = [{ 'name': task_volume_name, 'persistentVolumeClaim': { 'readonly': False, 'claimName': pvc_name }}]
 
     job = v1.create_namespaced_job(body=executor, namespace=namespace)
     print("Created job with metadata='%s'" % str(job.metadata))
@@ -136,8 +134,9 @@ def get_filer_template(filer_version, name):
             }
 
   if os.environ.get('TESK_FTP_USERNAME') is not None:
-    filer['spec']['template']['spec']['containers'][0]['env'].append({ "name": "TESK_FTP_USERNAME", "value": os.environ['TESK_FTP_USERNAME'] })
-    filer['spec']['template']['spec']['containers'][0]['env'].append({ "name": "TESK_FTP_PASSWORD", "value": os.environ['TESK_FTP_PASSWORD'] })
+    env = filer['spec']['template']['spec']['containers'][0]['env']
+    env.append({ "name": "TESK_FTP_USERNAME", "value": os.environ['TESK_FTP_USERNAME'] })
+    env.append({ "name": "TESK_FTP_PASSWORD", "value": os.environ['TESK_FTP_PASSWORD'] })
 
   return filer
 
@@ -163,14 +162,14 @@ def populate_pvc(data, namespace, pvc_name, filer_version):
 
   name = data['executors'][0]['metadata']['labels']['taskmaster-name']
   pretask = get_filer_template(filer_version, name+'-inputs-filer')
-  pretask['spec']['template']['spec']['containers'][0]['env'].append({ "name": "JSON_INPUT", "value": json.dumps(data) })
-  pretask['spec']['template']['spec']['containers'][0]['args'].append("inputs")
-  pretask['spec']['template']['spec']['containers'][0]['args'].append("$(JSON_INPUT)")
-  pretask['spec']['template']['spec']['containers'][0]['volumeMounts'] = volume_mounts
+  container = pretask['spec']['template']['spec']['containers'][0]
+  container['env'].append({ "name": "JSON_INPUT", "value": json.dumps(data) })
+  container['args'] += ["inputs", "$(JSON_INPUT)"]
+  container['volumeMounts'] = volume_mounts
   pretask['spec']['template']['spec']['volumes'] = [ { "name": volume_name, "persistentVolumeClaim": { "claimName": pvc_name} } ]
 
   print(json.dumps(pretask, indent=2), file=sys.stderr)
-  
+
   bv1 = client.BatchV1Api()
   job = bv1.create_namespaced_job(body=pretask, namespace=namespace)
   wait_for_job(pretask['metadata']['name'], namespace)
@@ -180,9 +179,9 @@ def populate_pvc(data, namespace, pvc_name, filer_version):
 def cleanup_pvc(data, namespace, volume_mounts, pvc_name, filer_version):
   name = data['executors'][0]['metadata']['labels']['taskmaster-name']
   posttask = get_filer_template(filer_version, name+'-outputs-filer')
-  posttask['spec']['template']['spec']['containers'][0]['env'].append({ "name": "JSON_INPUT", "value": json.dumps(data) })
-  posttask['spec']['template']['spec']['containers'][0]['args'].append("outputs")
-  posttask['spec']['template']['spec']['containers'][0]['args'].append("$(JSON_INPUT)")
+  container = posttask['spec']['template']['spec']['containers'][0]
+  container['env'].append({ "name": "JSON_INPUT", "value": json.dumps(data) })
+  container['args'] += ["outputs", "$(JSON_INPUT)"]
   posttask['spec']['template']['spec']['containers'][0]['volumeMounts'] = volume_mounts
   posttask['spec']['template']['spec']['volumes'] = [ { "name": task_volume_name, "persistentVolumeClaim": { "claimName": pvc_name} } ]
 
@@ -232,7 +231,7 @@ def main(argv):
 
   state = run_executors(data['executors'], args.namespace, volume_mounts, pvc_name)
   print("Finished with state %s" % state)
- 
+
   cleanup_pvc(data, args.namespace, volume_mounts, pvc_name, args.filer_version)
 
 if __name__ == "__main__":
