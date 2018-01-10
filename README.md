@@ -3,6 +3,7 @@ An implementation of a task execution engine based on the [TES standard](https:/
 
 ## Architecture
 As a diagram:
+
 ![TESK architecture](docs/architecture.png)
 
 Description: The main work is performed by 2 pods. First is the API pod, a pod which runs a web server (NGINX) and exposes the TES specified endpoints. It consumes TES requests, validates them and translates them to Kubernetes jobs. The API pod then creates a task controller pod, or Taskmaster. The taskmaster consumes the executor jobs, inputs and outputs. It creates Persistent Volume Claims to mount as scratch space, input / output file space and (optionally) additional mounts specified in the TES request.It then creates a pre-task job to populate PVC’s (downloading inputs). It then loops through the executor jobs, waiting for each one to complete before moving on to the next one.
