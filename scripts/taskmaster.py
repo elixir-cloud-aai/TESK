@@ -195,7 +195,7 @@ def cleanup_pvc(data, namespace, volume_mounts, pvc_name, filer_version):
   container['args'] += ["outputs", "$(JSON_INPUT)"]
   
   # insert volume mounts and pvc into posttask job template
-  posttask['spec']['template']['spec']['containers'][0]['volumeMounts'] = volume_mounts
+  container['volumeMounts'] = volume_mounts
   posttask['spec']['template']['spec']['volumes'] = [ { "name": task_volume_name, "persistentVolumeClaim": { "claimName": pvc_name} } ]
 
   # run posttask filer job
