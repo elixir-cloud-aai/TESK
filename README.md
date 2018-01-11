@@ -8,6 +8,16 @@ For organisational reasons, this project is split into 2 repositories: One conta
 
 ## How to install
  - Clone the repo to your kube-master and cd into the folder
+ - Edit the follwing line in `specs/ingress/nginx-ingress-lb.yaml`:
+ 
+ ```yaml
+ spec:
+  type: NodePort
+  externalIPs:
+  - 127.0.0.1 <--- replace this with your cluster's external ip address
+
+ ```
+ 
  - Then create the services necessary to run the API:
 
 ```
