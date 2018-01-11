@@ -162,16 +162,22 @@ def populate_pvc(data, namespace, pvc_name, filer_version):
 
     append_mount(volume_mounts, volume_name, basepath)
 
+  # get name from taskmaster and create pretask template
   name = data['executors'][0]['metadata']['labels']['taskmaster-name']
   pretask = get_filer_template(filer_version, name+'-inputs-filer')
+
+  # insert JSON input into job template
   container = pretask['spec']['template']['spec']['containers'][0]
   container['env'].append({ "name": "JSON_INPUT", "value": json.dumps(data) })
   container['args'] += ["inputs", "$(JSON_INPUT)"]
+
+  # insert volume mounts and pvc into job template
   container['volumeMounts'] = volume_mounts
   pretask['spec']['template']['spec']['volumes'] = [ { "name": volume_name, "persistentVolumeClaim": { "claimName": pvc_name} } ]
 
-  print(json.dumps(pretask, indent=2), file=sys.stderr)
+  #print(json.dumps(pretask, indent=2), file=sys.stderr)
 
+  # Run pretask filer job
   bv1 = client.BatchV1Api()
   job = bv1.create_namespaced_job(body=pretask, namespace=namespace)
   wait_for_job(pretask['metadata']['name'], namespace)
@@ -179,20 +185,27 @@ def populate_pvc(data, namespace, pvc_name, filer_version):
   return volume_mounts
 
 def cleanup_pvc(data, namespace, volume_mounts, pvc_name, filer_version):
+  # get name from taskmaster and create pretask template
   name = data['executors'][0]['metadata']['labels']['taskmaster-name']
   posttask = get_filer_template(filer_version, name+'-outputs-filer')
+
+  # insert JSON input into posttask job template
   container = posttask['spec']['template']['spec']['containers'][0]
   container['env'].append({ "name": "JSON_INPUT", "value": json.dumps(data) })
   container['args'] += ["outputs", "$(JSON_INPUT)"]
+  
+  # insert volume mounts and pvc into posttask job template
   posttask['spec']['template']['spec']['containers'][0]['volumeMounts'] = volume_mounts
   posttask['spec']['template']['spec']['volumes'] = [ { "name": task_volume_name, "persistentVolumeClaim": { "claimName": pvc_name} } ]
 
+  # run posttask filer job
   bv1 = client.BatchV1Api()
   job = bv1.create_namespaced_job(body=posttask, namespace=namespace)
   wait_for_job(posttask['metadata']['name'], namespace)
 
-  print(json.dumps(posttask, indent=2), file=sys.stderr)
+  #print(json.dumps(posttask, indent=2), file=sys.stderr)
 
+  # Delete pvc
   cv1 = client.CoreV1Api()
   cv1.delete_namespaced_persistent_volume_claim(pvc_name, namespace, client.V1DeleteOptions())
 
@@ -213,6 +226,7 @@ def main(argv):
 
   debug = args.debug
 
+  # Get input JSON
   if args.file is None:
     data = json.loads(args.json)
   elif args.file == '-':
@@ -222,18 +236,21 @@ def main(argv):
 
   #specs = generate_job_specs(tes)
 
+  # Load kubernetes config file
   if not debug:
     config.load_incluster_config()
   else:
     config.load_kube_config()
 
+  # create and populate pvc
   pvc_name = create_pvc(data, args.namespace)
-
   volume_mounts = populate_pvc(data, args.namespace, pvc_name, args.filer_version)
 
+  # run executors
   state = run_executors(data['executors'], args.namespace, volume_mounts, pvc_name)
   print("Finished with state %s" % state)
 
+  # upload files and delete pvc
   cleanup_pvc(data, args.namespace, volume_mounts, pvc_name, args.filer_version)
 
 if __name__ == "__main__":
