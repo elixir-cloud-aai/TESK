@@ -8,7 +8,7 @@ For organisational reasons, this project is split into 2 repositories: One conta
 
 ## How to install
  - Clone the repo to your kube-master and cd into the folder
- - Edit the folliwing line in `specs/ingress/nginx-ingress-lb.yaml`:
+ - Edit the following line in `specs/ingress/nginx-ingress-lb.yaml`:
  
  ```yaml
  spec:
