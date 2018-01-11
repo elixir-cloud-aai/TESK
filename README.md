@@ -24,7 +24,12 @@ For organisational reasons, this project is split into 2 repositories: One conta
 kubectl create -f specs/ingress/
 ```
  - This will expose the API service on a port in your cluster, run `kubectl get services` to see where.
- - Send an [example TESK request](https://github.com/EMBL-EBI-TSI/TESK/blob/master/specs/task_example.json) to the api port, and watch `kubectl get pods` to see the tasks appear and complete.
+ - Send an [example TESK request](https://github.com/EMBL-EBI-TSI/TESK/blob/master/specs/task_example.json), replacing `127.0.0.1:30977` with your services' ip and port:
+ 
+ ```bash
+ curl -H "Content-Type: application/json" -d @specs/task_example.json http://127.0.0.1:30977/v1/tasks
+ ```
+  - Watch `kubectl get pods` to see the tasks appear and complete.
  
  ## Architecture
 As a diagram:
