@@ -1,0 +1,8 @@
+{
+  "name": "noExecutors",
+  "executors": [
+    {
+      "image": "aaa"
+    }
+  ]
+}

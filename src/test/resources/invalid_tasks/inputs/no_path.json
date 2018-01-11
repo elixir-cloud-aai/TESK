@@ -1,0 +1,19 @@
+{
+  "executors": [
+    {
+      "image": "ubuntu",
+      "command": [
+        "echo",
+        "hello world"
+      ]
+    }
+  ],
+  "inputs": [
+    {
+      "name": "input1",
+      "description": "Example",
+      "url": "ftp://example.org/resource.txt",
+      "type": "FILE"
+    }
+  ]
+}

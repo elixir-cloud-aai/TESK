@@ -1,0 +1,12 @@
+{
+  "executors": [
+    {
+      "image": "ubuntu",
+      "command": [
+        "echo",
+        "hello world"
+      ]
+    }
+  ],
+  "volumes": ["/", "aaa"]
+}

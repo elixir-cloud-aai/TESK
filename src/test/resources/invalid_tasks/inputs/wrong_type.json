@@ -1,0 +1,20 @@
+{
+  "executors": [
+    {
+      "image": "ubuntu",
+      "command": [
+        "echo",
+        "hello world"
+      ]
+    }
+  ],
+  "inputs": [
+    {
+      "name": "input1",
+      "description": "Example",
+      "path": "/sth/sth.json",
+      "content": "assd",
+      "type": "UNKNOWN"
+    }
+  ]
+}

@@ -130,8 +130,8 @@ public class TesService {
 
         V1JobList taskmasterJobs = this.kubernetesClientWrapper.listAllTaskmasterJobs(pageToken, Optional.ofNullable(pageSize).map(Long::intValue).orElse(null));
         V1JobList executorJobs = this.kubernetesClientWrapper.listAllTaskExecutorJobs();
-        V1PodList taskMasterPods = this.kubernetesClientWrapper.listAllJobPods();
-        AbstractTaskBuilder taskListBuilder = new TaskListBuilder().addJobList(taskmasterJobs.getItems()).addJobList(executorJobs.getItems()).addPodList(taskMasterPods.getItems());
+        V1PodList jobPods = this.kubernetesClientWrapper.listAllJobPods();
+        AbstractTaskBuilder taskListBuilder = new TaskListBuilder().addJobList(taskmasterJobs.getItems()).addJobList(executorJobs.getItems()).addPodList(jobPods.getItems());
         List<TesTask> tasks = taskListBuilder.getTaskList().stream().map(task -> this.getTask(task, view)).collect(Collectors.toList());
         TesListTasksResponse response = new TesListTasksResponse();
         response.tasks(tasks).nextPageToken(taskmasterJobs.getMetadata().getContinue());

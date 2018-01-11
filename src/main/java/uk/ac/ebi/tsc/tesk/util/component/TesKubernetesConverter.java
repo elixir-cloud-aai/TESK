@@ -155,19 +155,19 @@ public class TesKubernetesConverter {
      * @return - if Job is in the given status
      */
     private boolean isJobInStatus(V1JobStatus testedObject, JOB_STATUS testObjective) {
-        Integer result = null;
+        Integer noOfPodsInState = null;
         switch (testObjective) {
             case ACTIVE:
-                result = testedObject.getActive();
+                noOfPodsInState = testedObject.getActive();
                 break;
             case SUCCEEDED:
-                result = testedObject.getSucceeded();
+                noOfPodsInState = testedObject.getSucceeded();
                 break;
             case FAILED:
-                result = testedObject.getFailed();
+                noOfPodsInState = testedObject.getFailed();
                 break;
         }
-        return Optional.ofNullable(result).map(failed -> failed > 0).orElse(false);
+        return Optional.ofNullable(noOfPodsInState).map(no -> no > 0).orElse(false);
     }
 
     /**

@@ -1,0 +1,18 @@
+{
+  "executors": [
+    {
+      "image": "ubuntu",
+      "command": [
+        "echo",
+        "hello world"
+      ]
+    }
+  ],
+  "outputs": [
+    {
+      "path": null,
+      "url": "anything",
+      "type": "DIRECTORY"
+    }
+  ]
+}
