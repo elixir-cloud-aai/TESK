@@ -141,7 +141,9 @@ def get_filer_template(filer_version, name):
   return filer
 
 def append_mount(volume_mounts, name, path):
+  # Checks all mount paths in volume_mounts if the path given is already in there
   duplicate = next((mount for mount in volume_mounts if mount['mountPath'] == path), None)
+  # If not, add mount path
   if duplicate is None:
     volume_mounts.append({ 'name': name, 'mountPath': path })
 
