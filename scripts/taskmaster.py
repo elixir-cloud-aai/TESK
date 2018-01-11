@@ -149,12 +149,16 @@ def append_mount(volume_mounts, name, path):
 
 def populate_pvc(data, namespace, pvc_name, filer_version):
   volume_mounts = []
+
+  # gather volumes that need to be mounted, without duplicates
   volume_name = task_volume_name
   for idx, volume in enumerate(data['volumes']):
     append_mount(volume_mounts, volume_name, volume)
 
+  # gather other paths that need to be mounted from inputs FILE and DIRECTORY entries
   for idx, aninput in enumerate(data['inputs']):
     if aninput['type'] == 'FILE':
+      # strip filename from path
       p = re.compile('(.*)/')
       basepath = p.match(aninput['path']).group(1)
     elif aninput['type'] == 'DIRECTORY':
@@ -185,7 +189,7 @@ def populate_pvc(data, namespace, pvc_name, filer_version):
   return volume_mounts
 
 def cleanup_pvc(data, namespace, volume_mounts, pvc_name, filer_version):
-  # get name from taskmaster and create pretask template
+  # get name from taskmaster and create posttask template
   name = data['executors'][0]['metadata']['labels']['taskmaster-name']
   posttask = get_filer_template(filer_version, name+'-outputs-filer')
 
