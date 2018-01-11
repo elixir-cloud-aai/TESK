@@ -11,7 +11,3 @@ spec:
         backend:
           serviceName: tesk-svc
           servicePort: 8080
-      - path: /test
-        backend:
-          serviceName: test-svc
-          servicePort: 80
