@@ -9,6 +9,19 @@ import json
 import re
 import os
 
+# TODO
+def get_ftp_path(path, ftp):
+  ls = []
+  ftp.retrlines('LIST', ls.append)
+
+  for l in ls:
+    if l.upper().startswith('D'):
+      get_ftp_path(l, ftp)
+    else:
+      ftp.retrbinary("RETR "+path, open(afile['path'], 'w').write)
+      return 0
+      
+
 def process_ftp_file(ftype, afile):
   p = re.compile('[a-z]+://([-a-z.]+)/(.*)')
   ftp_baseurl = p.match(afile['url']).group(1)
