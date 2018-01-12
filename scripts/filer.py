@@ -22,6 +22,7 @@ def process_ftp_file(ftype, afile):
   else:
     ftp.login()
 
+  #TODO handle directories
   if ftype == 'inputs':
     ftp.retrbinary("RETR "+ftp_path, open(afile['path'], 'w').write)
     return 0
