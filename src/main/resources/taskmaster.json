@@ -17,37 +17,12 @@
             "args": [
               "$(JSON_INPUT)"
             ],
-            "ports": [
-              {
-                "containerPort": 8080
-              }
-            ],
             "env": [
-              {
-                "name": "KUBERNETES_RO_SERVICE_HOST",
-                "value": "127.0.0.1"
-              },
-              {
-                "name": "KUBERNETES_RO_SERVICE_PORT",
-                "value": "8001"
-              },
               {
                 "name": "JSON_INPUT",
                 "value": ""
               }
-            ],
-            "volumeMounts": [
-              {
-                "name": "test-volume",
-                "mountPath": "/mount/test-volume"
-              }
             ]
-          }
-        ],
-        "volumes": [
-          {
-            "name": "test-volume",
-            "emptyDir": {}
           }
         ],
         "restartPolicy": "Never"

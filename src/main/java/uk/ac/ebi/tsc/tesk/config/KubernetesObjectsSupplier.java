@@ -71,7 +71,6 @@ public class KubernetesObjectsSupplier {
     @Scope(value = "prototype")
     public V1Job executorTemplate() {
         V1Container container = new V1Container().
-                command(new ArrayList<>()).
                 resources(new V1ResourceRequirements());/*.
                 addVolumeMountsItem(new V1VolumeMount().
                         readOnly(Boolean.FALSE).
