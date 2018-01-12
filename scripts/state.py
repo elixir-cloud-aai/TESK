@@ -58,7 +58,7 @@ def main(argv):
   # get state file TODO
   parser = argparse.ArgumentParser(description='Taskmaster state script')
   parser.add_argument('exe_f', nargs='?', help='file containing executor job ids', default='/tmp/.exe.tesk')
-  parser.add_argument('control_f', nargs='?',  help='file containing taskmaster job id', default='/tmp/.ctl.tesk')
+  parser.add_argument('control_f', nargs='?',  help='file containing taskmaster job id', default='/tmp/.tm.tesk')
   parser.add_argument('-d', '--debug', help='use local config for debugging', action='store_true')
 
   args = parser.parse_args()
