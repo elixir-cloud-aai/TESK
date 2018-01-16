@@ -2,25 +2,54 @@
 
 from __future__ import print_function
 from ftplib import FTP
+import ftplib
 import argparse
 import requests
 import sys
 import json
 import re
 import os
+import distutils.dir_util
 
-# TODO
-def get_ftp_path(path, ftp):
+def download_ftp_file(source, target, ftp):
+  basedir = os.path.dirname(target)
+  distutils.dir_util.mkpath(basedir)
+
+  ftp.retrbinary("RETR "+source, open(target, 'w').write)
+  return 0
+
+def process_upload_dir(source, target, ftp):
+  basename = os.path.basename(source)
+  try:
+    print('trying to create dir: ' + '/'+target+'/'+basename, file=sys.stderr)
+    ftp.mkd('/'+target+'/'+basename)
+  except ftplib.error_perm:
+    print('Directory exists, overwriting')
+
+  for f in os.listdir(source):
+    if os.path.isdir(source+'/'+f):
+      process_upload_dir(source+'/'+f, target+'/'+basename+'/', ftp)
+    elif os.path.isfile(source+'/'+f):
+      ftp.storbinary("STOR "+target+'/'+basename+'/'+f, open(source+'/'+f, 'r'))
+  return 0
+
+def process_ftp_dir(source, target, ftp):
+  ftp.cwd('/'+source)
+
   ls = []
   ftp.retrlines('LIST', ls.append)
 
+  # This is horrible and I'm sorry but it works flawlessly. Credit to Chris Haas for writing this
+  # see https://stackoverflow.com/questions/966578/parse-response-from-ftp-list-command-syntax-variations for attribution
+  p = re.compile('^(?P<dir>[\-ld])(?P<permission>([\-r][\-w][\-xs]){3})\s+(?P<filecode>\d+)\s+(?P<owner>\w+)\s+(?P<group>\w+)\s+(?P<size>\d+)\s+(?P<timestamp>((\w{3})\s+(\d{2})\s+(\d{1,2}):(\d{2}))|((\w{3})\s+(\d{1,2})\s+(\d{4})))\s+(?P<name>.+)$')
   for l in ls:
-    if l.upper().startswith('D'):
-      get_ftp_path(l, ftp)
+    dirbit = p.match(l).group('dir')
+    name = p.match(l).group('name')
+
+    if dirbit == 'd':
+      process_ftp_dir(source+'/'+name, target+'/'+name, ftp)
     else:
-      ftp.retrbinary("RETR "+path, open(afile['path'], 'w').write)
-      return 0
-      
+      download_ftp_file(name, target+'/'+name, ftp)
 
 def process_ftp_file(ftype, afile):
   p = re.compile('[a-z]+://([-a-z.]+)/(.*)')
@@ -29,21 +58,34 @@ def process_ftp_file(ftype, afile):
 
   ftp = FTP(ftp_baseurl)
   if os.environ.get('TESK_FTP_USERNAME') is not None:
-    user = os.environ['TESK_FTP_USERNAME']
-    pw   = os.environ['TESK_FTP_PASSWORD']
-    ftp.login(user, pw)
+    try:
+      user = os.environ['TESK_FTP_USERNAME']
+      pw   = os.environ['TESK_FTP_PASSWORD']
+      ftp.login(user, pw)
+    except ftplib.error_perm:
+      ftp.login()
   else:
     ftp.login()
 
-  #TODO handle directories
   if ftype == 'inputs':
-    ftp.retrbinary("RETR "+ftp_path, open(afile['path'], 'w').write)
-    return 0
+    if afile['type'] == 'FILE':
+      return download_ftp_file(ftp_path, afile['path'], ftp)
+    elif afile['type'] == 'DIRECTORY':
+      return process_ftp_dir(ftp_path, afile['path'], ftp)
+    else:
+      print('Unknown file type')
+      return 1
   elif ftype == 'outputs':
-    ftp.storbinary("STOR "+ftp_path, open(afile['path'], 'r'))
-    return 0
+    if afile['type'] == 'FILE':
+      ftp.storbinary("STOR "+ftp_path, open(afile['path'], 'r'))
+      return 0
+    elif afile['type'] == 'DIRECTORY':
+      return process_upload_dir(afile['path'], ftp_path, ftp)
+    else:
+      print('Unknown file type: '+afile['type'])
+      return 1
   else:
-    print('Unknown file action')
+    print('Unknown file action: ' + ftype)
     return 1
 
 def process_http_file(ftype, afile):
@@ -78,7 +120,7 @@ def process_file(ftype, afile):
 
 def main(argv):
   parser = argparse.ArgumentParser(description='Filer script for down- and uploading files')
-  parser.add_argument('filetype', help='filetype given, either \'inputs\' or \'outputs\' ')
+  parser.add_argument('filetype', help='filetype to handle, either \'inputs\' or \'outputs\' ')
   parser.add_argument('data', help='file description data, see docs for structure')
   args = parser.parse_args()
 
