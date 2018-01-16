@@ -46,7 +46,7 @@
       "type": "FILE"
     },
     {
-      "url": "ftp://ftp-private.ebi.ac.uk/upload/decompress_fasta/mouse",
+      "url": "ftp://ftp-private.ebi.ac.uk/upload",
       "path": "/data/mouse",
       "type": "DIRECTORY"
     }
