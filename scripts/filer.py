@@ -130,6 +130,7 @@ def main(argv):
     if process_file(args.filetype, afile):
       print('something went wrong', file=sys.stderr)
       return 1
+    # TODO a bit more detailed reporting
     else:
       print('Processed file: ' + afile['url'], file=sys.stderr)
 
