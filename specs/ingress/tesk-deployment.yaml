@@ -14,6 +14,6 @@ spec:
     spec:
       containers:
       - name: tesk-api
-        image: eu.gcr.io/tes-wes/tesk-api:v0.0.0.5
+        image: eu.gcr.io/tes-wes/tesk-api:v0.0.0.6
         ports:
         - containerPort: 8080
