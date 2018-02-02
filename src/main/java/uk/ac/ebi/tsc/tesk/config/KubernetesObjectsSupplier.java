@@ -46,7 +46,7 @@ public class KubernetesObjectsSupplier {
      */
     @Bean
     @Scope(value = "prototype")
-    public V1Job taskMasterTemplate(@Value("${tesk.api.taskmaster.image.name}") String imageName, @Value("tesk.api.taskmaster.image.version") String imageVersion) {
+    public V1Job taskMasterTemplate(@Value("${tesk.api.taskmaster.image.name}") String imageName, @Value("${tesk.api.taskmaster.image.version}") String imageVersion) {
         try (InputStream inputStream = getClass().getClassLoader().getResourceAsStream("taskmaster.json");
              Reader reader = new BufferedReader(new InputStreamReader(inputStream))) {
             V1Job job = gson.fromJson(reader, V1Job.class);

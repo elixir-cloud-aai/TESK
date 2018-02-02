@@ -2,7 +2,7 @@ package uk.ac.ebi.tsc.tesk.util.constant;
 
 /**
  * @author Ania Niewielska <aniewielska@ebi.ac.uk>
- *
+ * <p>
  * TESK implementation specific constants
  */
 public class Constants {
@@ -22,10 +22,6 @@ public class Constants {
      */
     public static final String VOLUME_NAME = "PVC";
 
-    /**
-     * Name of a default K8s namespace
-     */
-    public static final String DEFAULT_NAMESPACE = "default";
 
     /**
      * Number of attempts of job creation in case of name collision

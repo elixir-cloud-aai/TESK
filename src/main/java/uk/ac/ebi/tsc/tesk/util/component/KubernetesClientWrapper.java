@@ -8,6 +8,7 @@ import io.kubernetes.client.models.V1JobList;
 import io.kubernetes.client.models.V1PodList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import uk.ac.ebi.tsc.tesk.exception.KubernetesException;
@@ -30,14 +31,17 @@ public class KubernetesClientWrapper {
 
     private final CoreV1Api coreApi;
 
-    public KubernetesClientWrapper(BatchV1Api batchApi, CoreV1Api coreApi) {
+    private final String namespace;
+
+    public KubernetesClientWrapper(BatchV1Api batchApi, CoreV1Api coreApi, @Value("${tesk.api.k8s.namespace}") String namespace) {
         this.batchApi = batchApi;
         this.coreApi = coreApi;
+        this.namespace = namespace;
     }
 
     public V1Job createJob(V1Job job) {
         try {
-            return this.batchApi.createNamespacedJob(DEFAULT_NAMESPACE, job, null);
+            return this.batchApi.createNamespacedJob(namespace, job, null);
         } catch (ApiException e) {
             throw KubernetesException.fromApiException(e);
         }
@@ -45,7 +49,7 @@ public class KubernetesClientWrapper {
 
     public V1Job readTaskmasterJob(String taskId) {
         try {
-            V1Job job = this.batchApi.readNamespacedJob(taskId, DEFAULT_NAMESPACE, null, null, null);
+            V1Job job = this.batchApi.readNamespacedJob(taskId, namespace, null, null, null);
             if (job.getMetadata().getLabels().entrySet().stream().anyMatch(entry -> LABEL_JOBTYPE_KEY.equals(entry.getKey()) && LABEL_JOBTYPE_VALUE_TASKM.equals(entry.getValue())))
                 return job;
         } catch (ApiException e) {
@@ -57,7 +61,7 @@ public class KubernetesClientWrapper {
 
     public V1JobList listJobs(String _continue, String labelSelector, Integer limit) {
         try {
-            return this.batchApi.listNamespacedJob(DEFAULT_NAMESPACE, null, _continue, null, null, labelSelector, limit, null, null, null);
+            return this.batchApi.listNamespacedJob(namespace, null, _continue, null, null, labelSelector, limit, null, null, null);
         } catch (ApiException e) {
             throw KubernetesException.fromApiException(e);
         }
@@ -79,7 +83,7 @@ public class KubernetesClientWrapper {
     public V1PodList listSingleJobPods(V1Job job) {
         String labelSelector = job.getSpec().getSelector().getMatchLabels().entrySet().stream().map(entry -> entry.getKey() + "=" + entry.getValue()).collect(Collectors.joining(","));
         try {
-            return this.coreApi.listNamespacedPod(DEFAULT_NAMESPACE, null, null, null, null, labelSelector, null, null, null, null);
+            return this.coreApi.listNamespacedPod(namespace, null, null, null, null, labelSelector, null, null, null, null);
         } catch (ApiException e) {
             throw KubernetesException.fromApiException(e);
         }
@@ -87,7 +91,7 @@ public class KubernetesClientWrapper {
     public V1PodList listAllJobPods() {
         String labelSelector = "job-name";
         try {
-            return this.coreApi.listNamespacedPod(DEFAULT_NAMESPACE, null, null, null, null, labelSelector, null, null, null, null);
+            return this.coreApi.listNamespacedPod(namespace, null, null, null, null, labelSelector, null, null, null, null);
         } catch (ApiException e) {
             throw KubernetesException.fromApiException(e);
         }
@@ -95,7 +99,7 @@ public class KubernetesClientWrapper {
 
     public String readPodLog(String podName) {
         try {
-            return this.coreApi.readNamespacedPodLog(podName, DEFAULT_NAMESPACE, null, null, null, null, null, null, null, null);
+            return this.coreApi.readNamespacedPodLog(podName, namespace, null, null, null, null, null, null, null, null);
         } catch (ApiException e) {
             logger.info("Getting logs for pod " + podName + " failed.", e);
         }
