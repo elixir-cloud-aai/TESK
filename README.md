@@ -24,6 +24,7 @@ For organisational reasons, this project is split into 2 repositories: One conta
 
 ```
 kubectl create -f specs/ingress/
+kubectl create -f specs/core/
 ```
  - This will expose the API service on a port in your cluster, run `kubectl get services` to see where.
  - Send an [example TESK request](https://github.com/EMBL-EBI-TSI/TESK/blob/master/specs/task_example.json), replacing `127.0.0.1:30977` with your services' ip and port:

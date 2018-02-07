@@ -36,8 +36,8 @@ oc new-project "tesk-demo"  --description="TESK an implementation of GA4GH TES p
 - Deploy Tesk service and on OpenShift Route
 
 ````
-oc create -f specs/openshift/tesk-svc.yaml
-oc create -f specs/openshift/tesk-deployment.yaml
+oc create -f specs/core/tesk-svc.yaml
+oc create -f specs/core/tesk-deployment.yaml
 oc create -f specs/openshift/oc-route.yaml
 ````
 
