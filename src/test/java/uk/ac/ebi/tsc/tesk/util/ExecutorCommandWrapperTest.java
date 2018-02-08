@@ -1,0 +1,77 @@
+package uk.ac.ebi.tsc.tesk.util;
+
+import org.junit.Assert;
+import org.junit.Test;
+import uk.ac.ebi.tsc.tesk.model.TesExecutor;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.*;
+
+public class ExecutorCommandWrapperTest {
+
+    @Test
+    public void noStreams() {
+        TesExecutor executor = new TesExecutor().addCommandItem("ls");
+        List<String> result = new ExecutorCommandWrapper(executor).getCommandsWithStreamRedirects();
+        assertThat(result, is(Arrays.asList(new String[]{"ls"})));
+    }
+
+    @Test
+    public void noStreamsList() {
+        TesExecutor executor = new TesExecutor().addCommandItem("echo").addCommandItem("Hello").addCommandItem("World");
+        List<String> result = new ExecutorCommandWrapper(executor).getCommandsWithStreamRedirects();
+        assertThat(result, is(Arrays.asList(new String[]{"echo", "Hello", "World"})));
+    }
+    @Test
+    public void input() {
+        TesExecutor executor = new TesExecutor().addCommandItem("sort").stdin("/path/file.txt");
+        List<String> result = new ExecutorCommandWrapper(executor).getCommandsWithStreamRedirects();
+        assertThat(result, is(Arrays.asList(new String[]{"/bin/sh", "-c", "sort", "<", "/path/file.txt"})));
+    }
+    @Test
+    public void inputList() {
+        TesExecutor executor = new TesExecutor().addCommandItem("./executable").addCommandItem("-v").stdin("/path/file.txt");
+        List<String> result = new ExecutorCommandWrapper(executor).getCommandsWithStreamRedirects();
+        assertThat(result, is(Arrays.asList(new String[]{"/bin/sh", "-c", "./executable -v", "<", "/path/file.txt"})));
+    }
+    @Test
+    public void output() {
+        TesExecutor executor = new TesExecutor().addCommandItem("ls").stdout("/path/file.txt");
+        List<String> result = new ExecutorCommandWrapper(executor).getCommandsWithStreamRedirects();
+        assertThat(result, is(Arrays.asList(new String[]{"/bin/sh", "-c", "ls", ">", "/path/file.txt"})));
+    }
+    @Test
+    public void outputList() {
+        TesExecutor executor = new TesExecutor().addCommandItem("./executable").addCommandItem("-v").stdout("/path/file.txt");
+        List<String> result = new ExecutorCommandWrapper(executor).getCommandsWithStreamRedirects();
+        assertThat(result, is(Arrays.asList(new String[]{"/bin/sh", "-c", "./executable -v", ">", "/path/file.txt"})));
+    }
+    @Test
+    public void error() {
+        TesExecutor executor = new TesExecutor().addCommandItem("ls").stderr("/path/file.txt");
+        List<String> result = new ExecutorCommandWrapper(executor).getCommandsWithStreamRedirects();
+        assertThat(result, is(Arrays.asList(new String[]{"/bin/sh", "-c", "ls", "2>", "/path/file.txt"})));
+    }
+    @Test
+    public void errorList() {
+        TesExecutor executor = new TesExecutor().addCommandItem("./executable").addCommandItem("-v").stderr("/path/file.txt");
+        List<String> result = new ExecutorCommandWrapper(executor).getCommandsWithStreamRedirects();
+        assertThat(result, is(Arrays.asList(new String[]{"/bin/sh", "-c", "./executable -v", "2>", "/path/file.txt"})));
+    }
+    @Test
+    public void outputAndError() {
+        TesExecutor executor = new TesExecutor().addCommandItem("./executable").addCommandItem("-v").stdout("/path/file.txt").stderr("/path/error.txt");
+        List<String> result = new ExecutorCommandWrapper(executor).getCommandsWithStreamRedirects();
+        assertThat(result, is(Arrays.asList(new String[]{"/bin/sh", "-c", "./executable -v", ">", "/path/file.txt", "2>", "/path/error.txt"})));
+    }
+    @Test
+    public void allStreams() {
+        TesExecutor executor = new TesExecutor().addCommandItem("./executable").addCommandItem("-v").stdout("/path/file.txt").stderr("/path/error.txt").stdin("/other/input");
+        List<String> result = new ExecutorCommandWrapper(executor).getCommandsWithStreamRedirects();
+        assertThat(result, is(Arrays.asList(new String[]{"/bin/sh", "-c", "./executable -v", "<", "/other/input", ">", "/path/file.txt", "2>", "/path/error.txt"})));
+    }
+}

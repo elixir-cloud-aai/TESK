@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import uk.ac.ebi.tsc.tesk.model.*;
+import uk.ac.ebi.tsc.tesk.util.ExecutorCommandWrapper;
 import uk.ac.ebi.tsc.tesk.util.constant.K8sConstants;
 import uk.ac.ebi.tsc.tesk.util.data.Job;
 import uk.ac.ebi.tsc.tesk.util.data.Task;
@@ -124,8 +125,8 @@ public class TesKubernetesConverter {
         V1Container container = job.getSpec().getTemplate().getSpec().getContainers().get(0);
         container.image(executor.getImage());
         //Should we map executor's command to job container's command (==ENTRYPOINT) or job container's args (==CMD)?
-        //At the moment args.
-        executor.getCommand().forEach(container::addArgsItem);
+        //It will be command == ENTRYPOINT, because of shell requirement and no custom entrypoints in bio tools.
+        new ExecutorCommandWrapper(executor).getCommandsWithStreamRedirects().forEach(container::addArgsItem);
         if (executor.getEnv() != null) {
             executor.getEnv().forEach((key, value) -> container.addEnvItem(new V1EnvVar().name(key).value(value)));
         }

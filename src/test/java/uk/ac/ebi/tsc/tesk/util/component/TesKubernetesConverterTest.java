@@ -132,8 +132,8 @@ public class TesKubernetesConverterTest {
 
         taskMasterInputJson.extractingJsonPathMapValue("executors[0].spec.template.spec.containers[0]").containsOnlyKeys("name", "image", "args", "resources");
         taskMasterInputJson.extractingJsonPathMapValue("executors[1].spec.template.spec.containers[0]").containsOnlyKeys("name", "image", "args", "resources", "workingDir", "env");
-        taskMasterInputJson.extractingJsonPathArrayValue("executors[0].spec.template.spec.containers[0].args").containsExactly("echo", "hello world");
-        taskMasterInputJson.extractingJsonPathArrayValue("executors[1].spec.template.spec.containers[0].args").containsExactly("sh", "-c", "md5sum $src");
+        taskMasterInputJson.extractingJsonPathArrayValue("executors[0].spec.template.spec.containers[0].args").containsExactly("/bin/sh", "-c", "echo hello world", ">", "/tmp/stdout");
+        taskMasterInputJson.extractingJsonPathArrayValue("executors[1].spec.template.spec.containers[0].args").containsExactly("/bin/sh", "-c", "sh -c md5sum $src", ">", "/tes/output.txt", "2>", "/tes/err.txt");
         taskMasterInputJson.extractingJsonPathStringValue("executors[0].spec.template.spec.containers[0].image").isEqualTo("ubuntu");
         taskMasterInputJson.extractingJsonPathStringValue("executors[1].spec.template.spec.containers[0].image").isEqualTo("alpine");
 

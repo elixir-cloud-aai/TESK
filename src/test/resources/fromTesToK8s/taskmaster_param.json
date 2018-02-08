@@ -58,8 +58,11 @@
             "containers": [
               {
                 "args": [
-                  "echo",
-                  "hello world"
+                  "/bin/sh",
+                  "-c",
+                  "echo hello world",
+                  ">",
+                  "/tmp/stdout"
                 ],
                 "image": "ubuntu",
                 "name": "task-35605447-ex-00",
@@ -99,9 +102,13 @@
             "containers": [
               {
                 "args": [
-                  "sh",
+                  "/bin/sh",
                   "-c",
-                  "md5sum $src"
+                  "sh -c md5sum $src",
+                  ">",
+                  "/tes/output.txt",
+                  "2>",
+                  "/tes/err.txt"
                 ],
                 "env": [
                   {
