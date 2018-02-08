@@ -11,6 +11,7 @@ import java.util.StringJoiner;
  * Wraps list of executor's command, so that:
  * - if any of executor's stdin/stdout/stderr params is set, the command runs in shell
  * - stdin, stdout, stderr streams are redirected to paths according to executors params
+ * - no shell argument escaping at the moment
  */
 public class ExecutorCommandWrapper {
     private final TesExecutor executor;
@@ -28,19 +29,19 @@ public class ExecutorCommandWrapper {
         result.add("-c");
         StringJoiner sj = new StringJoiner(" ");
         executor.getCommand().stream().forEach(sj::add);
-        result.add(sj.toString());
         if (!StringUtils.isEmpty(executor.getStdin())) {
-            result.add("<");
-            result.add(executor.getStdin());
+            sj.add("<");
+            sj.add(executor.getStdin());
         }
         if (!StringUtils.isEmpty(executor.getStdout())) {
-            result.add(">");
-            result.add(executor.getStdout());
+            sj.add(">");
+            sj.add(executor.getStdout());
         }
         if (!StringUtils.isEmpty(executor.getStderr())) {
-            result.add("2>");
-            result.add(executor.getStderr());
+            sj.add("2>");
+            sj.add(executor.getStderr());
         }
+        result.add(sj.toString());
         return result;
     }
 }

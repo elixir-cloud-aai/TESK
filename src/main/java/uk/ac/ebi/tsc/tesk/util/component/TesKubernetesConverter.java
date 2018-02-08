@@ -126,7 +126,7 @@ public class TesKubernetesConverter {
         container.image(executor.getImage());
         //Should we map executor's command to job container's command (==ENTRYPOINT) or job container's args (==CMD)?
         //It will be command == ENTRYPOINT, because of shell requirement and no custom entrypoints in bio tools.
-        new ExecutorCommandWrapper(executor).getCommandsWithStreamRedirects().forEach(container::addArgsItem);
+        new ExecutorCommandWrapper(executor).getCommandsWithStreamRedirects().forEach(container::addCommandItem);
         if (executor.getEnv() != null) {
             executor.getEnv().forEach((key, value) -> container.addEnvItem(new V1EnvVar().name(key).value(value)));
         }

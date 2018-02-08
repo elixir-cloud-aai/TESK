@@ -130,10 +130,10 @@ public class TesKubernetesConverterTest {
         taskMasterInputJson.extractingJsonPathArrayValue("executors[*].spec.template.spec.containers[0].resources.requests.cpu").containsOnly("4").hasSize(2);
         taskMasterInputJson.extractingJsonPathArrayValue("executors[*].spec.template.spec.containers[0].resources.requests.memory").containsOnly("15.0G").hasSize(2);
 
-        taskMasterInputJson.extractingJsonPathMapValue("executors[0].spec.template.spec.containers[0]").containsOnlyKeys("name", "image", "args", "resources");
-        taskMasterInputJson.extractingJsonPathMapValue("executors[1].spec.template.spec.containers[0]").containsOnlyKeys("name", "image", "args", "resources", "workingDir", "env");
-        taskMasterInputJson.extractingJsonPathArrayValue("executors[0].spec.template.spec.containers[0].args").containsExactly("/bin/sh", "-c", "echo hello world", ">", "/tmp/stdout");
-        taskMasterInputJson.extractingJsonPathArrayValue("executors[1].spec.template.spec.containers[0].args").containsExactly("/bin/sh", "-c", "sh -c md5sum $src", ">", "/tes/output.txt", "2>", "/tes/err.txt");
+        taskMasterInputJson.extractingJsonPathMapValue("executors[0].spec.template.spec.containers[0]").containsOnlyKeys("name", "image", "command", "resources");
+        taskMasterInputJson.extractingJsonPathMapValue("executors[1].spec.template.spec.containers[0]").containsOnlyKeys("name", "image", "command", "resources", "workingDir", "env");
+        taskMasterInputJson.extractingJsonPathArrayValue("executors[0].spec.template.spec.containers[0].command").containsExactly("/bin/sh", "-c", "echo hello world > /tmp/stdout");
+        taskMasterInputJson.extractingJsonPathArrayValue("executors[1].spec.template.spec.containers[0].command").containsExactly("/bin/sh", "-c", "sh -c md5sum $src > /tes/output.txt 2> /tes/err.txt");
         taskMasterInputJson.extractingJsonPathStringValue("executors[0].spec.template.spec.containers[0].image").isEqualTo("ubuntu");
         taskMasterInputJson.extractingJsonPathStringValue("executors[1].spec.template.spec.containers[0].image").isEqualTo("alpine");
 
@@ -196,10 +196,10 @@ public class TesKubernetesConverterTest {
         taskMasterInputJson.extractingJsonPathArrayValue("executors[*].spec.template.spec.restartPolicy").containsOnly("Never").hasSize(1);
         taskMasterInputJson.extractingJsonPathMapValue("executors[0].spec.template.spec.containers[0].resources").isEmpty();
 
-        taskMasterInputJson.extractingJsonPathArrayValue("executors[0].spec.template.spec.containers[0].args").containsExactly("echo", "hello world");
+        taskMasterInputJson.extractingJsonPathArrayValue("executors[0].spec.template.spec.containers[0].command").containsExactly("echo", "hello world");
         taskMasterInputJson.extractingJsonPathStringValue("executors[0].spec.template.spec.containers[0].image").isEqualTo("ubuntu");
 
-        taskMasterInputJson.extractingJsonPathMapValue("executors[0].spec.template.spec.containers[0]").containsOnlyKeys("name", "image", "args", "resources");
+        taskMasterInputJson.extractingJsonPathMapValue("executors[0].spec.template.spec.containers[0]").containsOnlyKeys("name", "image", "command", "resources");
 
         taskMasterInputJson.extractingJsonPathNumberValue("resources.disk_gb").isEqualTo(0.1);
 

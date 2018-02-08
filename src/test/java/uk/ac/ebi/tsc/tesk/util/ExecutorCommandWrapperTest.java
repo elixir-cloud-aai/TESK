@@ -28,48 +28,48 @@ public class ExecutorCommandWrapperTest {
     public void input() {
         TesExecutor executor = new TesExecutor().addCommandItem("sort").stdin("/path/file.txt");
         List<String> result = new ExecutorCommandWrapper(executor).getCommandsWithStreamRedirects();
-        assertThat(result, is(Arrays.asList("/bin/sh", "-c", "sort", "<", "/path/file.txt")));
+        assertThat(result, is(Arrays.asList("/bin/sh", "-c", "sort < /path/file.txt")));
     }
     @Test
     public void inputList() {
         TesExecutor executor = new TesExecutor().addCommandItem("./executable").addCommandItem("-v").stdin("/path/file.txt");
         List<String> result = new ExecutorCommandWrapper(executor).getCommandsWithStreamRedirects();
-        assertThat(result, is(Arrays.asList("/bin/sh", "-c", "./executable -v", "<", "/path/file.txt")));
+        assertThat(result, is(Arrays.asList("/bin/sh", "-c", "./executable -v < /path/file.txt")));
     }
     @Test
     public void output() {
         TesExecutor executor = new TesExecutor().addCommandItem("ls").stdout("/path/file.txt");
         List<String> result = new ExecutorCommandWrapper(executor).getCommandsWithStreamRedirects();
-        assertThat(result, is(Arrays.asList("/bin/sh", "-c", "ls", ">", "/path/file.txt")));
+        assertThat(result, is(Arrays.asList("/bin/sh", "-c", "ls > /path/file.txt")));
     }
     @Test
     public void outputList() {
         TesExecutor executor = new TesExecutor().addCommandItem("./executable").addCommandItem("-v").stdout("/path/file.txt");
         List<String> result = new ExecutorCommandWrapper(executor).getCommandsWithStreamRedirects();
-        assertThat(result, is(Arrays.asList("/bin/sh", "-c", "./executable -v", ">", "/path/file.txt")));
+        assertThat(result, is(Arrays.asList("/bin/sh", "-c", "./executable -v > /path/file.txt")));
     }
     @Test
     public void error() {
         TesExecutor executor = new TesExecutor().addCommandItem("ls").stderr("/path/file.txt");
         List<String> result = new ExecutorCommandWrapper(executor).getCommandsWithStreamRedirects();
-        assertThat(result, is(Arrays.asList("/bin/sh", "-c", "ls", "2>", "/path/file.txt")));
+        assertThat(result, is(Arrays.asList("/bin/sh", "-c", "ls 2> /path/file.txt")));
     }
     @Test
     public void errorList() {
         TesExecutor executor = new TesExecutor().addCommandItem("./executable").addCommandItem("-v").stderr("/path/file.txt");
         List<String> result = new ExecutorCommandWrapper(executor).getCommandsWithStreamRedirects();
-        assertThat(result, is(Arrays.asList("/bin/sh", "-c", "./executable -v", "2>", "/path/file.txt")));
+        assertThat(result, is(Arrays.asList("/bin/sh", "-c", "./executable -v 2> /path/file.txt")));
     }
     @Test
     public void outputAndError() {
         TesExecutor executor = new TesExecutor().addCommandItem("./executable").addCommandItem("-v").stdout("/path/file.txt").stderr("/path/error.txt");
         List<String> result = new ExecutorCommandWrapper(executor).getCommandsWithStreamRedirects();
-        assertThat(result, is(Arrays.asList("/bin/sh", "-c", "./executable -v", ">", "/path/file.txt", "2>", "/path/error.txt")));
+        assertThat(result, is(Arrays.asList("/bin/sh", "-c", "./executable -v > /path/file.txt 2> /path/error.txt")));
     }
     @Test
     public void allStreams() {
         TesExecutor executor = new TesExecutor().addCommandItem("./executable").addCommandItem("-v").stdout("/path/file.txt").stderr("/path/error.txt").stdin("/other/input");
         List<String> result = new ExecutorCommandWrapper(executor).getCommandsWithStreamRedirects();
-        assertThat(result, is(Arrays.asList("/bin/sh", "-c", "./executable -v", "<", "/other/input", ">", "/path/file.txt", "2>", "/path/error.txt")));
+        assertThat(result, is(Arrays.asList("/bin/sh", "-c", "./executable -v < /other/input > /path/file.txt 2> /path/error.txt")));
     }
 }

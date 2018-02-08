@@ -57,12 +57,10 @@
           "spec": {
             "containers": [
               {
-                "args": [
+                "command": [
                   "/bin/sh",
                   "-c",
-                  "echo hello world",
-                  ">",
-                  "/tmp/stdout"
+                  "echo hello world > /tmp/stdout"
                 ],
                 "image": "ubuntu",
                 "name": "task-35605447-ex-00",
@@ -101,14 +99,10 @@
           "spec": {
             "containers": [
               {
-                "args": [
+                "command": [
                   "/bin/sh",
                   "-c",
-                  "sh -c md5sum $src",
-                  ">",
-                  "/tes/output.txt",
-                  "2>",
-                  "/tes/err.txt"
+                  "sh -c md5sum $src > /tes/output.txt 2> /tes/err.txt"
                 ],
                 "env": [
                   {
