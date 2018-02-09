@@ -72,4 +72,23 @@ public class ExecutorCommandWrapperTest {
         List<String> result = new ExecutorCommandWrapper(executor).getCommandsWithStreamRedirects();
         assertThat(result, is(Arrays.asList("/bin/sh", "-c", "./executable -v < /other/input > /path/file.txt 2> /path/error.txt")));
     }
+
+    @Test
+    public void escapeSpecialChar() {
+        TesExecutor executor = new TesExecutor().addCommandItem("echo").addCommandItem("It costs").addCommandItem("$25").stdout("/path/file.txt");
+        List<String> result = new ExecutorCommandWrapper(executor).getCommandsWithStreamRedirects();
+        assertThat(result, is(Arrays.asList("/bin/sh", "-c", "echo 'It costs' '$25' > /path/file.txt")));
+    }
+    @Test
+    public void escapeSpecialCharShell() {
+        TesExecutor executor = new TesExecutor().addCommandItem("sh").addCommandItem("-c").addCommandItem("echo It costs a $FORTUNE").stdout("/path/file.txt");
+        List<String> result = new ExecutorCommandWrapper(executor).getCommandsWithStreamRedirects();
+        assertThat(result, is(Arrays.asList("/bin/sh", "-c", "sh -c 'echo It costs a $FORTUNE' > /path/file.txt")));
+    }
+    @Test
+    public void escapeSingleQuote() {
+        TesExecutor executor = new TesExecutor().addCommandItem("echo").addCommandItem("I say 'Do it'").stdout("/path/file.txt");
+        List<String> result = new ExecutorCommandWrapper(executor).getCommandsWithStreamRedirects();
+        assertThat(result, is(Arrays.asList("/bin/sh", "-c", "echo 'I say '\"'\"'Do it'\"'\"'' > /path/file.txt")));
+    }
 }
