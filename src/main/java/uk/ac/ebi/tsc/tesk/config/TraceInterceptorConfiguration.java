@@ -1,5 +1,6 @@
 package uk.ac.ebi.tsc.tesk.config;
 
+import org.apache.commons.logging.Log;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Pointcut;
 import org.springframework.aop.Advisor;
@@ -9,6 +10,7 @@ import org.springframework.aop.support.DefaultPointcutAdvisor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.EnableAspectJAutoProxy;
+import uk.ac.ebi.tsc.tesk.exception.KubernetesException;
 
 /**
  * @author Ania Niewielska <aniewielska@ebi.ac.uk>
@@ -17,6 +19,17 @@ import org.springframework.context.annotation.EnableAspectJAutoProxy;
 @EnableAspectJAutoProxy(proxyTargetClass = true)
 @Aspect
 public class TraceInterceptorConfiguration {
+
+    private static class KubernetesAPICallsInterceptor extends CustomizableTraceInterceptor {
+        @Override
+        protected void writeToLog(Log logger, String message, Throwable ex) {
+            super.writeToLog(logger, message, ex);
+            if (ex != null && ex instanceof KubernetesException) {
+                KubernetesException exception = (KubernetesException) ex;
+                logger.trace("ApiException ResponseBody: " + exception.getApiException().getResponseBody());
+            }
+        }
+    }
 
     @Pointcut("execution(public * uk.ac.ebi.tsc.tesk.util.component.KubernetesClientWrapper+.create*(..))")
     public void createMethods() {
@@ -36,7 +49,7 @@ public class TraceInterceptorConfiguration {
 
     @Bean
     public CustomizableTraceInterceptor createTaskInterceptor() {
-        CustomizableTraceInterceptor customizableTraceInterceptor = new CustomizableTraceInterceptor();
+        CustomizableTraceInterceptor customizableTraceInterceptor = new KubernetesAPICallsInterceptor();
         customizableTraceInterceptor.setUseDynamicLogger(true);
         customizableTraceInterceptor.setEnterMessage("START: $[methodName], ARGUMENTS: $[arguments]");
         customizableTraceInterceptor.setExitMessage("END:  $[methodName](), RESULT: $[returnValue], TIME: $[invocationTime]");
@@ -47,7 +60,7 @@ public class TraceInterceptorConfiguration {
 
     @Bean
     public CustomizableTraceInterceptor getTaskInterceptor() {
-        CustomizableTraceInterceptor customizableTraceInterceptor = new CustomizableTraceInterceptor();
+        CustomizableTraceInterceptor customizableTraceInterceptor = new KubernetesAPICallsInterceptor();
         customizableTraceInterceptor.setUseDynamicLogger(true);
         customizableTraceInterceptor.setEnterMessage("START: $[methodName], ARGUMENTS $[arguments]");
         customizableTraceInterceptor.setExitMessage("END:  $[methodName], TIME: $[invocationTime]");

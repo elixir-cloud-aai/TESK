@@ -22,6 +22,9 @@ public class KubernetesException extends RuntimeException {
         super(apiException.getMessage(), apiException.getCause());
         this.apiException = apiException;
     }
+    public ApiException getApiException() {
+        return this.apiException;
+    }
     public boolean isObjectNameDuplicated() {
         return apiException.getCode() == HttpStatus.CONFLICT.value();
     }
