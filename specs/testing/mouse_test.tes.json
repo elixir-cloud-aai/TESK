@@ -1,5 +1,5 @@
 {
-  "name": "mouse ftp test"
+  "name": "mouse ftp test",
   "outputs": [
     {
       "url": "ftp://ftp-private.ebi.ac.uk/upload/pi.txt",
@@ -64,6 +64,7 @@
 	  "/data/output/"
 	],
 	"image": "alpine"
+    }
   ],
   "resources": {
     "disk_gb": 10.0
