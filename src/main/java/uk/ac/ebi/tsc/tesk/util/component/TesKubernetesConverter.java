@@ -190,6 +190,7 @@ public class TesKubernetesConverter {
         boolean taskMasterPending = taskmasterWithExecutors.getTaskmaster().getPods().stream().anyMatch(pod -> pending.equals(pod.getStatus().getPhase()));
         boolean lastExecutorPending = executorPresent && lastExecutor.get().getPods().stream().anyMatch(pod -> pending.equals(pod.getStatus().getPhase()));
 
+        //TODO - capture post-filer status
         if (taskMasterCompleted && lastExecutorCompleted) return TesState.COMPLETE;
         if (taskMasterCompleted && lastExecutorFailed) return TesState.EXECUTOR_ERROR;
         if (taskMasterPending) return TesState.QUEUED;
@@ -265,6 +266,8 @@ public class TesKubernetesConverter {
         }
         return task;
     }
-
+    public Optional<String> getNameOfFirstRunningPod(V1PodList podList) {
+        return podList.getItems().stream().filter(pod -> "Running".equals(pod.getStatus().getPhase())).findFirst().map(pod -> pod.getMetadata().getName());
+    }
 
 }

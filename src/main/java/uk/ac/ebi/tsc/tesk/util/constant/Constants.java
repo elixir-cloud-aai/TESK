@@ -1,5 +1,9 @@
 package uk.ac.ebi.tsc.tesk.util.constant;
 
+import uk.ac.ebi.tsc.tesk.model.TesState;
+
+import java.util.EnumSet;
+
 /**
  * @author Ania Niewielska <aniewielska@ebi.ac.uk>
  * <p>
@@ -92,6 +96,8 @@ public class Constants {
     public static final String ABSOLUTE_PATH_MESSAGE = "must be an absolute path";
 
     public static final double RESOURCE_DISK_DEFAULT = 0.1;
+
+    public static EnumSet<TesState> COMPLETED_STATES = EnumSet.of(TesState.CANCELED, TesState.COMPLETE, TesState.EXECUTOR_ERROR, TesState.SYSTEM_ERROR);
 
 
 }

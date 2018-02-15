@@ -3,11 +3,11 @@ package uk.ac.ebi.tsc.tesk.util.component;
 import io.kubernetes.client.ApiException;
 import io.kubernetes.client.apis.BatchV1Api;
 import io.kubernetes.client.apis.CoreV1Api;
-import io.kubernetes.client.models.V1Job;
-import io.kubernetes.client.models.V1JobList;
-import io.kubernetes.client.models.V1PodList;
+import io.kubernetes.client.models.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
@@ -29,13 +29,21 @@ public class KubernetesClientWrapper {
 
     private final BatchV1Api batchApi;
 
+    private final BatchV1Api patchBatchApi;
+
     private final CoreV1Api coreApi;
+
+    private final CoreV1Api patchCoreApi;
 
     private final String namespace;
 
-    public KubernetesClientWrapper(BatchV1Api batchApi, CoreV1Api coreApi, @Value("${tesk.api.k8s.namespace}") String namespace) {
+    public KubernetesClientWrapper(BatchV1Api batchApi, @Qualifier("patchBatchApi") BatchV1Api patchBatchApi,
+                                   CoreV1Api coreApi, @Qualifier("patchCoreApi") CoreV1Api patchCoreApi,
+                                   @Value("${tesk.api.k8s.namespace}") String namespace) {
         this.batchApi = batchApi;
+        this.patchBatchApi = patchBatchApi;
         this.coreApi = coreApi;
+        this.patchCoreApi = patchCoreApi;
         this.namespace = namespace;
     }
 
@@ -71,10 +79,12 @@ public class KubernetesClientWrapper {
         String labelSelector = new StringJoiner("=").add(LABEL_JOBTYPE_KEY).add(LABEL_JOBTYPE_VALUE_TASKM).toString();
         return this.listJobs(pageToken, labelSelector, itemsPerPage);
     }
+
     public V1JobList listSingleTaskExecutorJobs(String taskId) {
         String labelSelector = new StringJoiner("=").add(LABEL_TESTASK_ID_KEY).add(taskId).toString();
         return this.listJobs(null, labelSelector, null);
     }
+
     public V1JobList listAllTaskExecutorJobs() {
         String labelSelector = new StringJoiner("=").add(LABEL_JOBTYPE_KEY).add(LABEL_JOBTYPE_VALUE_EXEC).toString();
         return this.listJobs(null, labelSelector, null);
@@ -88,6 +98,7 @@ public class KubernetesClientWrapper {
             throw KubernetesException.fromApiException(e);
         }
     }
+
     public V1PodList listAllJobPods() {
         String labelSelector = "job-name";
         try {
@@ -106,5 +117,22 @@ public class KubernetesClientWrapper {
         return null;
     }
 
+
+    public void labelJobAsCancelled(String taskId) {
+        try {
+            //TODO - pick label; move patch to constant
+            this.patchBatchApi.patchNamespacedJob(taskId, namespace, new V1Job().metadata(new V1ObjectMeta().putLabelsItem("task-status", "Cancelled")), null);
+        } catch (ApiException e) {
+            throw KubernetesException.fromApiException(e);
+        }
+    }
+
+    public void labelPodAsCancelled(String podName) {
+        try {
+            this.patchCoreApi.patchNamespacedPod(podName, namespace, new V1Pod().metadata(new V1ObjectMeta().putLabelsItem("task-status", "Cancelled")), null);
+        } catch (ApiException e) {
+            throw KubernetesException.fromApiException(e);
+        }
+    }
 
 }

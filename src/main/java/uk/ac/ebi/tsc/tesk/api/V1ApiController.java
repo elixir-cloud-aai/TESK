@@ -24,7 +24,7 @@ public class V1ApiController implements V1Api {
     private TesService tesService;
 
     public ResponseEntity<TesCancelTaskResponse> cancelTask(@ApiParam(value = "", required = true) @PathVariable("id") String id) {
-        // do some magic!
+        this.tesService.cancelTask(id);
         return new ResponseEntity<TesCancelTaskResponse>(HttpStatus.OK);
     }
 

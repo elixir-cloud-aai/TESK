@@ -4,11 +4,9 @@ import io.kubernetes.client.models.V1Job;
 import io.kubernetes.client.models.V1JobList;
 import io.kubernetes.client.models.V1PodList;
 import org.springframework.stereotype.Service;
+import uk.ac.ebi.tsc.tesk.exception.CancelNotRunningTask;
 import uk.ac.ebi.tsc.tesk.exception.KubernetesException;
-import uk.ac.ebi.tsc.tesk.model.TesCreateTaskResponse;
-import uk.ac.ebi.tsc.tesk.model.TesExecutorLog;
-import uk.ac.ebi.tsc.tesk.model.TesListTasksResponse;
-import uk.ac.ebi.tsc.tesk.model.TesTask;
+import uk.ac.ebi.tsc.tesk.model.*;
 import uk.ac.ebi.tsc.tesk.util.component.KubernetesClientWrapper;
 import uk.ac.ebi.tsc.tesk.util.component.TesKubernetesConverter;
 import uk.ac.ebi.tsc.tesk.util.constant.TaskView;
@@ -18,6 +16,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import static uk.ac.ebi.tsc.tesk.util.constant.Constants.COMPLETED_STATES;
 import static uk.ac.ebi.tsc.tesk.util.constant.Constants.JOB_CREATE_ATTEMPTS_NO;
 
 /**
@@ -138,6 +137,18 @@ public class TesService {
 
         return response;
 
+    }
+
+    public void cancelTask(String taskId) {
+        V1Job taskMasterJob = this.kubernetesClientWrapper.readTaskmasterJob(taskId);
+        V1PodList taskMasterPods = this.kubernetesClientWrapper.listSingleJobPods(taskMasterJob);
+        AbstractTaskBuilder taskBuilder = new SingleTaskBuilder().addJob(taskMasterJob).addPodList(taskMasterPods.getItems());
+        TesState state = this.converter.extractStateFromK8sJobs(taskBuilder.getTask());
+        if (COMPLETED_STATES.contains(state)) {
+            throw new CancelNotRunningTask(taskId);
+        }
+        this.kubernetesClientWrapper.labelJobAsCancelled(taskId);
+        this.converter.getNameOfFirstRunningPod(taskMasterPods).ifPresent(podName -> this.kubernetesClientWrapper.labelPodAsCancelled(podName));
     }
 
 
