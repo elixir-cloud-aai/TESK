@@ -11,6 +11,7 @@ import sys
 from kubernetes import client, config
 from datetime import datetime
 
+created_jobs = []
 debug = False
 polling_interval = 5
 task_volume_basename = 'task-volume'
@@ -64,6 +65,10 @@ def run_executors(specs, namespace, volume_mounts=None, pvc_name=None):
       spec['volumes'] = [{ 'name': task_volume_basename, 'persistentVolumeClaim': { 'readonly': False, 'claimName': pvc_name }}]
 
     job = v1.create_namespaced_job(body=executor, namespace=namespace)
+ 
+    global created_jobs
+    created_jobs.append(jobname)
+
     print("Created job with metadata='%s'" % str(job.metadata))
     if wait_for_job(jobname, namespace) == 'Failed':
       return 'Failed'
@@ -186,6 +191,10 @@ def populate_pvc(data, namespace, pvc_name, filer_version):
   # Run pretask filer job
   bv1 = client.BatchV1Api()
   job = bv1.create_namespaced_job(body=pretask, namespace=namespace)
+
+  global created_jobs
+  created_jobs.append(pretask['metadata']['name'])
+
   wait_for_job(pretask['metadata']['name'], namespace)
 
   return volume_mounts
@@ -207,6 +216,10 @@ def cleanup_pvc(data, namespace, volume_mounts, pvc_name, filer_version):
   # run posttask filer job
   bv1 = client.BatchV1Api()
   job = bv1.create_namespaced_job(body=posttask, namespace=namespace)
+
+  global created_jobs
+  created_jobs.append(pretask['metadata']['name'])
+
   wait_for_job(posttask['metadata']['name'], namespace)
 
   #print(json.dumps(posttask, indent=2), file=sys.stderr)
@@ -226,6 +239,8 @@ def main(argv):
   parser.add_argument('-n', '--namespace', help='Kubernetes namespace to run in', default='default')
   parser.add_argument('-s', '--state-file', help='State file for state.py script', default='/tmp/.teskstate')
   parser.add_argument('-d', '--debug', help='Set debug mode', action='store_true')
+
+  global args
   args = parser.parse_args()
 
   polling_interval = args.polling_interval
@@ -251,15 +266,36 @@ def main(argv):
   # create and populate pvc only if volumes/inputs/outputs are given
   if data['volumes'] or data['inputs'] or data['outputs']:
     pvc_name = create_pvc(data, args.namespace)
+
+    # to global var for cleanup purposes
+    global created_pvc
+    created_pvc = pvc_name
+
     volume_mounts = populate_pvc(data, args.namespace, pvc_name, args.filer_version)
+    state = run_executors(data['executors'], args.namespace, volume_mounts, pvc_name)
+  else:
+    state = run_executors(data['executors'], args.namespace)
 
   # run executors
-  state = run_executors(data['executors'], args.namespace, volume_mounts=volume_mounts, pvc_name=pvc_name)
   print("Finished with state %s" % state)
 
   # upload files and delete pvc
   if data['volumes'] or data['inputs'] or data['outputs']:
     cleanup_pvc(data, args.namespace, volume_mounts, pvc_name, args.filer_version)
 
+def clean_on_interrupt():
+  print('Caught interrupt signal, deleting jobs and pvc', file=sys.stderr)
+  bv1 = client.BatchV1Api()
+  
+  for job in created_jobs:
+    bv1.delete_namespaced_job(job, args.namespace, client.V1DeleteOptions()) 
+
+  if created_pvc:
+    cv1 = client.CoreV1Api()
+    cv1.delete_namespaced_persistent_volume_claim(created_pvc, args.namespace, client.V1DeleteOptions())
+
 if __name__ == "__main__":
-  main(sys.argv)
+  try:
+    main(sys.argv)
+  except KeyboardInterrupt:
+    clean_on_interrupt()
