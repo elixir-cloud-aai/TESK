@@ -13,7 +13,7 @@ from datetime import datetime
 
 debug = False
 polling_interval = 5
-task_volume_name = 'task-volume'
+task_volume_basename = 'task-volume'
 
 # translates TES JSON into 1 Job spec per executor
 def generate_job_specs(tes):
@@ -49,7 +49,7 @@ def generate_job_specs(tes):
 
   return specs
 
-def run_executors(specs, namespace, volume_mounts, pvc_name):
+def run_executors(specs, namespace, volume_mounts=None, pvc_name=None):
 
   # init Kubernetes Job API
   v1 = client.BatchV1Api()
@@ -58,8 +58,10 @@ def run_executors(specs, namespace, volume_mounts, pvc_name):
     jobname = executor['metadata']['name']
     spec = executor['spec']['template']['spec']
 
-    spec['containers'][0]['volumeMounts'] = volume_mounts
-    spec['volumes'] = [{ 'name': task_volume_name, 'persistentVolumeClaim': { 'readonly': False, 'claimName': pvc_name }}]
+    if volume_mounts is not None:
+      spec['containers'][0]['volumeMounts'] = volume_mounts
+    if pvc_name is not None:
+      spec['volumes'] = [{ 'name': task_volume_basename, 'persistentVolumeClaim': { 'readonly': False, 'claimName': pvc_name }}]
 
     job = v1.create_namespaced_job(body=executor, namespace=namespace)
     print("Created job with metadata='%s'" % str(job.metadata))
@@ -151,7 +153,7 @@ def populate_pvc(data, namespace, pvc_name, filer_version):
   volume_mounts = []
 
   # gather volumes that need to be mounted, without duplicates
-  volume_name = task_volume_name
+  volume_name = task_volume_basename
   for idx, volume in enumerate(data['volumes']):
     append_mount(volume_mounts, volume_name, volume)
 
@@ -200,7 +202,7 @@ def cleanup_pvc(data, namespace, volume_mounts, pvc_name, filer_version):
   
   # insert volume mounts and pvc into posttask job template
   container['volumeMounts'] = volume_mounts
-  posttask['spec']['template']['spec']['volumes'] = [ { "name": task_volume_name, "persistentVolumeClaim": { "claimName": pvc_name} } ]
+  posttask['spec']['template']['spec']['volumes'] = [ { "name": task_volume_basename, "persistentVolumeClaim": { "claimName": pvc_name} } ]
 
   # run posttask filer job
   bv1 = client.BatchV1Api()
@@ -246,16 +248,18 @@ def main(argv):
   else:
     config.load_kube_config()
 
-  # create and populate pvc
-  pvc_name = create_pvc(data, args.namespace)
-  volume_mounts = populate_pvc(data, args.namespace, pvc_name, args.filer_version)
+  # create and populate pvc only if volumes/inputs/outputs are given
+  if data['volumes'] or data['inputs'] or data['outputs']:
+    pvc_name = create_pvc(data, args.namespace)
+    volume_mounts = populate_pvc(data, args.namespace, pvc_name, args.filer_version)
 
   # run executors
-  state = run_executors(data['executors'], args.namespace, volume_mounts, pvc_name)
+  state = run_executors(data['executors'], args.namespace, volume_mounts=volume_mounts, pvc_name=pvc_name)
   print("Finished with state %s" % state)
 
   # upload files and delete pvc
-  cleanup_pvc(data, args.namespace, volume_mounts, pvc_name, args.filer_version)
+  if data['volumes'] or data['inputs'] or data['outputs']:
+    cleanup_pvc(data, args.namespace, volume_mounts, pvc_name, args.filer_version)
 
 if __name__ == "__main__":
   main(sys.argv)
