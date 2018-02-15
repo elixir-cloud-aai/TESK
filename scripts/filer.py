@@ -11,6 +11,8 @@ import re
 import os
 import distutils.dir_util
 
+debug = True
+
 def download_ftp_file(source, target, ftp):
   basedir = os.path.dirname(target)
   distutils.dir_util.mkpath(basedir)
@@ -104,11 +106,26 @@ def process_http_file(ftype, afile):
     print('Unknown action')
     return 1
 
+def filefromcontent(afile):
+  content = afile.get('content')
+  if content is None:
+    print('Incorrect file spec format, no content or url specified', file=sys.stderr)
+    return 1
+
+  fh = open(afile['path'], 'w')
+  fh.write(str(afile['content']))
+  fh.close()
+  return 0
+
 def process_file(ftype, afile):
-  url = afile['url']
+  url = afile.get('url')
+
+  if url is None:
+    return filefromcontent(afile)
+
   p = re.compile('([a-z]+)://')
   protocol = p.match(url).group(1)
-  #print(protocol, file=sys.stderr)
+  debug('protocol is: '+protocol)
 
   if protocol == 'ftp':
     return process_ftp_file(ftype, afile)
@@ -117,6 +134,10 @@ def process_file(ftype, afile):
   else:
     print('Unknown file protocol')
     return 1
+
+def debug(msg):
+  if debug:
+    print(msg, file=sys.stderr)
 
 def main(argv):
   parser = argparse.ArgumentParser(description='Filer script for down- and uploading files')
@@ -127,12 +148,13 @@ def main(argv):
   data = json.loads(args.data)
 
   for afile in data[args.filetype]:
+    debug('processing file: '+afile['path'])
     if process_file(args.filetype, afile):
       print('something went wrong', file=sys.stderr)
       return 1
     # TODO a bit more detailed reporting
     else:
-      print('Processed file: ' + afile['url'], file=sys.stderr)
+      debug('Processed file: ' + afile['path'])
 
   return 0
 if __name__ == "__main__":
