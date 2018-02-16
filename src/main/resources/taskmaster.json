@@ -40,7 +40,29 @@
                   }
                 }
               }
+            ],
+            "volumeMounts": [
+              {
+                "name": "podinfo",
+                "mountPath": "/podinfo",
+                "readOnly": true
+              }
             ]
+          }
+        ],
+        "volumes": [
+          {
+            "name": "podinfo",
+            "downwardAPI": {
+              "items": [
+                {
+                  "path": "labels",
+                  "fieldRef": {
+                    "fieldPath": "metadata.labels"
+                  }
+                }
+              ]
+            }
           }
         ],
         "restartPolicy": "Never"

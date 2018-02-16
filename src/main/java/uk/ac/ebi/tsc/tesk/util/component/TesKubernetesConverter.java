@@ -181,6 +181,7 @@ public class TesKubernetesConverter {
     public TesState extractStateFromK8sJobs(Task taskmasterWithExecutors) {
         V1Job taskMasterJob = taskmasterWithExecutors.getTaskmaster().getJob();
         Optional<Job> lastExecutor = taskmasterWithExecutors.getLastExecutor();
+        boolean taskMasterCancelled = LABEL_TASKSTATE_VALUE_CANC.equals(taskMasterJob.getMetadata().getLabels().get(LABEL_TASKSTATE_KEY));
         boolean taskMasterRunning = this.isJobInStatus(taskMasterJob.getStatus(), JOB_STATUS.ACTIVE);
         boolean taskMasterCompleted = this.isJobInStatus(taskMasterJob.getStatus(), JOB_STATUS.SUCCEEDED);
         boolean executorPresent = lastExecutor.isPresent();
@@ -191,6 +192,7 @@ public class TesKubernetesConverter {
         boolean lastExecutorPending = executorPresent && lastExecutor.get().getPods().stream().anyMatch(pod -> pending.equals(pod.getStatus().getPhase()));
 
         //TODO - capture post-filer status
+        if (taskMasterCancelled) return TesState.CANCELED;
         if (taskMasterCompleted && lastExecutorCompleted) return TesState.COMPLETE;
         if (taskMasterCompleted && lastExecutorFailed) return TesState.EXECUTOR_ERROR;
         if (taskMasterPending) return TesState.QUEUED;

@@ -35,6 +35,10 @@ public class TraceInterceptorConfiguration {
     public void createMethods() {
     }
 
+    @Pointcut("execution(public * uk.ac.ebi.tsc.tesk.util.component.KubernetesClientWrapper+.label*(..))")
+    public void labelMethods() {
+    }
+
     @Pointcut("execution(public * uk.ac.ebi.tsc.tesk.util.component.KubernetesClientWrapper+.list*(..))")
     public void listMethods() {
     }
@@ -47,8 +51,12 @@ public class TraceInterceptorConfiguration {
     public void getMethods() {
     }
 
+    @Pointcut("createMethods() || labelMethods()")
+    public void writeMethods() {
+    }
+
     @Bean
-    public CustomizableTraceInterceptor createTaskInterceptor() {
+    public CustomizableTraceInterceptor writeMethodsInterceptor() {
         CustomizableTraceInterceptor customizableTraceInterceptor = new KubernetesAPICallsInterceptor();
         customizableTraceInterceptor.setUseDynamicLogger(true);
         customizableTraceInterceptor.setEnterMessage("START: $[methodName], ARGUMENTS: $[arguments]");
@@ -59,7 +67,7 @@ public class TraceInterceptorConfiguration {
     }
 
     @Bean
-    public CustomizableTraceInterceptor getTaskInterceptor() {
+    public CustomizableTraceInterceptor getMethodsInterceptor() {
         CustomizableTraceInterceptor customizableTraceInterceptor = new KubernetesAPICallsInterceptor();
         customizableTraceInterceptor.setUseDynamicLogger(true);
         customizableTraceInterceptor.setEnterMessage("START: $[methodName], ARGUMENTS $[arguments]");
@@ -70,16 +78,16 @@ public class TraceInterceptorConfiguration {
     }
 
     @Bean
-    public Advisor createTaskTraceAdvisor() {
+    public Advisor writeTaskTraceAdvisor() {
         AspectJExpressionPointcut pointcut = new AspectJExpressionPointcut();
-        pointcut.setExpression("uk.ac.ebi.tsc.tesk.config.TraceInterceptorConfiguration.createMethods()");
-        return new DefaultPointcutAdvisor(pointcut, createTaskInterceptor());
+        pointcut.setExpression("uk.ac.ebi.tsc.tesk.config.TraceInterceptorConfiguration.writeMethods()");
+        return new DefaultPointcutAdvisor(pointcut, writeMethodsInterceptor());
     }
 
     @Bean
     public Advisor getTaskTraceAdvisor() {
         AspectJExpressionPointcut pointcut = new AspectJExpressionPointcut();
         pointcut.setExpression("uk.ac.ebi.tsc.tesk.config.TraceInterceptorConfiguration.getMethods()");
-        return new DefaultPointcutAdvisor(pointcut, getTaskInterceptor());
+        return new DefaultPointcutAdvisor(pointcut, getMethodsInterceptor());
     }
 }

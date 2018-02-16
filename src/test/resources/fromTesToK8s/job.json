@@ -46,8 +46,30 @@
                 }
               }
             ],
+            "volumeMounts": [
+              {
+                "name": "podinfo",
+                "mountPath": "/podinfo",
+                "readOnly": true
+              }
+            ],
             "image": "task-full-image-name:task-full-image-version",
             "name": "task-35605447"
+          }
+        ],
+        "volumes": [
+          {
+            "name": "podinfo",
+            "downwardAPI": {
+              "items": [
+                {
+                  "path": "labels",
+                  "fieldRef": {
+                    "fieldPath": "metadata.labels"
+                  }
+                }
+              ]
+            }
           }
         ],
         "restartPolicy": "Never"

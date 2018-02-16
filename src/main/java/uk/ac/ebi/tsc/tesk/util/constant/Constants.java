@@ -1,5 +1,8 @@
 package uk.ac.ebi.tsc.tesk.util.constant;
 
+import io.kubernetes.client.models.V1Job;
+import io.kubernetes.client.models.V1ObjectMeta;
+import io.kubernetes.client.models.V1Pod;
 import uk.ac.ebi.tsc.tesk.model.TesState;
 
 import java.util.EnumSet;
@@ -84,6 +87,16 @@ public class Constants {
      */
     public static final String LABEL_EXECNO_KEY = "executor-no";
 
+    /**
+     * Key of the label, that holds executor's state
+     */
+    public static final String LABEL_TASKSTATE_KEY = "task-status";
+
+    /**
+     * Value of the label, that holds executor's Cancelled state
+     */
+    public static final String LABEL_TASKSTATE_VALUE_CANC = "Cancelled";
+
 
     /**
      * Pattern to validate paths
@@ -111,5 +124,13 @@ public class Constants {
      */
     public static final String FTP_SECRET_PASSWORD_ENV = "TESK_FTP_PASSWORD";
 
+    /**
+     * Patch object passed to job API, when cancelling task
+     */
+    public static final V1Job JOB_CANCEL_PATCH = new V1Job().metadata(new V1ObjectMeta().putLabelsItem(LABEL_TASKSTATE_KEY, LABEL_TASKSTATE_VALUE_CANC));
+    /**
+     * Patch object passed to pod API, when cancelling task
+     */
+    public static final V1Pod POD_CANCEL_PATCH = new V1Pod().metadata(new V1ObjectMeta().putLabelsItem(LABEL_TASKSTATE_KEY, LABEL_TASKSTATE_VALUE_CANC));
 
 }

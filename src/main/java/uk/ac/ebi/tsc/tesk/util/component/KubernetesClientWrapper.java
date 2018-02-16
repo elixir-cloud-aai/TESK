@@ -120,8 +120,7 @@ public class KubernetesClientWrapper {
 
     public void labelJobAsCancelled(String taskId) {
         try {
-            //TODO - pick label; move patch to constant
-            this.patchBatchApi.patchNamespacedJob(taskId, namespace, new V1Job().metadata(new V1ObjectMeta().putLabelsItem("task-status", "Cancelled")), null);
+            this.patchBatchApi.patchNamespacedJob(taskId, namespace, JOB_CANCEL_PATCH, null);
         } catch (ApiException e) {
             throw KubernetesException.fromApiException(e);
         }
@@ -129,7 +128,7 @@ public class KubernetesClientWrapper {
 
     public void labelPodAsCancelled(String podName) {
         try {
-            this.patchCoreApi.patchNamespacedPod(podName, namespace, new V1Pod().metadata(new V1ObjectMeta().putLabelsItem("task-status", "Cancelled")), null);
+            this.patchCoreApi.patchNamespacedPod(podName, namespace, POD_CANCEL_PATCH, null);
         } catch (ApiException e) {
             throw KubernetesException.fromApiException(e);
         }
