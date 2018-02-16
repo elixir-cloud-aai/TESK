@@ -2,7 +2,6 @@ package uk.ac.ebi.tsc.tesk.config;
 
 import com.google.gson.Gson;
 import io.kubernetes.client.models.*;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
@@ -10,7 +9,8 @@ import uk.ac.ebi.tsc.tesk.util.component.JobNameGenerator;
 import uk.ac.ebi.tsc.tesk.util.data.Job;
 
 import java.io.*;
-import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.StringJoiner;
 import java.util.function.Supplier;
 
@@ -31,30 +31,45 @@ public class KubernetesObjectsSupplier {
 
     private final JobNameGenerator jobNameGenerator;
 
-    public KubernetesObjectsSupplier(Gson gson, JobNameGenerator jobNameGenerator) {
+    private final TaskmasterEnvProperties taskmasterEnvProperties;
+
+    public KubernetesObjectsSupplier(Gson gson, JobNameGenerator jobNameGenerator, TaskmasterEnvProperties taskmasterEnvProperties) {
         this.gson = gson;
         this.jobNameGenerator = jobNameGenerator;
+        this.taskmasterEnvProperties = taskmasterEnvProperties;
     }
 
     /**
      * Creates a new empty taskmaster's K8s job object with auto-generated name.
      * Uses JSON file from resources as a template and adds generated name to it.
      * Additionally, places appropriately taskmaster's image name and version from parameters
-     * @param imageName - taskmaster's image name
-     * @param imageVersion - taskmaster's image name
+     *
      * @return - new K8s Job object with auto-generated name.
      */
     @Bean
     @Scope(value = "prototype")
-    public V1Job taskMasterTemplate(@Value("${tesk.api.taskmaster.image.name}") String imageName, @Value("${tesk.api.taskmaster.image.version}") String imageVersion) {
+    public V1Job taskMasterTemplate() {
         try (InputStream inputStream = getClass().getClassLoader().getResourceAsStream("taskmaster.json");
              Reader reader = new BufferedReader(new InputStreamReader(inputStream))) {
             V1Job job = gson.fromJson(reader, V1Job.class);
             job.getSpec().getTemplate().getSpec().getContainers().get(0).
-                    setImage(new StringJoiner(":").add(imageName).add(imageVersion).toString());
+                    setImage(new StringJoiner(":").add(taskmasterEnvProperties.getImageName()).add(taskmasterEnvProperties.getImageVersion()).toString());
             job.getMetadata().putLabelsItem(LABEL_JOBTYPE_KEY, LABEL_JOBTYPE_VALUE_TASKM);
             String taskMasterName = this.jobNameGenerator.getTaskMasterName();
             new Job(job).changeJobName(taskMasterName);
+            Set<V1EnvVar> toBeRemoved = new HashSet<>();
+            job.getSpec().getTemplate().getSpec().getContainers().get(0).getEnv().stream().filter(env -> FTP_SECRET_USERNAME_ENV.equals(env.getName()) || FTP_SECRET_PASSWORD_ENV.equals(env.getName()))
+                    .forEach(env -> {
+                        if (taskmasterEnvProperties.getFtp().isEnabled()) {
+                            //update secret name, if FTP enabled
+                            env.getValueFrom().getSecretKeyRef().setName(this.taskmasterEnvProperties.getFtp().getSecretName());
+                        } else {
+                            //remove FTP secrets otherwise
+                            toBeRemoved.add(env);
+                        }
+                    });
+
+            toBeRemoved.stream().forEach(job.getSpec().getTemplate().getSpec().getContainers().get(0).getEnv()::remove);
             return job;
         } catch (IOException ex) {
             throw new RuntimeException(ex);
@@ -94,8 +109,8 @@ public class KubernetesObjectsSupplier {
     }
 
     @Bean(name = "taskmaster")
-    public Supplier<V1Job> taskMasterSupplier(@Value("${tesk.api.taskmaster.image.name}") String imageName, @Value("${tesk.api.taskmaster.image.version}") String imageVersion) {
-        return () -> taskMasterTemplate(imageName, imageVersion);
+    public Supplier<V1Job> taskMasterSupplier() {
+        return () -> taskMasterTemplate();
     }
 
     @Bean(name = "executor")

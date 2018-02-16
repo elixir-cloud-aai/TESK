@@ -97,7 +97,19 @@ public class Constants {
 
     public static final double RESOURCE_DISK_DEFAULT = 0.1;
 
+    /**
+     * TES task states, indicating task is not running and cannot be cancelled
+     */
     public static EnumSet<TesState> COMPLETED_STATES = EnumSet.of(TesState.CANCELED, TesState.COMPLETE, TesState.EXECUTOR_ERROR, TesState.SYSTEM_ERROR);
+
+    /**
+     * Name of taskmaster's ENV variable with username of FTP account used for storage
+     */
+    public static final String FTP_SECRET_USERNAME_ENV = "TESK_FTP_USERNAME";
+    /**
+     * Name of taskmaster's ENV variable with password of FTP account used for storage
+     */
+    public static final String FTP_SECRET_PASSWORD_ENV = "TESK_FTP_PASSWORD";
 
 
 }

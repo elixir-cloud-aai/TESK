@@ -21,6 +21,24 @@
               {
                 "name": "JSON_INPUT",
                 "value": ""
+              },
+              {
+                "name": "TESK_FTP_USERNAME",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "ftp-secret",
+                    "key": "username"
+                  }
+                }
+              },
+              {
+                "name": "TESK_FTP_PASSWORD",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "ftp-secret",
+                    "key": "password"
+                  }
+                }
               }
             ]
           }
