@@ -10,10 +10,13 @@ import json
 import re
 import os
 import distutils.dir_util
+import time
+import logging
 
 debug = True
 
 def download_ftp_file(source, target, ftp):
+  logging.debug('downloading ftp file: '+source+' target: '+target)
   basedir = os.path.dirname(target)
   distutils.dir_util.mkpath(basedir)
 
@@ -22,11 +25,12 @@ def download_ftp_file(source, target, ftp):
 
 def process_upload_dir(source, target, ftp):
   basename = os.path.basename(source)
+  logging.debug('processing upload dir, basename: '+basename)
   try:
-    print('trying to create dir: ' + '/'+target+'/'+basename, file=sys.stderr)
+    logging.debug('trying to create dir: ' + '/'+target+'/'+basename, file=sys.stderr)
     ftp.mkd('/'+target+'/'+basename)
   except ftplib.error_perm:
-    print('Directory exists, overwriting')
+    logging.debug('Directory exists, overwriting')
 
   for f in os.listdir(source):
     if os.path.isdir(source+'/'+f):
@@ -36,6 +40,8 @@ def process_upload_dir(source, target, ftp):
   return 0
 
 def process_ftp_dir(source, target, ftp):
+  logging.debug('processing ftp dir: '+source+' target: '+target)
+  pwd = ftp.pwd()
   ftp.cwd('/'+source)
 
   ls = []
@@ -53,11 +59,14 @@ def process_ftp_dir(source, target, ftp):
     else:
       download_ftp_file(name, target+'/'+name, ftp)
 
+  ftp.cwd(pwd)
+
 def process_ftp_file(ftype, afile):
   p = re.compile('[a-z]+://([-a-z.]+)/(.*)')
   ftp_baseurl = p.match(afile['url']).group(1)
   ftp_path = p.match(afile['url']).group(2)
 
+  logging.debug('Connecting to FTP: '+ftp_baseurl)
   ftp = FTP(ftp_baseurl)
   if os.environ.get('TESK_FTP_USERNAME') is not None:
     try:
@@ -125,7 +134,7 @@ def process_file(ftype, afile):
 
   p = re.compile('([a-z]+)://')
   protocol = p.match(url).group(1)
-  debug('protocol is: '+protocol)
+  logging.debug('protocol is: '+protocol)
 
   if protocol == 'ftp':
     return process_ftp_file(ftype, afile)
@@ -140,6 +149,8 @@ def debug(msg):
     print(msg, file=sys.stderr)
 
 def main(argv):
+  logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s', datefmt='%m/%d/%Y %I:%M:%S', level=logging.DEBUG)
+  logging.debug('Starting filer...')
   parser = argparse.ArgumentParser(description='Filer script for down- and uploading files')
   parser.add_argument('filetype', help='filetype to handle, either \'inputs\' or \'outputs\' ')
   parser.add_argument('data', help='file description data, see docs for structure')
@@ -148,13 +159,13 @@ def main(argv):
   data = json.loads(args.data)
 
   for afile in data[args.filetype]:
-    debug('processing file: '+afile['path'])
+    logging.debug('processing file: '+afile['path'])
     if process_file(args.filetype, afile):
       print('something went wrong', file=sys.stderr)
       return 1
     # TODO a bit more detailed reporting
     else:
-      debug('Processed file: ' + afile['path'])
+      logging.debug('Processed file: ' + afile['path'])
 
   return 0
 if __name__ == "__main__":

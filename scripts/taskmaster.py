@@ -10,6 +10,8 @@ import time
 import sys
 from kubernetes import client, config
 from datetime import datetime
+import logging
+
 
 created_jobs = []
 debug = False
@@ -64,6 +66,7 @@ def run_executors(specs, namespace, volume_mounts=None, pvc_name=None):
     if pvc_name is not None:
       spec['volumes'] = [{ 'name': task_volume_basename, 'persistentVolumeClaim': { 'readonly': False, 'claimName': pvc_name }}]
 
+    logger.debug('Created job: '+jobname)
     job = v1.create_namespaced_job(body=executor, namespace=namespace)
  
     global created_jobs
@@ -130,7 +133,8 @@ def get_filer_template(filer_version, name):
                         "image": "eu.gcr.io/tes-wes/filer:"+filer_version,
                         "args": [],
                         "env": [],
-                        "volumeMounts": []
+                        "volumeMounts": [],
+                        "imagePullPolicy": "IfNotPresent"
                       }
                     ],
                     "volumes": [],
@@ -145,6 +149,11 @@ def get_filer_template(filer_version, name):
     env.append({ "name": "TESK_FTP_USERNAME", "value": os.environ['TESK_FTP_USERNAME'] })
     env.append({ "name": "TESK_FTP_PASSWORD", "value": os.environ['TESK_FTP_PASSWORD'] })
 
+  if args.debug:
+    filer['spec']['template']['spec']['containers'][0]['imagePullPolicy'] = 'Always'
+
+  logging.debug(json.dumps(filer))
+
   return filer
 
 def append_mount(volume_mounts, name, path):
@@ -152,6 +161,7 @@ def append_mount(volume_mounts, name, path):
   duplicate = next((mount for mount in volume_mounts if mount['mountPath'] == path), None)
   # If not, add mount path
   if duplicate is None:
+    logger.debug('appending '+name+' at path '+path)
     volume_mounts.append({ 'name': name, 'mountPath': path })
 
 def populate_pvc(data, namespace, pvc_name, filer_version):
@@ -168,6 +178,7 @@ def populate_pvc(data, namespace, pvc_name, filer_version):
       # strip filename from path
       p = re.compile('(.*)/')
       basepath = p.match(aninput['path']).group(1)
+      logger.debug('basepath is: '+basepath)
     elif aninput['type'] == 'DIRECTORY':
       basepath = aninput['path']
 
@@ -218,7 +229,7 @@ def cleanup_pvc(data, namespace, volume_mounts, pvc_name, filer_version):
   job = bv1.create_namespaced_job(body=posttask, namespace=namespace)
 
   global created_jobs
-  created_jobs.append(pretask['metadata']['name'])
+  created_jobs.append(posttask['metadata']['name'])
 
   wait_for_job(posttask['metadata']['name'], namespace)
 
@@ -245,7 +256,15 @@ def main(argv):
 
   polling_interval = args.polling_interval
 
-  debug = args.debug
+  loglevel = logging.WARNING
+  if args.debug:
+    loglevel = logging.DEBUG
+  
+  global logger
+  logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s', datefmt='%m/%d/%Y %I:%M:%S', level=loglevel)
+  logging.getLogger('kubernetes.client').setLevel(logging.CRITICAL)
+  logger = logging.getLogger(__name__)
+  logger.debug('Starting taskmaster')
 
   # Get input JSON
   if args.file is None:
@@ -258,10 +277,10 @@ def main(argv):
   #specs = generate_job_specs(tes)
 
   # Load kubernetes config file
-  if not debug:
-    config.load_incluster_config()
-  else:
+  if args.debug:
     config.load_kube_config()
+  else:
+    config.load_incluster_config()
 
   # create and populate pvc only if volumes/inputs/outputs are given
   if data['volumes'] or data['inputs'] or data['outputs']:
@@ -284,14 +303,16 @@ def main(argv):
     cleanup_pvc(data, args.namespace, volume_mounts, pvc_name, args.filer_version)
 
 def clean_on_interrupt():
-  print('Caught interrupt signal, deleting jobs and pvc', file=sys.stderr)
+  logger.debug('Caught interrupt signal, deleting jobs and pvc')
   bv1 = client.BatchV1Api()
   
   for job in created_jobs:
+    logger.debug('Deleting job: '+job)
     bv1.delete_namespaced_job(job, args.namespace, client.V1DeleteOptions()) 
 
   if created_pvc:
     cv1 = client.CoreV1Api()
+    logger.debug('Deleting pvc: '+created_pvc)
     cv1.delete_namespaced_persistent_volume_claim(created_pvc, args.namespace, client.V1DeleteOptions())
 
 if __name__ == "__main__":
