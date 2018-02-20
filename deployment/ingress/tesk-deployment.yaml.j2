@@ -1,0 +1,23 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: tesk-api
+spec:
+  selector:
+    matchLabels:
+      app: tesk-api
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: tesk-api
+    spec:
+      containers:
+      - name: tesk-api
+        image: {{ tesk.image }}
+        env:
+        - name: TESK_API_TASKMASTER_IMAGE_VERSION
+          value: {{ tesk.taskmaster_version }}
+        ports:
+        - containerPort: {{ tesk.port }}
+
