@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Route
+metadata:
+  name: tesk-svc
+  namespace: tesk-demo
+spec:
+  host: {{ openshift.host }}
+  tls:
+    insecureEdgeTerminationPolicy: Redirect
+    termination: edge
+  to:
+    kind: Service
+    name: tesk-svc
+  wildcardPolicy: None
+status:
+  ingress:
+    - conditions:
+      host: {{ openshift.host }}
+      routerName: router
+      wildcardPolicy: None
