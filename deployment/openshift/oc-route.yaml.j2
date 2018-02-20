@@ -2,7 +2,7 @@ apiVersion: v1
 kind: Route
 metadata:
   name: tesk-svc
-  namespace: tesk-demo
+  namespace: {{ openshift.namespace }}
 spec:
   host: {{ openshift.host }}
   tls:
