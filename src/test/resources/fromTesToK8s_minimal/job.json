@@ -16,10 +16,11 @@
         "name": "task-98605447"
       },
       "spec": {
+        "serviceAccountName": "default",
         "containers": [
           {
             "args": [
-              "$(JSON_INPUT)"
+              "$(JSON_INPUT)", "-n", "test-namespace"
             ],
             "env": [
               {

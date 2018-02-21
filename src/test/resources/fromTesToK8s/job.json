@@ -17,10 +17,11 @@
         "name": "task-35605447"
       },
       "spec": {
+        "serviceAccountName": "custom-service-account",
         "containers": [
           {
             "args": [
-              "$(JSON_INPUT)"
+              "$(JSON_INPUT)", "-n", "default"
             ],
             "env": [
               {

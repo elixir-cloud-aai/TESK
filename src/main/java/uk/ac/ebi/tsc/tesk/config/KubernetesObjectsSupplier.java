@@ -2,6 +2,7 @@ package uk.ac.ebi.tsc.tesk.config;
 
 import com.google.gson.Gson;
 import io.kubernetes.client.models.*;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
@@ -19,9 +20,8 @@ import static uk.ac.ebi.tsc.tesk.util.constant.K8sConstants.*;
 
 /**
  * @author Ania Niewielska <aniewielska@ebi.ac.uk>
- *
+ * <p>
  * Templates for tasmaster's and executor's job object.
- *
  */
 @Configuration
 public class KubernetesObjectsSupplier {
@@ -33,10 +33,14 @@ public class KubernetesObjectsSupplier {
 
     private final TaskmasterEnvProperties taskmasterEnvProperties;
 
-    public KubernetesObjectsSupplier(Gson gson, JobNameGenerator jobNameGenerator, TaskmasterEnvProperties taskmasterEnvProperties) {
+    private final String namespace;
+
+    public KubernetesObjectsSupplier(Gson gson, JobNameGenerator jobNameGenerator,
+                                     TaskmasterEnvProperties taskmasterEnvProperties, @Value("${tesk.api.k8s.namespace}") String namespace) {
         this.gson = gson;
         this.jobNameGenerator = jobNameGenerator;
         this.taskmasterEnvProperties = taskmasterEnvProperties;
+        this.namespace = namespace;
     }
 
     /**
@@ -52,8 +56,9 @@ public class KubernetesObjectsSupplier {
         try (InputStream inputStream = getClass().getClassLoader().getResourceAsStream("taskmaster.json");
              Reader reader = new BufferedReader(new InputStreamReader(inputStream))) {
             V1Job job = gson.fromJson(reader, V1Job.class);
+            job.getSpec().getTemplate().getSpec().setServiceAccountName(this.taskmasterEnvProperties.getServiceAccountName());
             job.getSpec().getTemplate().getSpec().getContainers().get(0).
-                    setImage(new StringJoiner(":").add(taskmasterEnvProperties.getImageName()).add(taskmasterEnvProperties.getImageVersion()).toString());
+                    image(new StringJoiner(":").add(taskmasterEnvProperties.getImageName()).add(taskmasterEnvProperties.getImageVersion()).toString()).addArgsItem("-n").addArgsItem(namespace);
             job.getMetadata().putLabelsItem(LABEL_JOBTYPE_KEY, LABEL_JOBTYPE_VALUE_TASKM);
             String taskMasterName = this.jobNameGenerator.getTaskMasterName();
             new Job(job).changeJobName(taskMasterName);
@@ -80,6 +85,7 @@ public class KubernetesObjectsSupplier {
      * Creates a new empty executor's K8s job object (without a name),
      * by initializing required objects in the graph (new new new)
      * and putting constants.
+     *
      * @return
      */
     @Bean

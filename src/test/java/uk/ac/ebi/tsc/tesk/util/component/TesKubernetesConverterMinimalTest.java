@@ -40,7 +40,8 @@ import static org.mockito.BDDMockito.given;
 @JsonTest
 @TestPropertySource(locations = {"classpath:application.properties"},
         properties = {"tesk.api.taskmaster.image-name = task-minimal-image-name",
-                "tesk.api.taskmaster.image-version = task-minimal-image-version"})
+                "tesk.api.taskmaster.image-version = task-minimal-image-version",
+                "tesk.api.k8s.namespace = test-namespace"})
 @EnableConfigurationProperties(TaskmasterEnvProperties.class)
 public class TesKubernetesConverterMinimalTest {
 

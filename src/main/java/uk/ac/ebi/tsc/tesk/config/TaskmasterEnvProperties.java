@@ -25,6 +25,11 @@ public class TaskmasterEnvProperties {
      */
     private Ftp ftp;
 
+    /**
+     * Service Account name for taskmaster
+     */
+    private String serviceAccountName;
+
 
     public Ftp getFtp() {
         return ftp;
@@ -48,6 +53,14 @@ public class TaskmasterEnvProperties {
 
     public void setImageVersion(String imageVersion) {
         this.imageVersion = imageVersion;
+    }
+
+    public String getServiceAccountName() {
+        return serviceAccountName;
+    }
+
+    public void setServiceAccountName(String serviceAccountName) {
+        this.serviceAccountName = serviceAccountName;
     }
 
     /**

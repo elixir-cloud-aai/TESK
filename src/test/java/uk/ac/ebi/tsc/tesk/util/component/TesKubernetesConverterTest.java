@@ -41,7 +41,8 @@ import static org.mockito.BDDMockito.given;
 @TestPropertySource(locations = {"classpath:application.properties"},
         properties = {"tesk.api.taskmaster.image-name = task-full-image-name",
         "tesk.api.taskmaster.image-version = task-full-image-version",
-        "tesk.api.taskmaster.ftp.secret-name = secretstorage"})
+        "tesk.api.taskmaster.ftp.secret-name = secretstorage",
+        "tesk.api.taskmaster.service-account-name = custom-service-account"})
 @EnableConfigurationProperties(TaskmasterEnvProperties.class)
 public class TesKubernetesConverterTest {
 
@@ -104,7 +105,9 @@ public class TesKubernetesConverterTest {
         assertEquals(outputJob.getSpec().getTemplate().getMetadata().getName(), "task-35605447");
         assertEquals(outputJob.getSpec().getTemplate().getSpec().getContainers().get(0).getName(), "task-35605447");
 
+        assertEquals(outputJob.getSpec().getTemplate().getSpec().getServiceAccountName(), "custom-service-account");
         assertEquals(outputJob.getSpec().getTemplate().getSpec().getContainers().get(0).getArgs().get(0), "$(JSON_INPUT)");
+        assertEquals(outputJob.getSpec().getTemplate().getSpec().getContainers().get(0).getArgs().get(2), "default");
         assertEquals(outputJob.getSpec().getTemplate().getSpec().getContainers().get(0).getImage(), "task-full-image-name:task-full-image-version");
         assertEquals(outputJob.getSpec().getTemplate().getSpec().getRestartPolicy(), "Never");
 
