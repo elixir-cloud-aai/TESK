@@ -28,7 +28,7 @@ def process_upload_dir(source, target, ftp):
   basename = os.path.basename(source)
   logging.debug('processing upload dir, basename: '+basename)
   try:
-    logging.debug('trying to create dir: ' + '/'+target+'/'+basename)
+    logging.debug('trying to create dir: ' + '/'+target+'/'+basename, file=sys.stderr)
     ftp.mkd('/'+target+'/'+basename)
   except ftplib.error_perm:
     logging.debug('Directory exists, overwriting')
