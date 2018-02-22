@@ -158,7 +158,7 @@ def main(argv):
   args = parser.parse_args()
 
   data = json.loads(args.data)
-  time.sleep(600)
+  time.sleep(60)
 
   for afile in data[args.filetype]:
     logging.debug('processing file: '+afile['path'])
