@@ -12,6 +12,7 @@ import os
 import distutils.dir_util
 import time
 import logging
+import traceback
 
 debug = True
 
@@ -27,7 +28,7 @@ def process_upload_dir(source, target, ftp):
   basename = os.path.basename(source)
   logging.debug('processing upload dir, basename: '+basename)
   try:
-    logging.debug('trying to create dir: ' + '/'+target+'/'+basename, file=sys.stderr)
+    logging.debug('trying to create dir: ' + '/'+target+'/'+basename)
     ftp.mkd('/'+target+'/'+basename)
   except ftplib.error_perm:
     logging.debug('Directory exists, overwriting')
@@ -118,7 +119,7 @@ def process_http_file(ftype, afile):
 def filefromcontent(afile):
   content = afile.get('content')
   if content is None:
-    print('Incorrect file spec format, no content or url specified', file=sys.stderr)
+    logging.error('Incorrect file spec format, no content or url specified')
     return 1
 
   fh = open(afile['path'], 'w')
@@ -157,16 +158,23 @@ def main(argv):
   args = parser.parse_args()
 
   data = json.loads(args.data)
+  time.sleep(600)
 
   for afile in data[args.filetype]:
     logging.debug('processing file: '+afile['path'])
     if process_file(args.filetype, afile):
-      print('something went wrong', file=sys.stderr)
+      logging.error('something went wrong')
       return 1
     # TODO a bit more detailed reporting
     else:
       logging.debug('Processed file: ' + afile['path'])
 
   return 0
+
 if __name__ == "__main__":
-  main(sys.argv)
+  try:
+    main(sys.argv)
+  except:
+    traceback.print_exc(file=sys.stderr)
+    time.sleep(600)
+    raise
