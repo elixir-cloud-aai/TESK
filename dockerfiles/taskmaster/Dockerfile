@@ -3,8 +3,14 @@ FROM gliderlabs/alpine
 RUN apk add --no-cache python py-pip curl openssl
 RUN pip install kubernetes
 
-WORKDIR /root
-COPY scripts/taskmaster.py .
+RUN adduser -S taskmaster
 
-ENTRYPOINT ["/root/taskmaster.py"]
-#CMD /root/taskmaster.py
+USER taskmaster
+
+WORKDIR /home/taskmaster
+COPY scripts/taskmaster.py .
+COPY scripts/job.py .
+COPY scripts/pvc.py .
+COPY scripts/filer_class.py .
+
+ENTRYPOINT ["/home/taskmaster/taskmaster.py"]

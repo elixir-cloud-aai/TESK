@@ -28,7 +28,7 @@ def process_upload_dir(source, target, ftp):
   basename = os.path.basename(source)
   logging.debug('processing upload dir, basename: '+basename)
   try:
-    logging.debug('trying to create dir: ' + '/'+target+'/'+basename, file=sys.stderr)
+    logging.debug('trying to create dir: ' + '/'+target+'/'+basename)
     ftp.mkd('/'+target+'/'+basename)
   except ftplib.error_perm:
     logging.debug('Directory exists, overwriting')
@@ -158,7 +158,6 @@ def main(argv):
   args = parser.parse_args()
 
   data = json.loads(args.data)
-  time.sleep(60)
 
   for afile in data[args.filetype]:
     logging.debug('processing file: '+afile['path'])
@@ -172,9 +171,4 @@ def main(argv):
   return 0
 
 if __name__ == "__main__":
-  try:
-    main(sys.argv)
-  except:
-    traceback.print_exc(file=sys.stderr)
-    time.sleep(600)
-    raise
+  main(sys.argv)
