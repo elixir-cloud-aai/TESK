@@ -1,0 +1,23 @@
+{
+  "description": "Demonstrates capturing stdout to file (and volumes).",
+  "volumes": [
+    "/outputs"
+  ],
+  "executors": [
+    {
+      "image": "ubuntu",
+      "command": [
+        "echo",
+        "This will appear in stdout, but of the 2. executor."
+      ],
+      "stdout": "/outputs/stdout"
+    },
+    {
+      "image": "alpine",
+      "command": [
+        "cat",
+        "/outputs/stdout"
+      ]
+    }
+  ]
+}

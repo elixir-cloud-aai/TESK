@@ -1,0 +1,24 @@
+{
+  "description": "Demonstrates capturing stderr to file (and volumes). In stdout of 1. executor there should be only items containing bash; Second executor should output errors from grep.",
+  "volumes": [
+    "/outputs"
+  ],
+  "executors": [
+    {
+      "image": "ubuntu",
+      "command": [
+        "sh",
+        "-c",
+        "grep bash /etc/s* || exit 0"
+      ],
+      "stderr": "/outputs/stderr"
+    },
+    {
+      "image": "alpine",
+      "command": [
+        "cat",
+        "/outputs/stderr"
+      ]
+    }
+  ]
+}
