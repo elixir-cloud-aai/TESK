@@ -1,0 +1,13 @@
+{
+  "description": "Should finish in EXECUTOR_ERROR. Don't run on Kubernetes older than 1.8 (will recreate the executor pod forever)",
+  "executors": [
+    {
+      "image": "alpine",
+      "command": [
+        "sh",
+        "-c",
+        "exit 1"
+      ]
+    }
+  ]
+}

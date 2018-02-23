@@ -1,0 +1,27 @@
+{
+  "description": "Should finish in EXECUTOR_ERROR. Don't run on Kubernetes older than 1.8 (will recreate the executor pod forever). Third executor should not run.",
+  "executors": [
+    {
+      "image": "alpine",
+      "command": [
+        "echo",
+        "You will see this in the logs (stdout)."
+      ]
+    },
+    {
+      "image": "alpine",
+      "command": [
+        "sh",
+        "-c",
+        "exit 1"
+      ]
+    },
+    {
+      "image": "alpine",
+      "command": [
+        "echo",
+        "This shouldn't appear in the logs (stdout)."
+      ]
+    }
+  ]
+}
