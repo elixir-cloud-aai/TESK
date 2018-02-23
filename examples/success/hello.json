@@ -1,0 +1,13 @@
+{
+  "name": "Hello World",
+  "description": "Hello World, inspired by Funnel's most basic example",
+  "executors": [
+    {
+      "image": "alpine",
+      "command": [
+        "echo",
+        "TESK says: Hello World"
+      ]
+    }
+  ]
+}

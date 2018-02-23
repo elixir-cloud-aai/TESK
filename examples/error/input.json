@@ -1,0 +1,26 @@
+{
+  "description": "Should finish in SYSTEM_ERROR. No executors should run.",
+  "inputs": [
+    {
+      "url": "http://nonexistent.ebi.ac.uk",
+      "path": "/somewhere/file",
+      "type": "FILE"
+    }
+  ],
+  "executors": [
+    {
+      "image": "alpine",
+      "command": [
+        "echo",
+        "This shouldn't appear in the logs."
+      ]
+    },
+    {
+      "image": "alpine",
+      "command": [
+        "cat",
+        "/somewhere/file"
+      ]
+    }
+  ]
+}

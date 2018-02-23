@@ -1,0 +1,12 @@
+{
+  "description": "Testing workdir",
+  "executors": [
+    {
+      "image": "alpine",
+      "command": [
+        "ls"
+      ],
+      "workdir": "/etc"
+    }
+  ]
+}
