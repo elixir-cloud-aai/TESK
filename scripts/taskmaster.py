@@ -29,6 +29,7 @@ def run_executor(executor, namespace, pvc=None):
 
   logger.debug('Created job: '+jobname)
   job = Job(executor, jobname, namespace)
+  logger.debug('Job spec: '+str(job.body))
 
   global created_jobs
   created_jobs.append(job)
@@ -97,6 +98,7 @@ def init_pvc(data, filer):
 
 def run_task(data, filer_version):
   task_name = data['executors'][0]['metadata']['labels']['taskmaster-name']
+  pvc = None
 
   if data['volumes'] or data['inputs'] or data['outputs']:
 
