@@ -189,13 +189,12 @@ def exit_cancelled():
   sys.exit(0)
 
 def check_cancelled():
-  with open('/tmp/label') as fh:
-    label = fh.readline()
-
-  logging.debug('Got label: '+label)
-
-  if label == 'Cancelled':
-    return True
+  with open('/podinfo/labels') as fh:
+    for line in fh.readlines():
+      name, label = line.split('=')
+      logging.debug('Got label: '+label)
+      if label == '"Cancelled"':
+        return True
 
   return False
 

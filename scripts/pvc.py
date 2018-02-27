@@ -14,7 +14,7 @@ class PVC():
           }
   
     self.subpath_idx = 0
-    self.namespace='default'
+    self.namespace = namespace
     self.cv1 = client.CoreV1Api()
     self.cv1.create_namespaced_persistent_volume_claim(self.namespace, self.spec)
 

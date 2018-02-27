@@ -6,6 +6,7 @@ class Filer:
     self.spec = {
                   "kind": "Job",
                   "apiVersion": "batch/v1",
+                  "metadata": { "name": name },
                   "spec": {
                     "template": {
                       "metadata": { "name": "tesk-filer" },
