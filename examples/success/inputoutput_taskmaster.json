@@ -1,31 +1,31 @@
 {
   "outputs": [
     {
-      "url": "ftp://ftp-private.ebi.ac.uk/upload/out.txt",
-      "path": "/tmp/vol1/in.txt"
+      "url": "ftp://ftp-private.ebi.ac.uk/upload/mouselist.txt",
+      "path": "/tmp/vol1/mouselist.txt",
       "type": "FILE"
     },
     {
       "url": "ftp://ftp-private.ebi.ac.uk/upload/mouse_out",
-      "path": "/tmp/vol2/mouse"
+      "path": "/tmp/vol2/mouse",
       "type": "DIRECTORY"
     }
   ],
-  "inputs": [,
+  "inputs": [
     {
       "url": "ftp://ftp-private.ebi.ac.uk/upload/input.txt",
-      "path": "/tmp/vol1/in.txt"
+      "path": "/tmp/vol1/in.txt",
       "type": "FILE"
     },
     {
       "url": "ftp://ftp-private.ebi.ac.uk/upload/mouse",
-      "path": "/tmp/vol2"
+      "path": "/tmp/vol2",
       "type": "DIRECTORY"
     }
   ],
   "volumes": [
     "/tmp/vol1",
-    "/tmp/vol2",
+    "/tmp/vol2"
   ],
   "executors": [
     {
@@ -87,11 +87,11 @@
             "containers": [
               {
                 "command": [
-                  "find",
-                  "/tmp/vol2"
+                  "sh", "-c",
+                  "find /tmp/vol2 > /tmp/vol1/mouselist.txt"
                 ],
                 "image": "alpine",
-                "name": "task-7d5c53f4-ex-00",
+                "name": "task-7d5c53f4-ex-01",
                 "resources": {}
               }
             ],
