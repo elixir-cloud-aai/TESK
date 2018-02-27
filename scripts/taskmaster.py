@@ -1,15 +1,13 @@
-#!/usr/bin/python
+#!/usr/bin/env python2
 
 from __future__ import print_function
 import argparse
 import json
 import os
-import binascii
 import re
 import time
 import sys
 from kubernetes import client, config
-from datetime import datetime
 
 created_jobs = []
 debug = False
@@ -62,10 +60,10 @@ def run_executors(specs, namespace, volume_mounts=None, pvc_name=None):
     if volume_mounts is not None:
       spec['containers'][0]['volumeMounts'] = volume_mounts
     if pvc_name is not None:
-      spec['volumes'] = [{ 'name': task_volume_basename, 'persistentVolumeClaim': { 'readonly': False, 'claimName': pvc_name }}]
+      spec['volumes'] = [{'name': task_volume_basename, 'persistentVolumeClaim': { 'readonly': False, 'claimName': pvc_name }}]
 
     job = v1.create_namespaced_job(body=executor, namespace=namespace)
- 
+
     global created_jobs
     created_jobs.append(jobname)
 
@@ -208,7 +206,7 @@ def cleanup_pvc(data, namespace, volume_mounts, pvc_name, filer_version):
   container = posttask['spec']['template']['spec']['containers'][0]
   container['env'].append({ "name": "JSON_INPUT", "value": json.dumps(data) })
   container['args'] += ["outputs", "$(JSON_INPUT)"]
-  
+
   # insert volume mounts and pvc into posttask job template
   container['volumeMounts'] = volume_mounts
   posttask['spec']['template']['spec']['volumes'] = [ { "name": task_volume_basename, "persistentVolumeClaim": { "claimName": pvc_name} } ]
@@ -286,9 +284,9 @@ def main(argv):
 def clean_on_interrupt():
   print('Caught interrupt signal, deleting jobs and pvc', file=sys.stderr)
   bv1 = client.BatchV1Api()
-  
+
   for job in created_jobs:
-    bv1.delete_namespaced_job(job, args.namespace, client.V1DeleteOptions()) 
+    bv1.delete_namespaced_job(job, args.namespace, client.V1DeleteOptions())
 
   if created_pvc:
     cv1 = client.CoreV1Api()
