@@ -19,7 +19,7 @@
     },
     {
       "url": "ftp://ftp-private.ebi.ac.uk/upload/mouse",
-      "path": "/tmp/vol2",
+      "path": "/tmp/vol2/mouse",
       "type": "DIRECTORY"
     }
   ],

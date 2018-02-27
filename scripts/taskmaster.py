@@ -159,7 +159,8 @@ def main(argv):
   elif args.file == '-':
     data = json.load(sys.stdin)
   else:
-    data = json.load(open(args.file))
+    with open(args.file) as fh:
+      data = json.load(fh)
 
   # Load kubernetes config file
   if args.debug:

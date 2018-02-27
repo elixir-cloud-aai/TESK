@@ -9,7 +9,7 @@ class Job:
     self.status = 'Initialized'
     self.bv1 = client.BatchV1Api()
     self.body = body
-    #self.body['metadata']['name'] = self.name
+    self.body['metadata']['name'] = self.name
 
   def run_to_completion(self, poll_interval, check_cancelled):
     logging.debug(self.body)
