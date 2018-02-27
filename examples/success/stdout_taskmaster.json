@@ -1,0 +1,81 @@
+{
+  "outputs": [],
+  "inputs": [],
+  "volumes": [
+    "/outputs"
+  ],
+  "executors": [
+    {
+      "apiVersion": "batch/v1",
+      "kind": "Job",
+      "metadata": {
+        "annotations": {},
+        "labels": {
+          "job-type": "executor",
+          "taskmaster-name": "task-04512e8f",
+          "executor-no": "0"
+        },
+        "name": "task-04512e8f-ex-00"
+      },
+      "spec": {
+        "template": {
+          "metadata": {
+            "name": "task-04512e8f-ex-00"
+          },
+          "spec": {
+            "containers": [
+              {
+                "command": [
+                  "/bin/sh",
+                  "-c",
+                  "echo 'This will appear in stdout, but of the 2. executor.' > /outputs/stdout"
+                ],
+                "image": "ubuntu",
+                "name": "task-04512e8f-ex-00",
+                "resources": {}
+              }
+            ],
+            "restartPolicy": "Never"
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "batch/v1",
+      "kind": "Job",
+      "metadata": {
+        "annotations": {},
+        "labels": {
+          "job-type": "executor",
+          "taskmaster-name": "task-04512e8f",
+          "executor-no": "1"
+        },
+        "name": "task-04512e8f-ex-01"
+      },
+      "spec": {
+        "template": {
+          "metadata": {
+            "name": "task-04512e8f-ex-01"
+          },
+          "spec": {
+            "containers": [
+              {
+                "command": [
+                  "cat",
+                  "/outputs/stdout"
+                ],
+                "image": "alpine",
+                "name": "task-04512e8f-ex-01",
+                "resources": {}
+              }
+            ],
+            "restartPolicy": "Never"
+          }
+        }
+      }
+    }
+  ],
+  "resources": {
+    "disk_gb": 0.1
+  }
+}
