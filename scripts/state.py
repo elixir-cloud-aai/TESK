@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python2
 
 from __future__ import print_function
 
@@ -17,11 +17,11 @@ def exec_state(exe_f, namespace, state):
       job = bv1.read_namespaced_job(exe, namespace=namespace)
       state['logs'][exe_i]['start_time'] = job.metadata.creation_timestamp
       state['logs'][exe_i]['end_time'] = job.status.completion_time
-      
+
       job_label_s = 'controller-uid='+job.spec.selector.match_labels['controller-uid']
       pods = cv1.list_namespaced_pod(label_selector=label_s, namespace=namespace)
 
-      try: 
+      try:
         state['logs'][exe_i]['stdout'] = read_namespaced_pod_log(pods[0].metadata.name, namespace=namespace)
       except IndexError:
         print("No pod matching job "+job.metadata.name+" could be found", file=sys.stderr)
@@ -46,7 +46,7 @@ def control_state(taskm_f, namespace, state):
     job_label_s = 'controller-uid='+job.spec.selector.match_labels['controller-uid']
     pods = cv1.list_namespaced_pod(label_selector=label_s, namespace=namespace)
 
-    try: 
+    try:
       state['system_logs'] = read_namespaced_pod_log(pods[0].metadata.name, namespace=namespace)
     except IndexError:
       print("No pod matching job "+job.metadata.name+" could be found", file=sys.stderr)

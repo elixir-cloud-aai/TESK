@@ -1,7 +1,7 @@
-#!/usr/bin/python
+#!/usr/bin/env python2
 
-import yaml
 import os
+import yaml
 
 config = yaml.safe_load(open(os.path.join(os.environ["HOME"], '.kube/config')))
 
