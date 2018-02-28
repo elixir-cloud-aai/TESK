@@ -10,7 +10,8 @@ For organisational reasons, this project is split into 2 repositories: One conta
 
 ## How to install
  - Clone the repo to your kube-master and cd into the folder
- - Edit the following line in `specs/ingress/nginx-ingress-lb.yaml`:
+ - Find out what is the external IP for the cluster. E.g. with the command `minikube ip`
+ - Edit the following line in `specs/ingress/nginx-ingress-lb.yaml` with that IP:
  
  ```yaml
  spec:
@@ -20,7 +21,7 @@ For organisational reasons, this project is split into 2 repositories: One conta
 
  ```
  
- - Then create the services necessary to run the API:
+ - Create the services necessary to run the API:
 
 ```
 kubectl create -f specs/ingress/
