@@ -21,7 +21,7 @@
         "containers": [
           {
             "args": [
-              "$(JSON_INPUT)", "-n", "default"
+              "$(JSON_INPUT)", "-n", "default", "-fv", "task-full-filer-image-version"
             ],
             "env": [
               {

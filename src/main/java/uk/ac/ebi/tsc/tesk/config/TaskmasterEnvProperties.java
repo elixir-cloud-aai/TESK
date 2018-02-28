@@ -20,6 +20,11 @@ public class TaskmasterEnvProperties {
      * Taskmaster image version
      */
     private String imageVersion;
+
+    /**
+     * Filer image version
+     */
+    private String filerImageVersion;
     /**
      * Test FTP account settings
      */
@@ -45,6 +50,14 @@ public class TaskmasterEnvProperties {
 
     public void setImageName(String imageName) {
         this.imageName = imageName;
+    }
+
+    public String getFilerImageVersion() {
+        return filerImageVersion;
+    }
+
+    public void setFilerImageVersion(String filerImageVersion) {
+        this.filerImageVersion = filerImageVersion;
     }
 
     public String getImageVersion() {

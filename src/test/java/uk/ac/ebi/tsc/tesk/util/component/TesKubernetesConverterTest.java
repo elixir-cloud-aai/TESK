@@ -40,9 +40,10 @@ import static org.mockito.BDDMockito.given;
 @JsonTest
 @TestPropertySource(locations = {"classpath:application.properties"},
         properties = {"tesk.api.taskmaster.image-name = task-full-image-name",
-        "tesk.api.taskmaster.image-version = task-full-image-version",
-        "tesk.api.taskmaster.ftp.secret-name = secretstorage",
-        "tesk.api.taskmaster.service-account-name = custom-service-account"})
+                "tesk.api.taskmaster.image-version = task-full-image-version",
+                "tesk.api.taskmaster.filer-image-version = task-full-filer-image-version",
+                "tesk.api.taskmaster.ftp.secret-name = secretstorage",
+                "tesk.api.taskmaster.service-account-name = custom-service-account"})
 @EnableConfigurationProperties(TaskmasterEnvProperties.class)
 public class TesKubernetesConverterTest {
 

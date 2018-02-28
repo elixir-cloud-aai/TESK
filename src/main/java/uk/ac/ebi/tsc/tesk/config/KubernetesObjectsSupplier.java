@@ -58,7 +58,8 @@ public class KubernetesObjectsSupplier {
             V1Job job = gson.fromJson(reader, V1Job.class);
             job.getSpec().getTemplate().getSpec().setServiceAccountName(this.taskmasterEnvProperties.getServiceAccountName());
             job.getSpec().getTemplate().getSpec().getContainers().get(0).
-                    image(new StringJoiner(":").add(taskmasterEnvProperties.getImageName()).add(taskmasterEnvProperties.getImageVersion()).toString()).addArgsItem("-n").addArgsItem(namespace);
+                    image(new StringJoiner(":").add(taskmasterEnvProperties.getImageName()).add(taskmasterEnvProperties.getImageVersion()).toString())
+                    .addArgsItem("-n").addArgsItem(namespace).addArgsItem("-fv").addArgsItem(this.taskmasterEnvProperties.getFilerImageVersion());
             job.getMetadata().putLabelsItem(LABEL_JOBTYPE_KEY, LABEL_JOBTYPE_VALUE_TASKM);
             String taskMasterName = this.jobNameGenerator.getTaskMasterName();
             new Job(job).changeJobName(taskMasterName);
