@@ -1,0 +1,35 @@
+{
+  "description": "2 different folders with filename collision, mounted to the same place. The latest one wins (das in our case)",
+  "inputs": [
+    {
+      "url": "ftp://ftp.ebi.ac.uk/pub/databases/16S_RNA/README",
+      "path": "/tes/files/rna_README",
+      "type": "FILE"
+    },
+    {
+      "url": "ftp://ftp.ebi.ac.uk/pub/software/das/README",
+      "path": "/tes/files/das_README",
+      "type": "FILE"
+    },
+    {
+      "url": "ftp://ftp.ebi.ac.uk/pub/databases/16S_RNA",
+      "path": "/tes",
+      "type": "DIRECTORY"
+    },
+    {
+      "url": "ftp://ftp.ebi.ac.uk/pub/software/das",
+      "path": "/tes",
+      "type": "DIRECTORY"
+    }
+  ],
+  "executors": [
+    {
+      "image": "ubuntu",
+      "command": [
+        "sh",
+        "-c",
+        "cd /tes;  find * -name \"*README\" -print0 | du --files0-from=- -b"
+      ]
+    }
+  ]
+}
