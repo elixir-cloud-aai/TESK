@@ -107,15 +107,20 @@ def process_ftp_file(ftype, afile):
     elif afile['type'] == 'DIRECTORY':
       return process_upload_dir(afile['path'], ftp_path, ftp)
     else:
-      print('Unknown file type: '+afile['type'])
+      logging.error('Unknown file type: '+afile['type'])
       return 1
   else:
-    print('Unknown file action: ' + ftype)
+    logging.error('Unknown file action: ' + ftype)
     return 1
 
 def process_http_file(ftype, afile):
   if ftype == 'inputs':
     r = requests.get(afile['url'])
+
+    if r.status_code != 200:
+      logging.error('Got status code: '+str(r.status_code))
+      return 1
+
     fp = open(afile['path'], 'wb')
     fp.write(r.content)
     fp.close
@@ -123,6 +128,11 @@ def process_http_file(ftype, afile):
   elif ftype == 'outputs':
     fp = open(afile['path'], 'r')
     r = requests.put(afile['url'], data=fp.read())
+
+    if r.status_code != 200 or r.status_code != 201:
+      logging.error('Got status code: '+str(r.status_code))
+      return 1
+
     fp.close
     return 0
   else:
