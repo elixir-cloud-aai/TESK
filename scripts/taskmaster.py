@@ -38,6 +38,7 @@ def run_executor(executor, namespace, pvc=None):
   if status == 'cancelled':
     exit_cancelled()
 
+# TODO move this code to PVC class
 def append_mount(volume_mounts, name, path, pvc):
   # Checks all mount paths in volume_mounts if the path given is already in there
   duplicate = next((mount for mount in volume_mounts if mount['mountPath'] == path), None)
@@ -66,7 +67,7 @@ def generate_mounts(data, pvc):
   for volume in data['volumes']:
     append_mount(volume_mounts, volume_name, volume, pvc)
 
-  # gather other paths that need to be mounted from inputs FILE and DIRECTORY entries
+  # gather other paths that need to be mounted from inputs/outputs FILE and DIRECTORY entries
   for aninput in data['inputs']:
     dirname = dirname(aninput)
     append_mount(volume_mounts, volume_name, dirname, pvc)
