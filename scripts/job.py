@@ -18,7 +18,7 @@ class Job:
     while status == 'Running':
       if check_cancelled():
         self.delete()
-        return 'cancelled'
+        return 'Cancelled'
 
       time.sleep(poll_interval)
 

@@ -35,8 +35,8 @@ def run_executor(executor, namespace, pvc=None):
   created_jobs.append(job)
 
   status = job.run_to_completion(poll_interval, check_cancelled)
-  if status == 'cancelled':
-    exit_cancelled()
+  if status != 'Complete':
+    exit_cancelled('Got status '+status)
 
 # TODO move this code to PVC class
 def append_mount(volume_mounts, name, path, pvc):
@@ -100,8 +100,8 @@ def init_pvc(data, filer):
     created_jobs.append(filerjob)
     #filerjob.run_to_completion(poll_interval)
     status = filerjob.run_to_completion(poll_interval, check_cancelled)
-    if status == 'cancelled':
-      exit_cancelled()
+    if status != 'Complete':
+      exit_cancelled('Got status '+status)
 
     return pvc
 
@@ -132,8 +132,8 @@ def run_task(data, filer_version):
 
     #filerjob.run_to_completion(poll_interval)
     status = filerjob.run_to_completion(poll_interval, check_cancelled)
-    if status == 'cancelled':
-      exit_cancelled()
+    if status != 'Complete':
+      exit_cancelled('Got status '+status)
 
 def main(argv):
   parser = argparse.ArgumentParser(description='TaskMaster main module')
@@ -180,8 +180,10 @@ def main(argv):
   global created_pvc
   created_pvc = None
 
+  # Check if we're cancelled during init
   if check_cancelled():
-    exit_cancelled()
+    exit_cancelled('Cancelled during init')
+
   run_task(data, args.filer_version)
 
 def clean_on_interrupt():
@@ -193,9 +195,10 @@ def clean_on_interrupt():
   if created_pvc:
     created_pvc.delete()
 
-def exit_cancelled():
+def exit_cancelled(reason='Unknown reason'):
   if created_pvc:
     created_pvc.delete()
+  logger.error('Cancelling taskmaster: '+reason)
   sys.exit(0)
 
 def check_cancelled():

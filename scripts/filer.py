@@ -26,7 +26,8 @@ def download_ftp_file(source, target, ftp):
 
 def process_upload_dir(source, target, ftp):
   basename = os.path.basename(source)
-  logging.debug('processing upload dir, basename: '+basename)
+  logging.debug('processing upload dir src: '+source+' target: '+target)
+  logging.debug('dir basename: '+basename)
   wd = ftp.pwd()
   # does the parent dir exist?
   try:
@@ -183,4 +184,4 @@ def main(argv):
   return 0
 
 if __name__ == "__main__":
-  main(sys.argv)
+  sys.exit(main(sys.argv))
