@@ -53,8 +53,8 @@ def dirname(iodata):
     # strip filename from path
     r = '(.*)/'
     dirname = re.match(r, iodata['path']).group(1)
-    logger.debug('dirname of '+iodata+'is: '+dirname)
-  elif aninput['type'] == 'DIRECTORY':
+    logger.debug('dirname of '+iodata['path']+'is: '+dirname)
+  elif iodata['type'] == 'DIRECTORY':
     dirname = iodata['path']
 
   return dirname
@@ -69,12 +69,12 @@ def generate_mounts(data, pvc):
 
   # gather other paths that need to be mounted from inputs/outputs FILE and DIRECTORY entries
   for aninput in data['inputs']:
-    dirname = dirname(aninput)
-    append_mount(volume_mounts, volume_name, dirname, pvc)
+    dirnm = dirname(aninput)
+    append_mount(volume_mounts, volume_name, dirnm, pvc)
 
   for anoutput in data['outputs']:
-    dirname = dirname(anoutput)
-    append_mount(volume_mounts, volume_name, dirname, pvc)
+    dirnm = dirname(anoutput)
+    append_mount(volume_mounts, volume_name, dirnm, pvc)
 
   return volume_mounts
 
