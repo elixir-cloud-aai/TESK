@@ -47,25 +47,33 @@ def append_mount(volume_mounts, name, path, pvc):
     logger.debug('appending '+name+' at path '+path+' with subPath: '+subpath)
     volume_mounts.append({ 'name': name, 'mountPath': path , 'subPath': subpath})
 
+def dirname(iodata):
+  if iodata['type'] == 'FILE':
+    # strip filename from path
+    r = '(.*)/'
+    dirname = re.match(r, iodata['path']).group(1)
+    logger.debug('dirname of '+iodata+'is: '+dirname)
+  elif aninput['type'] == 'DIRECTORY':
+    dirname = iodata['path']
+
+  return dirname
+
 def generate_mounts(data, pvc):
   volume_mounts = []
 
   # gather volumes that need to be mounted, without duplicates
   volume_name = task_volume_basename
-  for idx, volume in enumerate(data['volumes']):
+  for volume in data['volumes']:
     append_mount(volume_mounts, volume_name, volume, pvc)
 
   # gather other paths that need to be mounted from inputs FILE and DIRECTORY entries
-  for idx, aninput in enumerate(data['inputs']):
-    if aninput['type'] == 'FILE':
-      # strip filename from path
-      p = re.compile('(.*)/')
-      basepath = p.match(aninput['path']).group(1)
-      logger.debug('basepath is: '+basepath)
-    elif aninput['type'] == 'DIRECTORY':
-      basepath = aninput['path']
+  for aninput in data['inputs']:
+    dirname = dirname(aninput)
+    append_mount(volume_mounts, volume_name, dirname, pvc)
 
-    append_mount(volume_mounts, volume_name, basepath, pvc)
+  for anoutput in data['outputs']:
+    dirname = dirname(anoutput)
+    append_mount(volume_mounts, volume_name, dirname, pvc)
 
   return volume_mounts
 
