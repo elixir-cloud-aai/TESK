@@ -27,6 +27,16 @@ def download_ftp_file(source, target, ftp):
 def process_upload_dir(source, target, ftp):
   basename = os.path.basename(source)
   logging.debug('processing upload dir, basename: '+basename)
+  wd = ftp.pwd()
+  # does the parent dir exist?
+  try:
+    ftp.cwd('/'+target)
+  except:
+    logging.error('Cannot stat parent dir: /'+target)
+    return 1
+
+  ftp.cwd(wd)
+
   try:
     logging.debug('trying to create dir: ' + '/'+target+'/'+basename)
     ftp.mkd('/'+target+'/'+basename)
