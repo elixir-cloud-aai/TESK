@@ -34,10 +34,12 @@ def process_upload_dir(source, target, ftp):
     logging.debug('Directory exists, overwriting')
 
   for f in os.listdir(source):
-    if os.path.isdir(source+'/'+f):
-      process_upload_dir(source+'/'+f, target+'/'+basename+'/', ftp)
-    elif os.path.isfile(source+'/'+f):
-      ftp.storbinary("STOR "+target+'/'+basename+'/'+f, open(source+'/'+f, 'r'))
+    path = source+'/'+f
+    if os.path.isdir(path):
+      process_upload_dir(path, target+'/'+basename+'/', ftp)
+    elif os.path.isfile(path):
+      logging.debug('Trying to upload file: '+path+' to dest: '+target+'/'+basename+'/'+f)
+      ftp.storbinary("STOR "+target+'/'+basename+'/'+f, open(path, 'r'))
   return 0
 
 def process_ftp_dir(source, target, ftp):
