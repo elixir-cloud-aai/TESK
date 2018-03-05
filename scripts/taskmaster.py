@@ -8,223 +8,134 @@ import re
 import time
 import sys
 from kubernetes import client, config
+import logging
+from job import Job
+from pvc import PVC
+from filer_class import Filer
+from multiprocessing import Process, Pool
 
 created_jobs = []
 debug = False
-polling_interval = 5
+poll_interval = 5
 task_volume_basename = 'task-volume'
 
-# translates TES JSON into 1 Job spec per executor
-def generate_job_specs(tes):
-  specs = []
-  name = re.sub(r" ", "-", tes['name'].lower())
+def run_executor(executor, namespace, pvc=None):
+  jobname = executor['metadata']['name']
+  spec = executor['spec']['template']['spec']
 
-  for executor in tes['executors']:
-    descriptor = {
-        'apiVersion': 'batch/v1',
-        'kind': 'Job',
-        'metadata': {'name': name},
-        'spec': {
-            'template': {
-                'metadata': {'name': name},
-                'spec': {
-                    'restartPolicy': 'Never',
-                    'containers': [{
-                        'name': name + '-ex' + len(specs),
-                        'image': executor['image_name'],
-                        'command': executor['cmd'],
-                        'resources': {
-                            'requests': {
-                                'cpu': tes['resources']['cpu_cores'],
-                                'memory': str(tes['resources']['ram_gb']) + 'Gi'
-                            }
-                        }
-                    }]
-                }
-            }
-        }
-    }
-    specs.append(descriptor)
+  if pvc is not None:
+    spec['containers'][0]['volumeMounts'] = pvc.volume_mounts
+    spec['volumes'] = [{ 'name': task_volume_basename, 'persistentVolumeClaim': { 'readonly': False, 'claimName': pvc.name }}]
 
-  return specs
+  logger.debug('Created job: '+jobname)
+  job = Job(executor, jobname, namespace)
+  logger.debug('Job spec: '+str(job.body))
 
-def run_executors(specs, namespace, volume_mounts=None, pvc_name=None):
+  global created_jobs
+  created_jobs.append(job)
 
-  # init Kubernetes Job API
-  v1 = client.BatchV1Api()
+  status = job.run_to_completion(poll_interval, check_cancelled)
+  if status != 'Complete':
+    exit_cancelled('Got status '+status)
 
-  for executor in specs:
-    jobname = executor['metadata']['name']
-    spec = executor['spec']['template']['spec']
+# TODO move this code to PVC class
+def append_mount(volume_mounts, name, path, pvc):
 
-    if volume_mounts is not None:
-      spec['containers'][0]['volumeMounts'] = volume_mounts
-    if pvc_name is not None:
-      spec['volumes'] = [{'name': task_volume_basename, 'persistentVolumeClaim': { 'readonly': False, 'claimName': pvc_name }}]
-
-    job = v1.create_namespaced_job(body=executor, namespace=namespace)
-
-    global created_jobs
-    created_jobs.append(jobname)
-
-    print("Created job with metadata='%s'" % str(job.metadata))
-    if wait_for_job(jobname, namespace) == 'Failed':
-      return 'Failed'
-
-  return 'Complete'
-
-def wait_for_job(jobname, namespace):
-  bv1 = client.BatchV1Api()
-
-  finished = False
-  # Job polling loop
-  while not finished:
-    job = bv1.read_namespaced_job(jobname, namespace)
-    try:
-      #print("job.status.conditions[0].type: %s" % job.status.conditions[0].type)
-      if job.status.conditions[0].type == 'Complete' and job.status.conditions[0].status:
-        finished = True
-      elif job.status.conditions[0].type == 'Failed' and job.status.conditions[0].status:
-        finished = True
-        return 'Failed' # If an executor failed we break out of running the executors
-      else:
-        #print("hit else, failing")
-        return 'Failed' # something we don't know happened, fail
-    except TypeError: # The condition is not initialized, so it is not complete yet, wait for it
-      time.sleep(polling_interval)
-
-  return 'Complete' # No failures, so return successful finish
-
-def create_pvc(data, namespace):
-  task_name = data['executors'][0]['metadata']['labels']['taskmaster-name']
-  pvc_name = task_name + '-pvc'
-  size = data['resources']['disk_gb']
-
-  pvc = { 'apiVersion': 'v1',
-          'kind': 'PersistentVolumeClaim',
-          'metadata': { 'name': pvc_name },
-          'spec': {
-            'accessModes': [ 'ReadWriteOnce'],
-            'resources': { 'requests' : { 'storage': str(size)+'Gi' } },
-            'storageClassName': 'gold'
-          }
-        }
-
-  cv1 = client.CoreV1Api()
-  cv1.create_namespaced_persistent_volume_claim(namespace, pvc)
-  return pvc_name
-
-def get_filer_template(filer_version, name):
-  filer = {
-              "kind": "Job",
-              "apiVersion": "batch/v1",
-              "metadata": { "name": name },
-              "spec": {
-                "template": {
-                  "metadata": { "name": "tesk-filer" },
-                  "spec": {
-                    "containers": [ {
-                        "name": "filer",
-                        "image": "eu.gcr.io/tes-wes/filer:"+filer_version,
-                        "args": [],
-                        "env": [],
-                        "volumeMounts": []
-                      }
-                    ],
-                    "volumes": [],
-                    "restartPolicy": "Never"
-                  }
-                }
-              }
-            }
-
-  if os.environ.get('TESK_FTP_USERNAME') is not None:
-    env = filer['spec']['template']['spec']['containers'][0]['env']
-    env.append({ "name": "TESK_FTP_USERNAME", "value": os.environ['TESK_FTP_USERNAME'] })
-    env.append({ "name": "TESK_FTP_PASSWORD", "value": os.environ['TESK_FTP_PASSWORD'] })
-
-  return filer
-
-def append_mount(volume_mounts, name, path):
   # Checks all mount paths in volume_mounts if the path given is already in there
   duplicate = next((mount for mount in volume_mounts if mount['mountPath'] == path), None)
   # If not, add mount path
   if duplicate is None:
-    volume_mounts.append({ 'name': name, 'mountPath': path })
+    subpath = pvc.get_subpath()
+    logger.debug('appending '+name+' at path '+path+' with subPath: '+subpath)
+    volume_mounts.append({ 'name': name, 'mountPath': path , 'subPath': subpath})
 
-def populate_pvc(data, namespace, pvc_name, filer_version):
+def dirname(iodata):
+  if iodata['type'] == 'FILE':
+    # strip filename from path
+    r = '(.*)/'
+    dirname = re.match(r, iodata['path']).group(1)
+    logger.debug('dirname of '+iodata['path']+'is: '+dirname)
+  elif iodata['type'] == 'DIRECTORY':
+    dirname = iodata['path']
+
+  return dirname
+
+def generate_mounts(data, pvc):
   volume_mounts = []
 
   # gather volumes that need to be mounted, without duplicates
   volume_name = task_volume_basename
-  for idx, volume in enumerate(data['volumes']):
-    append_mount(volume_mounts, volume_name, volume)
+  for volume in data['volumes']:
+    append_mount(volume_mounts, volume_name, volume, pvc)
 
-  # gather other paths that need to be mounted from inputs FILE and DIRECTORY entries
-  for idx, aninput in enumerate(data['inputs']):
-    if aninput['type'] == 'FILE':
-      # strip filename from path
-      p = re.compile('(.*)/')
-      basepath = p.match(aninput['path']).group(1)
-    elif aninput['type'] == 'DIRECTORY':
-      basepath = aninput['path']
+  # gather other paths that need to be mounted from inputs/outputs FILE and DIRECTORY entries
+  for aninput in data['inputs']:
+    dirnm = dirname(aninput)
+    append_mount(volume_mounts, volume_name, dirnm, pvc)
 
-    append_mount(volume_mounts, volume_name, basepath)
-
-  # get name from taskmaster and create pretask template
-  name = data['executors'][0]['metadata']['labels']['taskmaster-name']
-  pretask = get_filer_template(filer_version, name+'-inputs-filer')
-
-  # insert JSON input into job template
-  container = pretask['spec']['template']['spec']['containers'][0]
-  container['env'].append({ "name": "JSON_INPUT", "value": json.dumps(data) })
-  container['args'] += ["inputs", "$(JSON_INPUT)"]
-
-  # insert volume mounts and pvc into job template
-  container['volumeMounts'] = volume_mounts
-  pretask['spec']['template']['spec']['volumes'] = [ { "name": volume_name, "persistentVolumeClaim": { "claimName": pvc_name} } ]
-
-  #print(json.dumps(pretask, indent=2), file=sys.stderr)
-
-  # Run pretask filer job
-  bv1 = client.BatchV1Api()
-  job = bv1.create_namespaced_job(body=pretask, namespace=namespace)
-
-  global created_jobs
-  created_jobs.append(pretask['metadata']['name'])
-
-  wait_for_job(pretask['metadata']['name'], namespace)
+  for anoutput in data['outputs']:
+    dirnm = dirname(anoutput)
+    append_mount(volume_mounts, volume_name, dirnm, pvc)
 
   return volume_mounts
 
-def cleanup_pvc(data, namespace, volume_mounts, pvc_name, filer_version):
-  # get name from taskmaster and create posttask template
-  name = data['executors'][0]['metadata']['labels']['taskmaster-name']
-  posttask = get_filer_template(filer_version, name+'-outputs-filer')
+def init_pvc(data, filer):
+    task_name = data['executors'][0]['metadata']['labels']['taskmaster-name']
+    pvc_name = task_name+'-pvc'
+    pvc_size = data['resources']['disk_gb']
+    pvc = PVC(pvc_name, pvc_size, args.namespace)
 
-  # insert JSON input into posttask job template
-  container = posttask['spec']['template']['spec']['containers'][0]
-  container['env'].append({ "name": "JSON_INPUT", "value": json.dumps(data) })
-  container['args'] += ["outputs", "$(JSON_INPUT)"]
+    # to global var for cleanup purposes
+    global created_pvc
+    created_pvc = pvc
 
-  # insert volume mounts and pvc into posttask job template
-  container['volumeMounts'] = volume_mounts
-  posttask['spec']['template']['spec']['volumes'] = [ { "name": task_volume_basename, "persistentVolumeClaim": { "claimName": pvc_name} } ]
+    mounts = generate_mounts(data, pvc)
+    logging.debug(mounts)
+    logging.debug(type(mounts))
+    pvc.set_volume_mounts(mounts)
 
-  # run posttask filer job
-  bv1 = client.BatchV1Api()
-  job = bv1.create_namespaced_job(body=posttask, namespace=namespace)
+    filer.set_volume_mounts(pvc)
+    filerjob = Job(filer.get_spec('inputs'), task_name+'-inputs-filer', args.namespace)
 
-  global created_jobs
-  created_jobs.append(pretask['metadata']['name'])
+    global created_jobs
+    created_jobs.append(filerjob)
+    #filerjob.run_to_completion(poll_interval)
+    status = filerjob.run_to_completion(poll_interval, check_cancelled)
+    if status != 'Complete':
+      exit_cancelled('Got status '+status)
 
-  wait_for_job(posttask['metadata']['name'], namespace)
+    return pvc
 
-  #print(json.dumps(posttask, indent=2), file=sys.stderr)
+def run_task(data, filer_version):
+  task_name = data['executors'][0]['metadata']['labels']['taskmaster-name']
+  pvc = None
 
-  # Delete pvc
-  cv1 = client.CoreV1Api()
-  cv1.delete_namespaced_persistent_volume_claim(pvc_name, namespace, client.V1DeleteOptions())
+  if data['volumes'] or data['inputs'] or data['outputs']:
+
+    filer = Filer(task_name+'-filer', data, filer_version, args.debug)
+    if os.environ.get('TESK_FTP_USERNAME') is not None:
+      filer.set_ftp(os.environ['TESK_FTP_USERNAME'], os.environ['TESK_FTP_PASSWORD'])
+
+
+    pvc = init_pvc(data, filer)
+
+  for executor in data['executors']:
+    run_executor(executor, args.namespace, pvc)
+
+  # run executors
+  logging.debug("Finished running executors")
+
+  # upload files and delete pvc
+  if data['volumes'] or data['inputs'] or data['outputs']:
+    filerjob = Job(filer.get_spec('outputs'), task_name+'-outputs-filer', args.namespace)
+ 
+    global created_jobs
+    created_jobs.append(filerjob)
+
+    #filerjob.run_to_completion(poll_interval)
+    status = filerjob.run_to_completion(poll_interval, check_cancelled)
+    if status != 'Complete':
+      exit_cancelled('Got status '+status)
 
 def main(argv):
   parser = argparse.ArgumentParser(description='TaskMaster main module')
@@ -232,7 +143,7 @@ def main(argv):
   group.add_argument('json', help='string containing json TES request, required if -f is not given', nargs='?')
   group.add_argument('-f', '--file', help='TES request as a file or \'-\' for stdin, required if json is not given')
 
-  parser.add_argument('-p', '--polling-interval', help='Job polling interval', default=5)
+  parser.add_argument('-p', '--poll-interval', help='Job polling interval', default=5)
   parser.add_argument('-fv', '--filer-version', help='Filer image version', default='v0.1.9')
   parser.add_argument('-n', '--namespace', help='Kubernetes namespace to run in', default='default')
   parser.add_argument('-s', '--state-file', help='State file for state.py script', default='/tmp/.teskstate')
@@ -241,9 +152,17 @@ def main(argv):
   global args
   args = parser.parse_args()
 
-  polling_interval = args.polling_interval
+  poll_interval = args.poll_interval
 
-  debug = args.debug
+  loglevel = logging.WARNING
+  if args.debug:
+    loglevel = logging.DEBUG
+  
+  global logger
+  logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s', datefmt='%m/%d/%Y %I:%M:%S', level=loglevel)
+  logging.getLogger('kubernetes.client').setLevel(logging.CRITICAL)
+  logger = logging.getLogger(__name__)
+  logger.debug('Starting taskmaster')
 
   # Get input JSON
   if args.file is None:
@@ -251,46 +170,48 @@ def main(argv):
   elif args.file == '-':
     data = json.load(sys.stdin)
   else:
-    data = json.load(open(args.file))
-
-  #specs = generate_job_specs(tes)
+    with open(args.file) as fh:
+      data = json.load(fh)
 
   # Load kubernetes config file
-  if not debug:
-    config.load_incluster_config()
-  else:
+  if args.debug:
     config.load_kube_config()
-
-  # create and populate pvc only if volumes/inputs/outputs are given
-  if data['volumes'] or data['inputs'] or data['outputs']:
-    pvc_name = create_pvc(data, args.namespace)
-
-    # to global var for cleanup purposes
-    global created_pvc
-    created_pvc = pvc_name
-
-    volume_mounts = populate_pvc(data, args.namespace, pvc_name, args.filer_version)
-    state = run_executors(data['executors'], args.namespace, volume_mounts, pvc_name)
   else:
-    state = run_executors(data['executors'], args.namespace)
+    config.load_incluster_config()
 
-  # run executors
-  print("Finished with state %s" % state)
+  global created_pvc
+  created_pvc = None
 
-  # upload files and delete pvc
-  if data['volumes'] or data['inputs'] or data['outputs']:
-    cleanup_pvc(data, args.namespace, volume_mounts, pvc_name, args.filer_version)
+  # Check if we're cancelled during init
+  if check_cancelled():
+    exit_cancelled('Cancelled during init')
+
+  run_task(data, args.filer_version)
 
 def clean_on_interrupt():
-  print('Caught interrupt signal, deleting jobs and pvc', file=sys.stderr)
-  bv1 = client.BatchV1Api()
-
+  logger.debug('Caught interrupt signal, deleting jobs and pvc')
+  
   for job in created_jobs:
-    bv1.delete_namespaced_job(job, args.namespace, client.V1DeleteOptions())
+    job.delete()
 
   if created_pvc:
-    cv1 = client.CoreV1Api()
-    cv1.delete_namespaced_persistent_volume_claim(created_pvc, args.namespace, client.V1DeleteOptions())
+    created_pvc.delete()
+
+def exit_cancelled(reason='Unknown reason'):
+  if created_pvc:
+    created_pvc.delete()
+  logger.error('Cancelling taskmaster: '+reason)
+  sys.exit(0)
+
+def check_cancelled():
+  with open('/podinfo/labels') as fh:
+    for line in fh.readlines():
+      name, label = line.split('=')
+      logging.debug('Got label: '+label)
+      if label == '"Cancelled"':
+        return True
+
+  return False
 
 if __name__ == "__main__":
   try:
