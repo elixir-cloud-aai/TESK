@@ -1,0 +1,29 @@
+{
+  "description": "FTP output - Copies directory with subdirs and files (recursively)",
+  "outputs": [
+    {
+      "description": "ftp://ftp-private.ebi.ac.uk/upload/examples/tes does not exist - expect tes directory will be created and will contain subfolder sub).",
+      "path": "/tes",
+      "type": "DIRECTORY",
+      "url": "ftp://ftp-private.ebi.ac.uk/upload/examples"
+    }
+  ],
+  "executors": [
+    {
+      "image": "alpine",
+      "command": [
+        "echo",
+        "This goes to file1"
+      ],
+      "stdout": "/tes/file1.txt"
+    },
+    {
+      "image": "alpine",
+      "command": [
+        "sh",
+        "-c",
+        "mkdir /tes/sub; echo 'This goes to file2' > /tes/sub/file2.txt;"
+      ]
+    }
+  ]
+}

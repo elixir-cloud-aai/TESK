@@ -1,0 +1,21 @@
+{
+  "description": "FTP output - directory can be created only in DIRECTORY use case, so will not work (will try to create new and will fail)",
+  "outputs": [
+    {
+      "description": "ftp://ftp-private.ebi.ac.uk/upload/new does not exist",
+      "path": "/tes/file1.txt",
+      "type": "FILE",
+      "url": "ftp://ftp-private.ebi.ac.uk/upload/examples/new/file1.txt"
+    }
+  ],
+  "executors": [
+    {
+      "image": "alpine",
+      "command": [
+        "echo",
+        "This goes to file1"
+      ],
+      "stdout": "/tes/file1.txt"
+    }
+  ]
+}

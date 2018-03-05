@@ -1,0 +1,29 @@
+{
+  "description": "FTP output - only one directory can be created, so will not work (will try to create new/tes - because of scp-like behaviour if creating a source dir under destination folder)",
+  "outputs": [
+    {
+      "description": "ftp://ftp-private.ebi.ac.uk/upload/examples/new does not exist",
+      "path": "/tes",
+      "type": "DIRECTORY",
+      "url": "ftp://ftp-private.ebi.ac.uk/upload/examples/new"
+    }
+  ],
+  "executors": [
+    {
+      "image": "alpine",
+      "command": [
+        "echo",
+        "This goes to file1"
+      ],
+      "stdout": "/tes/file1.txt"
+    },
+    {
+      "image": "alpine",
+      "command": [
+        "sh",
+        "-c",
+        "echo 'This goes to file2' > /tes/file2.txt"
+      ]
+    }
+  ]
+}

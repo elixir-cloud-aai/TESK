@@ -1,0 +1,29 @@
+{
+  "description": "FTP output - overwrite DIR",
+  "outputs": [
+    {
+      "description": "ftp://ftp-private.ebi.ac.uk/upload/examples/tes already exists and containes file1.txt and remaining.txt - expect tes will contain file1.txt (changed), file2.txt and remaining.txt.",
+      "path": "/tes",
+      "type": "DIRECTORY",
+      "url": "ftp://ftp-private.ebi.ac.uk/upload/examples"
+    }
+  ],
+  "executors": [
+    {
+      "image": "alpine",
+      "command": [
+        "echo",
+        "This goes to file1"
+      ],
+      "stdout": "/tes/file1.txt"
+    },
+    {
+      "image": "alpine",
+      "command": [
+        "sh",
+        "-c",
+        "echo 'This goes to file2' > /tes/file2.txt"
+      ]
+    }
+  ]
+}

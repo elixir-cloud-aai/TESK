@@ -1,5 +1,5 @@
 {
-  "description": "FTP outputting file and directory from volume location - TODO fix expects in descriptions",
+  "description": "FTP outputting file and directory from volume location",
   "volumes": [
     "/tes"
   ],
@@ -11,10 +11,10 @@
       "url": "ftp://ftp-private.ebi.ac.uk/upload/examples/existing1/file1.txt"
     },
     {
-      "description": "ftp://ftp-private.ebi.ac.uk/upload/examples/new2 does not exist - expect will be created and will contain file1.txt and file2.txt",
+      "description": "ftp://ftp-private.ebi.ac.uk/upload/examples/tes does not exist - expect will be created and will contain file1.txt and file2.txt",
       "path": "/tes",
       "type": "DIRECTORY",
-      "url": "ftp://ftp-private.ebi.ac.uk/upload/examples/new2"
+      "url": "ftp://ftp-private.ebi.ac.uk/upload/examples"
     }
   ],
   "executors": [
