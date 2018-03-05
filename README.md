@@ -1,7 +1,7 @@
 <img src="docs/TESKlogowfont.png" height="200">
 
 
-An implementation of a task execution engine based on the [TES standard](https://github.com/ga4gh/task-execution-schemas) running on Kubernetes. 
+An implementation of a task execution engine based on the [TES standard](https://github.com/ga4gh/task-execution-schemas) running on Kubernetes. For more details on TES, see the [(very) brief introduction to TES](tesintro.md).
 
 For organisational reasons, this project is split into 2 repositories: One containing the API and associated docker images ([here](https://github.com/EMBL-EBI-TSI/tesk-api)) and one containing the actual task execution service and associated Docker images (this one). If the API is running on your cluster it will pull the images from our gcr.io repository automatically. In that vein, see below under 'How to install' to get TESK up and running on your Kubernetes cluster.
 
