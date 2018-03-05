@@ -1,5 +1,5 @@
 {
-  "description": "Demonstrates an attempt of placing 2 different files in the same place. At the moment, teh last one wins (will overwrite previous occurrences)",
+  "description": "ERROR- FIXME: Demonstrates an attempt of placing 2 different files in the same place. At the moment, teh last one wins (will overwrite previous occurrences)",
   "inputs": [
     {
       "url": "https://raw.githubusercontent.com/EMBL-EBI-TSI/TESK/master/examples/success/hello.json",

@@ -1,5 +1,5 @@
 {
-  "description": "Demonstrates handling 2 http file inputs, that need to go to single directory.",
+  "description": "ERROR - FIXME: Demonstrates handling 2 http file inputs, that need to go to single directory.",
   "inputs": [
     {
       "url": "https://raw.githubusercontent.com/EMBL-EBI-TSI/TESK/master/examples/success/hello.json",

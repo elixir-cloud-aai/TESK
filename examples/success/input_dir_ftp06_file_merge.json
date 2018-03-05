@@ -1,5 +1,5 @@
 {
-  "description": "And now add files from different locations to directory tree retrieved from FTP. There should be 4 files in dos and 8 in mac.",
+  "description": "ERROR - FIXME: And now add files from different locations to directory tree retrieved from FTP. There should be 4 files in dos and 8 in mac.",
   "inputs": [
     {
       "url": "https://raw.githubusercontent.com/EMBL-EBI-TSI/TESK/master/README.md",
