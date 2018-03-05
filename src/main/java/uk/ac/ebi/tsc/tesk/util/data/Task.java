@@ -28,6 +28,10 @@ public class Task {
      * (Random order -> sorting in getExecutors)
      */
     private Map<String, Job> executorsByName = new HashMap<>();
+    /**
+     * Outputs filer job (with corresponding pods) - used to capture failure of handling outputs
+     */
+    private Job outputFiler;
 
 
     public Task(Job taskmaster) {
@@ -47,6 +51,10 @@ public class Task {
      */
     public void addExecutor(Job executor) {
         this.executorsByName.putIfAbsent(executor.getJob().getMetadata().getName(), executor);
+    }
+
+    public void setOutputFiler(Job filer) {
+        this.outputFiler = filer;
     }
 
     /**
@@ -78,6 +86,10 @@ public class Task {
         return Optional.of(executors.get(executors.size() - 1));
     }
 
+    public Optional<Job> getOutputFiler() {
+        return Optional.ofNullable(this.outputFiler);
+    }
+
 
     private int extractExecutorNumber(Job executor) {
         String taskmasterName = this.taskmaster.getJobName();
@@ -85,8 +97,9 @@ public class Task {
     }
 
     public String getExecutorName(int executorIndex) {
-        String taskmasterName = this.taskmaster.getJob().getMetadata().getName();
+        String taskmasterName = this.taskmaster.getJobName();
         return new StringBuilder(taskmasterName).append(JOB_NAME_EXEC_PREFIX).
                 append(Strings.padStart(String.valueOf(executorIndex), JOB_NAME_EXEC_NO_LENGTH, '0')).toString();
     }
+
 }

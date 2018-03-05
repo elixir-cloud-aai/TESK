@@ -3,10 +3,11 @@ package uk.ac.ebi.tsc.tesk.util.component;
 import io.kubernetes.client.ApiException;
 import io.kubernetes.client.apis.BatchV1Api;
 import io.kubernetes.client.apis.CoreV1Api;
-import io.kubernetes.client.models.*;
+import io.kubernetes.client.models.V1Job;
+import io.kubernetes.client.models.V1JobList;
+import io.kubernetes.client.models.V1PodList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -14,6 +15,7 @@ import org.springframework.stereotype.Component;
 import uk.ac.ebi.tsc.tesk.exception.KubernetesException;
 import uk.ac.ebi.tsc.tesk.exception.TaskNotFoundException;
 
+import java.util.Optional;
 import java.util.StringJoiner;
 import java.util.stream.Collectors;
 
@@ -85,8 +87,25 @@ public class KubernetesClientWrapper {
         return this.listJobs(null, labelSelector, null);
     }
 
+    public Optional<V1Job> getSingleTaskOutputFilerJob(String taskId) {
+        try {
+            V1Job job = this.batchApi.readNamespacedJob(taskId + JOB_NAME_FILER_SUF, namespace, null, null, null);
+            return Optional.of(job);
+        } catch (ApiException e) {
+            if (e.getCode() != HttpStatus.NOT_FOUND.value()) {
+                throw KubernetesException.fromApiException(e);
+            }
+        }
+        return Optional.empty();
+    }
+
     public V1JobList listAllTaskExecutorJobs() {
         String labelSelector = new StringJoiner("=").add(LABEL_JOBTYPE_KEY).add(LABEL_JOBTYPE_VALUE_EXEC).toString();
+        return this.listJobs(null, labelSelector, null);
+    }
+
+    public V1JobList listAllFilerJobs() {
+        String labelSelector = "!" + LABEL_JOBTYPE_KEY;
         return this.listJobs(null, labelSelector, null);
     }
 

@@ -12,9 +12,9 @@ import java.util.List;
  * (the class does not perform job objects filtering itself).
  * Pods must be added, when all jobs have already been added.
  * Thus, correct order of calls:
- * 1) taskmaster and executors (any order) by
- * {@link AbstractTaskBuilder#addJobList(List)} or {@link AbstractTaskBuilder#addJob(V1Job)}
- * 2) pods by {@link AbstractTaskBuilder#addPodList(List)}
+ * 1) taskmaster {@link AbstractTaskBuilder#addJobList(List)} or {@link AbstractTaskBuilder#addJob(V1Job)}
+ * 2) executors and outputFiler {@link AbstractTaskBuilder#addJobList(List)} or {@link AbstractTaskBuilder#addJob(V1Job)}
+ * 3) pods by {@link AbstractTaskBuilder#addPodList(List)}
  */
 public class SingleTaskBuilder extends AbstractTaskBuilder {
 
@@ -29,6 +29,12 @@ public class SingleTaskBuilder extends AbstractTaskBuilder {
     protected void addExecutorJob(Job executorJob) {
         if (task != null) {
             task.addExecutor(executorJob);
+        }
+    }
+    @Override
+    protected void addOutputFilerJob(Job executorJob) {
+        if (task != null) {
+            task.setOutputFiler(executorJob);
         }
     }
 

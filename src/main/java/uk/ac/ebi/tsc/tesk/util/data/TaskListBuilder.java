@@ -5,11 +5,12 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import static uk.ac.ebi.tsc.tesk.util.constant.Constants.JOB_NAME_FILER_SUF;
 import static uk.ac.ebi.tsc.tesk.util.constant.Constants.LABEL_TESTASK_ID_KEY;
 
 /**
  * @author Ania Niewielska <aniewielska@ebi.ac.uk>
- *
+ * <p>
  * Tool aimed at building Kubernetes object structure of a list of tasks,
  * by passing to it results of Kubernetes batch method calls.
  * All taskmaster jobs with unique names passed to it will get stored.
@@ -18,7 +19,7 @@ import static uk.ac.ebi.tsc.tesk.util.constant.Constants.LABEL_TESTASK_ID_KEY;
  * Pods must be added, when all jobs have already been added.
  * Thus, correct order of calls:
  * 1) taskmasters by {@link AbstractTaskBuilder#addJobList(List)}
- * 2) executors by {@link AbstractTaskBuilder#addJobList(List)}
+ * 2) executors and outputFilers by {@link AbstractTaskBuilder#addJobList(List)}
  * 3) pods by {@link AbstractTaskBuilder#addPodList(List)}
  */
 public class TaskListBuilder extends AbstractTaskBuilder {
@@ -36,6 +37,17 @@ public class TaskListBuilder extends AbstractTaskBuilder {
         Task taskmaster = this.tasksById.get(taskmasterName);
         if (taskmaster != null) {
             taskmaster.addExecutor(executorJob);
+        }
+    }
+
+    @Override
+    protected void addOutputFilerJob(Job executorJob) {
+        int outputFilerSuffix = executorJob.getJobName().indexOf(JOB_NAME_FILER_SUF);
+        if (outputFilerSuffix <= -1) return;
+        String taskmasterName = executorJob.getJobName().substring(0, outputFilerSuffix);
+        Task taskmaster = this.tasksById.get(taskmasterName);
+        if (taskmaster != null) {
+            taskmaster.setOutputFiler(executorJob);
         }
     }
 

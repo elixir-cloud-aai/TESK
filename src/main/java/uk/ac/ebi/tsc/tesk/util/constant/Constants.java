@@ -53,6 +53,11 @@ public class Constants {
     public static final int JOB_NAME_EXEC_NO_LENGTH = 2;
 
     /**
+     * Output filer name suffix
+     */
+    public static final String JOB_NAME_FILER_SUF = "-outputs-filer";
+
+    /**
      * Key of the annotation, that stores name of TES task in both taskmaster's job and executor's jobs.
      */
     public static final String ANN_TESTASK_NAME_KEY = "tes-task-name";

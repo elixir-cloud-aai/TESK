@@ -10,11 +10,12 @@ import java.util.List;
 import java.util.Map;
 
 import static uk.ac.ebi.tsc.tesk.util.constant.Constants.LABEL_JOBTYPE_KEY;
+import static uk.ac.ebi.tsc.tesk.util.constant.Constants.LABEL_JOBTYPE_VALUE_EXEC;
 import static uk.ac.ebi.tsc.tesk.util.constant.Constants.LABEL_JOBTYPE_VALUE_TASKM;
 
 /**
  * @author Ania Niewielska <aniewielska@ebi.ac.uk>
- *
+ * <p>
  * Base class for tools aimed at building Kubernetes object structure of a task,
  * by gradually adding to it objects returned by calls to Kubernetes API (jobs and pods).
  * This class takes care of matching jobs with corresponding pods and holds a flat collection (mapped by name)
@@ -39,8 +40,10 @@ public abstract class AbstractTaskBuilder {
         Job wrappedJob = new Job(job);
         if (LABEL_JOBTYPE_VALUE_TASKM.equals(job.getMetadata().getLabels().get(LABEL_JOBTYPE_KEY))) {
             this.addTaskMasterJob(wrappedJob);
-        } else {
+        } else if (LABEL_JOBTYPE_VALUE_EXEC.equals(job.getMetadata().getLabels().get(LABEL_JOBTYPE_KEY))) {
             this.addExecutorJob(wrappedJob);
+        } else {
+            this.addOutputFilerJob(wrappedJob);
         }
         this.allJobsByName.putIfAbsent(job.getMetadata().getName(), wrappedJob);
         return this;
@@ -58,6 +61,13 @@ public abstract class AbstractTaskBuilder {
      * (and match it to appropriate taskmaster)
      */
     protected abstract void addExecutorJob(Job executorJob);
+
+    /**
+     * Implementing method should filter and than place
+     * the passed filer's job object in the resulting structure
+     * (and match it to appropriate taskmaster)
+     */
+    protected abstract void addOutputFilerJob(Job filerJob);
 
     /**
      * Adds a list of jobs to the composite.
@@ -81,6 +91,7 @@ public abstract class AbstractTaskBuilder {
         }
         return this;
     }
+
     /**
      * Adds a pod to the composite and
      * tries to find a matching job for it.
