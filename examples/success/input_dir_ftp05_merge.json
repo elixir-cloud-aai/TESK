@@ -1,0 +1,35 @@
+{
+  "description": "And now two source directories merged to a common place. There should be 6 files altogether in /tes/old-tools",
+  "inputs": [
+    {
+      "url": "ftp://ftp.ebi.ac.uk/pub/software/das",
+      "path": "/tes/old-tools",
+      "type": "DIRECTORY"
+    },
+    {
+      "url": "ftp://ftp.ebi.ac.uk/pub/software/tools/dos",
+      "path": "/tes/old-tools",
+      "type": "DIRECTORY"
+    }
+  ],
+  "executors": [
+    {
+      "image": "alpine",
+      "command": [
+        "sh",
+        "-c",
+        "find . -type d -exec sh -c 'echo \"$(find \"{}\" -type f | wc -l)\" {}' \\; | sort -nr"
+      ],
+      "workdir": "/tes/old-tools"
+    },
+    {
+      "image": "alpine",
+      "command": [
+        "sh",
+        "-c",
+        "find . -type f"
+      ],
+      "workdir": "/tes/old-tools"
+    }
+  ]
+}

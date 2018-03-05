@@ -1,0 +1,47 @@
+{
+  "description": "FTP output",
+  "outputs": [
+    {
+      "description": "ftp://ftp-private.ebi.ac.uk/upload/examples/existing1 exists and is initially empty - expect file1.txt created",
+      "path": "/tes/file1.txt",
+      "type": "FILE",
+      "url": "ftp://ftp-private.ebi.ac.uk/upload/examples/existing1/file1.txt"
+    },
+    {
+      "description": "ftp://ftp-private.ebi.ac.uk/upload/examples/new1 does not exist - expect directory will be created and will have file_new.txt inside with contents of file1.txt",
+      "path": "/tes/file1.txt",
+      "type": "FILE",
+      "url": "ftp://ftp-private.ebi.ac.uk/upload/examples/new1/file_new.txt"
+    },
+    {
+      "description": "ftp://ftp-private.ebi.ac.uk/upload/examples/new2 does not exist - expect will be created and will contain file1.txt and file2.txt",
+      "path": "/tes",
+      "type": "DIRECTORY",
+      "url": "ftp://ftp-private.ebi.ac.uk/upload/examples/new2"
+    },
+    {
+      "description": "ftp://ftp-private.ebi.ac.uk/upload/examples/existing2 exists and has file1.txt and remaining.txt inside - expect file1.txt will be replaced, remaining.txt untouched and file2.txt added",
+      "path": "/tes",
+      "type": "DIRECTORY",
+      "url": "ftp://ftp-private.ebi.ac.uk/upload/examples/existing2"
+    }
+  ],
+  "executors": [
+    {
+      "image": "alpine",
+      "command": [
+        "echo",
+        "This goes to file1"
+      ],
+      "stdout": "/tes/file1.txt"
+    },
+    {
+      "image": "alpine",
+      "command": [
+        "sh",
+        "-c",
+        "echo 'This goes to file2' > /tes/file2.txt"
+      ]
+    }
+  ]
+}
