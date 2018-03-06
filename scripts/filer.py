@@ -21,7 +21,11 @@ def download_ftp_file(source, target, ftp):
   basedir = os.path.dirname(target)
   distutils.dir_util.mkpath(basedir)
 
-  ftp.retrbinary("RETR "+source, open(target, 'w').write)
+  try:
+    ftp.retrbinary("RETR "+source, open(target, 'w').write)
+  except:
+    logging.error('Unable to retrieve file')
+    return 1
   return 0
 
 def process_upload_dir(source, target, ftp):
@@ -50,7 +54,10 @@ def process_upload_dir(source, target, ftp):
       process_upload_dir(path, target+'/'+basename+'/', ftp)
     elif os.path.isfile(path):
       logging.debug('Trying to upload file: '+path+' to dest: '+target+'/'+basename+'/'+f)
-      ftp.storbinary("STOR "+target+'/'+basename+'/'+f, open(path, 'r'))
+      try:
+        ftp.storbinary("STOR "+target+'/'+basename+'/'+f, open(path, 'r'))
+      except:
+        logging.error('Error trying to upload file')
   return 0
 
 def process_ftp_dir(source, target, ftp):
@@ -102,7 +109,11 @@ def process_ftp_file(ftype, afile):
       return 1
   elif ftype == 'outputs':
     if afile['type'] == 'FILE':
-      ftp.storbinary("STOR "+ftp_path, open(afile['path'], 'r'))
+      try:
+        ftp.storbinary("STOR "+ftp_path, open(afile['path'], 'r'))
+      except :
+        logging.error('Unable to store file '+afile['path']+' at FTP location '+ftp_path)
+        return 1
       return 0
     elif afile['type'] == 'DIRECTORY':
       return process_upload_dir(afile['path'], ftp_path, ftp)
