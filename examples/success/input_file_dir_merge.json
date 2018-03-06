@@ -1,0 +1,25 @@
+{
+  "description": "Demonstrates handling 2 http file inputs, that need to go to single directory.",
+  "inputs": [
+    {
+      "url": "https://raw.githubusercontent.com/EMBL-EBI-TSI/TESK/master/examples/success/hello.json",
+      "path": "/tes/json",
+      "type": "FILE"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/EMBL-EBI-TSI/TESK/master/scripts/taskmaster.py",
+      "path": "/tes/python",
+      "type": "FILE"
+    }
+  ],
+  "executors": [
+    {
+      "image": "alpine",
+      "command": [
+        "sh",
+        "-c",
+        "find /tes -type f"
+      ]
+    }
+  ]
+}

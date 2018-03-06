@@ -1,0 +1,25 @@
+{
+  "description": "Demonstrates handling 2 http file inputs with nested mountpoints. Should find both files in their respective locations.",
+  "inputs": [
+    {
+      "url": "https://raw.githubusercontent.com/EMBL-EBI-TSI/TESK/master/examples/success/hello.json",
+      "path": "/tes/volumes/input.json",
+      "type": "FILE"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/EMBL-EBI-TSI/TESK/master/examples/success/env.json",
+      "path": "/tes/file.json",
+      "type": "FILE"
+    }
+  ],
+  "executors": [
+    {
+      "image": "alpine",
+      "command": [
+        "sh",
+        "-c",
+        "find . -name '*.json'"
+      ]
+    }
+  ]
+}

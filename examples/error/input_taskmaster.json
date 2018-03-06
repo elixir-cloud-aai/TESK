@@ -1,0 +1,84 @@
+{
+  "outputs": [],
+  "inputs": [
+    {
+      "url": "http://nonexistent.ebi.ac.uk",
+      "path": "/somewhere/file",
+      "type": "FILE"
+    }
+  ],
+  "volumes": [],
+  "executors": [
+    {
+      "apiVersion": "batch/v1",
+      "kind": "Job",
+      "metadata": {
+        "annotations": {},
+        "labels": {
+          "job-type": "executor",
+          "taskmaster-name": "task-7ff304bd",
+          "executor-no": "0"
+        },
+        "name": "task-7ff304bd-ex-00"
+      },
+      "spec": {
+        "template": {
+          "metadata": {
+            "name": "task-7ff304bd-ex-00"
+          },
+          "spec": {
+            "containers": [
+              {
+                "command": [
+                  "echo",
+                  "This shouldn't appear in the logs."
+                ],
+                "image": "alpine",
+                "name": "task-7ff304bd-ex-00",
+                "resources": {}
+              }
+            ],
+            "restartPolicy": "Never"
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "batch/v1",
+      "kind": "Job",
+      "metadata": {
+        "annotations": {},
+        "labels": {
+          "job-type": "executor",
+          "taskmaster-name": "task-7ff304bd",
+          "executor-no": "1"
+        },
+        "name": "task-7ff304bd-ex-01"
+      },
+      "spec": {
+        "template": {
+          "metadata": {
+            "name": "task-7ff304bd-ex-01"
+          },
+          "spec": {
+            "containers": [
+              {
+                "command": [
+                  "cat",
+                  "/somewhere/file"
+                ],
+                "image": "alpine",
+                "name": "task-7ff304bd-ex-01",
+                "resources": {}
+              }
+            ],
+            "restartPolicy": "Never"
+          }
+        }
+      }
+    }
+  ],
+  "resources": {
+    "disk_gb": 0.1
+  }
+}

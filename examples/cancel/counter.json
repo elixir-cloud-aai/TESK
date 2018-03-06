@@ -1,0 +1,23 @@
+{
+  "description": "An example task to test job cancellation. Cancel it please, because it runs forever",
+  "volumes": [
+    "/test"
+  ],
+  "executors": [
+    {
+      "image": "alpine",
+      "command": [
+        "echo",
+        "Nothing"
+      ]
+    },
+    {
+      "image": "alpine",
+      "command": [
+        "sh",
+        "-c",
+        "i=0; while true; do echo \"$i: $(date)\"; i=$((i+1)); sleep 1; done"
+      ]
+    }
+  ]
+}

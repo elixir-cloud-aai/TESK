@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python2
 
 from __future__ import print_function
 import argparse
@@ -40,6 +40,7 @@ def run_executor(executor, namespace, pvc=None):
 
 # TODO move this code to PVC class
 def append_mount(volume_mounts, name, path, pvc):
+
   # Checks all mount paths in volume_mounts if the path given is already in there
   duplicate = next((mount for mount in volume_mounts if mount['mountPath'] == path), None)
   # If not, add mount path
@@ -114,6 +115,7 @@ def run_task(data, filer_version):
     filer = Filer(task_name+'-filer', data, filer_version, args.debug)
     if os.environ.get('TESK_FTP_USERNAME') is not None:
       filer.set_ftp(os.environ['TESK_FTP_USERNAME'], os.environ['TESK_FTP_PASSWORD'])
+
 
     pvc = init_pvc(data, filer)
 

@@ -1,10 +1,9 @@
-#!/usr/bin/python
+#!/usr/bin/env python2
 
 from __future__ import print_function
 from ftplib import FTP
 import ftplib
 import argparse
-import requests
 import sys
 import json
 import re
@@ -13,6 +12,7 @@ import distutils.dir_util
 import time
 import logging
 import traceback
+
 
 debug = True
 

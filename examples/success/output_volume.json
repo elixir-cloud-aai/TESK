@@ -1,0 +1,38 @@
+{
+  "description": "FTP outputting file and directory from volume location - TODO fix expects in descriptions",
+  "volumes": [
+    "/tes"
+  ],
+  "outputs": [
+    {
+      "description": "ftp://ftp-private.ebi.ac.uk/upload/examples/existing1 exists and is initially empty - expect file1.txt created",
+      "path": "/tes/file1.txt",
+      "type": "FILE",
+      "url": "ftp://ftp-private.ebi.ac.uk/upload/examples/existing1/file1.txt"
+    },
+    {
+      "description": "ftp://ftp-private.ebi.ac.uk/upload/examples/new2 does not exist - expect will be created and will contain file1.txt and file2.txt",
+      "path": "/tes",
+      "type": "DIRECTORY",
+      "url": "ftp://ftp-private.ebi.ac.uk/upload/examples/new2"
+    }
+  ],
+  "executors": [
+    {
+      "image": "alpine",
+      "command": [
+        "echo",
+        "This goes to file1"
+      ],
+      "stdout": "/tes/file1.txt"
+    },
+    {
+      "image": "alpine",
+      "command": [
+        "sh",
+        "-c",
+        "echo 'This goes to file2' > /tes/file2.txt"
+      ]
+    }
+  ]
+}

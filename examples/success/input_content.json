@@ -1,0 +1,19 @@
+{
+  "description": "Demonstrates inlined input",
+  "inputs": [
+    {
+      "content": "ABC TESK and some more text.",
+      "path": "/tes/volumes/input",
+      "type": "FILE"
+    }
+  ],
+  "executors": [
+    {
+      "image": "alpine",
+      "command": [
+        "cat",
+        "/tes/volumes/input"
+      ]
+    }
+  ]
+}
