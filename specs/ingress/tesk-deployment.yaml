@@ -1,0 +1,31 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: tesk-api
+spec:
+  selector:
+    matchLabels:
+      app: tesk-api
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: tesk-api
+    spec:
+      serviceAccountName: default
+      containers:
+      - name: tesk-api
+        image: eu.gcr.io/tes-wes/tesk-api:v0.2
+        env:
+        - name: TESK_API_TASKMASTER_IMAGE_VERSION
+          value: v0.2
+        - name: TESK_API_TASKMASTER_FILER_IMAGE_VERSION
+          value: v0.2
+        - name: TESK_API_K8S_NAMESPACE
+          value: default
+        - name: TESK_API_TASKMASTER_SERVICE_ACCOUNT_NAME
+          value: default
+        - name: TESK_API_TASKMASTER_FTP_SECRET_NAME
+          value: ftp-secret
+        ports:
+        - containerPort: 8080

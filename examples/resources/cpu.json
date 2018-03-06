@@ -1,0 +1,16 @@
+{
+  "description": "Run a couple of those and see, how they are scheduled. (In our case, only 3 will run, because of our 3 worker nodes with 3 or more cpus)",
+  "executors": [
+    {
+      "image": "alpine",
+      "command": [
+        "sh",
+        "-c",
+        "i=0; while true; do echo \"$i: $(date)\"; i=$((i+1)); sleep 1; done"
+      ]
+    }
+  ],
+  "resources": {
+    "cpu_cores": 3
+  }
+}
