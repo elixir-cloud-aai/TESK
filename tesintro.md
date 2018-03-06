@@ -30,4 +30,4 @@ A minimal TES task is represented as follows:
 }
 ```
 
-Inputs and outputs are expected to have an URI that can be resolved by the relevant implementation. The executor 'image' entry is ay image that can be reached by the relevant docker instance of the implementation, and would usually refer to a public image on Dockerhub or Quay. TES tasks are submitted through a RESTful API using JSON. Also see the [full spec](https://github.com/ga4gh/task-execution-schemas) for a complete list of possible fields and their description.
+Inputs and outputs are expected to have an URI that can be resolved by the relevant implementation. The executor 'image' entry is ay image that can be reached by the relevant docker instance of the implementation, and would usually refer to a public image on Dockerhub or Quay. TES tasks are submitted through a RESTful API using JSON. See the [full spec](https://github.com/ga4gh/task-execution-schemas) for a complete list of possible fields and their description. Also take a look at the [examples](examples/success) directory for a number of basic and more advanced tes tasks.
