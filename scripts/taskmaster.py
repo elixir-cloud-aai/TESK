@@ -128,7 +128,7 @@ def run_task(data, filer_version):
   # upload files and delete pvc
   if data['volumes'] or data['inputs'] or data['outputs']:
     filerjob = Job(filer.get_spec('outputs'), task_name+'-outputs-filer', args.namespace)
- 
+
     global created_jobs
     created_jobs.append(filerjob)
 
@@ -157,7 +157,7 @@ def main(argv):
   loglevel = logging.WARNING
   if args.debug:
     loglevel = logging.DEBUG
-  
+
   global logger
   logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s', datefmt='%m/%d/%Y %I:%M:%S', level=loglevel)
   logging.getLogger('kubernetes.client').setLevel(logging.CRITICAL)
@@ -190,7 +190,7 @@ def main(argv):
 
 def clean_on_interrupt():
   logger.debug('Caught interrupt signal, deleting jobs and pvc')
-  
+
   for job in created_jobs:
     job.delete()
 
