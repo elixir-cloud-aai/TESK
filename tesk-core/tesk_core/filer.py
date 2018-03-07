@@ -9,9 +9,7 @@ import json
 import re
 import os
 import distutils.dir_util
-import time
 import logging
-import traceback
 import requests
 
 debug = True

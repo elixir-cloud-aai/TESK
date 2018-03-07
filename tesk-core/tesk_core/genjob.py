@@ -4,7 +4,6 @@ import argparse
 import json
 import os
 import binascii
-import json
 from kubernetes import client, config
 
 jobspec = '../specs/pi_job.json'

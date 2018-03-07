@@ -12,7 +12,7 @@ class PVC():
               #'storageClassName': 'gold'
             }
           }
-  
+
     self.subpath_idx = 0
     self.namespace = namespace
     self.cv1 = client.CoreV1Api()

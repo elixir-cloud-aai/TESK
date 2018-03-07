@@ -5,14 +5,12 @@ import argparse
 import json
 import os
 import re
-import time
 import sys
-from kubernetes import client, config
 import logging
+from kubernetes import client, config
 from job import Job
 from pvc import PVC
 from filer_class import Filer
-from multiprocessing import Process, Pool
 
 created_jobs = []
 debug = False
