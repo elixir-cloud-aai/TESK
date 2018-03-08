@@ -54,7 +54,10 @@ setup(
 
     scripts=[
         'tesk_core/taskmaster.py',
-        'tesk_core/filer.py'
+        'tesk_core/filer.py',
+        'tesk_core/filer_class.py',
+        'tesk_core/pvc.py',
+        'tesk_core/job.py'
     ],
     # List run-time dependencies here.  These will be installed by pip when
     # your project is installed. For an analysis of "install_requires" vs pip's
