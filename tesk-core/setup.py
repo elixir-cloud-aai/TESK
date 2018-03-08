@@ -8,7 +8,7 @@ HERE = path.abspath(path.dirname(__file__))
 with codecs.open(path.join(HERE, 'README.md'), encoding='utf-8') as f:
     LONG_DESC = f.read()
 
-INSTALL_DEPS = ['kubernetes==1.5.2',
+INSTALL_DEPS = ['kubernetes==5.0.0',
                 'requests==2.18.4',
                 'future==0.16.0']
 TEST_DEPS = ['pytest',
@@ -52,6 +52,12 @@ setup(
 
     packages=find_packages(exclude=['examples', 'docs', 'tests', 'containers']),
 
+    entry_points={
+        'console_scripts': [
+            'taskmaster = tesk_core.taskmaster:main',
+            'filer = tesk_core.filer:main'
+        ]
+    },
     # List run-time dependencies here.  These will be installed by pip when
     # your project is installed. For an analysis of "install_requires" vs pip's
     # requirements files see:
@@ -60,14 +66,14 @@ setup(
 
     setup_requires=['setuptools_scm'],
 
-    python_requires='==2.7',
+    python_requires='>=2.7, <3.0',
 
-    # List additional groups of dependencies here (e.g. development
-    # dependencies). You can install these using the following syntax,
-    # for example:
-    # $ pip install -e .[dev,test]
-    extras_require={
-        'dev': DEV_DEPS,
-        'test': TEST_DEPS
-    },
+# List additional groups of dependencies here (e.g. development
+# dependencies). You can install these using the following syntax,
+# for example:
+# $ pip install -e .[dev,test]
+extras_require={
+    'dev': DEV_DEPS,
+    'test': TEST_DEPS
+},
 )
