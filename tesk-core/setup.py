@@ -52,12 +52,10 @@ setup(
 
     packages=find_packages(exclude=['examples', 'docs', 'tests', 'containers']),
 
-    entry_points={
-        'console_scripts': [
-            'taskmaster = tesk_core.taskmaster:main',
-            'filer = tesk_core.filer:main'
-        ]
-    },
+    scripts=[
+        'tesk_core/taskmaster.py',
+        'tesk_core/filer.py'
+    ],
     # List run-time dependencies here.  These will be installed by pip when
     # your project is installed. For an analysis of "install_requires" vs pip's
     # requirements files see:
@@ -68,12 +66,12 @@ setup(
 
     python_requires='>=2.7, <3.0',
 
-# List additional groups of dependencies here (e.g. development
-# dependencies). You can install these using the following syntax,
-# for example:
-# $ pip install -e .[dev,test]
-extras_require={
-    'dev': DEV_DEPS,
-    'test': TEST_DEPS
-},
+    # List additional groups of dependencies here (e.g. development
+    # dependencies). You can install these using the following syntax,
+    # for example:
+    # $ pip install -e .[dev,test]
+    extras_require={
+        'dev': DEV_DEPS,
+        'test': TEST_DEPS
+    },
 )
