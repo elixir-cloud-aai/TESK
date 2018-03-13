@@ -1,9 +1,10 @@
-### Produce wheels inside an image
+### Produce wheels and install them
 ############################################################
 
-FROM python:2.7-alpine as builder
+FROM alpine:3.7 as builder
 
-RUN apk add --no-cache git
+RUN apk add --no-cache python2 py2-pip git
+RUN pip install wheel
 
 WORKDIR /app/
 COPY tesk-core tesk-core
@@ -13,18 +14,12 @@ WORKDIR /app/tesk-core
 RUN python setup.py bdist_wheel --dist-dir=/wheels/
 RUN pip wheel --wheel-dir=/wheels /wheels/*.whl
 
-### Stage the wheels installation to image
-############################################################
-
-FROM alpine:3.7 as staging
-
-COPY --from=builder /wheels /wheels
-
-RUN apk add --no-cache python2 py-pip
 RUN pip install /wheels/*.whl
-RUN apk del --no-cache py-pip
 
-### Deployable image
+RUN pip uninstall wheel -y
+RUN apk del --no-cache py2-pip
+
+### Copy and paste necessary bits to image
 ############################################################
 
 FROM alpine:3.7
@@ -32,17 +27,17 @@ FROM alpine:3.7
 RUN apk add --no-cache curl openssl
 
 # https://pkgs.alpinelinux.org/contents?branch=v3.7&name=python2&arch=x86_64&repo=main
-COPY --from=staging /usr/bin/python /usr/bin/
-COPY --from=staging /usr/bin/python2 /usr/bin/
-COPY --from=staging /usr/bin/python2.7 /usr/bin/
-COPY --from=staging /usr/lib/libpython2.7.so.1.0 /usr/lib/
-COPY --from=staging /usr/lib/python2.7/ /usr/lib/python2.7/
+COPY --from=builder /usr/bin/python /usr/bin/
+COPY --from=builder /usr/bin/python2 /usr/bin/
+COPY --from=builder /usr/bin/python2.7 /usr/bin/
+COPY --from=builder /usr/lib/libpython2.7.so.1.0 /usr/lib/
+COPY --from=builder /usr/lib/python2.7/ /usr/lib/python2.7/
 
-COPY --from=staging /usr/bin/taskmaster.py /usr/bin/
-COPY --from=staging /usr/bin/filer.py /usr/bin/
-COPY --from=staging /usr/bin/job.py /usr/bin/
-COPY --from=staging /usr/bin/pvc.py /usr/bin/
-COPY --from=staging /usr/bin/filer_class.py /usr/bin/
+COPY --from=builder /usr/bin/taskmaster.py /usr/bin/
+COPY --from=builder /usr/bin/filer.py /usr/bin/
+COPY --from=builder /usr/bin/job.py /usr/bin/
+COPY --from=builder /usr/bin/pvc.py /usr/bin/
+COPY --from=builder /usr/bin/filer_class.py /usr/bin/
 
 RUN adduser -S taskmaster
 USER taskmaster
