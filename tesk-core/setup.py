@@ -19,6 +19,7 @@ setup(
     name='teskcore',
 
     # https://pypi.python.org/pypi/setuptools_scm
+    # TODO comment to make tox work
     use_scm_version={'root': '..', 'relative_to': __file__},
 
     description='AAP Client',
