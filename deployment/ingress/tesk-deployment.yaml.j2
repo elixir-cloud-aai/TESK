@@ -12,7 +12,7 @@ spec:
       labels:
         app: tesk-api
     spec:
-      serviceAccountName: default
+      serviceAccountName: {{ tesk.taskmaster_service_account_name }}
       containers:
       - name: tesk-api
         image: {{ tesk.image }}
