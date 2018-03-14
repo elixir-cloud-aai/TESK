@@ -68,7 +68,7 @@ setup(
 
     setup_requires=['setuptools_scm'],
 
-    python_requires='>=2.7, <3.0',
+    python_requires='>=2.7, !=3.0.*, !=3.1.*, !=3.2.*,  !=3.3.*, <4.0',
 
     # List additional groups of dependencies here (e.g. development
     # dependencies). You can install these using the following syntax,
