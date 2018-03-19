@@ -22,8 +22,9 @@ setup(
     # TODO comment to make tox work
     use_scm_version={'root': '..', 'relative_to': __file__},
 
-    description='AAP Client',
+    description='TES on Kubernetes',
     long_description=LONG_DESC,
+    long_description_content_type="text/markdown",
 
     url='https://github.com/EMBL-EBI-TSI/TESK',
 
