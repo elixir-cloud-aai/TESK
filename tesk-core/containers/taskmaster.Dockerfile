@@ -4,7 +4,7 @@
 FROM alpine:3.7 as builder
 
 RUN apk add --no-cache python2 py2-pip git
-RUN pip install wheel
+RUN pip install -U pip wheel
 
 WORKDIR /app/
 COPY tesk-core tesk-core
