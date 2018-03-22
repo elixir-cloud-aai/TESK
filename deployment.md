@@ -2,6 +2,7 @@
 The deployment of Tesk can be executed in any Kubernetes environment, with a minimal configuration required for setting up the API access point.
 
 We provide two deployment scenario that can easily produce the static `yaml` files specific for your environment.
+
 The templates are written using the "Jinja2" syntax and are available in the templates folder, there are two versions, one for `OpenShift` and one for `OpenStack`, which make use of a `Nginx-ingress`.
 
 
