@@ -65,10 +65,15 @@ oc new-project "tesk-demo"  --description="TESK an implementation of GA4GH TES p
 
 ## Deploy Tesk
 
-Follow the deployment instructions for TESK avilable [here](deployment.md).
+Follow the [deployment instructions for TESK](deployment.md).
 
-You service will be available at:
+Your service will be available at:
 
 [https://tesk-api.c01.k8s-popup.csc.fi/](https://tesk-api.c01.k8s-popup.csc.fi/)
 
 _https://`[openshift.namespace]`/`[openshift.host]`/_
+
+## OpenShift Policy requirements
+
+Please have a read to the [openshift policy](openshift_policy.md) and check that your OpenStack fulfill the requirements about the service account policy.
+
