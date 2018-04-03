@@ -35,7 +35,4 @@ COPY --from=builder /usr/lib/python2.7/ /usr/lib/python2.7/
 
 COPY --from=builder /usr/bin/filer.py /usr/bin/
 
-RUN adduser -S filer
-USER filer
-
 ENTRYPOINT ["filer.py"]
