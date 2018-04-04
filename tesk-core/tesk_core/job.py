@@ -1,6 +1,6 @@
-from kubernetes import client, config
 import logging
 import time
+from kubernetes import client, config
 
 class Job:
   def __init__(self, body, name='task-job', namespace='default'):

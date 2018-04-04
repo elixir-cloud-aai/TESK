@@ -7,7 +7,7 @@
       "type": "FILE"
     },
     {
-      "url": "https://raw.githubusercontent.com/EMBL-EBI-TSI/TESK/master/scripts/taskmaster.py",
+      "url": "https://raw.githubusercontent.com/EMBL-EBI-TSI/TESK/v0.1.9/scripts/taskmaster.py",
       "path": "/tes/python",
       "type": "FILE"
     }
