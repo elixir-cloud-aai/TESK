@@ -25,7 +25,10 @@ or:
 cd deployment/ingress
 ```
 
-Edit the `config.ini` file, setting up the few variable specific to your deployment.
+Edit the `config.ini` file, setting up the few variables specific to your deployment.  
+In general, the only variables that have to be edited are just the fields that follow the comment:  
+`# the following variables are specific to each deployment`.
+
 Compile the `yaml` file using the following command:
 
 ```
