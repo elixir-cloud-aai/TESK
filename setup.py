@@ -19,8 +19,7 @@ setup(
     name='teskcore',
 
     # https://pypi.python.org/pypi/setuptools_scm
-    # TODO comment to make tox work
-    use_scm_version={'root': '..', 'relative_to': __file__},
+    use_scm_version=True,
 
     description='TES on Kubernetes',
     long_description=LONG_DESC,
@@ -61,13 +60,17 @@ setup(
         'tesk_core/pvc.py',
         'tesk_core/job.py'
     ],
+    test_suite='tests',
+
     # List run-time dependencies here.  These will be installed by pip when
     # your project is installed. For an analysis of "install_requires" vs pip's
     # requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
     install_requires=INSTALL_DEPS,
 
-    setup_requires=['setuptools_scm'],
+    setup_requires=['setuptools_scm', 'pytest-runner'],
+
+    tests_requires=TEST_DEPS,
 
     python_requires='>=2.7, !=3.0.*, !=3.1.*, !=3.2.*,  !=3.3.*, <4.0',
 

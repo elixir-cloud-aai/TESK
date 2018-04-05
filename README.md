@@ -13,8 +13,12 @@ The root folder assumed to build the containers is the root of this package.
 ## Unit testing
 Unit testing needs the `tox` package, although `detox` is recommended and it parallelizes the workload:
 
+```
   pip install detox
+```
 
 This software will take care of instancing virtual environments and installing dependencies in them before running the actual tests and generating the coverage reports
 
+```
   detox
+```
