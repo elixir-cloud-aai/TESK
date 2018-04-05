@@ -12,11 +12,20 @@ spec:
       labels:
         app: tesk-api
     spec:
+      serviceAccountName: {{ tesk.taskmaster_service_account_name }}
       containers:
       - name: tesk-api
         image: {{ tesk.image }}
         env:
         - name: TESK_API_TASKMASTER_IMAGE_VERSION
-          value: {{ tesk.taskmaster_version }}
+          value: {{ tesk.taskmaster_image_version }}
+        - name: TESK_API_TASKMASTER_FILER_IMAGE_VERSION
+          value: {{ tesk.taskmaster_filer_image_version }}
+        - name: TESK_API_K8S_NAMESPACE
+          value: {{ tesk.k8s_namespace }}
+        - name: TESK_API_TASKMASTER_SERVICE_ACCOUNT_NAME
+          value: {{ tesk.taskmaster_service_account_name }}
+        - name: TESK_API_TASKMASTER_FTP_SECRET_NAME
+          value: {{ tesk.taskmaster_ftp_secret_name }}
         ports:
         - containerPort: {{ tesk.port }}

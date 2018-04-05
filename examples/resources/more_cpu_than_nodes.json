@@ -1,0 +1,15 @@
+{
+  "description": "Request for more cpu than any nodes - will be Pending forever. TODO - what shall we do in such case?",
+  "executors": [
+    {
+      "image": "alpine",
+      "command": [
+        "echo",
+        "Nothing"
+      ]
+    }
+  ],
+  "resources": {
+    "cpu_cores": 5
+  }
+}
