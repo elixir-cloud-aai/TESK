@@ -1,44 +1,20 @@
-<img src="docs/TESKlogowfont.png" height="200">
+## Introduction
 
+This project is part of the [TESK](https://github.com/EMBL-EBI-TSI/TESK) initiative.
+It contains the code needed to generate 2 types of agents that reside in kubernetes:
+* The task masters, which spins up the containers needed to complete tasks as defined by TESK
+* The filers, which ??? [not described in the other readme]
 
-An implementation of a task execution engine based on the [TES standard](https://github.com/ga4gh/task-execution-schemas) running on Kubernetes. For more details on TES, see the [(very) brief introduction to TES](tesintro.md).
+## How to use
+Since the code is meant to be in kubernetes pods, the code needs to be packaged into containers.
+Their descriptions can be found in `containers/`.
+The root folder assumed to build the containers is the root of this package.
 
-For organisational reasons, this project is split into 2 repositories: One containing the API and associated docker images ([here](https://github.com/EMBL-EBI-TSI/tesk-api)) and one containing the actual task execution service and associated Docker images (this one). If the API is running on your cluster it will pull the images from our gcr.io repository automatically. In that vein, see below under 'How to install' to get TESK up and running on your Kubernetes cluster.
+## Unit testing
+Unit testing needs the `tox` package, although `detox` is recommended and it parallelizes the workload:
 
-## Requirements
- - A working Kubernetes cluster (e.g. [Minikube](https://github.com/kubernetes/minikube))
+  pip install detox
 
-## How to install
- - Clone the repo to your kube-master and cd into the folder
- - Find out what is the external IP for the cluster. E.g. with the command `minikube ip`
- - Edit the following line in `specs/ingress/nginx-ingress-lb.yaml` with that IP:
- 
- ```yaml
- spec:
-  type: NodePort
-  externalIPs:
-  - 127.0.0.1 <--- replace this with your cluster's external ip address
+This software will take care of instancing virtual environments and installing dependencies in them before running the actual tests and generating the coverage reports
 
- ```
- 
- - Create the services necessary to run the API:
-
-```
-kubectl create -f specs/ingress/
-kubectl create -f specs/core/
-```
- - This will expose the API service on a port in your cluster, run `kubectl get services` to see where.
- - Send an [example TESK request](https://github.com/EMBL-EBI-TSI/TESK/blob/master/specs/task_example.json), replacing `127.0.0.1:30977` with your services' ip and port:
- 
- ```bash
- curl -H "Content-Type: application/json" -d @specs/task_example.json http://127.0.0.1:30977/v1/tasks
- ```
-  - Watch `kubectl get pods` to see the tasks appear and complete.
- 
- ## Architecture
-As a diagram:
-
-![TESK architecture](docs/architecture.png)
-
-Description: The main work is performed by 2 pods. First is the API pod, a pod which runs a web server (NGINX) and exposes the TES specified endpoints. It consumes TES requests, validates them and translates them to Kubernetes jobs. The API pod then creates a task controller pod, or Taskmaster. The taskmaster consumes the executor jobs, inputs and outputs. It creates Persistent Volume Claims to mount as scratch space, input / output file space and (optionally) additional mounts specified in the TES request.It then creates a pre-task job to populate PVC’s (downloading inputs). It then loops through the executor jobs, waiting for each one to complete before moving on to the next one.
-
+  detox

@@ -7,10 +7,9 @@ RUN apk add --no-cache python2 py2-pip git
 RUN pip install -U pip wheel
 
 WORKDIR /app/
-COPY tesk-core tesk-core
+COPY . .
 COPY .git .git
 
-WORKDIR /app/tesk-core
 RUN python setup.py bdist_wheel --dist-dir=/wheels/
 RUN pip wheel --wheel-dir=/wheels /wheels/*.whl
 
