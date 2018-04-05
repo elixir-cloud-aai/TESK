@@ -43,7 +43,7 @@ class Filer:
     tempspec = self.spec['spec']['template']['spec']
     tempspec['containers'][0]['volumeMounts'] = pvc.volume_mounts
     tempspec['volumes'] = [ { "name": "task-volume", "persistentVolumeClaim": { "claimName": pvc.name} } ]
-    
+
   def get_spec(self, mode):
     self.spec['spec']['template']['spec']['containers'][0]['args'] = [mode, "$(JSON_INPUT)"]
     self.spec['spec']['template']['metadata']['name'] = self.name
