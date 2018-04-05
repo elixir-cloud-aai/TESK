@@ -1,3 +1,6 @@
+[![Build Status](https://travis-ci.org/EMBL-EBI-TSI/tesk-core.svg?branch=master)](https://travis-ci.org/EMBL-EBI-TSI/tesk-core)
+[![codecov](https://codecov.io/gh/EMBL-EBI-TSI/tesk-core/branch/master/graph/badge.svg)](https://codecov.io/gh/EMBL-EBI-TSI/tesk-core)
+
 ## Introduction
 
 This project is part of the [TESK](https://github.com/EMBL-EBI-TSI/TESK) initiative.
