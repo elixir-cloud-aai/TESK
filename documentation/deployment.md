@@ -1,9 +1,9 @@
 # Deployment instructions for Tesk
 The deployment of Tesk can be executed in any Kubernetes environment, with a minimal configuration required for setting up the API access point.
 
-We provide two deployment scenario that can easily produce the static `yaml` files specific for your environment.
+We provide three deployment scenarios that can easily produce the static `yaml` files specific for your environment.
 
-The templates are written using the "Jinja2" syntax and are available in the templates folder, there are two versions, one for `OpenShift` and one for `OpenStack`, which make use of a `Nginx-ingress`.
+The templates are written using the "Jinja2" syntax and are available in the deployment folder, there are three versions, one for `MiniKube`, one for `OpenShift` and one for `OpenStack`, which make use of a `Nginx-ingress`.
 
 
 ## Compiling template
@@ -14,15 +14,18 @@ The simplest way to compile the template is to make use of a Jinja2 Command Line
 [shinto-cli](https://github.com/istrategylabs/shinto-cli)
 
 
-Chose the type of deployment:
-```
-cd deployment/openshift
-```
-
-or:
-
+Choose the type of deployment:
+-   On-Premises VMs in `OpenStack`:
 ```
 cd deployment/ingress
+```
+-   Local-machine with `Minikube`:
+```
+cd deployment/minikube
+```
+-   Hosted solution with `OpenShift`:
+```
+cd deployment/openshift
 ```
 
 Edit the `config.ini` file, setting up the few variables specific to your deployment.  
