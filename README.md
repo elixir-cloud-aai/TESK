@@ -34,11 +34,6 @@ HTTP Status Code | Meaning
 404 | (Task) with a given ID not found
 500 | Something else (possibly configuration) went wrong
 
-### Taskmaster job object
-TODO
-### Taskmaster parameters
-TODO
-
 ## Tools
 * TESK API is a Maven Spring Boot (currently 1.5.*) application written in Java.
 * API server stub is generated automatically with Swagger Code Generator (specifically [Swagger Codegen Maven Plugin](https://github.com/swagger-api/swagger-codegen/blob/master/modules/swagger-codegen-maven-plugin)).
@@ -72,7 +67,7 @@ The meaning of deployment parameters
  
  
 ### Generating new API version stub
-Current version of TES specification (v0.3) lives locally in the project as a [Swagger JSON file](/src/main/resources/task_execution.swagger.json). In case of the specification upgrade, this file needs to be replaced with a new version. Then you need to run ```mvn clean generate-sources -p generate-swagger```. That will generate new versions of [model](/src/main/java/uk/ac/ebi/tsc/tesk/model) and [API](/src/main/java/uk/ac/ebi/tsc/tesk/api) stub files. As model objects contain Bean Validation annotations and API contains implementation, manual reconciliation of changes is then necessary.      
+Current version of TES specification (v0.3) lives locally in the project as a [Swagger JSON file](/src/main/resources/task_execution.swagger.json). In case of the specification upgrade, this file needs to be replaced with a new version. Then you need to run ```mvn clean generate-sources -P generate-swagger```. That will generate new versions of [model](/src/main/java/uk/ac/ebi/tsc/tesk/model) and [API](/src/main/java/uk/ac/ebi/tsc/tesk/api) stub files. As model objects contain Bean Validation annotations and auto-generated API interface contains problematic  `consumes = { "application/json" }` for GET methods, manual reconciliation of changes is then necessary.      
 
 
 
