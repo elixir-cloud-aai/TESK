@@ -67,7 +67,11 @@ The meaning of deployment parameters
  
  
 ### Generating new API version stub
-Current version of TES specification (v0.3) lives locally in the project as a [Swagger JSON file](/src/main/resources/task_execution.swagger.json). In case of the specification upgrade, this file needs to be replaced with a new version. Then you need to run ```mvn clean generate-sources -P generate-swagger```. That will generate new versions of [model](/src/main/java/uk/ac/ebi/tsc/tesk/model) and [API](/src/main/java/uk/ac/ebi/tsc/tesk/api) stub files. As model objects contain Bean Validation annotations and auto-generated API interface contains problematic  `consumes = { "application/json" }` for GET methods, manual reconciliation of changes is then necessary.      
+Current version of TES specification (v0.3) lives locally in the project as a [Swagger JSON file](/src/main/resources/task_execution.swagger.json). In case of the specification upgrade, this file needs to be replaced with a new version. Then you need to run
+
+```mvn clean generate-sources -P generate-swagger```
+
+That will generate new versions of [model](/src/main/java/uk/ac/ebi/tsc/tesk/model) and [API](/src/main/java/uk/ac/ebi/tsc/tesk/api) stub files. As project model objects contain necessary [Bean Validation](http://beanvalidation.org) annotations that need to be manually restored in auto-generated code and problematic `consumes = { "application/json" }` for GET methods need to be removed from auto-generated API interface, manual reconciliation of changes is always necessary after model regeneration.      
 
 
 
