@@ -9,8 +9,7 @@ TESK uses Kubernetes Batch API ([Jobs](https://kubernetes.io/docs/concepts/workl
 
 ### Creating a new task
 When API gets a request to create a new TES task, TESK performs following steps:
-1. API creates a Taskmaster - a new single Kubernetes Job per task, that handles the logic of processing inputs, outputs and running task's executors in a sequence. Detailed taskmaster's job object description can be seen [here](#taskmaster-job-object).
-API passes to Taskmaster a JSON object composed of - unchanged - TES Inputs/Outputs/Volumes and TES executors packaged as Kubernetes Job objects (more about [taskmaster parameters](#taskmaster-parameters)). Request finishes immediately without waiting for the task completion. Auto-generated task ID is returned as a response.
+1. API creates a Taskmaster - a new single Kubernetes Job per task, that handles the logic of processing inputs, outputs and running task's executors in a sequence. API passes a parameter to Taskmaster - a JSON object composed of - unchanged - TES Inputs/Outputs/Volumes and TES executors packaged as Kubernetes Job objects. Request finishes immediately without waiting for the task completion. Auto-generated task ID is returned as a response.
 2. If any Inputs/Outputs/Volumes are present Taskmaster creates a single PVC per task.
 3. Taskmaster creates Inputs Filer, yet another Kubernetes Job (one per task), adds PVC from step 2. to it and maps Input/Output/Volume directories as volume mounts pointing to subpaths of the PVC.
 4. Inputs Filer downloads input files (currently supports HTTP and FTP), places them at paths inside PVC and finishes.
