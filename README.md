@@ -9,8 +9,8 @@ TESK uses Kubernetes Batch API (Jobs) to schedule execution of a new TES task. T
 
 ### Creating a new task
 When API gets a request to create a new TES task, TESK performs following steps:
-1. API creates a Taskmaster - a new single Kubernetes Job per task, that handles the logic of processing inputs, outputs and running task's executors in a sequence. Detailed taskmaster's job object description can be seen [here](#Taskmaster job object).
-API passes a JSON object composed of - unchanged - TES Inputs/Outputs/Volumes and TES executors packaged as Kubernetes Job objects (more about [taskmaster parameters](#Taskmaster parameters)). Request finishes immediately without waiting for task completion. Auto-generated task ID is returned as a response.
+1. API creates a Taskmaster - a new single Kubernetes Job per task, that handles the logic of processing inputs, outputs and running task's executors in a sequence. Detailed taskmaster's job object description can be seen [here](#taskmaster-job-object).
+API passes a JSON object composed of - unchanged - TES Inputs/Outputs/Volumes and TES executors packaged as Kubernetes Job objects (more about [taskmaster parameters](#taskmaster-parameters)). Request finishes immediately without waiting for task completion. Auto-generated task ID is returned as a response.
 2. If any Inputs/Outputs/Volumes are present Taskmaster creates a single PVC per task.
 3. Taskmaster creates Inputs Filer, yet another Kubernetes Job (one per task), adds PVC from step 2. to it and maps Input/Output/Volume directories as volume mounts pointing to subpaths of the PVC.
 4. Inputs Filer downloads input files, places them at paths inside PVC and finishes.
@@ -42,10 +42,10 @@ API can run both from outside and inside of Kubernetes cluster. To run API local
 
 then point your browser to [http://localhost:8080](http://localhost:8080), which should present Swagger UI page with API endpoints list.
 
-To run from inside Kubernetes, API has to be packaged as a Docker image. Dockerfile is available [here](https://github.com/EMBL-EBI-TSI/tesk-api/blob/master/Dockerfile).
+To run from inside Kubernetes, API has to be packaged as a Docker image. Dockerfile is available [here](/Dockerfile).
 Current version of the image is hosted at GCR: `eu.gcr.io/tes-wes/tesk-api:v0.2`
  
-Deployment descriptors for different K8s environments reside in [TESK core project](https://github.com/EMBL-EBI-TSI/TESK/tree/master/deployment) and description of how to install TESK at Kubernetes (including API) also lives [there](https://github.com/EMBL-EBI-TSI/TESK/blob/master/documentation/deployment.md). Detailed explanation of TESK API deployment parameters [below](#Deployment parameters)
+Deployment descriptors for different K8s environments reside in [TESK core project](https://github.com/EMBL-EBI-TSI/TESK/tree/master/deployment) and description of how to install TESK at Kubernetes (including API) also lives [there](https://github.com/EMBL-EBI-TSI/TESK/blob/master/documentation/deployment.md). Detailed explanation of TESK API deployment parameters [below](#deployment-parameters)
 
 Authentication and authorisation at Kubernetes API are done by Kubernetes API Client (not well documented, refer to [source code](https://github.com/kubernetes-client/java/blob/master/util/src/main/java/io/kubernetes/client/util/Config.java) instead). When running API outside of Kubernetes, we used KUBECONFIG file succesfully. When run from within the cluster, service account is used. In both cases (in/external) API needs to run with permissions sufficient to create and query Jobs and Pods. We used built-in `admin` and `edit` roles successfully, more refined roles are on the way.   
 
