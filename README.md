@@ -60,18 +60,19 @@ Authentication and authorisation at Kubernetes API are done by Kubernetes API Cl
 ### Deployment parameters
 When run from within the cluster, API should be deployed as K8s Deployment such as defined in [TESK Core project](https://github.com/EMBL-EBI-TSI/TESK/blob/master/deployment/ingress/tesk-deployment.yaml.j2).
 The meaning of deployment parameters
+
  Parameter path | Meaning
  ------------ | -------------
  `spec.template.spec.serviceAccountName` | Service Account that the API will use. Needs to have sufficient privileges granted (default `edit` role can be used).
- `spec.template.spec.containers[0].env[TESK_API_TASKMASTER_SERVICE_ACCOUNT_NAME` | Service account with which each new taskmaster job will be created. Needs to have sufficient privileges granted (default `edit` role can be used). If omitted, defaults to `default`.
- `spec.template.spec.containers[0].env[TESK_API_TASKMASTER_IMAGE_VERSION]` | Version of taskmaster image, the API will use, when creating new taskmaster jobs. If omitted, should default to sensible value.
- `spec.template.spec.containers[0].env[TESK_API_TASKMASTER_FILER_IMAGE_VERSION]` | Version of filer image, passed on as a parameter to taskmaster. Taskmaster will create Inputs/Outputs filer using the image in this version. If omitted, should default to sensible value.
- `spec.template.spec.containers[0].env[TESK_API_K8S_NAMESPACE]` | K8s namespace, where all the Job objects will be created. If omitted, defaults to `default`.
- `spec.template.spec.containers[0].env[TESK_API_TASKMASTER_FTP_SECRET_NAME]` | Name of K8s secret storing credentials to a single FTP account. FTP account is used to demonstrate uploading output files to external storage. If ENV variable is present in API deployment descriptor, FTP username and password will be included by API as taskmaster ENV variables. Otherwise (TESK_API_TASKMASTER_FTP_SECRET_NAME env variable omitted), TESK should still work, but without the ability to upload files to a private FTP server.     
+ `spec.template.spec.containers[0].env [TESK_API_TASKMASTER_SERVICE_ACCOUNT_NAME]` | Service account with which each new taskmaster job will be created. Needs to have sufficient privileges granted (default `edit` role can be used). If omitted, defaults to `default`.
+ `spec.template.spec.containers[0].env [TESK_API_TASKMASTER_IMAGE_VERSION]` | Version of taskmaster image, the API will use, when creating new taskmaster jobs. If omitted, should default to sensible value.
+ `spec.template.spec.containers[0].env [TESK_API_TASKMASTER_FILER_IMAGE_VERSION]` | Version of filer image, passed on as a parameter to taskmaster. Taskmaster will create Inputs/Outputs filer using the image in this version. If omitted, should default to sensible value.
+ `spec.template.spec.containers[0].env [TESK_API_K8S_NAMESPACE]` | K8s namespace, where all the Job objects will be created. If omitted, defaults to `default`.
+ `spec.template.spec.containers[0].env [TESK_API_TASKMASTER_FTP_SECRET_NAME]` | Name of K8s secret storing credentials to a single FTP account. FTP account is used to demonstrate uploading output files to external storage. If ENV variable is present in API deployment descriptor, FTP username and password will be included by API as taskmaster ENV variables. Otherwise (TESK_API_TASKMASTER_FTP_SECRET_NAME env variable omitted), TESK should still work, but without the ability to upload files to a private FTP server.     
  
  
 ### Generating new API version stub
-Current version of TES specification (v0.3) lives locally in the project as a [Swagger JSON file](/task_execution.swagger.json). In case of the specification upgrade, this file needs to be replaced with a new version. Then you need to run ```mvn clean generate-sources -p generate-swagger```. That will generate new versions of [model](/src/main/java/uk/ac/ebi/tsc/tesk/model) and [API](/src/main/java/uk/ac/ebi/tsc/tesk/api) stub files. As model objects contain Bean Validation annotations and API contains implementation, manual reconciliation of changes is then necessary.      
+Current version of TES specification (v0.3) lives locally in the project as a [Swagger JSON file](/src/main/resources/task_execution.swagger.json). In case of the specification upgrade, this file needs to be replaced with a new version. Then you need to run ```mvn clean generate-sources -p generate-swagger```. That will generate new versions of [model](/src/main/java/uk/ac/ebi/tsc/tesk/model) and [API](/src/main/java/uk/ac/ebi/tsc/tesk/api) stub files. As model objects contain Bean Validation annotations and API contains implementation, manual reconciliation of changes is then necessary.      
 
 
 
