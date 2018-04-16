@@ -67,13 +67,13 @@ Run a `curl` console commen with a POST message:
  -s \
  --header 'Content-Type: application/json' \
  --header 'Accept: application/json' \
- -d @stdout.json \
+ -d @../../examples/success/stdout.json \
  '[tesk-end-point]/v1/tasks'
 ```
 
 where:
 
--   [`stdout.json`](https://github.com/EMBL-EBI-TSI/TESK/blob/master/examples/success/stdout.json) is a file from the `examples` folder.
+-   [`stdout.json`](https://github.com/EMBL-EBI-TSI/TESK/blob/master/examples/success/stdout.json) is a file from the `examples` folder, set its path according to the local working directory.
 -   `[tesk-end-point]` has to be replaced with an appropriate value, which can be an `hostname` or a `IP` depending on your installation (i.e. `http://193.62.55.44` or `https://tesk-api.c01.k8s-popup.csc.fi`)
 
 This should respond with the body containing the task `id`:
