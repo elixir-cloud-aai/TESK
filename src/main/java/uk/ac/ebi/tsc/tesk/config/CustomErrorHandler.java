@@ -1,7 +1,8 @@
 package uk.ac.ebi.tsc.tesk.config;
 
-import org.springframework.boot.autoconfigure.web.BasicErrorController;
-import org.springframework.boot.autoconfigure.web.ErrorAttributes;
+
+import org.springframework.boot.autoconfigure.web.servlet.error.BasicErrorController;
+import org.springframework.boot.web.servlet.error.ErrorAttributes;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -26,13 +27,13 @@ import java.util.Map;
 
 /**
  * @author Ania Niewielska <aniewielska@ebi.ac.uk>
- *     Custom Error Handler:
- *     1) created mainly to bypass default Spring Boot error controller {@link BasicErrorController} in order
- *        to avoid generating html error page for browser requests
- *        (always tries to return JSON instead)
- *     2) uses default Spring Boot's ErrorAttributes, customizing output for MethodArgumentNotValidException
- *     3) overrides ResponseEntityExceptionHandler {@link ResponseEntityExceptionHandler} to
- *          return sensible HTTP status codes for Spring internal exceptions
+ * Custom Error Handler:
+ * 1) created mainly to bypass default Spring Boot error controller {@link BasicErrorController} in order
+ * to avoid generating html error page for browser requests
+ * (always tries to return JSON instead)
+ * 2) uses default Spring Boot's ErrorAttributes, customizing output for MethodArgumentNotValidException
+ * 3) overrides ResponseEntityExceptionHandler {@link ResponseEntityExceptionHandler} to
+ * return sensible HTTP status codes for Spring internal exceptions
  */
 @ControllerAdvice
 public class CustomErrorHandler extends ResponseEntityExceptionHandler {
@@ -54,7 +55,7 @@ public class CustomErrorHandler extends ResponseEntityExceptionHandler {
     @ResponseBody
     public ResponseEntity<?> commonErrorHandler(HttpServletRequest request, Exception ex) {
         ResponseStatus requestedResponseStatus = AnnotatedElementUtils.findMergedAnnotation(ex.getClass(), ResponseStatus.class);
-        HttpStatus status = requestedResponseStatus != null ? requestedResponseStatus.code(): HttpStatus.INTERNAL_SERVER_ERROR;
+        HttpStatus status = requestedResponseStatus != null ? requestedResponseStatus.code() : HttpStatus.INTERNAL_SERVER_ERROR;
         return this.handleExceptionInternal(request, status);
     }
 
@@ -107,7 +108,7 @@ public class CustomErrorHandler extends ResponseEntityExceptionHandler {
      * the JSON object to be placed by default in response body.
      */
     private ResponseEntity<?> handleExceptionInternal(HttpServletRequest request, HttpStatus status) {
-        RequestAttributes requestAttributes = new ServletRequestAttributes(request);
+        WebRequest requestAttributes = new ServletWebRequest(request);
         //missing request parameters used by DefaultErrorAttributes implementation
         requestAttributes.setAttribute("javax.servlet.error.status_code", status.value(), RequestAttributes.SCOPE_REQUEST);
         requestAttributes.setAttribute("javax.servlet.error.request_uri", request.getRequestURI(), RequestAttributes.SCOPE_REQUEST);
