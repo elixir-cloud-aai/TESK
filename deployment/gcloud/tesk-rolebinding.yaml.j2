@@ -1,0 +1,13 @@
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: {{ tesk.taskmaster_service_account_name }}-admin-role-binding
+subjects:
+- kind: ServiceAccount
+  name: {{ tesk.taskmaster_service_account_name }}
+  namespace: {{ tesk.k8s_namespace }}
+roleRef:
+  kind: ClusterRole
+  name: admin
+  apiGroup: ""
+

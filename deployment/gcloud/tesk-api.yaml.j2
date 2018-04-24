@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: tesk-api
+  name: tesk-api
+  namespace: {{ tesk.k8s_namespace }}
+spec:
+  ports:
+  - port: {{ tesk.port }}
+  selector:
+    app: tesk-api
+  type: LoadBalancer
+
