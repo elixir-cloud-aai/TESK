@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 
 from __future__ import print_function
 from ftplib import FTP
@@ -11,6 +11,8 @@ import os
 import distutils.dir_util
 import logging
 import requests
+import pycurl
+from io import BytesIO
 
 debug = True
 
@@ -26,6 +28,16 @@ def download_ftp_file(source, target, ftp):
     return 1
   return 0
 
+def create_ftp_dir(target, ftp):
+  parent = os.path.dirname(target)
+  if parent == target: # we have recursed to root, nothing left to do
+    raise RuntimeError('Unable to create parent dir')
+  try: 
+    ftp.cwd(parent)
+  except:
+    logging.error('cannot stat: '+parent+', trying to create parent')
+    create_ftp_dir(parent, ftp)
+
 def process_upload_dir(source, target, ftp):
   basename = os.path.basename(source)
   logging.debug('processing upload dir src: '+source+' target: '+target)
@@ -35,14 +47,14 @@ def process_upload_dir(source, target, ftp):
   try:
     ftp.cwd('/'+target)
   except:
-    logging.error('Cannot stat parent dir: /'+target)
-    return 1
-
-  ftp.cwd(wd)
+    ftp.cwd(wd)
+    logging.error('Cannot stat parent dir: /'+target+', creating...')
+    create_ftp_dir(target)
 
   try:
     logging.debug('trying to create dir: ' + '/'+target+'/'+basename)
     ftp.mkd('/'+target+'/'+basename)
+  # Might be a different error, but assuming dir already exists
   except ftplib.error_perm:
     logging.debug('Directory exists, overwriting')
 
@@ -111,6 +123,7 @@ def process_ftp_file(ftype, afile):
         ftp.storbinary("STOR "+ftp_path, open(afile['path'], 'r'))
       except :
         logging.error('Unable to store file '+afile['path']+' at FTP location '+ftp_path)
+        raise
         return 1
       return 0
     elif afile['type'] == 'DIRECTORY':
@@ -158,6 +171,15 @@ def filefromcontent(afile):
   fh.write(str(afile['content']))
   fh.close()
   return 0
+
+def curl_file(ftype, afile):
+  buffer = BytesIO()
+  c = pycurl.Curl()
+  c.setopt(c.URL, afile['url'])
+  c.setopt(c.WRITEDATA, buffer)
+  c.perform()
+  c.close()
+
 
 def process_file(ftype, afile):
   url = afile.get('url')
