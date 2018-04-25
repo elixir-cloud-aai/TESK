@@ -4,21 +4,67 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.AuthorityUtils;
+import org.springframework.security.oauth2.common.OAuth2AccessToken;
+import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
+import org.springframework.security.oauth2.config.annotation.web.configuration.EnableResourceServer;
+import org.springframework.security.oauth2.config.annotation.web.configuration.ResourceServerConfigurerAdapter;
+import org.springframework.security.oauth2.config.annotation.web.configurers.ResourceServerSecurityConfigurer;
+import org.springframework.security.oauth2.provider.OAuth2Authentication;
+import org.springframework.security.oauth2.provider.OAuth2Request;
+import org.springframework.security.oauth2.provider.token.ResourceServerTokenServices;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
+import uk.ac.ebi.tsc.tesk.config.security.User;
 import uk.ac.ebi.tsc.tesk.service.TesService;
+
+import java.util.List;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static uk.ac.ebi.tsc.tesk.TestUtils.getFileContentFromResources;
-
 @RunWith(SpringRunner.class)
 @WebMvcTest(V1ApiController.class)
 public class V1ApiControllerTest {
+
+    @TestConfiguration
+    @EnableResourceServer
+    static class ResourceServerConfiguration extends ResourceServerConfigurerAdapter {
+
+        @Override
+        public void configure(ResourceServerSecurityConfigurer security) {
+            security.tokenServices(tokenServices());
+        }
+        ResourceServerTokenServices tokenServices() {
+            return new ResourceServerTokenServices() {
+
+                @Override
+                public OAuth2Authentication loadAuthentication(String accessToken) throws AuthenticationException, InvalidTokenException {
+                    Object principal = User.builder("admin").build();
+                    List<GrantedAuthority> authorities = AuthorityUtils.commaSeparatedStringToAuthorityList(accessToken);
+                    OAuth2Request request = new OAuth2Request(null, null, null, true, null,
+                            null, null, null, null);
+                    UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(
+                            principal, "N/A", authorities);
+                    return new OAuth2Authentication(request, token);
+                }
+
+                @Override
+                public OAuth2AccessToken readAccessToken(String accessToken) {
+                    return null;
+                }
+            };
+        }
+    }
+
 
     @Autowired
     private MockMvc mvc;
@@ -32,6 +78,7 @@ public class V1ApiControllerTest {
         for (String path : paths) {
             this.mvc.perform(post("/v1/tasks")
                     .content(getFileContentFromResources(path))
+                    .header("Authorization", "Bearer BAR")
                     .contentType(MediaType.APPLICATION_JSON)
                     .accept(MediaType.APPLICATION_JSON)).andExpect(status().isOk());
         }
@@ -48,6 +95,7 @@ public class V1ApiControllerTest {
         };
         for (String[] file : files) {
             this.mvc.perform(post("/v1/tasks")
+                    .header("Authorization", "Bearer BAR")
                     .content(getFileContentFromResources("invalid_tasks/executors/" + file[0]))
                     .contentType(MediaType.APPLICATION_JSON)
                     .accept(MediaType.APPLICATION_JSON)).andExpect(status().is4xxClientError())
@@ -66,6 +114,7 @@ public class V1ApiControllerTest {
         };
         for (String[] file : files) {
             this.mvc.perform(post("/v1/tasks")
+                    .header("Authorization", "Bearer BAR")
                     .content(getFileContentFromResources("invalid_tasks/inputs/" + file[0]))
                     .contentType(MediaType.APPLICATION_JSON)
                     .accept(MediaType.APPLICATION_JSON)).andExpect(status().is4xxClientError())
@@ -84,6 +133,7 @@ public class V1ApiControllerTest {
         };
         for (String[] file : files) {
             this.mvc.perform(post("/v1/tasks")
+                    .header("Authorization", "Bearer BAR")
                     .content(getFileContentFromResources("invalid_tasks/outputs/" + file[0]))
                     .contentType(MediaType.APPLICATION_JSON)
                     .accept(MediaType.APPLICATION_JSON)).andExpect(status().is4xxClientError())
@@ -100,6 +150,7 @@ public class V1ApiControllerTest {
         };
         for (String[] file : files) {
             this.mvc.perform(post("/v1/tasks")
+                    .header("Authorization", "Bearer BAR")
                     .content(getFileContentFromResources("invalid_tasks/" + file[0]))
                     .contentType(MediaType.APPLICATION_JSON)
                     .accept(MediaType.APPLICATION_JSON)).andExpect(status().is4xxClientError())
@@ -116,6 +167,7 @@ public class V1ApiControllerTest {
         };
         for (String[] file : files) {
             this.mvc.perform(post("/v1/tasks")
+                    .header("Authorization", "Bearer BAR")
                     .content(getFileContentFromResources("invalid_tasks/" + file[0]))
                     .contentType(MediaType.APPLICATION_JSON)
                     .accept(MediaType.APPLICATION_JSON)).andExpect(status().is4xxClientError())

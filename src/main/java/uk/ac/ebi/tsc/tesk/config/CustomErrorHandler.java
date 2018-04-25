@@ -7,6 +7,7 @@ import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.validation.ObjectError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -15,7 +16,6 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.context.request.RequestAttributes;
-import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.context.request.ServletWebRequest;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
@@ -43,6 +43,17 @@ public class CustomErrorHandler extends ResponseEntityExceptionHandler {
     public CustomErrorHandler(ErrorAttributes errorAttributes) {
         this.errorAttributes = errorAttributes;
     }
+
+
+    /**
+     * Access denied handler
+     */
+    @ExceptionHandler(AccessDeniedException.class)
+    @ResponseBody
+    public ResponseEntity<?> accessDeniedHandler(HttpServletRequest request, AccessDeniedException ex) {
+        return this.handleExceptionInternal(request, HttpStatus.FORBIDDEN);
+    }
+
 
     /**
      * Fallback handler for all exceptions other than

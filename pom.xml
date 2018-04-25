@@ -43,7 +43,7 @@
             <artifactId>spring-boot-configuration-processor</artifactId>
             <optional>true</optional>
         </dependency>
-        <!--Security + OAuth2
+        <!-- Security + OAuth2 -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security</artifactId>
@@ -53,21 +53,19 @@
             <artifactId>spring-security-oauth2-autoconfigure</artifactId>
             <version>2.0.0.RELEASE</version>
         </dependency>
-        -->
+
         <!--Test -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
-        <!--
         <dependency>
             <groupId>org.springframework.security</groupId>
             <artifactId>spring-security-test</artifactId>
             <version>${spring-security.version}</version>
             <scope>test</scope>
         </dependency>
-        -->
         <!--SpringFox dependencies -->
         <dependency>
             <groupId>io.springfox</groupId>

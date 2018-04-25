@@ -4,10 +4,14 @@ import io.swagger.annotations.ApiParam;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
+import uk.ac.ebi.tsc.tesk.config.security.User;
 import uk.ac.ebi.tsc.tesk.model.*;
 import uk.ac.ebi.tsc.tesk.service.TesService;
 import uk.ac.ebi.tsc.tesk.util.constant.TaskView;
@@ -29,7 +33,7 @@ public class V1ApiController implements V1Api {
     }
 
     public ResponseEntity<TesCreateTaskResponse> createTask(@ApiParam(value = "", required = true) @Valid @RequestBody TesTask body) {
-        TesCreateTaskResponse response = this.tesService.createTask(body);
+        TesCreateTaskResponse response = this.tesService.createTask(body, this.getUser());
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
@@ -47,8 +51,18 @@ public class V1ApiController implements V1Api {
 
     public ResponseEntity<TesListTasksResponse> listTasks(@ApiParam(value = "OPTIONAL. Filter the list to include tasks where the name matches this prefix. If unspecified, no task name filtering is done.") @RequestParam(value = "name_prefix", required = false) String namePrefix, @ApiParam(value = "OPTIONAL. Number of tasks to return in one page. Must be less than 2048. Defaults to 256.") @RequestParam(value = "page_size", required = false) Long pageSize, @ApiParam(value = "OPTIONAL. Page token is used to retrieve the next page of results. If unspecified, returns the first page of results. See ListTasksResponse.next_page_token") @RequestParam(value = "page_token", required = false) String pageToken, @ApiParam(value = "OPTIONAL. Affects the fields included in the returned Task messages. See TaskView below.   - MINIMAL: Task message will include ONLY the fields:   Task.Id   Task.State  - BASIC: Task message will include all fields EXCEPT:   Task.ExecutorLog.stdout   Task.ExecutorLog.stderr   Input.content   TaskLog.system_logs  - FULL: Task message includes all fields.", allowableValues = "MINIMAL, BASIC, FULL", defaultValue = "MINIMAL") @RequestParam(value = "view", required = false, defaultValue = "MINIMAL") String view) {
 
-        TesListTasksResponse response = this.tesService.listTasks(namePrefix, pageSize, pageToken,  TaskView.fromString(view));
+        TesListTasksResponse response = this.tesService.listTasks(namePrefix, pageSize, pageToken,  TaskView.fromString(view), this.getUser());
         return new ResponseEntity<TesListTasksResponse>(response, HttpStatus.OK);
+    }
+
+    private User getUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        OAuth2Authentication oauth = null;
+        if (authentication instanceof OAuth2Authentication) {
+            oauth = (OAuth2Authentication) authentication;
+            return (User)oauth.getPrincipal();
+        }
+       return null;
     }
 
 }
