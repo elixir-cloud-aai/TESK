@@ -30,6 +30,7 @@ def download_ftp_file(source, target, ftp):
 def create_ftp_dir(target, ftp):
   parent = os.path.dirname(target)
   basename = os.path.basename(target)
+  logging.debug('parent: '+parent+', basename: '+basename)
 
   if parent == target: # we have recursed to root, nothing left to do
     raise RuntimeError('Unable to create parent dir')
@@ -39,6 +40,8 @@ def create_ftp_dir(target, ftp):
     logging.error('cannot stat: '+parent+', trying to create parent')
     create_ftp_dir(parent, ftp)
     ftp.cwd(parent)
+
+  logging.debug('Current wd is: '+ftp.pwd())
 
   ftp.mkd(basename)
 
