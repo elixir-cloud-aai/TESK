@@ -13,7 +13,7 @@ from pvc import PVC
 from filer_class import Filer
 
 created_jobs = []
-debug = False
+debug = True
 poll_interval = 5
 task_volume_basename = 'task-volume'
 
