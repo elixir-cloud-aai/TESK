@@ -149,9 +149,6 @@ def main(argv):
   global args
   args = parser.parse_args()
 
-  # Force debug at the moment
-  args.debug = True
-
   poll_interval = args.poll_interval
 
   loglevel = logging.WARNING
