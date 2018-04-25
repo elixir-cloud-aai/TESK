@@ -42,7 +42,7 @@ def create_ftp_dir(target, ftp):
 
 def process_upload_dir(source, target, ftp):
   logging.debug('processing upload dir src: '+source+' target: '+target)
-  logging.debug('dir basename: '+basename)
+  #logging.debug('dir basename: '+basename)
   wd = ftp.pwd()
   # does the parent dir exist?
   try:
