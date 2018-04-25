@@ -50,7 +50,7 @@ def process_upload_dir(source, target, ftp):
   except:
     ftp.cwd(wd)
     logging.error('Cannot stat parent dir: /'+target+', creating...')
-    create_ftp_dir(target)
+    create_ftp_dir(target, ftp)
     ftp.cwd('/'+target)
 
   basename = os.path.basename(source)
