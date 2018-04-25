@@ -42,7 +42,6 @@ def create_ftp_dir(target, ftp):
   ftp.mkd(target)
 
 def process_upload_dir(source, target, ftp):
-  basename = os.path.basename(source)
   logging.debug('processing upload dir src: '+source+' target: '+target)
   logging.debug('dir basename: '+basename)
   wd = ftp.pwd()
@@ -53,22 +52,17 @@ def process_upload_dir(source, target, ftp):
     ftp.cwd(wd)
     logging.error('Cannot stat parent dir: /'+target+', creating...')
     create_ftp_dir(target)
+    ftp.cwd('/'+target)
 
-  try:
-    logging.debug('trying to create dir: ' + '/'+target+'/'+basename)
-    ftp.mkd('/'+target+'/'+basename)
-  # Might be a different error, but assuming dir already exists
-  except ftplib.error_perm:
-    logging.debug('Directory exists, overwriting')
-
+  basename = os.path.basename(source)
   for f in os.listdir(source):
     path = source+'/'+f
     if os.path.isdir(path):
       process_upload_dir(path, target+'/'+basename+'/', ftp)
     elif os.path.isfile(path):
-      logging.debug('Trying to upload file: '+path+' to dest: '+target+'/'+basename+'/'+f)
+      logging.debug('Trying to upload file: '+path+' to dest: '+target+'/'+f)
       try:
-        ftp.storbinary("STOR "+target+'/'+basename+'/'+f, open(path, 'r'))
+        ftp.storbinary("STOR "+target+'/'+f, open(path, 'r'))
       except:
         logging.error('Error trying to upload file')
   return 0
