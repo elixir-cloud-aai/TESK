@@ -11,7 +11,6 @@ import os
 import distutils.dir_util
 import logging
 import requests
-import pycurl
 from io import BytesIO
 
 debug = True
@@ -168,15 +167,6 @@ def filefromcontent(afile):
   fh.write(str(afile['content']))
   fh.close()
   return 0
-
-def curl_file(ftype, afile):
-  buffer = BytesIO()
-  c = pycurl.Curl()
-  c.setopt(c.URL, afile['url'])
-  c.setopt(c.WRITEDATA, buffer)
-  c.perform()
-  c.close()
-
 
 def process_file(ftype, afile):
   url = afile.get('url')
