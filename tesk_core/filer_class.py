@@ -27,8 +27,9 @@ class Filer:
                   }
                 }
 
-    if debug:
-      self.spec['spec']['template']['spec']['containers'][0]['imagePullPolicy'] = 'Always'
+    #if debug:
+    #TODO: delete for prod
+    self.spec['spec']['template']['spec']['containers'][0]['imagePullPolicy'] = 'Always'
 
     container = self.spec['spec']['template']['spec']['containers'][0]
     container['env'].append({ "name": "JSON_INPUT", "value": json.dumps(data) })
