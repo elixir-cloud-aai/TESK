@@ -37,6 +37,9 @@ def create_ftp_dir(target, ftp):
   except:
     logging.error('cannot stat: '+parent+', trying to create parent')
     create_ftp_dir(parent, ftp)
+    ftp.cwd(parent)
+
+  ftp.mkd(target)
 
 def process_upload_dir(source, target, ftp):
   basename = os.path.basename(source)
