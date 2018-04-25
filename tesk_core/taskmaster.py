@@ -13,7 +13,6 @@ from pvc import PVC
 from filer_class import Filer
 
 created_jobs = []
-debug = True
 poll_interval = 5
 task_volume_basename = 'task-volume'
 
@@ -149,6 +148,9 @@ def main(argv):
 
   global args
   args = parser.parse_args()
+
+  # Force debug at the moment
+  args.debug = True
 
   poll_interval = args.poll_interval
 
