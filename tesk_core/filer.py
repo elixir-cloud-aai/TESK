@@ -29,6 +29,8 @@ def download_ftp_file(source, target, ftp):
 
 def create_ftp_dir(target, ftp):
   parent = os.path.dirname(target)
+  basename = os.path.basename(target)
+
   if parent == target: # we have recursed to root, nothing left to do
     raise RuntimeError('Unable to create parent dir')
   try: 
@@ -38,7 +40,7 @@ def create_ftp_dir(target, ftp):
     create_ftp_dir(parent, ftp)
     ftp.cwd(parent)
 
-  ftp.mkd(target)
+  ftp.mkd(basename)
 
 def process_upload_dir(source, target, ftp):
   logging.debug('processing upload dir src: '+source+' target: '+target)
