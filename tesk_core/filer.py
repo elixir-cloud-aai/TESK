@@ -128,7 +128,7 @@ def process_ftp_file(ftype, afile):
   elif ftype == 'outputs':
     if afile['type'] == 'FILE':
       try:
-        create_ftp_dir(ftp_path, ftp) # this will do nothing if directory exists so safe to do always
+        create_ftp_dir(os.path.dirname(ftp_path), ftp) # this will do nothing if directory exists so safe to do always
         ftp.storbinary("STOR "+ftp_path, open(afile['path'], 'r'))
       except :
         logging.error('Unable to store file '+afile['path']+' at FTP location '+ftp_path)
