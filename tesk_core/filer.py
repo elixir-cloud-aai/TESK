@@ -28,6 +28,13 @@ def download_ftp_file(source, target, ftp):
   return 0
 
 def create_ftp_dir(target, ftp):
+  # check if directory exists, if yes just return
+  try:
+    ftp.cwd(target)
+    return
+  except ftplib.error_perm:
+    pass
+
   parent = os.path.dirname(target)
   basename = os.path.basename(target)
   logging.debug('parent: '+parent+', basename: '+basename)
@@ -121,6 +128,7 @@ def process_ftp_file(ftype, afile):
   elif ftype == 'outputs':
     if afile['type'] == 'FILE':
       try:
+        create_ftp_dir(ftp_path, ftp) # this will do nothing if directory exists so safe to do always
         ftp.storbinary("STOR "+ftp_path, open(afile['path'], 'r'))
       except :
         logging.error('Unable to store file '+afile['path']+' at FTP location '+ftp_path)
