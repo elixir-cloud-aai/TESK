@@ -12,9 +12,11 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
+import uk.ac.ebi.tsc.tesk.config.security.User;
 import uk.ac.ebi.tsc.tesk.exception.KubernetesException;
 import uk.ac.ebi.tsc.tesk.exception.TaskNotFoundException;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.StringJoiner;
 import java.util.stream.Collectors;
@@ -77,9 +79,32 @@ public class KubernetesClientWrapper {
         }
     }
 
-    public V1JobList listAllTaskmasterJobs(String pageToken, Integer itemsPerPage) {
+    /**
+     * Gets all Taskmster job objects, a User is allowed to see
+     * @param pageToken - pageToken supplied by user (from previous result; points to next page of results)
+     * @param itemsPerPage - value submitted by user, limiting number of results
+     * @param user - authenticated user
+     * @return
+     */
+    public V1JobList listAllTaskmasterJobsForUser(String pageToken, Integer itemsPerPage, User user) {
+        //Jobs of taskmaster type
         String labelSelector = new StringJoiner("=").add(LABEL_JOBTYPE_KEY).add(LABEL_JOBTYPE_VALUE_TASKM).toString();
-        return this.listJobs(pageToken, labelSelector, itemsPerPage);
+        if (user.getLabelSelector() != null) {
+            //additional label selectors; limiting results to jobs belonging to chosen groups (where the user is member and/or manager)
+            // and optionally also to only those jobs, which were created bu the user
+            labelSelector += "," + user.getLabelSelector();
+        }
+        V1JobList result = this.listJobs(pageToken, labelSelector, itemsPerPage);
+        if (user.isMemberInNonManagedGroups()) {
+            //if there are groups, where user is a manager and other groups, where user is only a member
+            //filter the results (as it was not handled by label selector)
+            List<V1Job> filteredJobList = result.getItems();
+            filteredJobList.stream().filter(job ->
+                    user.isGroupManager(job.getMetadata().getLabels().get(LABEL_GROUPNAME_KEY))
+                            || user.getUsername().equals(job.getMetadata().getLabels().get(LABEL_USERID_KEY))).collect(Collectors.toList());
+            result.setItems(filteredJobList);
+        }
+        return result;
     }
 
     public V1JobList listSingleTaskExecutorJobs(String taskId) {

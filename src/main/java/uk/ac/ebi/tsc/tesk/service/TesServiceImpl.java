@@ -3,7 +3,6 @@ package uk.ac.ebi.tsc.tesk.service;
 import io.kubernetes.client.models.V1Job;
 import io.kubernetes.client.models.V1JobList;
 import io.kubernetes.client.models.V1PodList;
-import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.stereotype.Service;
 import uk.ac.ebi.tsc.tesk.config.security.User;
 import uk.ac.ebi.tsc.tesk.exception.CancelNotRunningTask;
@@ -14,7 +13,6 @@ import uk.ac.ebi.tsc.tesk.util.component.TesKubernetesConverter;
 import uk.ac.ebi.tsc.tesk.util.constant.TaskView;
 import uk.ac.ebi.tsc.tesk.util.data.*;
 
-import java.security.Principal;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -51,7 +49,7 @@ public class TesServiceImpl implements TesService {
         int attemptsNo = 0;
         while (true) {
             try {
-                V1Job taskMasterJob = this.converter.fromTesTaskToK8sJob(task);
+                V1Job taskMasterJob = this.converter.fromTesTaskToK8sJob(task, user);
                 V1Job createdJob = this.kubernetesClientWrapper.createJob(taskMasterJob);
                 return this.converter.fromK8sJobToTesCreateTaskResponse(createdJob);
             } catch (KubernetesException e) {
@@ -72,7 +70,7 @@ public class TesServiceImpl implements TesService {
      * @return - TES task details
      */
     @Override
-    public TesTask getTask(String taskId, TaskView view) {
+    public TesTask getTask(String taskId, TaskView view, User user) {
 
         V1Job taskMasterJob = this.kubernetesClientWrapper.readTaskmasterJob(taskId);
         V1JobList executorJobs = this.kubernetesClientWrapper.listSingleTaskExecutorJobs(taskMasterJob.getMetadata().getName());
@@ -134,9 +132,10 @@ public class TesServiceImpl implements TesService {
                                           Long pageSize,
                                           String pageToken,
                                           TaskView view,
-            User user) {
+                                          User user) {
 
-        V1JobList taskmasterJobs = this.kubernetesClientWrapper.listAllTaskmasterJobs(pageToken, Optional.ofNullable(pageSize).map(Long::intValue).orElse(null));
+        V1JobList taskmasterJobs = this.kubernetesClientWrapper.listAllTaskmasterJobsForUser(pageToken,
+                Optional.ofNullable(pageSize).map(Long::intValue).orElse(null), user);
         V1JobList executorJobs = this.kubernetesClientWrapper.listAllTaskExecutorJobs();
         V1JobList filerJobs = this.kubernetesClientWrapper.listAllFilerJobs();
         V1PodList jobPods = this.kubernetesClientWrapper.listAllJobPods();
@@ -154,6 +153,7 @@ public class TesServiceImpl implements TesService {
      * Cancels a task with a given id, by setting a label to taskmaster Job and Pod object.
      * If not task with a given Id - throws TaskNotFoundException
      * If task completed, throws CancelNotRunningTask
+     *
      * @param taskId - TES task ID (==taskmaster's job name)
      */
     @Override

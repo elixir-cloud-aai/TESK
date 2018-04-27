@@ -102,6 +102,16 @@ public class Constants {
      */
     public static final String LABEL_TASKSTATE_VALUE_CANC = "Cancelled";
 
+    /**
+     * Key of the label, that holds user id
+     */
+    public static final String LABEL_USERID_KEY = "creator-user-id";
+
+    /**
+     * Key of the label, that holds user's group name
+     */
+    public static final String LABEL_GROUPNAME_KEY = "creator-group-name";
+
 
     /**
      * Pattern to validate paths

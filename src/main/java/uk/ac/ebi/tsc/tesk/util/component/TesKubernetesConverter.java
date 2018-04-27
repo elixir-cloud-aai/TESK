@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
+import uk.ac.ebi.tsc.tesk.config.security.User;
 import uk.ac.ebi.tsc.tesk.model.*;
 import uk.ac.ebi.tsc.tesk.util.ExecutorCommandWrapper;
 import uk.ac.ebi.tsc.tesk.util.constant.K8sConstants;
@@ -61,11 +62,18 @@ public class TesKubernetesConverter {
      * @return K8s Job Object
      */
     @SuppressWarnings("unchecked")
-    public V1Job fromTesTaskToK8sJob(TesTask task) {
+    public V1Job fromTesTaskToK8sJob(TesTask task, User user) {
         //get new Job template with random generated name;
         V1Job taskMasterJob = this.taskmasterTemplateSupplier.get();
         //put input task name as annotation
         taskMasterJob.getMetadata().putAnnotationsItem(ANN_TESTASK_NAME_KEY, task.getName());
+        //creating user and owning group
+        taskMasterJob.getMetadata().putLabelsItem(LABEL_USERID_KEY, user.getUsername());
+        if (task.getTags() != null && task.getTags().containsKey("GROUP_NAME")) {
+            taskMasterJob.getMetadata().putLabelsItem(LABEL_GROUPNAME_KEY, task.getTags().get("GROUP_NAME"));
+        } else if (user.isMember()) {
+            taskMasterJob.getMetadata().putLabelsItem(LABEL_GROUPNAME_KEY, user.getAnyGroup());
+        }
         try {
             //in order to retrieve task details, when querying for task details, whole tesTask object is placed as taskMaster's annotation
             //Jackson for TES objects - because, we rely on auto-generated annotations for Json mapping
@@ -75,7 +83,7 @@ public class TesKubernetesConverter {
         }
         //Converting executors to Kubernetes Job Objects
         List<V1Job> executorsAsJobs = IntStream.range(0, task.getExecutors().size()).
-                mapToObj(i -> this.fromTesExecutorToK8sJob(taskMasterJob.getMetadata().getName(), task.getName(), task.getExecutors().get(i), i, task.getResources())).
+                mapToObj(i -> this.fromTesExecutorToK8sJob(taskMasterJob.getMetadata().getName(), task.getName(), task.getExecutors().get(i), i, task.getResources(), user)).
                 collect(Collectors.toList());
         Map<String, Object> taskMasterInput = new HashMap<>();
         taskMasterInput.put(TASKMASTER_INPUT_EXEC_KEY, executorsAsJobs);
@@ -110,9 +118,10 @@ public class TesKubernetesConverter {
      * @param executor        - TES executor input object
      * @param executorIndex   - ordinal number of executor
      * @param resources       - input task resources
+     * @param user            - creator of the task
      * @return - executor K8s job object. To be placed in taskMaster input JSON map in the list of executors
      */
-    public V1Job fromTesExecutorToK8sJob(String generatedTaskId, String tesTaskName, TesExecutor executor, int executorIndex, TesResources resources) {
+    public V1Job fromTesExecutorToK8sJob(String generatedTaskId, String tesTaskName, TesExecutor executor, int executorIndex, TesResources resources, User user) {
         //get new template executor Job object
         V1Job job = executorTemplateSupplier.get();
         //set executors name based on taskmaster's job name
@@ -122,6 +131,7 @@ public class TesKubernetesConverter {
         job.getMetadata().putLabelsItem(LABEL_TESTASK_ID_KEY, generatedTaskId);
         job.getMetadata().putLabelsItem(LABEL_EXECNO_KEY, Integer.valueOf(executorIndex).toString());
         job.getMetadata().putAnnotationsItem(ANN_TESTASK_NAME_KEY, tesTaskName);
+        job.getMetadata().putLabelsItem(LABEL_USERID_KEY, user.getUsername());
         V1Container container = job.getSpec().getTemplate().getSpec().getContainers().get(0);
         container.image(executor.getImage());
         //Should we map executor's command to job container's command (==ENTRYPOINT) or job container's args (==CMD)?
@@ -236,8 +246,17 @@ public class TesKubernetesConverter {
      */
     public TesTask fromK8sJobsToTesTaskMinimal(Task taskmasterWithExecutors) {
         TesTask task = new TesTask();
-        task.setId(taskmasterWithExecutors.getTaskmaster().getJob().getMetadata().getName());
+        V1ObjectMeta metadata = taskmasterWithExecutors.getTaskmaster().getJob().getMetadata();
+        task.setId(metadata.getName());
         task.setState(this.extractStateFromK8sJobs(taskmasterWithExecutors));
+        //TODO remove log for Minimal later on
+        TesTaskLog log = new TesTaskLog();
+        task.addLogsItem(log);
+        log.putMetadataItem("USER_ID", metadata.getLabels().get(LABEL_USERID_KEY));
+        if (metadata.getLabels().containsKey(LABEL_GROUPNAME_KEY)) {
+            log.putMetadataItem("GROUP_NAME", metadata.getLabels().get(LABEL_GROUPNAME_KEY));
+        }
+
         return task;
     }
 
@@ -248,20 +267,25 @@ public class TesKubernetesConverter {
     public TesTask fromK8sJobsToTesTaskBasic(Task taskmasterWithExecutors, boolean nullifyInputContent) {
         TesTask task = new TesTask();
         V1Job taskMasterJob = taskmasterWithExecutors.getTaskmaster().getJob();
-        String inputJson = Optional.ofNullable(taskMasterJob.getMetadata().getAnnotations().get(ANN_JSON_INPUT_KEY)).orElse("");
+        V1ObjectMeta taskMasterJobMetadata = taskMasterJob.getMetadata();
+        String inputJson = Optional.ofNullable(taskMasterJobMetadata.getAnnotations().get(ANN_JSON_INPUT_KEY)).orElse("");
         try {
             task = this.objectMapper.readValue(inputJson, TesTask.class);
             if (nullifyInputContent && task.getInputs() != null) {
                 task.getInputs().forEach(input -> input.setContent(null));
             }
         } catch (IOException ex) {
-            logger.info(String.format("Deserializing task %s from JSON failed", taskMasterJob.getMetadata().getName()), ex);
+            logger.info(String.format("Deserializing task %s from JSON failed", taskMasterJobMetadata.getName()), ex);
         }
-        task.setId(taskMasterJob.getMetadata().getName());
+        task.setId(taskMasterJobMetadata.getName());
         task.setState(this.extractStateFromK8sJobs(taskmasterWithExecutors));
-        task.setCreationTime(ISODateTimeFormat.dateTime().print(taskMasterJob.getMetadata().getCreationTimestamp()));
+        task.setCreationTime(ISODateTimeFormat.dateTime().print(taskMasterJobMetadata.getCreationTimestamp()));
         TesTaskLog log = new TesTaskLog();
         task.addLogsItem(log);
+        log.putMetadataItem("USER_ID", taskMasterJobMetadata.getLabels().get(LABEL_USERID_KEY));
+        if (taskMasterJobMetadata.getLabels().containsKey(LABEL_GROUPNAME_KEY)) {
+            log.putMetadataItem("GROUP_NAME", taskMasterJobMetadata.getLabels().get(LABEL_GROUPNAME_KEY));
+        }
         log.setStartTime(Optional.ofNullable(taskMasterJob.getStatus().getStartTime()).map(time -> ISODateTimeFormat.dateTime().print(time)).orElse(null));
         log.setEndTime(Optional.ofNullable(taskMasterJob.getStatus().getCompletionTime()).map(time -> ISODateTimeFormat.dateTime().print(time)).orElse(null));
         for (Job executorJob : taskmasterWithExecutors.getExecutors()) {

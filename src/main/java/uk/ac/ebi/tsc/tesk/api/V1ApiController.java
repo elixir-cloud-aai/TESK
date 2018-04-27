@@ -28,6 +28,8 @@ public class V1ApiController implements V1Api {
     private TesService tesService;
 
     public ResponseEntity<TesCancelTaskResponse> cancelTask(@ApiParam(value = "", required = true) @PathVariable("id") String id) {
+        //getTask - for authZ purposes (cancellation only possible for the same tasks, a user can actually see
+        this.tesService.getTask(id, TaskView.MINIMAL, getUser());
         this.tesService.cancelTask(id);
         return new ResponseEntity<TesCancelTaskResponse>(HttpStatus.OK);
     }
@@ -45,7 +47,7 @@ public class V1ApiController implements V1Api {
     public ResponseEntity<TesTask> getTask(@ApiParam(value = "", required = true) @PathVariable("id") String id,
                                            @ApiParam(value = "OPTIONAL. Affects the fields included in the returned Task messages. See TaskView below.   - MINIMAL: Task message will include ONLY the fields:   Task.Id   Task.State  - BASIC: Task message will include all fields EXCEPT:   Task.ExecutorLog.stdout   Task.ExecutorLog.stderr   Input.content   TaskLog.system_logs  - FULL: Task message includes all fields.", allowableValues = "MINIMAL, BASIC, FULL", defaultValue = "MINIMAL") @RequestParam(value = "view", required = false, defaultValue = "MINIMAL") String view) {
 
-        TesTask task = this.tesService.getTask(id, TaskView.fromString(view));
+        TesTask task = this.tesService.getTask(id, TaskView.fromString(view), this.getUser());
         return new ResponseEntity<>(task, HttpStatus.OK);
     }
 

@@ -6,6 +6,7 @@ import io.kubernetes.client.models.V1Job;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.skyscreamer.jsonassert.JSONCompareMode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -21,6 +22,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 import uk.ac.ebi.tsc.tesk.config.GsonConfig;
 import uk.ac.ebi.tsc.tesk.config.KubernetesObjectsSupplier;
 import uk.ac.ebi.tsc.tesk.config.TaskmasterEnvProperties;
+import uk.ac.ebi.tsc.tesk.config.security.User;
 import uk.ac.ebi.tsc.tesk.model.TesTask;
 import uk.ac.ebi.tsc.tesk.util.constant.Constants;
 
@@ -89,7 +91,7 @@ public class TesKubernetesConverterMinimalTest {
              Reader reader = new BufferedReader(new InputStreamReader(inputStream))) {
             inputTask = this.objectMapper.readValue(reader, TesTask.class);
         }
-        V1Job outputJob = this.converter.fromTesTaskToK8sJob(inputTask);
+        V1Job outputJob = this.converter.fromTesTaskToK8sJob(inputTask, User.builder("test-user-id").build());
         assertNull(outputJob.getMetadata().getAnnotations().get("tes-task-name"));
         //testing annotation with entire serialized task content..
         assertThat(outputJob.getMetadata().getAnnotations().get("json-input")).isNotEmpty();
@@ -101,6 +103,7 @@ public class TesKubernetesConverterMinimalTest {
         annotationWithEntireTask.extractingJsonPathArrayValue("@.executors[0].command").startsWith("echo");
 
         assertEquals(outputJob.getMetadata().getLabels().get("job-type"), "taskmaster");
+        assertEquals(outputJob.getMetadata().getLabels().get("creator-user-id"), "test-user-id");
 
         assertEquals(outputJob.getSpec().getTemplate().getSpec().getContainers().get(0).getArgs().get(0), "$(JSON_INPUT)");
 
@@ -124,7 +127,7 @@ public class TesKubernetesConverterMinimalTest {
 
         taskMasterInputJson.extractingJsonPathNumberValue("resources.disk_gb").isEqualTo(0.1);
 
-        taskMasterInputJson.isEqualToJson(new ClassPathResource("fromTesToK8s_minimal/taskmaster_param.json"));
+        taskMasterInputJson.isEqualToJson(new ClassPathResource("fromTesToK8s_minimal/taskmaster_param.json"), JSONCompareMode.NON_EXTENSIBLE);
 
         Resource outputJobFile = new ClassPathResource("fromTesToK8s_minimal/job.json");
         V1Job expectedJob;

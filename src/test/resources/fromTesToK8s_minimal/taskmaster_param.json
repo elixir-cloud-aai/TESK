@@ -15,7 +15,8 @@
         "labels": {
           "job-type": "executor",
           "taskmaster-name": "task-98605447",
-          "executor-no": "0"
+          "executor-no": "0",
+          "creator-user-id": "test-user-id"
         },
         "name": "task-98605447-ex-00"
       },

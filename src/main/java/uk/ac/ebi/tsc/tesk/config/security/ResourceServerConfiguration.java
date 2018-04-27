@@ -44,10 +44,13 @@ public class ResourceServerConfiguration extends ResourceServerConfigurerAdapter
 
     private final ErrorAttributes errorAttributes;
     private final HttpMessageConverters messageConverters;
+    private final AuthorisationProperties authorisationProperties;
 
-    public ResourceServerConfiguration(ErrorAttributes errorAttributes, HttpMessageConverters messageConverters) {
+    public ResourceServerConfiguration(ErrorAttributes errorAttributes, HttpMessageConverters messageConverters,
+                                       AuthorisationProperties authorisationProperties) {
         this.errorAttributes = errorAttributes;
         this.messageConverters = messageConverters;
+        this.authorisationProperties = authorisationProperties;
     }
 
 
@@ -73,7 +76,6 @@ public class ResourceServerConfiguration extends ResourceServerConfigurerAdapter
 
     /**
      * Magic, that changes default role prefix from ROLE_ to elixir:
-     *
      */
     @Bean
     public GrantedAuthorityDefaults grantedAuthorityDefaults() {
@@ -82,7 +84,6 @@ public class ResourceServerConfiguration extends ResourceServerConfigurerAdapter
 
     /**
      * Custom authorities extractor (we use Elixir roles as authorities)
-     *
      */
     @Bean
     public AuthoritiesExtractor authoritiesExtractor() {
@@ -91,11 +92,10 @@ public class ResourceServerConfiguration extends ResourceServerConfigurerAdapter
 
     /**
      * Custom principal extractor (we use the whole userinfo response object as Principal
-     *
      */
     @Bean
     public PrincipalExtractor principalExtractor() {
-        return new ElixirPrincipalExtractor(authoritiesExtractor());
+        return new ElixirPrincipalExtractor(authoritiesExtractor(), authorisationProperties);
     }
 
 }

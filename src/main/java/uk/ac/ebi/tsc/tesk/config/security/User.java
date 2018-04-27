@@ -4,6 +4,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.util.StringUtils;
+import uk.ac.ebi.tsc.tesk.util.constant.Constants;
 
 import java.io.Serializable;
 import java.security.Principal;
@@ -26,53 +27,110 @@ public class User implements Serializable, UserDetails, Principal {
     private String givenName;
     private String familyName;
     private String email;
-    private Set<String> groups;
+    /**
+     * Full list of elixir group full names, to which the user belongs
+     */
+    private Set<String> allGroups;
+    /**
+     * Is the user a TESK installation admin (belongs to a group with that meaning)
+     */
+    private boolean teskAdmin = false;
+
+    /**
+     * List of 'organisational' groups, to which the user belongs (last part of Elixir group names only
+     * (see {@link ElixirPrincipalExtractor} to see, how that information is retrieved from allGroups)
+     * TES task will be 'owned' by one of the groups, to which the creating user belongs (or by no group, if the user does not belong to any)
+     */
+    private Set<String> teskMemberedGroups;
+
+    /**
+     * List of 'organisational' groups, where the user is an admin (see {@link ElixirPrincipalExtractor} to see, how that information is retrieved from allGroups)
+     * TES task will be 'owned' by one of the groups, to which the creating user belongs (or by no group, if the user does not belong to any)
+     */
+    private Set<String> teskManagedGroups;
 
     public User() {
-    }
-
-    public String getUserId() {
-        return userId;
-    }
-
-    public String getPreferredUsername() {
-        return preferredUsername;
     }
 
     public String getName() {
         return name;
     }
 
-    public String getGivenName() {
-        return givenName;
+    public boolean isTeskAdmin() {
+        return teskAdmin;
     }
 
-    public String getFamilyName() {
-        return familyName;
+    public boolean isGroupMember(String groupName) {
+        return teskMemberedGroups != null && teskMemberedGroups.contains(groupName);
     }
 
-    public String getEmail() {
-        return email;
+    public boolean isMember() {
+        return teskMemberedGroups != null && teskMemberedGroups.size() > 0;
     }
 
-    public Set<String> getGroups() {
-        return groups;
+    public String getAnyGroup() {
+        if (!isMember())
+            return null;
+        return teskMemberedGroups.iterator().next();
     }
 
-    User(String userId, String preferredUsername, String name, String givenName, String familyName, String email, Set<String> groups) {
+    public boolean isGroupManager(String groupName) {
+        return teskManagedGroups != null && teskManagedGroups.contains(groupName);
+    }
+
+    public boolean isManager() {
+        return teskManagedGroups != null && teskManagedGroups.size() > 0;
+    }
+
+    public boolean isMemberInNonManagedGroups() {
+        if (!isTeskAdmin() && isMember() && isManager()) {
+            Set<String> difference = new HashSet<>();
+            difference.addAll(this.teskMemberedGroups);
+            difference.removeAll(this.teskManagedGroups);
+            return difference.size() > 0;
+        }
+        return false;
+    }
+
+    public String getLabelSelector() {
+        Set<String> allTeskGroups = new HashSet<>();
+        if (this.teskMemberedGroups != null) {
+            allTeskGroups.addAll(this.teskMemberedGroups);
+        }
+        if (this.teskManagedGroups != null) {
+            allTeskGroups.addAll(this.teskManagedGroups);
+        }
+        if (isTeskAdmin()) {
+            return null;
+        }
+        if (isMember() || isManager()) {
+            StringBuilder sb = new StringBuilder();
+            sb.append(Constants.LABEL_GROUPNAME_KEY).append(" in (").append(StringUtils.collectionToCommaDelimitedString(allTeskGroups)).append(")");
+            if (!isManager()) {
+                sb.append(",").append(Constants.LABEL_USERID_KEY).append("=").append(getUsername());
+            }
+            return sb.toString();
+        }
+        return null;
+    }
+
+    User(String userId, String preferredUsername, String name, String givenName, String familyName, String email,
+         Set<String> allGroups, Set<String> teskMemberedGroups, Set<String> teskManagedGroups, boolean teskAdmin) {
         this.userId = userId;
         this.preferredUsername = preferredUsername;
         this.name = name;
         this.givenName = givenName;
         this.familyName = familyName;
         this.email = email;
-        this.groups = groups;
-
+        this.allGroups = allGroups;
+        this.teskMemberedGroups = teskMemberedGroups;
+        this.teskManagedGroups = teskManagedGroups;
+        this.teskAdmin = teskAdmin;
     }
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return AuthorityUtils.createAuthorityList(StringUtils.collectionToCommaDelimitedString(this.groups));
+        return AuthorityUtils.createAuthorityList(StringUtils.collectionToCommaDelimitedString(this.allGroups));
     }
 
     @Override
@@ -82,7 +140,7 @@ public class User implements Serializable, UserDetails, Principal {
 
     @Override
     public String getUsername() {
-        return userId;
+        return userId.replaceAll("@", "_");
     }
 
     @Override
@@ -118,7 +176,7 @@ public class User implements Serializable, UserDetails, Principal {
                 ", givenName='" + givenName + '\'' +
                 ", familyName='" + familyName + '\'' +
                 ", email='" + email + '\'' +
-                ", groups=(" + StringUtils.collectionToCommaDelimitedString(groups) +
+                ", allGroups=(" + StringUtils.collectionToCommaDelimitedString(allGroups) +
                 ")}";
     }
 
@@ -129,10 +187,14 @@ public class User implements Serializable, UserDetails, Principal {
         private String givenName;
         private String familyName;
         private String email;
-        private Set<String> groups;
+        private Set<String> allGroups;
+        private Set<String> teskMemberedGroups;
+        private Set<String> teskManagedGroups;
+        private boolean teskAdmin = false;
 
         UserBuilder(String userId) {
             this.userId = userId;
+            this.teskMemberedGroups = new HashSet<>();
         }
 
 
@@ -161,14 +223,32 @@ public class User implements Serializable, UserDetails, Principal {
             return this;
         }
 
-        public UserBuilder groups(Collection<String> groups) {
-            this.groups = new HashSet<>();
-            this.groups.addAll(groups);
+        public UserBuilder allGroups(Collection<String> allGroups) {
+            this.allGroups = new HashSet<>();
+            this.allGroups.addAll(allGroups);
+            return this;
+        }
+
+        public UserBuilder teskMemberedGroups(Collection<String> teskMemberedGroups) {
+            this.teskMemberedGroups = new HashSet<>();
+            this.teskMemberedGroups.addAll(teskMemberedGroups);
+            return this;
+        }
+
+        public UserBuilder teskManagedGroups(Collection<String> teskManagedGroups) {
+            this.teskManagedGroups = new HashSet<>();
+            this.teskManagedGroups.addAll(teskManagedGroups);
+            return this;
+        }
+
+        public UserBuilder teskAdmin(boolean teskAdmin) {
+            this.teskAdmin = teskAdmin;
             return this;
         }
 
         public User build() {
-            return new User(userId, preferredUsername, name, givenName, familyName, email, groups);
+            return new User(userId, preferredUsername, name, givenName, familyName, email,
+                    allGroups, teskMemberedGroups, teskManagedGroups, teskAdmin);
         }
     }
 

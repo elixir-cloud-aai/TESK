@@ -6,6 +6,7 @@ import io.kubernetes.client.models.V1Job;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.skyscreamer.jsonassert.JSONCompareMode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -21,6 +22,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 import uk.ac.ebi.tsc.tesk.config.GsonConfig;
 import uk.ac.ebi.tsc.tesk.config.KubernetesObjectsSupplier;
 import uk.ac.ebi.tsc.tesk.config.TaskmasterEnvProperties;
+import uk.ac.ebi.tsc.tesk.config.security.User;
 import uk.ac.ebi.tsc.tesk.model.TesTask;
 import uk.ac.ebi.tsc.tesk.util.constant.Constants;
 
@@ -89,7 +91,7 @@ public class TesKubernetesConverterTest {
              Reader reader = new BufferedReader(new InputStreamReader(inputStream))) {
             inputTask = this.objectMapper.readValue(reader, TesTask.class);
         }
-        V1Job outputJob = this.converter.fromTesTaskToK8sJob(inputTask);
+        V1Job outputJob = this.converter.fromTesTaskToK8sJob(inputTask, User.builder("test-user-id").build());
         assertEquals(outputJob.getMetadata().getAnnotations().get("tes-task-name"), "taskFull");
         //testing annotation with entire serialized task content..
         assertThat(outputJob.getMetadata().getAnnotations().get("json-input")).isNotEmpty();
@@ -101,6 +103,7 @@ public class TesKubernetesConverterTest {
         //..and an example path with renamed field
         annotationWithEntireTask.extractingJsonPathNumberValue("@.resources.cpu_cores").isEqualTo(4);
         assertEquals(outputJob.getMetadata().getLabels().get("job-type"), "taskmaster");
+        assertEquals(outputJob.getMetadata().getLabels().get("creator-user-id"), "test-user-id");
         //test of placing generated task ID
         assertEquals(outputJob.getMetadata().getName(), "task-35605447");
         assertEquals(outputJob.getSpec().getTemplate().getMetadata().getName(), "task-35605447");
@@ -127,6 +130,7 @@ public class TesKubernetesConverterTest {
         taskMasterInputJson.extractingJsonPathArrayValue("executors[*].metadata.annotations['tes-task-name'])").containsOnly("taskFull").hasSize(2);
         taskMasterInputJson.extractingJsonPathArrayValue("executors[*].metadata.labels['job-type']").containsOnly("executor").hasSize(2);
         taskMasterInputJson.extractingJsonPathArrayValue("executors[*].metadata.labels['taskmaster-name']").containsOnly("task-35605447").hasSize(2);
+        taskMasterInputJson.extractingJsonPathArrayValue("executors[*].metadata.labels['creator-user-id']").containsOnly("test-user-id").hasSize(2);
 
         taskMasterInputJson.extractingJsonPathStringValue("executors[0].metadata.name").isEqualTo("task-35605447-ex-00");
         taskMasterInputJson.extractingJsonPathStringValue("executors[0].spec.template.metadata.name").isEqualTo("task-35605447-ex-00");
@@ -151,7 +155,7 @@ public class TesKubernetesConverterTest {
 
         taskMasterInputJson.extractingJsonPathNumberValue("resources.disk_gb").isEqualTo(100.0);
 
-        taskMasterInputJson.isEqualToJson(new ClassPathResource("fromTesToK8s/taskmaster_param.json"));
+        taskMasterInputJson.isEqualToJson(new ClassPathResource("fromTesToK8s/taskmaster_param.json"), JSONCompareMode.NON_EXTENSIBLE);
 
         Resource outputJobFile = new ClassPathResource("fromTesToK8s/job.json");
         V1Job expectedJob;

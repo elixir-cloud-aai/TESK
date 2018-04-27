@@ -7,7 +7,8 @@
       "tes-task-name": "taskFull"
     },
     "labels": {
-      "job-type": "taskmaster"
+      "job-type": "taskmaster",
+      "creator-user-id": "test-user-id"
     },
     "name": "task-35605447"
   },

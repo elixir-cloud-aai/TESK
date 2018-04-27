@@ -45,7 +45,8 @@
         "labels": {
           "job-type": "executor",
           "taskmaster-name": "task-35605447",
-          "executor-no": "0"
+          "executor-no": "0",
+          "creator-user-id": "test-user-id"
         },
         "name": "task-35605447-ex-00"
       },
@@ -87,7 +88,8 @@
         "labels": {
           "job-type": "executor",
           "taskmaster-name": "task-35605447",
-          "executor-no": "1"
+          "executor-no": "1",
+          "creator-user-id": "test-user-id"
         },
         "name": "task-35605447-ex-01"
       },

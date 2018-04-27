@@ -1,15 +1,13 @@
 package uk.ac.ebi.tsc.tesk.service;
 
+import org.springframework.security.access.prepost.PostAuthorize;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import uk.ac.ebi.tsc.tesk.config.security.User;
 import uk.ac.ebi.tsc.tesk.model.TesCreateTaskResponse;
 import uk.ac.ebi.tsc.tesk.model.TesListTasksResponse;
 import uk.ac.ebi.tsc.tesk.model.TesTask;
 import uk.ac.ebi.tsc.tesk.util.constant.TaskView;
 import uk.ac.ebi.tsc.tesk.util.data.Task;
-
-import java.security.Principal;
 
 /**
  * @author Ania Niewielska <aniewielska@ebi.ac.uk>
@@ -23,7 +21,8 @@ public interface TesService {
      * Creates new TES task, by converting input and calling create method.
      * In case of detecting duplicated task ID, retries with new generated ID (up to a limit of retries)
      */
-    @PreAuthorize("hasRole('GA4GH')")
+    @PreAuthorize("hasRole(@authorisationProperties.baseGroup) AND" +
+            "(#task.tags?.get('GROUP_NAME') == null OR #user.isGroupMember(#task.tags['GROUP_NAME']))")
     TesCreateTaskResponse createTask(TesTask task, User user);
 
     /**
@@ -34,8 +33,10 @@ public interface TesService {
      * @param view   - one of {@link TaskView} values, decides on how much detail is put in results
      * @return - TES task details
      */
-    @PreAuthorize("hasRole('GA4GH')")
-    TesTask getTask(String taskId, TaskView view);
+    @PostAuthorize("(#user.username == returnObject.logs[0].metadata['USER_ID'] AND returnObject.logs[0].metadata['GROUP_NAME'] != null AND #user.isGroupMember(returnObject.logs[0].metadata['GROUP_NAME']))" +
+            " OR (#user.teskAdmin)" +
+            " OR (returnObject.logs[0].metadata['GROUP_NAME'] != null AND #user.isGroupManager(returnObject.logs[0].metadata['GROUP_NAME']))")
+    TesTask getTask(String taskId, TaskView view, User user);
 
     /**
      * Gets a full list of tasks. Performs Kubernetes API batch calls (all taskmasters, all executors, all pods),
@@ -47,7 +48,7 @@ public interface TesService {
      * @param view       - one of {@link TaskView} values, decides on how much detail is put in each resulting task
      * @return - resulting list of tasks plus paging token (when supported)
      */
-    @PreAuthorize("hasRole('GA4GH')")
+    @PreAuthorize("#user.teskAdmin OR #user.manager OR #user.member")
     TesListTasksResponse listTasks(String namePrefix,
                                    Long pageSize,
                                    String pageToken,
@@ -58,8 +59,9 @@ public interface TesService {
      * Cancels a task with a given id, by setting a label to taskmaster Job and Pod object.
      * If not task with a given Id - throws TaskNotFoundException
      * If task completed, throws CancelNotRunningTask
+     *
      * @param taskId - TES task ID (==taskmaster's job name)
      */
-    @PreAuthorize("hasRole('GA4GH')")
+    @PreAuthorize("hasRole(@authorisationProperties.baseGroup)")
     void cancelTask(String taskId);
 }
