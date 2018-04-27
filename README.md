@@ -1,5 +1,7 @@
 <img src="documentation/img/TESKlogowfont.png" height="200">
 
+<a href="https://app.zenhub.com/workspace/o/embl-ebi-tsi/tesk/boards"><img src="https://raw.githubusercontent.com/ZenHubIO/support/master/zenhub-badge.png"></a>
+
 An implementation of a task execution engine based on the [TES standard](https://github.com/ga4gh/task-execution-schemas) running on `Kubernetes`. For more details on `TES`, see the (very) brief [introduction to TES](documentation/tesintro.md).
 
 For organisational reasons, this project is split into 3 repositories:
