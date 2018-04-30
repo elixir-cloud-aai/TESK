@@ -244,19 +244,20 @@ public class TesKubernetesConverter {
     /**
      * Extracts minimal view of TesTask from taskMaster's and executors' job and pod objects
      */
-    public TesTask fromK8sJobsToTesTaskMinimal(Task taskmasterWithExecutors) {
+    public TesTask fromK8sJobsToTesTaskMinimal(Task taskmasterWithExecutors, boolean isList) {
         TesTask task = new TesTask();
         V1ObjectMeta metadata = taskmasterWithExecutors.getTaskmaster().getJob().getMetadata();
         task.setId(metadata.getName());
         task.setState(this.extractStateFromK8sJobs(taskmasterWithExecutors));
-        //TODO remove log for Minimal later on
-        TesTaskLog log = new TesTaskLog();
-        task.addLogsItem(log);
-        log.putMetadataItem("USER_ID", metadata.getLabels().get(LABEL_USERID_KEY));
-        if (metadata.getLabels().containsKey(LABEL_GROUPNAME_KEY)) {
-            log.putMetadataItem("GROUP_NAME", metadata.getLabels().get(LABEL_GROUPNAME_KEY));
+        //we need that info only for postAuthorization of a getTask; for list auth is handled at the query level
+        if (!isList) {
+            TesTaskLog log = new TesTaskLog();
+            task.addLogsItem(log);
+            log.putMetadataItem("USER_ID", metadata.getLabels().get(LABEL_USERID_KEY));
+            if (metadata.getLabels().containsKey(LABEL_GROUPNAME_KEY)) {
+                log.putMetadataItem("GROUP_NAME", metadata.getLabels().get(LABEL_GROUPNAME_KEY));
+            }
         }
-
         return task;
     }
 

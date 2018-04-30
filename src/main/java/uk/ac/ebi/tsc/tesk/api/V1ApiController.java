@@ -47,7 +47,11 @@ public class V1ApiController implements V1Api {
     public ResponseEntity<TesTask> getTask(@ApiParam(value = "", required = true) @PathVariable("id") String id,
                                            @ApiParam(value = "OPTIONAL. Affects the fields included in the returned Task messages. See TaskView below.   - MINIMAL: Task message will include ONLY the fields:   Task.Id   Task.State  - BASIC: Task message will include all fields EXCEPT:   Task.ExecutorLog.stdout   Task.ExecutorLog.stderr   Input.content   TaskLog.system_logs  - FULL: Task message includes all fields.", allowableValues = "MINIMAL, BASIC, FULL", defaultValue = "MINIMAL") @RequestParam(value = "view", required = false, defaultValue = "MINIMAL") String view) {
 
-        TesTask task = this.tesService.getTask(id, TaskView.fromString(view), this.getUser());
+        TaskView taskView = TaskView.fromString(view);
+        TesTask task = this.tesService.getTask(id, taskView, this.getUser());
+        if (taskView == TaskView.MINIMAL) {
+            task.setLogs(null);
+        }
         return new ResponseEntity<>(task, HttpStatus.OK);
     }
 

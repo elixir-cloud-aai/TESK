@@ -82,16 +82,16 @@ public class TesServiceImpl implements TesService {
         }
         Optional<V1Job> outputFilerJob = this.kubernetesClientWrapper.getSingleTaskOutputFilerJob(taskMasterJob.getMetadata().getName());
         outputFilerJob.ifPresent(taskBuilder::addJob);
-        return this.getTask(taskBuilder.getTask(), view);
+        return this.getTask(taskBuilder.getTask(), view, false);
     }
 
     /**
      * Common part of task's details retrieval for both single task and each of a list of tasks
      */
-    private TesTask getTask(Task taskObjects, TaskView view) {
+    private TesTask getTask(Task taskObjects, TaskView view, boolean isList) {
 
         if (view == TaskView.MINIMAL)
-            return this.converter.fromK8sJobsToTesTaskMinimal(taskObjects);
+            return this.converter.fromK8sJobsToTesTaskMinimal(taskObjects, isList);
 
         TesTask task = this.converter.fromK8sJobsToTesTaskBasic(taskObjects, view == TaskView.BASIC);
 
@@ -141,7 +141,7 @@ public class TesServiceImpl implements TesService {
         V1PodList jobPods = this.kubernetesClientWrapper.listAllJobPods();
         AbstractTaskBuilder taskListBuilder = new TaskListBuilder().addJobList(taskmasterJobs.getItems()).addJobList(executorJobs.getItems()).
                 addJobList(filerJobs.getItems()).addPodList(jobPods.getItems());
-        List<TesTask> tasks = taskListBuilder.getTaskList().stream().map(task -> this.getTask(task, view)).collect(Collectors.toList());
+        List<TesTask> tasks = taskListBuilder.getTaskList().stream().map(task -> this.getTask(task, view, true)).collect(Collectors.toList());
         TesListTasksResponse response = new TesListTasksResponse();
         response.tasks(tasks).nextPageToken(taskmasterJobs.getMetadata().getContinue());
 
