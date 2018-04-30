@@ -99,7 +99,7 @@ public class KubernetesClientWrapper {
             //if there are groups, where user is a manager and other groups, where user is only a member
             //filter the results (as it was not handled by label selector)
             List<V1Job> filteredJobList = result.getItems();
-            filteredJobList.stream().filter(job ->
+            filteredJobList = filteredJobList.stream().filter(job ->
                     user.isGroupManager(job.getMetadata().getLabels().get(LABEL_GROUPNAME_KEY))
                             || user.getUsername().equals(job.getMetadata().getLabels().get(LABEL_USERID_KEY))).collect(Collectors.toList());
             result.setItems(filteredJobList);

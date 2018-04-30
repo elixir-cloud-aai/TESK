@@ -42,16 +42,18 @@ public class ElixirPrincipalExtractor implements PrincipalExtractor {
                 .familyName(Optional.ofNullable(map.get("family_name")).map(Object::toString).orElse(null));
 
         Set<String> allGroups = this.groupsExtractor.extractAuthorities(map).stream().map(GrantedAuthority::getAuthority).collect(Collectors.toSet());
-        Set<String> memberedGroups = allGroups.stream().filter(name -> MEMBERED_GROUP.matcher(name).matches()).map(name -> {
-            Matcher matcher = MEMBERED_GROUP.matcher(name);
-            matcher.matches();
-            return matcher.group(1);
-        }).collect(Collectors.toSet());
-        Set<String> managedGroups = allGroups.stream().filter(name -> MANAGED_GROUP.matcher(name).matches()).map(name -> {
-            Matcher matcher = MANAGED_GROUP.matcher(name);
-            matcher.matches();
-            return matcher.group(1);
-        }).collect(Collectors.toSet());
+        Set<String> memberedGroups = allGroups.stream().filter(name -> MEMBERED_GROUP.matcher(name).matches() && !authorisationProperties.getAdminGroup().equals(name)).
+                map(name -> {
+                    Matcher matcher = MEMBERED_GROUP.matcher(name);
+                    matcher.matches();
+                    return matcher.group(1);
+                }).collect(Collectors.toSet());
+        Set<String> managedGroups = allGroups.stream().filter(name -> MANAGED_GROUP.matcher(name).matches() && !authorisationProperties.getAdminGroup().equals(name)).
+                map(name -> {
+                    Matcher matcher = MANAGED_GROUP.matcher(name);
+                    matcher.matches();
+                    return matcher.group(1);
+                }).collect(Collectors.toSet());
         boolean isAdmin = allGroups.stream().anyMatch(name -> authorisationProperties.getAdminGroup().equals(name));
         return builder.allGroups(allGroups).teskMemberedGroups(memberedGroups).teskManagedGroups(managedGroups).teskAdmin(isAdmin).build();
     }
