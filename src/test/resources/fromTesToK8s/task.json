@@ -68,6 +68,7 @@
   ],
   "tags" : {
     "project": "important",
-    "author": "janedoe"
+    "author": "janedoe",
+    "GROUP_NAME" : "ABC"
   }
 }

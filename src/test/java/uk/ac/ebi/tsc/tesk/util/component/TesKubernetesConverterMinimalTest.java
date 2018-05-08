@@ -19,6 +19,7 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.util.StringUtils;
 import uk.ac.ebi.tsc.tesk.config.GsonConfig;
 import uk.ac.ebi.tsc.tesk.config.KubernetesObjectsSupplier;
 import uk.ac.ebi.tsc.tesk.config.TaskmasterEnvProperties;
@@ -91,7 +92,7 @@ public class TesKubernetesConverterMinimalTest {
              Reader reader = new BufferedReader(new InputStreamReader(inputStream))) {
             inputTask = this.objectMapper.readValue(reader, TesTask.class);
         }
-        V1Job outputJob = this.converter.fromTesTaskToK8sJob(inputTask, User.builder("test-user-id").build());
+        V1Job outputJob = this.converter.fromTesTaskToK8sJob(inputTask, User.builder("test-user-id").teskMemberedGroups(StringUtils.commaDelimitedListToSet("ABC")).build());
         assertNull(outputJob.getMetadata().getAnnotations().get("tes-task-name"));
         //testing annotation with entire serialized task content..
         assertThat(outputJob.getMetadata().getAnnotations().get("json-input")).isNotEmpty();
@@ -104,6 +105,7 @@ public class TesKubernetesConverterMinimalTest {
 
         assertEquals(outputJob.getMetadata().getLabels().get("job-type"), "taskmaster");
         assertEquals(outputJob.getMetadata().getLabels().get("creator-user-id"), "test-user-id");
+        assertEquals(outputJob.getMetadata().getLabels().get("creator-group-name"), "ABC");
 
         assertEquals(outputJob.getSpec().getTemplate().getSpec().getContainers().get(0).getArgs().get(0), "$(JSON_INPUT)");
 
