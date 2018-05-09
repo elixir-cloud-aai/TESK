@@ -162,13 +162,12 @@
                         <id>add-resource</id>
                         <phase>generate-resources</phase>
                         <goals>
-                            <goal>add-resource</goal>
+                            <goal>add-test-resource</goal>
                         </goals>
                         <configuration>
                             <resources>
                                 <resource>
                                     <directory>src/integration-test/resources</directory>
-                                    <targetPath>testResources</targetPath>
                                 </resource>
                             </resources>
                         </configuration>

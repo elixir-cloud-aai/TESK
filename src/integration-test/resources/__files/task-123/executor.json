@@ -1,0 +1,41 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "batch/v1",
+      "kind": "Job",
+      "metadata": {
+        "annotations": {
+          "tes-task-name": "Hello World"
+        },
+        "labels": {
+          "creator-user-id": "123",
+          "executor-no": "0",
+          "job-type": "executor",
+          "taskmaster-name": "task-123"
+        },
+        "name": "task-123-ex-00",
+        "uid": "25f89bbb-4a2b-11e8-a06f-fa163ecf0042"
+      },
+      "spec": {
+        "selector": {
+          "matchLabels": {
+            "controller-uid": "25f89bbb-4a2b-11e8-a06f-fa163ecf0042"
+          }
+        }
+      },
+      "status": {
+        "conditions": [
+          {
+            "status": "True",
+            "type": "Complete"
+          }
+        ],
+        "startTime": "2018-04-27T14:56:21Z",
+        "succeeded": 1
+      }
+    }
+  ],
+  "kind": "List"
+}
+

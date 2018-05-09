@@ -1,0 +1,45 @@
+{
+  "items": [
+    {
+      "kind": "Pod",
+      "metadata": {
+        "labels": {
+          "controller-uid": "24a0504a-4a2b-11e8-a06f-fa163ecf0042",
+          "job-name": "task-123"
+        }
+      },
+      "status": {
+        "conditions": [
+          {
+            "reason": "PodCompleted",
+            "status": "True",
+            "type": "Initialized"
+          },
+          {
+            "reason": "PodCompleted",
+            "status": "False",
+            "type": "Ready"
+          },
+          {
+            "lastProbeTime": null,
+            "lastTransitionTime": "2018-04-27T14:56:19Z",
+            "status": "True",
+            "type": "PodScheduled"
+          }
+        ],
+        "containerStatuses": [
+          {
+            "state": {
+              "terminated": {
+                "exitCode": 0,
+                "reason": "Completed"
+              }
+            }
+          }
+        ],
+        "phase": "Succeeded"
+      }
+    }
+  ],
+  "kind": "List"
+}
