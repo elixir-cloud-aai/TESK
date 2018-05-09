@@ -1,15 +1,11 @@
 {
-  "apiVersion": "batch/v1",
-  "kind": "Job",
   "metadata": {
     "labels": {
       "creator-group-name": "TEST",
       "creator-user-id": "123",
       "job-type": "taskmaster"
     },
-    "name": "task-123",
-    "namespace": "default",
-    "uid": "24a0504a-4a2b-11e8-a06f-fa163ecf0042"
+    "name": "task-123"
   },
   "spec": {
     "selector": {
@@ -19,12 +15,6 @@
     }
   },
   "status": {
-    "conditions": [
-      {
-        "status": "True",
-        "type": "Complete"
-      }
-    ],
     "succeeded": 1
   }
 }

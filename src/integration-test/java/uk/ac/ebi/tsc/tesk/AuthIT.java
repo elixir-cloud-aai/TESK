@@ -225,6 +225,13 @@ public class AuthIT {
         this.mvc.perform(get("/v1/tasks/{id}", "task-123")
                 .header("Authorization", "Bearer BAR"))
                 .andExpect(status().isOk());
+
+        this.mvc.perform(get("/v1/tasks/{id}?view=BASIC", "task-123")
+                .header("Authorization", "Bearer BAR"))
+                .andExpect(status().isOk());
+        this.mvc.perform(get("/v1/tasks/{id}?view=FULL", "task-123")
+                .header("Authorization", "Bearer BAR"))
+                .andExpect(status().isOk());
     }
 
     @Test
@@ -237,6 +244,12 @@ public class AuthIT {
         mockGetTaskKubernetesResponses();
 
         this.mvc.perform(get("/v1/tasks/{id}", "task-123")
+                .header("Authorization", "Bearer BAR"))
+                .andExpect(status().isForbidden());
+        this.mvc.perform(get("/v1/tasks/{id}?view=BASIC", "task-123")
+                .header("Authorization", "Bearer BAR"))
+                .andExpect(status().isForbidden());
+        this.mvc.perform(get("/v1/tasks/{id}?view=FULL", "task-123")
                 .header("Authorization", "Bearer BAR"))
                 .andExpect(status().isForbidden());
     }
@@ -253,6 +266,12 @@ public class AuthIT {
         this.mvc.perform(get("/v1/tasks/{id}", "task-123")
                 .header("Authorization", "Bearer BAR"))
                 .andExpect(status().isOk());
+        this.mvc.perform(get("/v1/tasks/{id}?view=BASIC", "task-123")
+                .header("Authorization", "Bearer BAR"))
+                .andExpect(status().isOk());
+        this.mvc.perform(get("/v1/tasks/{id}?view=FULL", "task-123")
+                .header("Authorization", "Bearer BAR"))
+                .andExpect(status().isOk());
     }
 
     @Test
@@ -265,6 +284,12 @@ public class AuthIT {
         mockGetTaskKubernetesResponses();
 
         this.mvc.perform(get("/v1/tasks/{id}", "task-123")
+                .header("Authorization", "Bearer BAR"))
+                .andExpect(status().isForbidden());
+        this.mvc.perform(get("/v1/tasks/{id}?view=BASIC", "task-123")
+                .header("Authorization", "Bearer BAR"))
+                .andExpect(status().isForbidden());
+        this.mvc.perform(get("/v1/tasks/{id}?view=FULL", "task-123")
                 .header("Authorization", "Bearer BAR"))
                 .andExpect(status().isForbidden());
     }
@@ -281,6 +306,12 @@ public class AuthIT {
         this.mvc.perform(get("/v1/tasks/{id}", "task-123")
                 .header("Authorization", "Bearer BAR"))
                 .andExpect(status().isOk());
+        this.mvc.perform(get("/v1/tasks/{id}?view=BASIC", "task-123")
+                .header("Authorization", "Bearer BAR"))
+                .andExpect(status().isOk());
+        this.mvc.perform(get("/v1/tasks/{id}?view=FULL", "task-123")
+                .header("Authorization", "Bearer BAR"))
+                .andExpect(status().isOk());
     }
 
     private void mockGetTaskKubernetesResponses() {
@@ -295,10 +326,18 @@ public class AuthIT {
 
         mockKubernetes.givenThat(
                 WireMock.get("/api/v1/namespaces/default/pods?labelSelector=controller-uid%3D24a0504a-4a2b-11e8-a06f-fa163ecf0042")
-                        .willReturn(aResponse().withBodyFile("task-123/pods.json")));
+                        .willReturn(aResponse().withBodyFile("task-123/taskmaster_pods.json")));
         mockKubernetes.givenThat(
                 WireMock.get("/api/v1/namespaces/default/pods?labelSelector=controller-uid%3D25f89bbb-4a2b-11e8-a06f-fa163ecf0042")
-                        .willReturn(aResponse().withBodyFile("task-123/pods.json")));
+                        .willReturn(aResponse().withBodyFile("task-123/executor_pods.json")));
+        mockKubernetes.givenThat(
+                WireMock.get("/api/v1/namespaces/default/pods/pod-123/log")
+                        .willReturn(ok("hello!")));
+        mockKubernetes.givenThat(
+                WireMock.get("/api/v1/namespaces/default/pods/pod-ex-123/log")
+                        .willReturn(ok("hello executor!")));
     }
+
+
 
 }

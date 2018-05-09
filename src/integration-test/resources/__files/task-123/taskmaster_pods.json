@@ -1,0 +1,27 @@
+{
+  "items": [
+    {
+      "metadata": {
+        "labels": {
+          "controller-uid": "24a0504a-4a2b-11e8-a06f-fa163ecf0042",
+          "job-name": "task-123"
+        },
+        "name" : "pod-123"
+      },
+      "status": {
+        "containerStatuses": [
+          {
+            "state": {
+              "terminated": {
+                "exitCode": 0,
+                "reason": "Completed"
+              }
+            }
+          }
+        ],
+        "phase": "Succeeded"
+      }
+    }
+  ],
+  "kind": "List"
+}

@@ -269,7 +269,7 @@ public class TesKubernetesConverter {
         TesTask task = new TesTask();
         V1Job taskMasterJob = taskmasterWithExecutors.getTaskmaster().getJob();
         V1ObjectMeta taskMasterJobMetadata = taskMasterJob.getMetadata();
-        String inputJson = Optional.ofNullable(taskMasterJobMetadata.getAnnotations().get(ANN_JSON_INPUT_KEY)).orElse("");
+        String inputJson = Optional.ofNullable(taskMasterJobMetadata.getAnnotations()).map(ann->ann.get(ANN_JSON_INPUT_KEY)).orElse("");
         try {
             task = this.objectMapper.readValue(inputJson, TesTask.class);
             if (nullifyInputContent && task.getInputs() != null) {
