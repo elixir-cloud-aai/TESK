@@ -1,7 +1,7 @@
 steps:
 - name: 'openjdk:8-jdk'
   entrypoint: 'bash'
-  args: ['-c', './mvnw clean package']
+  args: ['-c', './mvnw clean verify']
 - name: 'gcr.io/cloud-builders/docker'
   args: ['build',
          '-t', 'eu.gcr.io/$PROJECT_ID/tesk-api:$TAG_NAME',
