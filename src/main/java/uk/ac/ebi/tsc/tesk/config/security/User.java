@@ -180,6 +180,42 @@ public class User implements Serializable, UserDetails, Principal {
                 ")}";
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        User user = (User) o;
+
+        if (teskAdmin != user.teskAdmin) return false;
+        if (userId != null ? !userId.equals(user.userId) : user.userId != null) return false;
+        if (preferredUsername != null ? !preferredUsername.equals(user.preferredUsername) : user.preferredUsername != null)
+            return false;
+        if (name != null ? !name.equals(user.name) : user.name != null) return false;
+        if (givenName != null ? !givenName.equals(user.givenName) : user.givenName != null) return false;
+        if (familyName != null ? !familyName.equals(user.familyName) : user.familyName != null) return false;
+        if (email != null ? !email.equals(user.email) : user.email != null) return false;
+        if (allGroups != null ? !allGroups.equals(user.allGroups) : user.allGroups != null) return false;
+        if (teskMemberedGroups != null ? !teskMemberedGroups.equals(user.teskMemberedGroups) : user.teskMemberedGroups != null)
+            return false;
+        return teskManagedGroups != null ? teskManagedGroups.equals(user.teskManagedGroups) : user.teskManagedGroups == null;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = userId != null ? userId.hashCode() : 0;
+        result = 31 * result + (preferredUsername != null ? preferredUsername.hashCode() : 0);
+        result = 31 * result + (name != null ? name.hashCode() : 0);
+        result = 31 * result + (givenName != null ? givenName.hashCode() : 0);
+        result = 31 * result + (familyName != null ? familyName.hashCode() : 0);
+        result = 31 * result + (email != null ? email.hashCode() : 0);
+        result = 31 * result + (allGroups != null ? allGroups.hashCode() : 0);
+        result = 31 * result + (teskAdmin ? 1 : 0);
+        result = 31 * result + (teskMemberedGroups != null ? teskMemberedGroups.hashCode() : 0);
+        result = 31 * result + (teskManagedGroups != null ? teskManagedGroups.hashCode() : 0);
+        return result;
+    }
+
     public static class UserBuilder {
         private String userId;
         private String preferredUsername;

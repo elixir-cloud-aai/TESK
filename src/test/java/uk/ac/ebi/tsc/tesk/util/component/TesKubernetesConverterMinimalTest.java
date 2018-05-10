@@ -3,6 +3,7 @@ package uk.ac.ebi.tsc.tesk.util.component;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
 import io.kubernetes.client.models.V1Job;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -33,7 +34,9 @@ import java.util.function.Supplier;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
 import static org.mockito.BDDMockito.given;
+import static org.hamcrest.Matchers.is;
 
 
 /**
@@ -103,11 +106,11 @@ public class TesKubernetesConverterMinimalTest {
         //..and one example path
         annotationWithEntireTask.extractingJsonPathArrayValue("@.executors[0].command").startsWith("echo");
 
-        assertEquals(outputJob.getMetadata().getLabels().get("job-type"), "taskmaster");
-        assertEquals(outputJob.getMetadata().getLabels().get("creator-user-id"), "test-user-id");
-        assertEquals(outputJob.getMetadata().getLabels().get("creator-group-name"), "ABC");
+        assertThat(outputJob.getMetadata().getLabels().get("job-type"), is("taskmaster"));
+        assertThat(outputJob.getMetadata().getLabels().get("creator-user-id"), is("test-user-id"));
+        assertThat(outputJob.getMetadata().getLabels().get("creator-group-name"), is("ABC"));
 
-        assertEquals(outputJob.getSpec().getTemplate().getSpec().getContainers().get(0).getArgs().get(0), "$(JSON_INPUT)");
+        assertThat(outputJob.getSpec().getTemplate().getSpec().getContainers().get(0).getArgs().get(0), is("$(JSON_INPUT)"));
 
         JsonContentAssert taskMasterInputJson = new JsonContentAssert(this.getClass(), outputJob.getSpec().getTemplate().getSpec().
                 getContainers().get(0).getEnv().stream().filter(env -> env.getName().equals("JSON_INPUT")).findAny().get().getValue());

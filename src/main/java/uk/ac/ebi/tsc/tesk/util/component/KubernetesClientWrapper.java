@@ -71,7 +71,7 @@ public class KubernetesClientWrapper {
         throw new TaskNotFoundException(taskId);
     }
 
-    public V1JobList listJobs(String _continue, String labelSelector, Integer limit) {
+    private V1JobList listJobs(String _continue, String labelSelector, Integer limit) {
         try {
             return this.batchApi.listNamespacedJob(namespace, null, _continue, null, null, labelSelector, limit, null, null, null);
         } catch (ApiException e) {
@@ -80,11 +80,11 @@ public class KubernetesClientWrapper {
     }
 
     /**
-     * Gets all Taskmster job objects, a User is allowed to see
+     * Gets all Taskmaster job objects, a User is allowed to see
      * @param pageToken - pageToken supplied by user (from previous result; points to next page of results)
      * @param itemsPerPage - value submitted by user, limiting number of results
      * @param user - authenticated user
-     * @return
+     * @return all Taskmaster job objects, a User is allowed to see in V1JobList
      */
     public V1JobList listAllTaskmasterJobsForUser(String pageToken, Integer itemsPerPage, User user) {
         //Jobs of taskmaster type
