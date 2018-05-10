@@ -39,6 +39,11 @@ public class OAuth2ClientProperties {
      * List of Scopes, a client will request (a list of entries: scope name: description)
      */
     private List<String> scopes;
+    /**
+     * Whether implicit (true) or auth code flow (false)
+     */
+    private Boolean implicit;
+
 
     public String getAuthorizationEndpoint() {
         return authorizationEndpoint;
@@ -88,5 +93,13 @@ public class OAuth2ClientProperties {
 
     public void setScopes(List<String> scopes) {
         this.scopes = scopes;
+    }
+
+    public Boolean getImplicit() {
+        return implicit;
+    }
+
+    public void setImplicit(Boolean implicit) {
+        this.implicit = implicit;
     }
 }

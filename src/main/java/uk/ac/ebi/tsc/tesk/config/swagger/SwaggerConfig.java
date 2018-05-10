@@ -46,19 +46,24 @@ public class SwaggerConfig {
     @Bean
     protected List<GrantType> grantTypes() {
         List<GrantType> grantTypes = new ArrayList<>();
-        TokenRequestEndpoint tokenRequestEndpoint = new TokenRequestEndpoint(properties.getAuthorizationEndpoint(), properties.getClientId(), properties.getClientSecret() );
-        TokenEndpoint tokenEndpoint = new TokenEndpoint(properties.getTokenEndpoint(), "access_token");
-        grantTypes.add(new AuthorizationCodeGrant(tokenRequestEndpoint, tokenEndpoint));
-        /*LoginEndpoint loginEndpoint = new LoginEndpoint(properties.getAuthorizationEndpoint());
-        grantTypes.add(new ImplicitGrant(loginEndpoint, "access_token"));*/
+        if (Boolean.TRUE.equals(properties.getImplicit())) {
+            LoginEndpoint loginEndpoint = new LoginEndpoint(properties.getAuthorizationEndpoint());
+            grantTypes.add(new ImplicitGrant(loginEndpoint, "access_token"));
+        } else {
+            TokenRequestEndpoint tokenRequestEndpoint = new TokenRequestEndpoint(properties.getAuthorizationEndpoint(), properties.getClientId(), properties.getClientSecret());
+            TokenEndpoint tokenEndpoint = new TokenEndpoint(properties.getTokenEndpoint(), "access_token");
+            grantTypes.add(new AuthorizationCodeGrant(tokenRequestEndpoint, tokenEndpoint));
+        }
         return grantTypes;
     }
+
     private SecurityContext securityContext() {
         return SecurityContext.builder()
                 .securityReferences(defaultAuth())
                 .forPaths(PathSelectors.any())
                 .build();
     }
+
     private List<SecurityReference> defaultAuth() {
         AuthorizationScope authorizationScope = new AuthorizationScope("global", "accessEverything");
         AuthorizationScope[] authorizationScopes = new AuthorizationScope[1];
