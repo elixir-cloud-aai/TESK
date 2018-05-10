@@ -10,6 +10,7 @@ import java.io.Serializable;
 import java.security.Principal;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Set;
 
 /**
@@ -93,7 +94,7 @@ public class User implements Serializable, UserDetails, Principal {
     }
 
     public String getLabelSelector() {
-        Set<String> allTeskGroups = new HashSet<>();
+        Set<String> allTeskGroups = new LinkedHashSet<>();
         if (this.teskMemberedGroups != null) {
             allTeskGroups.addAll(this.teskMemberedGroups);
         }

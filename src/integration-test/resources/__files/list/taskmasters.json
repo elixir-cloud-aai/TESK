@@ -1,0 +1,85 @@
+{
+  "items": [
+    {
+      "metadata": {
+        "labels": {
+          "creator-group-name": "TEST",
+          "creator-user-id": "123",
+          "job-type": "taskmaster"
+        },
+        "name": "task-123"
+      },
+      "spec": {
+        "selector": {
+          "matchLabels": {
+            "controller-uid": "24a0504a-4a2b-11e8-a06f-fa163ecf0042"
+          }
+        }
+      },
+      "status": {
+        "succeeded": 1
+      }
+    },
+    {
+      "metadata": {
+        "labels": {
+          "creator-group-name": "TEST",
+          "creator-user-id": "124",
+          "job-type": "taskmaster"
+        },
+        "name": "task-124"
+      },
+      "spec": {
+        "selector": {
+          "matchLabels": {
+            "controller-uid": "24a0504a-4a2b-11e8-a06f-fa163ecf0043"
+          }
+        }
+      },
+      "status": {
+        "succeeded": 1
+      }
+    },
+    {
+      "metadata": {
+        "labels": {
+          "creator-group-name": "ABC",
+          "creator-user-id": "123",
+          "job-type": "taskmaster"
+        },
+        "name": "task-125"
+      },
+      "spec": {
+        "selector": {
+          "matchLabels": {
+            "controller-uid": "24a0504a-4a2b-11e8-a06f-fa163ecf0044"
+          }
+        }
+      },
+      "status": {
+        "succeeded": 1
+      }
+    },
+    {
+      "metadata": {
+        "labels": {
+          "creator-group-name": "ABC",
+          "creator-user-id": "124",
+          "job-type": "taskmaster"
+        },
+        "name": "task-126"
+      },
+      "spec": {
+        "selector": {
+          "matchLabels": {
+            "controller-uid": "24a0504a-4a2b-11e8-a06f-fa163ecf0045"
+          }
+        }
+      },
+      "status": {
+        "succeeded": 1
+      }
+    }
+  ],
+  "metadata": {}
+}

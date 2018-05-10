@@ -146,7 +146,7 @@ public class KubernetesClientWrapperTest {
         given(batchApi.listNamespacedJob(any(), isNull(), isNull(), isNull(), isNull(), any(), isNull(), isNull(), isNull(), isNull())).willReturn(this.resultList());
         V1JobList result = wrapper.listAllTaskmasterJobsForUser(null, null, user);
         Mockito.verify(batchApi).listNamespacedJob(eq(namespace), isNull(), isNull(), isNull(), isNull(), argument.capture(), isNull(), isNull(), isNull(), isNull());
-        assertThat(argument.getValue(), is("job-type=taskmaster,creator-group-name in (TEST,XYZ)"));
+        assertThat(argument.getValue(), is("job-type=taskmaster,creator-group-name in (XYZ,TEST)"));
         assertThat(result, is(filteredResultList()));
     }
 
