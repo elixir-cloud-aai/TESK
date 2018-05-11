@@ -13,7 +13,7 @@ oc adm policy add-role-to-user edit -z deployer
 
 SCC (`oc get scc anyuid -o json`):
 
-*   Both `deployer` and `default` have been assigned built-in scc `anyuid` - to be able to run containers with root.
+*   Both `deployer` and `default` have been assigned built-in scc `anyuid` - to be able to run containers with root. Apparently a user have to have `cluster-admin` role to perform the commands below:
 ```
 oc adm policy add-scc-to-user anyuid -z deployer
 oc adm policy add-scc-to-user anyuid -z default
