@@ -22,6 +22,7 @@ public interface TesService {
      * In case of detecting duplicated task ID, retries with new generated ID (up to a limit of retries)
      */
     @PreAuthorize("hasRole(@authorisationProperties.baseGroup) AND" +
+            "#user.member AND" +
             "(#task.tags?.get('GROUP_NAME') == null OR #user.isGroupMember(#task.tags['GROUP_NAME']))")
     TesCreateTaskResponse createTask(TesTask task, User user);
 
