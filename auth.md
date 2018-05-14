@@ -63,5 +63,12 @@ List tasks | User can list those task that are visible to him (as for `Get a tas
 * User '124' with group `GA4GH:G4GH-CAP:EBI:ADMIN`, gets a task list. Success. List contains all tasks created for all teams by all users.
 * User '123' with groups `GA4GH:G4GH-CAP:EBI:TEST` and `GA4GH:G4GH-CAP:EBI:SDO:ADMIN`, gets a task list. Success. List contains all tasks created for team TEST by user 123 and also all tasks created for team SDO by all users.
 
+### Configuration
+Parts of Elixir groups `authorisation framework` are configurable, particularly base group name, environment subgroup name and ADMIN subgroup name.
 
+Environment variable | Meaning | Default
+------------ |---|--
+TESK_API_AUTHORISATION_PARENT_GROUP | Full name of the base group (with default `elixir:` prefix, which is added by Elixir to all group names) | `elixir:GA4GH:GA4GH-CAP`
+TESK_API_AUTHORISATION_ENV_SUBGROUP | Name of the subgroup representing environment (aka Environment Group) | `EBI` (Full group name:  `elixir:GA4GH:GA4GH-CAP:EBI`)
+TESK_API_AUTHORISATION_ADMIN_SUBGROUP | Name of the subgroup representing admins (super admins or team admins) | `ADMIN` (Full group name of super-admins:  `elixir:GA4GH:GA4GH-CAP:EBI:ADMIN`)
 
