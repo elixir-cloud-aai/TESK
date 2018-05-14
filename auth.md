@@ -3,10 +3,11 @@
 TESK API integrates with [Elixir AAI](https://www.elixir-europe.org/services/compute/aai) via [OpenID Connect](http://openid.net/connect/) protocol to authenticate and authorise its users. In order to perform any TES operation (get and/or create tasks) TESK API user will have to have a valid account in Elixir AAI and belong to a specific Elixir group.
 
 ## Authentication
-TESK API acts as a Resouce Server in the OIDC contract, whereas Elixir AAI plays the role of Authorisation Server. All of TESK API endpoints are secured, which means that in order to reach any of the endpoints, the request has to contain valid token issued by Elixir AAI, placed in `authorization: Bearer` header. 
+TESK API acts as a Resouce Server in the OIDC contract, whereas Elixir AAI plays the role of Authorisation Server. All of TESK API endpoints are secured, which means that in order to reach any of the endpoints, the request has to contain valid _access_token_ issued by Elixir AAI, placed in `authorization: Bearer` header. 
 
 ### Obtaining a token
-TESK API does not require, that the token is obtained using any specific client (application). Also token audience is not currently checked (not clear, if Elixir AAI supports defining token audience). Therefore, TESK API can be presented a token, that is:
+TESK API does not require, that the access token is obtained using any specific client (application). Also token audience is not currently checked (not clear, if Elixir AAI supports defining token audience). Therefore, TESK API can be presented a token, that is:
+* Access token
 * Not expired
 * Obtained by user using any registered Elixir AAI client
 * Obtained by user using any OIDC Flow
