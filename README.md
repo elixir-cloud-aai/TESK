@@ -22,7 +22,8 @@ When API gets a request to create a new TES task, TESK performs following steps:
 When API gets a request to get details of a single task or a list of tasks, than it calls Kubernetes API endpoints, to retrieve: K8s Job objects corresponding to Taskmaster, Executors and Filers (of a single task or a list of tasks) and K8s Pod objects created by those Jobs. It also gets taskmaster's and executors' pod logs. Matching API objects (Jobs and Pods) and TES tasks heavily relies on the use of K8s [labels](https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/). After retrieving all needed objects API uses its own logic to combine them in TES task details response. 
 ### Cancelling a task
 When API gets a request to cancel a task, it labels both Taskmaster's Job and Pod objects with cancelled status. API then uses Job label to determine task's CANCELED status. Pod's label gets populated to Downward API file, which changes Taskmaster listens to. If Taskmaster detects a change in labels, it stops an execution of a currently running  executor and finishes.
-
+### Authentication and authorisation
+TESK API expects an access token obtained from Elixir AAI in Authorization Bearer header. For details, please see [Authentication and Authorisation](auth.md)
 ### HTTP Error Codes
 TES spec does not define expected behaviour in case of errors. TESK API uses following HTTP codes:
 
