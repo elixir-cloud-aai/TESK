@@ -151,9 +151,9 @@ def main(argv):
 
   poll_interval = args.poll_interval
 
-  loglevel = logging.WARNING
-  if args.debug:
-    loglevel = logging.DEBUG
+  #loglevel = logging.WARNING
+  #if args.debug:
+  loglevel = logging.DEBUG
 
   global logger
   logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s', datefmt='%m/%d/%Y %I:%M:%S', level=loglevel)
