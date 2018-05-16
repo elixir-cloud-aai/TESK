@@ -37,8 +37,7 @@ public interface V1Api {
         @ApiResponse(code = 200, message = "", response = TesCancelTaskResponse.class) })
     
     @RequestMapping(value = "/v1/tasks/{id}:cancel",
-        produces = { "application/json" }, 
-        consumes = { "application/json" },
+        produces = { "application/json" },
         method = RequestMethod.POST)
     ResponseEntity<TesCancelTaskResponse> cancelTask(@ApiParam(value = "",required=true ) @PathVariable("id") String id);
 
