@@ -171,10 +171,7 @@ def main(argv):
       data = json.load(fh)
 
   # Load kubernetes config file
-  if args.debug:
-    config.load_kube_config()
-  else:
-    config.load_incluster_config()
+  config.load_incluster_config()
 
   global created_pvc
   created_pvc = None
