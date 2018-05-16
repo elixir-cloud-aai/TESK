@@ -6,7 +6,7 @@ import org.springframework.context.annotation.Configuration;
 
 /**
  * @author Ania Niewielska <aniewielska@ebi.ac.uk>
- *
+ * <p>
  * Properties affecting taskmaster's job template
  */
 @Configuration
@@ -34,6 +34,12 @@ public class TaskmasterEnvProperties {
      * Service Account name for taskmaster
      */
     private String serviceAccountName;
+
+    /**
+     * If verbose (debug) mode of taskmaster is on
+     * (it passes additional flag to taskmaster and sets image pull policy to Always)
+     */
+    private boolean debug;
 
 
     public Ftp getFtp() {
@@ -76,6 +82,14 @@ public class TaskmasterEnvProperties {
         this.serviceAccountName = serviceAccountName;
     }
 
+    public boolean isDebug() {
+        return debug;
+    }
+
+    public void setDebug(boolean debug) {
+        this.debug = debug;
+    }
+
     /**
      * Test FTP account settings
      */
@@ -94,8 +108,7 @@ public class TaskmasterEnvProperties {
             return secretName;
         }
 
-        public void setSecretName(String secretName)
-        {
+        public void setSecretName(String secretName) {
             this.secretName = secretName;
             if (!StringUtils.isEmpty(this.secretName)) {
                 this.enabled = true;

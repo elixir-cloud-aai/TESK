@@ -28,7 +28,8 @@
                 "valueFrom": {
                   "secretKeyRef": {
                     "name": "ftp-secret",
-                    "key": "username"
+                    "key": "username",
+                    "optional": true
                   }
                 }
               },
@@ -37,7 +38,8 @@
                 "valueFrom": {
                   "secretKeyRef": {
                     "name": "ftp-secret",
-                    "key": "password"
+                    "key": "password",
+                    "optional": true
                   }
                 }
               }
