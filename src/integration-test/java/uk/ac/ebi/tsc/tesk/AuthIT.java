@@ -61,6 +61,63 @@ public class AuthIT {
     }
 
     @Test
+    public void admin_createTask() throws Exception {
+
+        mockElixir.givenThat(
+                WireMock.get("/")
+                        .willReturn(okJson("{\"sub\" : \"123\",  \"groupNames\" : [\"elixir:GA4GH:GA4GH-CAP:EBI\", \"elixir:GA4GH:GA4GH-CAP:EBI:ADMIN\"]}")));
+
+        mockKubernetes.givenThat(
+                WireMock.post("/apis/batch/v1/namespaces/default/jobs")
+                        .withRequestBody(matchingJsonPath("$.metadata.labels['creator-group-name']", absent()))
+                        .withRequestBody(matchingJsonPath("$.metadata.labels[?(@.creator-user-id == '123')]"))
+                        .willReturn(okJson("{\"metadata\":{\"name\":\"task-fe99716a\"}}")));
+
+        String path = "fromTesToK8s_minimal/task.json";
+        this.mvc.perform(post("/v1/tasks")
+                .content(getFileContentFromResources(path))
+                .header("Authorization", "Bearer BAR")
+                .contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.APPLICATION_JSON)).andExpect(status().isOk());
+    }
+
+    @Test
+    public void adminAndMember_createTask() throws Exception {
+
+        mockElixir.givenThat(
+                WireMock.get("/")
+                        .willReturn(okJson("{\"sub\" : \"123\",  \"groupNames\" : [\"elixir:GA4GH:GA4GH-CAP:EBI\", \"elixir:GA4GH:GA4GH-CAP:EBI:ADMIN\", \"elixir:GA4GH:GA4GH-CAP:EBI:TEST\"]}")));
+
+        mockKubernetes.givenThat(
+                WireMock.post("/apis/batch/v1/namespaces/default/jobs")
+                        .withRequestBody(matchingJsonPath("$.metadata.labels[?(@.creator-group-name == 'TEST')]"))
+                        .withRequestBody(matchingJsonPath("$.metadata.labels[?(@.creator-user-id == '123')]"))
+                        .willReturn(okJson("{\"metadata\":{\"name\":\"task-fe99716a\"}}")));
+
+        String path = "fromTesToK8s_minimal/task.json";
+        this.mvc.perform(post("/v1/tasks")
+                .content(getFileContentFromResources(path))
+                .header("Authorization", "Bearer BAR")
+                .contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.APPLICATION_JSON)).andExpect(status().isOk());
+    }
+
+    @Test
+    public void adminChosenGroup_createTask() throws Exception {
+
+        mockElixir.givenThat(
+                WireMock.get("/")
+                        .willReturn(okJson("{\"sub\" : \"123\",  \"groupNames\" : [\"elixir:GA4GH:GA4GH-CAP:EBI\", \"elixir:GA4GH:GA4GH-CAP:EBI:ADMIN\"]}")));
+
+        String path = "fromTesToK8s/task.json";
+        this.mvc.perform(post("/v1/tasks")
+                .content(getFileContentFromResources(path))
+                .header("Authorization", "Bearer BAR")
+                .contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.APPLICATION_JSON)).andExpect(status().isForbidden());
+    }
+
+    @Test
     public void authorizedUser_createTask() throws Exception {
 
         mockElixir.givenThat(
