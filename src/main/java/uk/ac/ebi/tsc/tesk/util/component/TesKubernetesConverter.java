@@ -276,7 +276,7 @@ public class TesKubernetesConverter {
                 task.getInputs().forEach(input -> input.setContent(null));
             }
         } catch (IOException ex) {
-            logger.info(String.format("Deserializing task %s from JSON failed", taskMasterJobMetadata.getName()), ex);
+            logger.info("Deserializing task {} from JSON failed; {}", taskMasterJobMetadata.getName(), ex.getMessage());
         }
         task.setId(taskMasterJobMetadata.getName());
         task.setState(this.extractStateFromK8sJobs(taskmasterWithExecutors));

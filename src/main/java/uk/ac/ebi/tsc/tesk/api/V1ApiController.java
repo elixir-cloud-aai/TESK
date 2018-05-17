@@ -68,7 +68,7 @@ public class V1ApiController implements V1Api {
             oauth = (OAuth2Authentication) authentication;
             return (User)oauth.getPrincipal();
         }
-       return null;
+        return  User.builder(authentication.getName()).build();
     }
 
 }

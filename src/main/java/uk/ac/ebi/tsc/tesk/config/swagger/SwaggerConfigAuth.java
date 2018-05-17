@@ -3,6 +3,7 @@ package uk.ac.ebi.tsc.tesk.config.swagger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import springfox.documentation.builders.OAuthBuilder;
 import springfox.documentation.builders.PathSelectors;
 import springfox.documentation.builders.RequestHandlerSelectors;
@@ -27,7 +28,8 @@ import java.util.List;
  */
 @Configuration
 @EnableSwagger2
-public class SwaggerConfig {
+@Profile("auth")
+public class SwaggerConfigAuth {
 
     @Autowired
     private OAuth2ClientProperties properties;
@@ -81,7 +83,7 @@ public class SwaggerConfig {
     }
 
     private List<AuthorizationScope> scopes() {
-        List<AuthorizationScope> list = new ArrayList();
+        List<AuthorizationScope> list = new ArrayList<>();
         properties.getScopesAsMap().forEach((name, description) -> list.add(new AuthorizationScope(name, description)));
         return list;
     }
@@ -93,7 +95,6 @@ public class SwaggerConfig {
                 .clientSecret(properties.getClientSecret())
                 .scopeSeparator("")
                 .build();
-        //return new SecurityConfiguration(clientId, clientSecret, "realm", clientId, "Bearer", ApiKeyVehicle.HEADER, "Authorization", "");
     }
 
 }

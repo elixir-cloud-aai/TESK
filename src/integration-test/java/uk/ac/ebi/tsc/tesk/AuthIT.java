@@ -37,7 +37,8 @@ import static uk.ac.ebi.tsc.tesk.TestUtils.getFileContentFromResources;
 @SpringBootTest
 @AutoConfigureMockMvc
 @TestPropertySource(locations = {"classpath:application.properties"},
-        properties = {"security.oauth2.resource.user-info-uri = http://localhost:8090"})
+        properties = {"security.oauth2.resource.user-info-uri = http://localhost:8090",
+                "spring.profiles.active=auth"})
 public class AuthIT {
 
     @Autowired
@@ -283,7 +284,7 @@ public class AuthIT {
                 WireMock.get("/")
                         .willReturn(okJson("{\"sub\" : \"123\",  \"groupNames\" : [\"elixir:GA4GH:GA4GH-CAP:EBI\", \"elixir:GA4GH:GA4GH-CAP:EBI:TEST\"]}")));
 
-        mockGetTaskKubernetesResponses();
+        MockUtil.mockGetTaskKubernetesResponses(this.mockKubernetes);
 
 
         this.mvc.perform(get("/v1/tasks/{id}", "task-123")
@@ -305,7 +306,7 @@ public class AuthIT {
                 WireMock.get("/")
                         .willReturn(okJson("{\"sub\" : \"123\",  \"groupNames\" : [\"elixir:GA4GH:GA4GH-CAP:EBI\", \"elixir:GA4GH:GA4GH-CAP:EBI:TEST\"]}")));
 
-        mockGetTaskKubernetesResponses();
+        MockUtil.mockGetTaskKubernetesResponses(this.mockKubernetes);
 
         this.mvc.perform(post("/v1/tasks/{id}:cancel", "task-123")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -322,7 +323,7 @@ public class AuthIT {
                 WireMock.get("/")
                         .willReturn(okJson("{\"sub\" : \"124\",  \"groupNames\" : [\"elixir:GA4GH:GA4GH-CAP:EBI\", \"elixir:GA4GH:GA4GH-CAP:EBI:TEST\"]}")));
 
-        mockGetTaskKubernetesResponses();
+        MockUtil.mockGetTaskKubernetesResponses(this.mockKubernetes);
 
         this.mvc.perform(post("/v1/tasks/{id}:cancel", "task-123")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -339,7 +340,7 @@ public class AuthIT {
                 WireMock.get("/")
                         .willReturn(okJson("{\"sub\" : \"124\",  \"groupNames\" : [\"elixir:GA4GH:GA4GH-CAP:EBI\", \"elixir:GA4GH:GA4GH-CAP:EBI:TEST\"]}")));
 
-        mockGetTaskKubernetesResponses();
+        MockUtil.mockGetTaskKubernetesResponses(this.mockKubernetes);
 
         this.mvc.perform(get("/v1/tasks/{id}", "task-123")
                 .header("Authorization", "Bearer BAR"))
@@ -359,7 +360,7 @@ public class AuthIT {
                 WireMock.get("/")
                         .willReturn(okJson("{\"sub\" : \"124\",  \"groupNames\" : [\"elixir:GA4GH:GA4GH-CAP:EBI\", \"elixir:GA4GH:GA4GH-CAP:EBI:TEST:ADMIN\"]}")));
 
-        mockGetTaskKubernetesResponses();
+        MockUtil.mockGetTaskKubernetesResponses(this.mockKubernetes);
 
         this.mvc.perform(get("/v1/tasks/{id}", "task-123")
                 .header("Authorization", "Bearer BAR"))
@@ -379,7 +380,7 @@ public class AuthIT {
                 WireMock.get("/")
                         .willReturn(okJson("{\"sub\" : \"123\",  \"groupNames\" : [\"elixir:GA4GH:GA4GH-CAP:EBI\"]}")));
 
-        mockGetTaskKubernetesResponses();
+        MockUtil.mockGetTaskKubernetesResponses(this.mockKubernetes);
 
         this.mvc.perform(get("/v1/tasks/{id}", "task-123")
                 .header("Authorization", "Bearer BAR"))
@@ -399,7 +400,7 @@ public class AuthIT {
                 WireMock.get("/")
                         .willReturn(okJson("{\"sub\" : \"xyz\",  \"groupNames\" : [\"elixir:GA4GH:GA4GH-CAP:EBI:ADMIN\"]}")));
 
-        mockGetTaskKubernetesResponses();
+        MockUtil.mockGetTaskKubernetesResponses(this.mockKubernetes);
 
         this.mvc.perform(get("/v1/tasks/{id}", "task-123")
                 .header("Authorization", "Bearer BAR"))
@@ -423,7 +424,7 @@ public class AuthIT {
                 WireMock.get("/apis/batch/v1/namespaces/default/jobs?labelSelector=job-type%3Dtaskmaster" +
                         "%2Ccreator-group-name%20in%20%28TEST%29%2Ccreator-user-id%3D123")
                         .willReturn(aResponse().withBodyFile("list/taskmasters.json")));
-        mockListTaskKubernetesResponses();
+        MockUtil.mockListTaskKubernetesResponses(this.mockKubernetes);
 
         performListTask(4);
 
@@ -439,7 +440,7 @@ public class AuthIT {
         mockKubernetes.givenThat(
                 WireMock.get("/apis/batch/v1/namespaces/default/jobs?labelSelector=job-type%3Dtaskmaster")
                         .willReturn(aResponse().withBodyFile("list/taskmasters.json")));
-        mockListTaskKubernetesResponses();
+        MockUtil.mockListTaskKubernetesResponses(this.mockKubernetes);
 
         performListTask(4);
 
@@ -456,7 +457,7 @@ public class AuthIT {
                 WireMock.get("/apis/batch/v1/namespaces/default/jobs?labelSelector=job-type%3Dtaskmaster" +
                         "%2Ccreator-group-name%20in%20%28TEST%29")
                         .willReturn(aResponse().withBodyFile("list/taskmasters.json")));
-        mockListTaskKubernetesResponses();
+        MockUtil.mockListTaskKubernetesResponses(this.mockKubernetes);
 
         performListTask(4);
 
@@ -473,7 +474,7 @@ public class AuthIT {
                 WireMock.get("/apis/batch/v1/namespaces/default/jobs?labelSelector=job-type%3Dtaskmaster" +
                         "%2Ccreator-group-name%20in%20%28TEST%2CABC%29")
                         .willReturn(aResponse().withBodyFile("list/taskmasters.json")));
-        mockListTaskKubernetesResponses();
+        MockUtil.mockListTaskKubernetesResponses(this.mockKubernetes);
 
         performListTask(3);
 
@@ -511,48 +512,7 @@ public class AuthIT {
                 .andExpect(status().isForbidden());
     }
 
-    private void mockGetTaskKubernetesResponses() {
-        mockKubernetes.givenThat(
-                WireMock.get("/apis/batch/v1/namespaces/default/jobs?labelSelector=taskmaster-name%3Dtask-123")
-                        .willReturn(aResponse().withBodyFile("task-123/executor.json")));
-        mockKubernetes.givenThat(
-                WireMock.get("/apis/batch/v1/namespaces/default/jobs/task-123")
-                        .willReturn(aResponse().withBodyFile("task-123/taskmaster.json")));
-        mockKubernetes.givenThat(WireMock.get("/apis/batch/v1/namespaces/default/jobs/task-123-outputs-filer")
-                .willReturn(aResponse().withStatus(HttpStatus.SC_NOT_FOUND)));
 
-        mockKubernetes.givenThat(
-                WireMock.get("/api/v1/namespaces/default/pods?labelSelector=controller-uid%3D24a0504a-4a2b-11e8-a06f-fa163ecf0042")
-                        .willReturn(aResponse().withBodyFile("task-123/taskmaster_pods.json")));
-        mockKubernetes.givenThat(
-                WireMock.get("/api/v1/namespaces/default/pods?labelSelector=controller-uid%3D25f89bbb-4a2b-11e8-a06f-fa163ecf0042")
-                        .willReturn(aResponse().withBodyFile("task-123/executor_pods.json")));
-        mockKubernetes.givenThat(
-                WireMock.get("/api/v1/namespaces/default/pods/pod-123/log")
-                        .willReturn(ok("hello!")));
-        mockKubernetes.givenThat(
-                WireMock.get("/api/v1/namespaces/default/pods/pod-ex-123/log")
-                        .willReturn(ok("hello executor!")));
-    }
-
-
-    private void mockListTaskKubernetesResponses() {
-        mockKubernetes.givenThat(
-                WireMock.get("/apis/batch/v1/namespaces/default/jobs?labelSelector=job-type%3Dexecutor")
-                        .willReturn(aResponse().withBodyFile("list/executors.json")));
-
-        mockKubernetes.givenThat(WireMock.get("/apis/batch/v1/namespaces/default/jobs?labelSelector=%21job-type")
-                .willReturn(okJson("{\n" +
-                        "  \"items\": []\n" +
-                        "}")));
-
-        mockKubernetes.givenThat(
-                WireMock.get("/api/v1/namespaces/default/pods?labelSelector=job-name")
-                        .willReturn(aResponse().withBodyFile("list/pods.json")));
-        mockKubernetes.givenThat(
-                WireMock.get(urlPathMatching("/api/v1/namespaces/default/pods/([-a-z0-9]+)/log"))
-                        .willReturn(ok("hello!")));
-    }
 
     private void performListTask(int expectedLength) throws Exception {
         this.mvc.perform(get("/v1/tasks")

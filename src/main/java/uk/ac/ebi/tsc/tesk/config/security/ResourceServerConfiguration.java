@@ -1,32 +1,21 @@
 package uk.ac.ebi.tsc.tesk.config.security;
 
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.http.HttpMessageConverters;
 import org.springframework.boot.autoconfigure.security.oauth2.resource.AuthoritiesExtractor;
 import org.springframework.boot.autoconfigure.security.oauth2.resource.PrincipalExtractor;
 import org.springframework.boot.web.servlet.error.ErrorAttributes;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpMethod;
-import org.springframework.security.access.expression.SecurityExpressionHandler;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.core.GrantedAuthorityDefaults;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.oauth2.config.annotation.web.configuration.EnableResourceServer;
 import org.springframework.security.oauth2.config.annotation.web.configuration.ResourceServerConfigurerAdapter;
 import org.springframework.security.oauth2.config.annotation.web.configurers.ResourceServerSecurityConfigurer;
-import org.springframework.security.oauth2.provider.expression.OAuth2WebSecurityExpressionHandler;
-import org.springframework.security.web.FilterInvocation;
-import org.springframework.util.ObjectUtils;
-import org.springframework.util.StringUtils;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
 
 /**
  * @author Ania Niewielska <aniewielska@ebi.ac.uk>
@@ -39,6 +28,7 @@ import java.util.Map;
 @Configuration
 @EnableResourceServer
 @EnableGlobalMethodSecurity(prePostEnabled = true)
+@Profile("auth")
 public class ResourceServerConfiguration extends ResourceServerConfigurerAdapter {
 
 
@@ -96,6 +86,15 @@ public class ResourceServerConfiguration extends ResourceServerConfigurerAdapter
     @Bean
     public PrincipalExtractor principalExtractor() {
         return new ElixirPrincipalExtractor(authoritiesExtractor(), authorisationProperties);
+    }
+
+    /**
+     * Switches off default in memory user store containing one user with auto-generated password
+     *
+     */
+    @Bean
+    public UserDetailsService userDetailsService() {
+        return username -> null;
     }
 
 }
