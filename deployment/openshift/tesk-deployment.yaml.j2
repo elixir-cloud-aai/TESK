@@ -29,6 +29,8 @@ spec:
           value: {{ tesk.taskmaster_ftp_secret_name }}
         - name: TESK_API_AUTHORISATION_ENV_SUBGROUP
           value: {{ auth.env_subgroup }}
+        - name: SPRING_PROFILES_ACTIVE
+          value: {{ auth.mode }}
         - name: TESK_API_SWAGGER_OAUTH_CLIENT_ID
           valueFrom:
             secretKeyRef:
