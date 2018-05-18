@@ -27,5 +27,7 @@ spec:
           value: {{ tesk.taskmaster_service_account_name }}
         - name: TESK_API_TASKMASTER_FTP_SECRET_NAME
           value: {{ tesk.taskmaster_ftp_secret_name }}
+        - name: SPRING_PROFILES_ACTIVE
+          value: {{ auth.mode }}
         ports:
         - containerPort: {{ tesk.port }}
