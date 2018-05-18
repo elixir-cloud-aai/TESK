@@ -23,7 +23,7 @@ When API gets a request to get details of a single task or a list of tasks, than
 ### Cancelling a task
 When API gets a request to cancel a task, it labels both Taskmaster's Job and Pod objects with cancelled status. API then uses Job label to determine task's CANCELED status. Pod's label gets populated to Downward API file, which changes Taskmaster listens to. If Taskmaster detects a change in labels, it stops an execution of a currently running  executor and finishes.
 ### Authentication and authorisation
-TESK API expects an access token obtained from Elixir AAI in Authorization Bearer header. For details, please see [Authentication and Authorisation](auth.md)
+TESK supports OAuth2/OIDC to authorise API requests. Authentication and authorisation are optional and can be turned off completely. When turned on, TESK API expects an OIDC access token in Authorization Bearer header. TESK can be integrated with any standard OIDC provider, but the solution has been designed to support Elixir AAI in the first place and the authorisation part relies on Elixir's group model. For details, please see [Authentication and Authorisation](auth.md)
 ### HTTP Error Codes
 TES spec does not define expected behaviour in case of errors. TESK API uses following HTTP codes:
 
@@ -32,7 +32,7 @@ HTTP Status Code | Meaning
 200 | OK - successful request
 400 | Bad request: validation error, cancellation of not running task
 401 | Unauthorized - no access token in request, or the token is invalid
-403 | Forbidden - user is not authorised to perform API call (usually it means, user does not belong to proper Eixir group) 
+403 | Forbidden - user is not authorised to perform API call (usually it means, user does not belong to the required Eixir group) 
 404 | (Task) with a given ID not found
 500 | Something else (possibly configuration) went wrong
 
@@ -50,19 +50,19 @@ then point your browser to [http://localhost:8080](http://localhost:8080), which
 To run from inside Kubernetes, API has to be packaged as a Docker image. Dockerfile is available [here](/Dockerfile).
 Current version of the image is hosted at GCR: `eu.gcr.io/tes-wes/tesk-api:v0.3.0.2`
  
-Deployment descriptors for different K8s environments reside in [TESK core project](https://github.com/EMBL-EBI-TSI/TESK/tree/master/deployment) and description of how to install TESK at Kubernetes (including API) also lives [there](https://github.com/EMBL-EBI-TSI/TESK/blob/master/documentation/deployment.md). Detailed explanation of TESK API environment variables [below](#environment-variables)
+Deployment descriptors for different K8s environments reside in [TESK core project](https://github.com/EMBL-EBI-TSI/TESK/tree/master/deployment) and description of how to install TESK at Kubernetes (including API) also lives [there](https://github.com/EMBL-EBI-TSI/TESK/blob/master/documentation/deployment.md). Detailed explanation of TESK API configuration [below](#externalized-configuration)
 
 Authentication and authorisation at Kubernetes API are done by Kubernetes API Client (not well documented, refer to [source code](https://github.com/kubernetes-client/java/blob/master/util/src/main/java/io/kubernetes/client/util/Config.java) instead). When running API outside of Kubernetes, we used KUBECONFIG file succesfully. When run from within the cluster, service account is used. In both cases (in/external) API needs to run with permissions sufficient to create and query Jobs and Pods. We used built-in `admin` and `edit` roles successfully, more refined roles are on the way. When running from inside of the cluster, service account is defined in `spec.template.spec.serviceAccountName` parameter of [TESK API deployment file](https://github.com/EMBL-EBI-TSI/TESK/blob/master/deployment/ingress/tesk-deployment.yaml.j2)   
 
-### Environment variables
-TESK API can be configured using a set of environment variables. When run from within the cluster, API should be deployed as K8s Deployment such as defined in [TESK Core project](https://github.com/EMBL-EBI-TSI/TESK/blob/master/deployment/ingress/tesk-deployment.yaml.j2) and environment variables should be defined there ( `spec.template.spec.containers[0].env`).
+### Externalized Configuration
+TESK API contains a set of properties listed in [application.properties](/src/main/resources/application.properties) file, that can be changed using any of the methods supported by [Spring Boot](https://docs.spring.io/spring-boot/docs/current/reference/html/boot-features-external-config.html). We usually use environment variables. When run from within the cluster, API should be deployed as K8s Deployment such as defined in [TESK Core project](https://github.com/EMBL-EBI-TSI/TESK/blob/master/deployment/ingress/tesk-deployment.yaml.j2) and environment variables can be defined there ( `spec.template.spec.containers[0].env`).
 The meaning of environment variables:
 
  Environment variable | Meaning
  ------------ | -------------
  `TESK_API_TASKMASTER_SERVICE_ACCOUNT_NAME` | Service account with which each new taskmaster job will be created. Needs to have sufficient privileges granted (default `edit` role can be used). If not set, defaults to `default`.
  `TESK_API_TASKMASTER_IMAGE_VERSION` | Version of taskmaster image, the API will use, when creating new taskmaster jobs. If not set, should default to stable version of taskmaster.
- `TESK_API_TASKMASTER_FILER_IMAGE_VERSION` | Version of filer image, passed on as a parameter to taskmaster. Taskmaster will create Inputs/Outputs filer using the image in this version. If omitted, should default latest stable version.
+ `TESK_API_TASKMASTER_FILER_IMAGE_VERSION` | Version of filer image, passed on as a parameter to taskmaster. Taskmaster will create Inputs/Outputs filer using the image in this version. If omitted, should default to latest stable version.
  `TESK_API_K8S_NAMESPACE` | K8s namespace, where all the Job objects will be created. If omitted, defaults to `default`.
  `TESK_API_TASKMASTER_FTP_SECRET_NAME` | Name of K8s secret storing credentials to a single FTP account. FTP account is used to demonstrate uploading output files to external storage. If ENV variable is set, FTP username and password will be included by API as taskmaster ENV variables. Otherwise (TESK_API_TASKMASTER_FTP_SECRET_NAME env variable not set), TESK should still work, but without the ability to upload files to a private FTP server.
  `TESK_API_AUTHORISATION_*` | A set of env variables configuring authorisation using Elixir group membership
@@ -74,12 +74,5 @@ Current version of TES specification (v0.3) lives locally in the project as a [S
 
 ```mvn clean generate-sources -P generate-swagger```
 
-That will generate new versions of [model](/src/main/java/uk/ac/ebi/tsc/tesk/model) and [API](/src/main/java/uk/ac/ebi/tsc/tesk/api) stub files. As project model objects contain necessary [Bean Validation](http://beanvalidation.org) annotations that need to be manually restored in auto-generated code and problematic `consumes = { "application/json" }` for GET methods need to be removed from auto-generated API interface, manual reconciliation of changes is always necessary after model regeneration.      
-
-
-
-      
-     
-      
-
+That will generate new versions of [model](/src/main/java/uk/ac/ebi/tsc/tesk/model) and [API](/src/main/java/uk/ac/ebi/tsc/tesk/api) stub files. As project model objects contain necessary [Bean Validation](http://beanvalidation.org) annotations that need to be manually restored in auto-generated code and problematic `consumes = { "application/json" }` for GET methods need to be removed from auto-generated API interface, manual reconciliation of changes is always necessary after model regeneration.
     
