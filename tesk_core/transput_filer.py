@@ -218,7 +218,17 @@ def create_ftp_dir(target, ftp):
     logging.error('Unable to create directory '+ftp.pwd()+'/'+basename)
     raise
 
+def file_from_content(filedata):
+  fh = open(filedata['path'], 'w')
+  fh.write(str(filedata['content']))
+  fh.close()
+
+  return 0
+
 def process_file(ttype, filedata):
+  if filedata.get('content') is not None:
+    return file_from_content(filedata)
+
   try:
     protocol = re.match('([a-z]+)://',filedata['url']).group(1)
   except AttributeError:
