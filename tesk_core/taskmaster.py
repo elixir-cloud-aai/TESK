@@ -92,7 +92,7 @@ def init_pvc(data, filer):
     pvc.set_volume_mounts(mounts)
 
     filer.set_volume_mounts(pvc)
-    filerjob = Job(filer.get_spec('inputs'), task_name+'-inputs-filer', args.namespace)
+    filerjob = Job(filer.get_spec('inputs', args.debug), task_name+'-inputs-filer', args.namespace)
 
     global created_jobs
     created_jobs.append(filerjob)
@@ -124,7 +124,7 @@ def run_task(data, filer_version):
 
   # upload files and delete pvc
   if data['volumes'] or data['inputs'] or data['outputs']:
-    filerjob = Job(filer.get_spec('outputs'), task_name+'-outputs-filer', args.namespace)
+    filerjob = Job(filer.get_spec('outputs', args.debug), task_name+'-outputs-filer', args.namespace)
 
     global created_jobs
     created_jobs.append(filerjob)
@@ -133,6 +133,8 @@ def run_task(data, filer_version):
     status = filerjob.run_to_completion(poll_interval, check_cancelled)
     if status != 'Complete':
       exit_cancelled('Got status '+status)
+    else:
+      pvc.delete()
 
 def main(argv):
   parser = argparse.ArgumentParser(description='TaskMaster main module')
@@ -151,9 +153,9 @@ def main(argv):
 
   poll_interval = args.poll_interval
 
-  #loglevel = logging.WARNING
-  #if args.debug:
-  loglevel = logging.DEBUG
+  loglevel = logging.ERROR
+  if args.debug:
+    loglevel = logging.DEBUG
 
   global logger
   logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s', datefmt='%m/%d/%Y %I:%M:%S', level=loglevel)
