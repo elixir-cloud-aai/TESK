@@ -12,7 +12,7 @@ spec:
       labels:
         app: tesk-api
     spec:
-      serviceAccountName: {{ tesk.taskmaster_service_account_name }}
+      serviceAccountName: taskmaster
       containers:
       - name: tesk-api
         image: {{ tesk.image }}
@@ -24,7 +24,7 @@ spec:
         - name: TESK_API_K8S_NAMESPACE
           value: {{ tesk.k8s_namespace }}
         - name: TESK_API_TASKMASTER_SERVICE_ACCOUNT_NAME
-          value: {{ tesk.taskmaster_service_account_name }}
+          value: taskmaster
         - name: TESK_API_TASKMASTER_FTP_SECRET_NAME
           value: {{ tesk.taskmaster_ftp_secret_name }}
         - name: SPRING_PROFILES_ACTIVE
