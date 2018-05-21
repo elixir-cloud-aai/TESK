@@ -30,7 +30,12 @@ cd deployment/openshift
 
 Edit the `config.ini` file, setting up the few variables specific to your deployment.  
 In general, the only variables that have to be edited are just the fields that follow the comment:  
-`# the following variables are specific to each deployment`.
+`# the following variables are specific to each deployment`. Make sure that the variable `auth.mode` is set to `noauth` as in the snippet below or absent from the `config.ini` file. This will switch off authentication via OAuth2 and make testing TESK deployment easier. You can switch on authentication later on (for more on the topic, see [Authentication and Authorisation](https://github.com/EMBL-EBI-TSI/tesk-api/blob/master/auth.md)).  
+```
+[auth]
+# the following variables are specific to each deployment
+mode=noauth
+```
 
 Compile the `yaml` file using the following command:
 
