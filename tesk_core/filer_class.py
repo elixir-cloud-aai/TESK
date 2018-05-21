@@ -27,13 +27,11 @@ class Filer:
                   }
                 }
 
-    #if debug:
-    #TODO: delete for prod
-    self.spec['spec']['template']['spec']['containers'][0]['imagePullPolicy'] = 'Always'
+    if debug:
+      self.spec['spec']['template']['spec']['containers'][0]['imagePullPolicy'] = 'Always'
 
     container = self.spec['spec']['template']['spec']['containers'][0]
     container['env'].append({ "name": "JSON_INPUT", "value": json.dumps(data) })
-    #container['env'].append({ "name": "JSON_INPUT", "value": 'test' })
 
   def set_ftp(self, user, pw):
     env = self.spec['spec']['template']['spec']['containers'][0]['env']
@@ -45,7 +43,11 @@ class Filer:
     tempspec['containers'][0]['volumeMounts'] = pvc.volume_mounts
     tempspec['volumes'] = [ { "name": "task-volume", "persistentVolumeClaim": { "claimName": pvc.name} } ]
 
-  def get_spec(self, mode):
+  def get_spec(self, mode, debug=False):
     self.spec['spec']['template']['spec']['containers'][0]['args'] = [mode, "$(JSON_INPUT)"]
+
+    if debug:
+      self.spec['spec']['template']['spec']['containers'][0]['args'].append('-d')
+
     self.spec['spec']['template']['metadata']['name'] = self.name
     return self.spec
