@@ -6,13 +6,13 @@ TESK API integrates with [Elixir AAI](https://www.elixir-europe.org/services/com
 * have access to a registered Elixir client application, that was assigned - among others - `groupNames` scope.
 
 ## Switching on/off authentication and authorisation
-Authentication and authorisation can be globally switched on and off ifor TESK API using [Spring Profiles](https://docs.spring.io/spring-boot/docs/current/reference/html/boot-features-profiles.html). When default `noauth` profile is active, all enpoints are unauthenticated and all (also previously) created TES tasks are visible to any user. New tasks are labelled as created by `anonymousUser` and no team ownership is assigned to new tasks. With `auth` profile activated, all the rules described below apply. The way to activate each of the profiles is described [here](README.md#externalized-configuration).
+Authentication and authorisation can be globally switched on and off for TESK API using [Spring Profiles](https://docs.spring.io/spring-boot/docs/current/reference/html/boot-features-profiles.html). When the default `noauth` profile is active, all endpoints are unauthenticated and all (also previously) created TES tasks are visible to any user. New tasks are labelled as created by `anonymousUser` and no team ownership is assigned to new tasks. With `auth` profile activated, all the rules described below apply. The way to activate each of the profiles is described [here](README.md#externalized-configuration).
 
 ## Authentication
-TESK API acts as a Resource Server in the OIDC contract, whereas Elixir AAI plays the role of Authorisation Server. All of TESK API endpoints are secured, which means that in order to reach any of the endpoints, the request has to contain valid _access_token_ issued by Elixir AAI, placed in `authorization: Bearer` header. 
+The TESK API acts as a Resource Server in the OIDC contract, whereas Elixir AAI plays the role of Authorization Server. All of TESK API endpoints are secured, which means that in order to reach any of the endpoints, the request has to contain a valid _access_token_ issued by Elixir AAI, placed in `authorization: Bearer` header. 
 
 ### Obtaining a token
-At the moment (subject to change) TESK API does not require, that the access token is obtained using any specific client (application). Also token audience is not currently checked (not clear, if Elixir AAI supports defining token audience). Therefore, TESK API can be presented a token, that is:
+At the moment (subject to change) TESK API does not require the access token to be obtained using any specific client (application). Also the token audience is not currently checked (it is not clear, if Elixir AAI supports defining a token audience). Therefore, a valid token has the following properties:
 * Access token
 * Not expired
 * Obtained by a user using any registered Elixir AAI client
@@ -22,7 +22,7 @@ At the moment (subject to change) TESK API does not require, that the access tok
 * If Elixir AAI introduces groups-clients binding (presenting only those group names to clients, that where mentioned during client registration - currently each client receives all groups, as long as it has the scope `groupNames`), the token will have to be obtained using a client, which can receive those groups that are needed during Authorisation (see [below](#Authorisation))
 
 #### Built-in client
-A valid token can be obtained using an OIDC client built in Swagger UI at TESK API homepage. In order to use the client, it has to be configured, by placing Client ID - registered at Elixir AAI with Implicit Grant - in the API environment variable `TESK_API_SWAGGER_OAUTH_CLIENT_ID` (authorisation code grant also possible, but discouraged). Unless groups-clients relationship is introduced, token obtained using Swagger UI from one environment can be used to make calls to API installed elsewhere.   
+A valid token can be obtained using an OIDC client built in Swagger UI at the TESK API homepage. In order to use the client, it has to be configured, by placing Client ID - registered at Elixir AAI with Implicit Grant - in the API environment variable `TESK_API_SWAGGER_OAUTH_CLIENT_ID` (authorisation code grant also possible, but discouraged). Unless groups-clients relationship is introduced, token obtained using Swagger UI from one environment can be used to make calls to API installed elsewhere.   
 
 ### Token validation
 TESK API validates the token by hitting Elixir AAI `user_info` endpoint on each request and extracting information returned from that endpoint. If user info is returned without error, token is considered valid. Invalid token or lack of thereof in `authorisation: Bearer` header will result in `HTTP 401 Unauthorized` error. 
@@ -31,7 +31,7 @@ TESK API validates the token by hitting Elixir AAI `user_info` endpoint on each 
 We have not tested TESK API integration with a different OIDC provider than Elixir AAI, but since standard Spring OAuth library is used, it should be possible (just point [`security.oauth2.resource.user-info-uri`](#application.properties) to a proper URL), provided that the other Authorization Server provides information about the user in the same format that Elixir does. Otherwise changes to [GroupNamesSecurityExtractor](src/main/java/uk/ac/ebi/tsc/tesk/config/security/GroupNamesSecurityExtractor.java) and [ElixirPrincipalExtractor](src/main/java/uk/ac/ebi/tsc/tesk/config/security/ElixirPrincipalExtractor.java) will be necessary.
 
 ## Authorisation
-TESK API uses Elixir AAI group membership to authorise users. Elixir recognises group managers and members, but only includes information about the latter in `user_info` endpoint response. Therefore nested structure of groups is used by us to reflect different roles of users.
+TESK API uses Elixir AAI group membership to authorise users. Elixir recognises group managers and members, but only includes information about the latter in `user_info` endpoint response. Therefore a nested structure of groups is used by us to reflect different roles of users.
 ### Group structure
 Group level | Example (from our own environments) | Meaning | Multiplicity
 ------------ |---| -------------|---
