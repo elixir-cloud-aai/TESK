@@ -8,10 +8,7 @@ The templates are written using the "Jinja2" syntax and are available in the dep
 
 ## Compiling template
 
-Jinja2 templates are very simple, they can be edit with any text editor, substituting the variables with the syntax `{{ variable }}` with the appropriate `value`, or used in combination with python or other languages.
-
-The simplest way to compile the template is to make use of a Jinja2 Command Line Tool, you can find more information of the suggested one here:
-[shinto-cli](https://github.com/istrategylabs/shinto-cli)
+To compile the template use a Jinja2 Command Line Tool, we suggest [shinto-cli](https://github.com/istrategylabs/shinto-cli).
 
 
 Choose the type of deployment:
@@ -43,7 +40,7 @@ Compile the `yaml` file using the following command:
 j2 -g "*.j2" config.ini
 ```
 
-It will produce a set of file, one for each `.j2` file, present in the local folder, customized using the values present in the `config.ini` file.
+This will produce a set of files, one for each `.j2` file, present in the local folder, customized using the values present in the `config.ini` file.
 
 
 ## Deploy Tesk
@@ -64,7 +61,7 @@ oc create -f .
 
 ### Submit a demo task
 
-Run a `curl` console commen with a POST message:
+Run a `curl` console command with a POST message:
 
 ```
  curl \
@@ -97,7 +94,7 @@ This can be achieved using a web-browser pointing to:
 `[tesk-end-point]/v1/tasks`
 
 This address offers a monitoring page for all the submitted tasks.  
-When a task is successfully completed, the output will contain the task id from previous step together whit the string: `"state": "COMPLETE"`
+When a task is successfully completed, the output will contain the task id from previous step together with the string: `"state": "COMPLETE"`
 
 ```
 {
@@ -113,13 +110,6 @@ When a task is successfully completed, the output will contain the task id from 
 It can take a couple of minutes: just refresh the browser if the state is `"INITIALIZING"` or `"QUEUED"`.
 
 ## Requirements:
-
-### Jinja2 Command Line Tool
-There are many Jinja2 Command Line Tools, but we suggest this one because it provides file globbing: [shinto-cli](https://github.com/istrategylabs/shinto-cli)
-
-```
-pip install shinto-cli
-```
 
 ### OpenShift client
 This is a requirement only if you use OpenShift: [https://github.com/openshift/origin/releases](https://github.com/openshift/origin/releases)
