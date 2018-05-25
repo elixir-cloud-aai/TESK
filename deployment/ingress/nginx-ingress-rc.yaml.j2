@@ -13,6 +13,7 @@ spec:
       labels:
         app: nginx-ingress
     spec:
+      serviceAccountName: nginx-ingress
       containers:
       - image: {{ ingress.nginx_image }}
         name: nginx-ingress
