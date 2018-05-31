@@ -22,15 +22,20 @@ import static uk.ac.ebi.tsc.tesk.util.constant.Constants.ABSOLUTE_PATH_REGEXP;
 @javax.annotation.Generated(value = "io.swagger.codegen.languages.SpringCodegen", date = "2017-11-16T12:59:29.706Z")
 
 public class TesTask   {
+
+  @ApiModelProperty(readOnly = true)
   @JsonProperty("id")
   private String id = null;
 
+  @ApiModelProperty(readOnly = true)
   @JsonProperty("state")
   private TesState state = null;
 
+  @ApiModelProperty(example = "hello tesk")
   @JsonProperty("name")
   private String name = null;
 
+  @ApiModelProperty(example = "An example presenting: Inputs, Outputs, Resources, Stdout, Workdir")
   @JsonProperty("description")
   private String description = null;
 
@@ -47,15 +52,19 @@ public class TesTask   {
   @JsonProperty("executors")
   private List<TesExecutor> executors = null;
 
+  @ApiModelProperty(example = "[\"/tes/temp\"]")
   @JsonProperty("volumes")
   private List<@Pattern(regexp = ABSOLUTE_PATH_REGEXP, message = ABSOLUTE_PATH_MESSAGE) String> volumes = null;
 
+  @ApiModelProperty(example = "{\"Version\": \"5.15\"}")
   @JsonProperty("tags")
   private Map<String, String> tags = null;
 
+  @ApiModelProperty(readOnly = true)
   @JsonProperty("logs")
   private List<TesTaskLog> logs = null;
 
+  @ApiModelProperty(readOnly = true)
   @JsonProperty("creation_time")
   private String creationTime = null;
 

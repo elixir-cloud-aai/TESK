@@ -17,18 +17,23 @@ import javax.validation.constraints.*;
 @javax.annotation.Generated(value = "io.swagger.codegen.languages.SpringCodegen", date = "2017-11-16T12:59:29.706Z")
 
 public class TesResources   {
+  @ApiModelProperty(example = "1")
   @JsonProperty("cpu_cores")
   private Long cpuCores = null;
 
+  @ApiModelProperty(hidden = true)
   @JsonProperty("preemptible")
   private Boolean preemptible = null;
 
+  @ApiModelProperty(example = "2")
   @JsonProperty("ram_gb")
   private Double ramGb = null;
 
+  @ApiModelProperty(example = "0.1")
   @JsonProperty("disk_gb")
   private Double diskGb = null;
 
+  @ApiModelProperty(hidden = true)
   @JsonProperty("zones")
   private List<String> zones = null;
 

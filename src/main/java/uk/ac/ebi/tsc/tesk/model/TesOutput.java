@@ -18,21 +18,26 @@ import static uk.ac.ebi.tsc.tesk.util.constant.Constants.ABSOLUTE_PATH_REGEXP;
 @javax.annotation.Generated(value = "io.swagger.codegen.languages.SpringCodegen", date = "2017-11-16T12:59:29.706Z")
 
 public class TesOutput   {
+  @ApiModelProperty(example = "Dir to FTP")
   @JsonProperty("name")
   private String name = null;
 
+  @ApiModelProperty(example = "Example of uploading a directory to FTP")
   @JsonProperty("description")
   private String description = null;
 
+  @ApiModelProperty(example = "ftp://ftp-private.ebi.ac.uk/upload/examples/tes")
   @NotBlank
   @JsonProperty("url")
   private String url = null;
 
+  @ApiModelProperty(example = "/tes")
   @Pattern(regexp = ABSOLUTE_PATH_REGEXP, message = ABSOLUTE_PATH_MESSAGE)
   @NotBlank
   @JsonProperty("path")
   private String path = null;
 
+  @ApiModelProperty(example = "DIRECTORY")
   @NotNull
   @JsonProperty("type")
   private TesFileType type = null;

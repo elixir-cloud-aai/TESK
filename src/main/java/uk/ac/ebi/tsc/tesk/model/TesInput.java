@@ -19,24 +19,30 @@ import static uk.ac.ebi.tsc.tesk.util.constant.Constants.ABSOLUTE_PATH_REGEXP;
 @javax.annotation.Generated(value = "io.swagger.codegen.languages.SpringCodegen", date = "2017-11-16T12:59:29.706Z")
 @ScriptAssert(lang = "javascript", script = "(_this.url != null && (_this.url.trim().length) > 0) || (_this.content != null && _this.content.length > 0)", message = "URL or content required")
 public class TesInput   {
+  @ApiModelProperty(example = "File from HTTP")
   @JsonProperty("name")
   private String name = null;
 
+  @ApiModelProperty(example = "Downloading a single file from HTTP")
   @JsonProperty("description")
   private String description = null;
 
+  @ApiModelProperty(example = "https://raw.githubusercontent.com/EMBL-EBI-TSI/TESK/master/examples/success/hello.json")
   @JsonProperty("url")
   private String url = null;
 
+  @ApiModelProperty(example = "/tes/input")
   @Pattern(regexp = ABSOLUTE_PATH_REGEXP, message = ABSOLUTE_PATH_MESSAGE)
   @NotBlank
   @JsonProperty("path")
   private String path = null;
 
+  @ApiModelProperty(example = "FILE")
   @NotNull
   @JsonProperty("type")
   private TesFileType type = null;
 
+  @ApiModelProperty(hidden = true)
   @JsonProperty("content")
   private String content = null;
 

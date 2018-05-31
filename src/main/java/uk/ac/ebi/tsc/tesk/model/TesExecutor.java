@@ -21,30 +21,37 @@ import static uk.ac.ebi.tsc.tesk.util.constant.Constants.ABSOLUTE_PATH_REGEXP;
 @javax.annotation.Generated(value = "io.swagger.codegen.languages.SpringCodegen", date = "2017-11-16T12:59:29.706Z")
 
 public class TesExecutor   {
+  @ApiModelProperty(example = "alpine")
   @NotBlank
   @JsonProperty("image")
   private String image = null;
 
   @NotEmpty
+  @ApiModelProperty(example = "[\"sh\", \"-c\",\"cat ./input ; echo Hello $SECRET_PROJECT_NAME\"]")
   @JsonProperty("command")
   private List<String> command = null;
 
+  @ApiModelProperty(example = "/tes")
   @Pattern(regexp = ABSOLUTE_PATH_REGEXP, message = ABSOLUTE_PATH_MESSAGE)
   @JsonProperty("workdir")
   private String workdir = null;
 
+  @ApiModelProperty(hidden = true)
   @Pattern(regexp = ABSOLUTE_PATH_REGEXP, message = ABSOLUTE_PATH_MESSAGE)
   @JsonProperty("stdin")
   private String stdin = null;
 
+  @ApiModelProperty(example = "/tes/output")
   @Pattern(regexp = ABSOLUTE_PATH_REGEXP, message = ABSOLUTE_PATH_MESSAGE)
   @JsonProperty("stdout")
   private String stdout = null;
 
+  @ApiModelProperty(example = "/tes/err")
   @Pattern(regexp = ABSOLUTE_PATH_REGEXP, message = ABSOLUTE_PATH_MESSAGE)
   @JsonProperty("stderr")
   private String stderr = null;
 
+  @ApiModelProperty(example = "{\"SECRET_PROJECT_NAME\": \"TESK\"}")
   @JsonProperty("env")
   private Map<String, String> env = null;
 
