@@ -21,15 +21,15 @@ class Transput:
 
   def upload(self):
     if self.ftype == 'FILE':
-      self.upload_file()
+      return self.upload_file()
     if self.ftype == 'DIRECTORY':
-      self.upload_dir()
+      return self.upload_dir()
 
   def download(self):
     if self.ftype == 'FILE':
-      self.download_file()
+      return self.download_file()
     if self.ftype == 'DIRECTORY':
-      self.download_dir()
+      return self.download_dir()
 
   def delete(self):
     pass
@@ -43,6 +43,7 @@ class HTTPTransput(Transput):
 
     if r.status_code < 200 or r.status_code >= 300:
       logging.error('Got status code: '+str(r.status_code))
+      logging.error(r.text)
       return 1
     else:
       logging.debug('OK, got status code: '+str(r.status_code))
@@ -58,6 +59,7 @@ class HTTPTransput(Transput):
 
     if r.status_code < 200 or r.status_code >= 300:
       logging.error('Got status code: '+str(r.status_code))
+      logging.error(r.text)
       return 1
     else:
       logging.debug('OK, got status code: '+str(r.status_code))
@@ -237,13 +239,16 @@ def process_file(ttype, filedata):
 
   if protocol == 'ftp':
     t = FTPTransput(filedata['path'], filedata['url'], filedata['type'])
-  if protocol == 'http' or protocol == 'https':
+  elif protocol == 'http' or protocol == 'https':
     t = HTTPTransput(filedata['path'], filedata['url'], filedata['type'])
+  else:
+    logging.error('Unknown protocol '+protocol)
+    return 1
 
   if ttype == 'inputs':
-    t.download()
+    return t.download()
   if ttype == 'outputs':
-    t.upload()
+    return t.upload()
 
   t.delete()
 
