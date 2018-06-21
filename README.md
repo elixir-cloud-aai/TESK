@@ -1,3 +1,4 @@
+[![Build Status](https://travis-ci.com/EMBL-EBI-TSI/tesk-api.svg?branch=master)](https://travis-ci.com/EMBL-EBI-TSI/tesk-api)
 # TESK API
 
 The API part of the TESK project. For a general overview of the project, please visit [TESK core project page](https://github.com/EMBL-EBI-TSI/TESK)
