@@ -9,5 +9,6 @@ class JobTestCase(unittest2.TestCase):
         self.assertEqual(job.name, 'task-job')
         self.assertEqual(job.namespace, 'default')
 
+
 if __name__ == '__main__':
     unittest2.main()

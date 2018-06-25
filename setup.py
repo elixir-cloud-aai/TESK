@@ -51,7 +51,12 @@ setup(
     # What does your project relate to?
     keywords='tes kubernetes ebi',
 
-    packages=find_packages(exclude=['examples', 'docs', 'tests', 'containers']),
+    packages=find_packages(
+        exclude=[
+            'examples',
+            'docs',
+            'tests',
+            'containers']),
 
     scripts=[
         'tesk_core/taskmaster.py',
