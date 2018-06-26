@@ -3,8 +3,12 @@ kind: Ingress
 metadata:
   name: ingress-rules
 spec:
+  tls:
+  - hosts:
+    - {{ ingress.host_name }}
+    secretName: {{ ingress.tls_secret_name }}
   rules:
-  - host: tesk.ingress.com
+  - host: {{ ingress.host_name }}
     http:
       paths:
       - path: /
