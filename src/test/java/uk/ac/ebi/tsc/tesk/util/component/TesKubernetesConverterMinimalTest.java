@@ -3,7 +3,8 @@ package uk.ac.ebi.tsc.tesk.util.component;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
 import io.kubernetes.client.models.V1Job;
-import org.junit.Assert;
+import io.kubernetes.client.models.V1PodList;
+import org.hamcrest.CoreMatchers;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -21,22 +22,29 @@ import org.springframework.core.io.Resource;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.util.StringUtils;
+import uk.ac.ebi.tsc.tesk.TestUtils;
 import uk.ac.ebi.tsc.tesk.config.GsonConfig;
 import uk.ac.ebi.tsc.tesk.config.KubernetesObjectsSupplier;
 import uk.ac.ebi.tsc.tesk.config.TaskmasterEnvProperties;
 import uk.ac.ebi.tsc.tesk.config.security.User;
+import uk.ac.ebi.tsc.tesk.model.TesState;
 import uk.ac.ebi.tsc.tesk.model.TesTask;
 import uk.ac.ebi.tsc.tesk.util.constant.Constants;
+import uk.ac.ebi.tsc.tesk.util.constant.K8sConstants;
+import uk.ac.ebi.tsc.tesk.util.data.AbstractTaskBuilder;
+import uk.ac.ebi.tsc.tesk.util.data.SingleTaskBuilder;
 
 import java.io.*;
 import java.util.function.Supplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.mockito.BDDMockito.given;
-import static org.hamcrest.Matchers.is;
+import static uk.ac.ebi.tsc.tesk.util.constant.Constants.LABEL_TASKSTATE_KEY;
+import static uk.ac.ebi.tsc.tesk.util.constant.Constants.LABEL_TASKSTATE_VALUE_CANC;
 
 
 /**
@@ -147,4 +155,139 @@ public class TesKubernetesConverterMinimalTest {
         //comparing fields of resulting Job object and pattern Job objects other those with JSON values, which were cleared in previous lines (JSON strings do not have to be exactly equal to pattern).
         assertEquals(expectedJob, outputJob);
     }
+
+    private AbstractTaskBuilder prepareBaseTaskBuider(boolean withExecutors, boolean withPods) throws IOException {
+        AbstractTaskBuilder taskBuilder = new SingleTaskBuilder();
+        taskBuilder.addJob(this.gson.fromJson(TestUtils.getFileContentFromResources("fromK8sToTes_minimal/taskmaster.json"), V1Job.class));
+        if (withExecutors) {
+            taskBuilder.addJob(this.gson.fromJson(TestUtils.getFileContentFromResources("fromK8sToTes_minimal/executor_00.json"), V1Job.class));
+            taskBuilder.addJob(this.gson.fromJson(TestUtils.getFileContentFromResources("fromK8sToTes_minimal/executor_01.json"), V1Job.class));
+        }
+        if (withPods) {
+            taskBuilder.addPodList(this.gson.fromJson(TestUtils.getFileContentFromResources("fromK8sToTes_minimal/taskmaster_pods.json"), V1PodList.class).getItems());
+            taskBuilder.addPodList(this.gson.fromJson(TestUtils.getFileContentFromResources("fromK8sToTes_minimal/executor_pods.json"), V1PodList.class).getItems());
+        }
+        return taskBuilder;
+    }
+
+    private TesTask prepareBaseExpectedTask() throws IOException {
+        return this.objectMapper.readValue(TestUtils.getFileContentFromResources("fromK8sToTes_minimal/task.json"), TesTask.class);
+    }
+
+    @Test
+    public void fromK8sToTask_complete() throws IOException {
+        AbstractTaskBuilder taskBuilder = this.prepareBaseTaskBuider(true, false);
+        taskBuilder.getTask().getTaskmaster().getJob().getStatus().succeeded(1);
+        taskBuilder.getTask().getLastExecutor().get().getJob().getStatus().succeeded(1);
+        TesTask expectedTask = this.prepareBaseExpectedTask();
+        expectedTask.setState(TesState.COMPLETE);
+        TesTask outputTask = this.converter.fromK8sJobsToTesTaskMinimal(taskBuilder.getTask(), false);
+        assertThat(outputTask, CoreMatchers.is(expectedTask));
+    }
+
+    @Test
+    public void fromK8sToTask_list() throws IOException {
+        AbstractTaskBuilder taskBuilder = this.prepareBaseTaskBuider(true, false);
+        taskBuilder.getTask().getTaskmaster().getJob().getStatus().succeeded(1);
+        taskBuilder.getTask().getLastExecutor().get().getJob().getStatus().succeeded(1);
+        TesTask expectedTask = this.prepareBaseExpectedTask();
+        expectedTask.setState(TesState.COMPLETE);
+        expectedTask.setLogs(null);
+        TesTask outputTask = this.converter.fromK8sJobsToTesTaskMinimal(taskBuilder.getTask(), true);
+        assertThat(outputTask, CoreMatchers.is(expectedTask));
+    }
+
+    @Test
+    public void fromK8sToTask_cancelled() throws IOException {
+        //only taskmaster job matters
+        AbstractTaskBuilder taskBuilder = this.prepareBaseTaskBuider(false, false);
+        taskBuilder.getTask().getTaskmaster().getJob().getMetadata().getLabels().putIfAbsent(LABEL_TASKSTATE_KEY, LABEL_TASKSTATE_VALUE_CANC);
+        TesTask expectedTask = this.prepareBaseExpectedTask();
+        expectedTask.setState(TesState.CANCELED);
+        TesTask outputTask = this.converter.fromK8sJobsToTesTaskMinimal(taskBuilder.getTask(), false);
+        assertThat(outputTask, CoreMatchers.is(expectedTask));
+    }
+
+    @Test
+    public void fromK8sToTask_running() throws IOException {
+        AbstractTaskBuilder taskBuilder = this.prepareBaseTaskBuider(true, false);
+        taskBuilder.getTask().getTaskmaster().getJob().getStatus().active(1);
+        TesTask expectedTask = this.prepareBaseExpectedTask();
+        expectedTask.setState(TesState.RUNNING);
+        TesTask outputTask = this.converter.fromK8sJobsToTesTaskMinimal(taskBuilder.getTask(), false);
+        assertThat(outputTask, CoreMatchers.is(expectedTask));
+    }
+
+    @Test
+    public void fromK8sToTask_queued_taskmaster() throws IOException {
+        AbstractTaskBuilder taskBuilder = this.prepareBaseTaskBuider(false, true);
+        taskBuilder.getTask().getTaskmaster().getFirstPod().getStatus().setPhase(K8sConstants.PodPhase.PENDING.getCode());
+        TesTask expectedTask = this.prepareBaseExpectedTask();
+        expectedTask.setState(TesState.QUEUED);
+        TesTask outputTask = this.converter.fromK8sJobsToTesTaskMinimal(taskBuilder.getTask(), false);
+        assertThat(outputTask, CoreMatchers.is(expectedTask));
+    }
+
+    @Test
+    public void fromK8sToTask_queued_executor() throws IOException {
+        AbstractTaskBuilder taskBuilder = this.prepareBaseTaskBuider(true, true);
+        taskBuilder.getTask().getLastExecutor().get().getFirstPod().getStatus().setPhase(K8sConstants.PodPhase.PENDING.getCode());
+        TesTask expectedTask = this.prepareBaseExpectedTask();
+        expectedTask.setState(TesState.QUEUED);
+        TesTask outputTask = this.converter.fromK8sJobsToTesTaskMinimal(taskBuilder.getTask(), false);
+        assertThat(outputTask, CoreMatchers.is(expectedTask));
+    }
+
+    @Test
+    public void fromK8sToTask_system_error_1() throws IOException {
+        AbstractTaskBuilder taskBuilder = this.prepareBaseTaskBuider(false, false);
+        TesTask expectedTask = this.prepareBaseExpectedTask();
+        expectedTask.setState(TesState.SYSTEM_ERROR);
+        TesTask outputTask = this.converter.fromK8sJobsToTesTaskMinimal(taskBuilder.getTask(), false);
+        assertThat(outputTask, CoreMatchers.is(expectedTask));
+    }
+
+    @Test
+    public void fromK8sToTask_system_error_no_executors() throws IOException {
+        AbstractTaskBuilder taskBuilder = this.prepareBaseTaskBuider(false, false);
+        taskBuilder.getTask().getTaskmaster().getJob().getStatus().succeeded(1);
+        TesTask expectedTask = this.prepareBaseExpectedTask();
+        expectedTask.setState(TesState.SYSTEM_ERROR);
+        TesTask outputTask = this.converter.fromK8sJobsToTesTaskMinimal(taskBuilder.getTask(), false);
+        assertThat(outputTask, CoreMatchers.is(expectedTask));
+    }
+
+    @Test
+    public void fromK8sToTask_system_error_mismatch() throws IOException {
+        AbstractTaskBuilder taskBuilder = this.prepareBaseTaskBuider(true, false);
+        taskBuilder.getTask().getTaskmaster().getJob().getStatus().succeeded(1);
+        taskBuilder.getTask().getLastExecutor().get().getJob().getStatus().active(1);
+        TesTask expectedTask = this.prepareBaseExpectedTask();
+        expectedTask.setState(TesState.SYSTEM_ERROR);
+        TesTask outputTask = this.converter.fromK8sJobsToTesTaskMinimal(taskBuilder.getTask(), false);
+        assertThat(outputTask, CoreMatchers.is(expectedTask));
+    }
+
+    @Test
+    public void fromK8sToTask_executor_error() throws IOException {
+        AbstractTaskBuilder taskBuilder = this.prepareBaseTaskBuider(true, false);
+        taskBuilder.getTask().getTaskmaster().getJob().getStatus().succeeded(1);
+        taskBuilder.getTask().getLastExecutor().get().getJob().getStatus().failed(1);
+        TesTask expectedTask = this.prepareBaseExpectedTask();
+        expectedTask.setState(TesState.EXECUTOR_ERROR);
+        TesTask outputTask = this.converter.fromK8sJobsToTesTaskMinimal(taskBuilder.getTask(), false);
+        assertThat(outputTask, CoreMatchers.is(expectedTask));
+    }
+
+    @Test
+    public void fromK8sToTask_initializing() throws IOException {
+        AbstractTaskBuilder taskBuilder = this.prepareBaseTaskBuider(false, false);
+        taskBuilder.getTask().getTaskmaster().getJob().getStatus().active(1);
+        TesTask expectedTask = this.prepareBaseExpectedTask();
+        expectedTask.setState(TesState.INITIALIZING);
+        TesTask outputTask = this.converter.fromK8sJobsToTesTaskMinimal(taskBuilder.getTask(), false);
+        assertThat(outputTask, CoreMatchers.is(expectedTask));
+    }
+
+
 }

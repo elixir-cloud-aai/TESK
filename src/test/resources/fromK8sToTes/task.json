@@ -1,0 +1,69 @@
+{
+  "id": "task-9ef9856b",
+  "state": "COMPLETE",
+  "name": "hello tesk",
+  "description": "An example presenting: Inputs, Outputs, Resources, Stdout, Workdir",
+  "inputs": [
+    {
+      "name": "File from HTTP",
+      "description": "Downloading a single file from HTTP",
+      "url": "https://raw.githubusercontent.com/EMBL-EBI-TSI/TESK/master/examples/success/hello.json",
+      "path": "/tes/input",
+      "type": "FILE"
+    }
+  ],
+  "outputs": [
+    {
+      "name": "Dir to FTP",
+      "description": "Example of uploading a directory to FTP",
+      "url": "ftp://ftp-private.ebi.ac.uk/upload/examples/tes",
+      "path": "/tes",
+      "type": "DIRECTORY"
+    }
+  ],
+  "resources": {
+    "cpu_cores": 1,
+    "ram_gb": 2,
+    "disk_gb": 0.1
+  },
+  "executors": [
+    {
+      "image": "alpine",
+      "command": [
+        "sh",
+        "-c",
+        "cat ./input ; echo Hello $SECRET_PROJECT_NAME"
+      ],
+      "workdir": "/tes",
+      "stdout": "/tes/output",
+      "stderr": "/tes/err",
+      "env": {
+        "SECRET_PROJECT_NAME": "TESK"
+      }
+    }
+  ],
+  "volumes": [
+    "/tes/temp"
+  ],
+  "tags": {
+    "Version": "5.15"
+  },
+  "logs": [
+    {
+      "logs": [
+        {
+          "start_time": "2018-05-31T09:23:15.000Z",
+          "end_time": "2018-05-31T09:23:54.000Z",
+          "exit_code": 123
+        }
+      ],
+      "metadata": {
+        "GROUP_NAME": "TEST_GROUP",
+        "USER_ID": "TEST_USER"
+      },
+      "start_time": "2018-05-31T09:22:57.000Z",
+      "end_time": "2018-05-31T09:24:46.000Z"
+    }
+  ],
+  "creation_time": "2018-05-31T09:21:57.000Z"
+}

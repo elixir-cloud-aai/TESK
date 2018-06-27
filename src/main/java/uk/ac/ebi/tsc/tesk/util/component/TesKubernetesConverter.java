@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
 import io.kubernetes.client.models.*;
+import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.ISODateTimeFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,9 +24,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static uk.ac.ebi.tsc.tesk.util.constant.Constants.*;
-import static uk.ac.ebi.tsc.tesk.util.constant.K8sConstants.RESOURCE_CPU_KEY;
-import static uk.ac.ebi.tsc.tesk.util.constant.K8sConstants.RESOURCE_MEM_KEY;
-import static uk.ac.ebi.tsc.tesk.util.constant.K8sConstants.RESOURCE_MEM_UNIT;
+import static uk.ac.ebi.tsc.tesk.util.constant.K8sConstants.*;
 
 /**
  * @author Ania Niewielska <aniewielska@ebi.ac.uk>
@@ -46,6 +45,8 @@ public class TesKubernetesConverter {
     private final Gson gson;
 
     private enum JOB_STATUS {ACTIVE, SUCCEEDED, FAILED}
+
+    private static final DateTimeFormatter DATE_FORMATTER = ISODateTimeFormat.dateTime().withZoneUTC();
 
     public TesKubernetesConverter(@Qualifier("executor") Supplier<V1Job> executorTemplateSupplier, @Qualifier("taskmaster")
             Supplier<V1Job> taskmasterTemplateSupplier, ObjectMapper objectMapper, Gson gson) {
@@ -227,8 +228,8 @@ public class TesKubernetesConverter {
         TesExecutorLog log = new TesExecutorLog();
         V1Job executorJob = executor.getJob();
         //TODO - better return controller startTime, when possible (now it behaves as if started, even if it is pending)
-        log.setStartTime(Optional.ofNullable(executorJob.getStatus().getStartTime()).map(time -> ISODateTimeFormat.dateTime().print(time)).orElse(null));
-        log.setEndTime(Optional.ofNullable(executorJob.getStatus().getCompletionTime()).map(time -> ISODateTimeFormat.dateTime().print(time)).orElse(null));
+        log.setStartTime(Optional.ofNullable(executorJob.getStatus().getStartTime()).map(DATE_FORMATTER::print).orElse(null));
+        log.setEndTime(Optional.ofNullable(executorJob.getStatus().getCompletionTime()).map(DATE_FORMATTER::print).orElse(null));
         if (executor.hasPods()) {
             log.setExitCode(Optional.ofNullable(executor.getFirstPod().getStatus()).
                     map(V1PodStatus::getContainerStatuses).
@@ -263,13 +264,14 @@ public class TesKubernetesConverter {
 
     /**
      * Extracts basic view of TesTask from taskMaster's and executors' job and pod objects
+     *
      * @param nullifyInputContent - true, if input.content has to be removed from the result (in BASIC view)
      */
     public TesTask fromK8sJobsToTesTaskBasic(Task taskmasterWithExecutors, boolean nullifyInputContent) {
         TesTask task = new TesTask();
         V1Job taskMasterJob = taskmasterWithExecutors.getTaskmaster().getJob();
         V1ObjectMeta taskMasterJobMetadata = taskMasterJob.getMetadata();
-        String inputJson = Optional.ofNullable(taskMasterJobMetadata.getAnnotations()).map(ann->ann.get(ANN_JSON_INPUT_KEY)).orElse("");
+        String inputJson = Optional.ofNullable(taskMasterJobMetadata.getAnnotations()).map(ann -> ann.get(ANN_JSON_INPUT_KEY)).orElse("");
         try {
             task = this.objectMapper.readValue(inputJson, TesTask.class);
             if (nullifyInputContent && task.getInputs() != null) {
@@ -280,21 +282,22 @@ public class TesKubernetesConverter {
         }
         task.setId(taskMasterJobMetadata.getName());
         task.setState(this.extractStateFromK8sJobs(taskmasterWithExecutors));
-        task.setCreationTime(ISODateTimeFormat.dateTime().print(taskMasterJobMetadata.getCreationTimestamp()));
+        task.setCreationTime(DATE_FORMATTER.print(taskMasterJobMetadata.getCreationTimestamp()));
         TesTaskLog log = new TesTaskLog();
         task.addLogsItem(log);
         log.putMetadataItem("USER_ID", taskMasterJobMetadata.getLabels().get(LABEL_USERID_KEY));
         if (taskMasterJobMetadata.getLabels().containsKey(LABEL_GROUPNAME_KEY)) {
             log.putMetadataItem("GROUP_NAME", taskMasterJobMetadata.getLabels().get(LABEL_GROUPNAME_KEY));
         }
-        log.setStartTime(Optional.ofNullable(taskMasterJob.getStatus().getStartTime()).map(time -> ISODateTimeFormat.dateTime().print(time)).orElse(null));
-        log.setEndTime(Optional.ofNullable(taskMasterJob.getStatus().getCompletionTime()).map(time -> ISODateTimeFormat.dateTime().print(time)).orElse(null));
+        log.setStartTime(Optional.ofNullable(taskMasterJob.getStatus().getStartTime()).map(DATE_FORMATTER::print).orElse(null));
+        log.setEndTime(Optional.ofNullable(taskMasterJob.getStatus().getCompletionTime()).map(DATE_FORMATTER::print).orElse(null));
         for (Job executorJob : taskmasterWithExecutors.getExecutors()) {
             TesExecutorLog executorLog = this.extractExecutorLogFromK8sJobAndPod(executorJob);
             task.getLogs().get(0).addLogsItem(executorLog);
         }
         return task;
     }
+
     public Optional<String> getNameOfFirstRunningPod(V1PodList podList) {
         return podList.getItems().stream().filter(pod -> "Running".equals(pod.getStatus().getPhase())).findFirst().map(pod -> pod.getMetadata().getName());
     }

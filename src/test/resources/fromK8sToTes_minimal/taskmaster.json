@@ -1,0 +1,20 @@
+{
+  "metadata": {
+    "labels": {
+      "creator-group-name": "TEST_GROUP",
+      "creator-user-id": "TEST_USER",
+      "job-type": "taskmaster"
+    },
+    "name": "task-9ef9856b"
+  },
+  "spec": {
+    "selector": {
+      "matchLabels": {
+        "controller-uid": "34a36c28-64b4-11e8-a06f-fa163ecf0042"
+      }
+    }
+  },
+  "status": {
+
+  }
+}

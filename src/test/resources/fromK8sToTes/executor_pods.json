@@ -1,0 +1,24 @@
+{
+  "items": [
+    {
+      "metadata": {
+        "labels": {
+          "controller-uid": "3f396352-64b4-11e8-a06f-fa163ecf0042"
+        },
+        "name": "task-9ef9856b-ex-00-5t8b4"
+      },
+      "status": {
+        "containerStatuses": [
+          {
+            "state": {
+              "terminated": {
+                "exitCode": 123
+              }
+            }
+          }
+        ],
+        "phase": "Succeeded_but_not_checked"
+      }
+    }
+  ]
+}

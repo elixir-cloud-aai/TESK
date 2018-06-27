@@ -1,0 +1,22 @@
+{
+  "metadata": {
+    "labels": {
+      "executor-no": "0",
+      "job-type": "executor",
+      "taskmaster-name": "task-9ef9856b"
+    },
+    "name": "task-9ef9856b-ex-00"
+  },
+  "spec": {
+    "selector": {
+      "matchLabels": {
+        "controller-uid": "3f396352-64b4-11e8-a06f-fa163ecf0042"
+      }
+    }
+  },
+  "status": {
+    "completionTime": "2018-05-31T09:23:54Z",
+    "startTime": "2018-05-31T09:23:15Z",
+    "succeeded": 1
+  }
+}

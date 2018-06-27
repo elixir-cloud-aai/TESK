@@ -1,0 +1,26 @@
+{
+  "metadata": {
+    "annotations": {
+      "json-input": "{\n  \"name\" : \"hello tesk\",\n  \"description\" : \"An example presenting: Inputs, Outputs, Resources, Stdout, Workdir\",\n  \"inputs\" : [ {\n    \"name\" : \"File from HTTP\",\n    \"description\" : \"Downloading a single file from HTTP\",\n    \"url\" : \"https://raw.githubusercontent.com/EMBL-EBI-TSI/TESK/master/examples/success/hello.json\",\n    \"path\" : \"/tes/input\",\n    \"type\" : \"FILE\"\n  } ],\n  \"outputs\" : [ {\n    \"name\" : \"Dir to FTP\",\n    \"description\" : \"Example of uploading a directory to FTP\",\n    \"url\" : \"ftp://ftp-private.ebi.ac.uk/upload/examples/tes\",\n    \"path\" : \"/tes\",\n    \"type\" : \"DIRECTORY\"\n  } ],\n  \"resources\" : {\n    \"cpu_cores\" : 1,\n    \"ram_gb\" : 2.0,\n    \"disk_gb\" : 0.1\n  },\n  \"executors\" : [ {\n    \"image\" : \"alpine\",\n    \"command\" : [ \"sh\", \"-c\", \"cat ./input ; echo Hello $SECRET_PROJECT_NAME\" ],\n    \"workdir\" : \"/tes\",\n    \"stdout\" : \"/tes/output\",\n    \"stderr\" : \"/tes/err\",\n    \"env\" : {\n      \"SECRET_PROJECT_NAME\" : \"TESK\"\n    }\n  } ],\n  \"volumes\" : [ \"/tes/temp\" ],\n  \"tags\" : {\n    \"Version\" : \"5.15\"\n  }\n}"
+    },
+    "creationTimestamp": "2018-05-31T09:21:57Z",
+    "labels": {
+      "creator-group-name": "TEST_GROUP",
+      "creator-user-id": "TEST_USER",
+      "job-type": "taskmaster"
+    },
+    "name": "task-9ef9856b"
+  },
+  "spec": {
+    "selector": {
+      "matchLabels": {
+        "controller-uid": "34a36c28-64b4-11e8-a06f-fa163ecf0042"
+      }
+    }
+  },
+  "status": {
+    "completionTime": "2018-05-31T09:24:46Z",
+    "startTime": "2018-05-31T09:22:57Z",
+    "succeeded": 1
+  }
+}

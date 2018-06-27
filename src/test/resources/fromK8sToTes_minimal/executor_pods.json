@@ -1,0 +1,24 @@
+{
+  "items": [
+    {
+      "metadata": {
+        "labels": {
+          "controller-uid": "3f396352-64b4-11e8-a06f-fa163ecf0042"
+        }
+      },
+      "status": {
+        "phase": "anything"
+      }
+    },
+    {
+      "metadata": {
+        "labels": {
+          "controller-uid": "3f396352-64b4-11e8-a06f-fa163ecf0099"
+        }
+      },
+      "status": {
+        "phase": "anything"
+      }
+    }
+  ]
+}
