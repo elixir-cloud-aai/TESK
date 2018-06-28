@@ -29,8 +29,7 @@ import uk.ac.ebi.tsc.tesk.config.security.User;
 import uk.ac.ebi.tsc.tesk.model.TesState;
 import uk.ac.ebi.tsc.tesk.model.TesTask;
 import uk.ac.ebi.tsc.tesk.util.constant.Constants;
-import uk.ac.ebi.tsc.tesk.util.data.AbstractTaskBuilder;
-import uk.ac.ebi.tsc.tesk.util.data.SingleTaskBuilder;
+import uk.ac.ebi.tsc.tesk.util.data.TaskBuilder;
 
 import java.io.*;
 import java.util.function.Supplier;
@@ -184,8 +183,8 @@ public class TesKubernetesConverterTest {
         assertEquals(expectedJob, outputJob);
     }
 
-    private AbstractTaskBuilder prepareBaseTaskBuider() throws IOException {
-        AbstractTaskBuilder taskBuilder = new SingleTaskBuilder();
+    private TaskBuilder prepareBaseTaskBuider() throws IOException {
+        TaskBuilder taskBuilder = TaskBuilder.newSingleTask();
         taskBuilder.addJob(this.gson.fromJson(TestUtils.getFileContentFromResources("fromK8sToTes/taskmaster.json"), V1Job.class));
         taskBuilder.addJob(this.gson.fromJson(TestUtils.getFileContentFromResources("fromK8sToTes/executor.json"), V1Job.class));
         taskBuilder.addPodList(this.gson.fromJson(TestUtils.getFileContentFromResources("fromK8sToTes/executor_pods.json"), V1PodList.class).getItems());
@@ -198,7 +197,7 @@ public class TesKubernetesConverterTest {
 
     @Test
     public void fromK8sToTask() throws IOException {
-        AbstractTaskBuilder taskBuilder = this.prepareBaseTaskBuider();
+        TaskBuilder taskBuilder = this.prepareBaseTaskBuider();
         TesTask expectedTask = this.prepareBaseExpectedTask();
         TesTask outputTask = this.converter.fromK8sJobsToTesTaskBasic(taskBuilder.getTask(), true);
         assertThat(outputTask, is(expectedTask));
@@ -206,7 +205,7 @@ public class TesKubernetesConverterTest {
 
     @Test
     public void fromK8sToTask_cancelled() throws IOException {
-        AbstractTaskBuilder taskBuilder = this.prepareBaseTaskBuider();
+        TaskBuilder taskBuilder = this.prepareBaseTaskBuider();
         taskBuilder.getTask().getTaskmaster().getJob().getMetadata().getLabels().putIfAbsent(LABEL_TASKSTATE_KEY, LABEL_TASKSTATE_VALUE_CANC);
         TesTask expectedTask = this.prepareBaseExpectedTask();
         expectedTask.setState(TesState.CANCELED);

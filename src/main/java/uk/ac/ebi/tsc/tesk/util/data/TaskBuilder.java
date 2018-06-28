@@ -9,22 +9,34 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static uk.ac.ebi.tsc.tesk.util.constant.Constants.LABEL_JOBTYPE_KEY;
-import static uk.ac.ebi.tsc.tesk.util.constant.Constants.LABEL_JOBTYPE_VALUE_EXEC;
-import static uk.ac.ebi.tsc.tesk.util.constant.Constants.LABEL_JOBTYPE_VALUE_TASKM;
+import static uk.ac.ebi.tsc.tesk.util.constant.Constants.*;
 
 /**
  * @author Ania Niewielska <aniewielska@ebi.ac.uk>
  * <p>
- * Base class for tools aimed at building Kubernetes object structure of a task,
+ * Part of the toolset aimed at building Kubernetes object structure of a task or a list of tasks,
  * by gradually adding to it objects returned by calls to Kubernetes API (jobs and pods).
  * This class takes care of matching jobs with corresponding pods and holds a flat collection (mapped by name)
  * of resulting {@link Job} objects (can be both taskmasters and executors belonging to the same or different task).
- * Implementing classes are responsible of creating, storing and maintaining the actual {@link Task} object
- * or {@link Task} object's list
- * by implementing {@link AbstractTaskBuilder#addTaskMasterJob(Job)} and {@link AbstractTaskBuilder#addExecutorJob(Job)}}.
+ * Accepts a BuildStrategy {@link BuildStrategy}, which implementing classes are responsible of creating,
+ * storing and maintaining the actual {@link Task} object or {@link Task} object's list
+ * by implementing {@link BuildStrategy#addTaskMasterJob(Job)} and {@link BuildStrategy#addExecutorJob(Job)}}.
  */
-public abstract class AbstractTaskBuilder {
+public class TaskBuilder {
+
+    public static TaskBuilder newSingleTask() {
+        return new TaskBuilder(new SingleTaskStrategy());
+    }
+
+    public static TaskBuilder newTaskList() {
+        return new TaskBuilder(new TaskListStrategy());
+    }
+
+    private final BuildStrategy buildStrategy;
+
+    TaskBuilder(BuildStrategy buildStrategy) {
+        this.buildStrategy = buildStrategy;
+    }
 
     /**
      * All jobs - both taskmasters and executors, can belong to different tasks, mapped by name.
@@ -36,43 +48,24 @@ public abstract class AbstractTaskBuilder {
      * Adds single job to the composite. Recognizes the type (taskmaster/executor) by label
      * and calls appropriate storage method.
      */
-    public AbstractTaskBuilder addJob(V1Job job) {
+    public TaskBuilder addJob(V1Job job) {
         Job wrappedJob = new Job(job);
         if (LABEL_JOBTYPE_VALUE_TASKM.equals(job.getMetadata().getLabels().get(LABEL_JOBTYPE_KEY))) {
-            this.addTaskMasterJob(wrappedJob);
+            this.buildStrategy.addTaskMasterJob(wrappedJob);
         } else if (LABEL_JOBTYPE_VALUE_EXEC.equals(job.getMetadata().getLabels().get(LABEL_JOBTYPE_KEY))) {
-            this.addExecutorJob(wrappedJob);
+            this.buildStrategy.addExecutorJob(wrappedJob);
         } else {
-            this.addOutputFilerJob(wrappedJob);
+            this.buildStrategy.addOutputFilerJob(wrappedJob);
         }
         this.allJobsByName.putIfAbsent(job.getMetadata().getName(), wrappedJob);
         return this;
     }
 
-    /**
-     * Implementing method should optionally filter and than place
-     * the passed taskmaster's job object in the resulting structure.
-     */
-    protected abstract void addTaskMasterJob(Job taskmasterJob);
-
-    /**
-     * Implementing method should optionally filter and than place
-     * the passed executor's job object in the resulting structure
-     * (and match it to appropriate taskmaster)
-     */
-    protected abstract void addExecutorJob(Job executorJob);
-
-    /**
-     * Implementing method should filter and than place
-     * the passed filer's job object in the resulting structure
-     * (and match it to appropriate taskmaster)
-     */
-    protected abstract void addOutputFilerJob(Job filerJob);
 
     /**
      * Adds a list of jobs to the composite.
      */
-    public AbstractTaskBuilder addJobList(List<V1Job> jobs) {
+    public TaskBuilder addJobList(List<V1Job> jobs) {
         for (V1Job job : jobs) {
             this.addJob(job);
         }
@@ -85,7 +78,7 @@ public abstract class AbstractTaskBuilder {
      * If there is a match, a pod is placed in the Job object.
      * Will accept a collection of any pods, the ones that don't match get discarded.
      */
-    public AbstractTaskBuilder addPodList(List<V1Pod> pods) {
+    public TaskBuilder addPodList(List<V1Pod> pods) {
         for (V1Pod pod : pods) {
             this.addPod(pod);
         }
@@ -115,15 +108,18 @@ public abstract class AbstractTaskBuilder {
         }
     }
 
-    /**
-     * Return single Task composite object
-     */
-    public abstract Task getTask();
+    public Task getTask() {
+        return this.buildStrategy.getTask();
+    }
 
-    /**
-     * Return list of Task composite objects
-     */
-    public abstract List<Task> getTaskList();
+
+    public List<Task> getTaskList() {
+        return this.buildStrategy.getTaskList();
+    }
+
+    Map<String,Job> getAllJobsByName() {
+        return this.allJobsByName;
+    }
 
 }
 

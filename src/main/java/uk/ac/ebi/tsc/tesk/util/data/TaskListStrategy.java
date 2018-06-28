@@ -18,21 +18,21 @@ import static uk.ac.ebi.tsc.tesk.util.constant.Constants.LABEL_TESTASK_ID_KEY;
  * (filtering done by taskmaster's name and corresponding executor's label).
  * Pods must be added, when all jobs have already been added.
  * Thus, correct order of calls:
- * 1) taskmasters by {@link AbstractTaskBuilder#addJobList(List)}
- * 2) executors and outputFilers by {@link AbstractTaskBuilder#addJobList(List)}
- * 3) pods by {@link AbstractTaskBuilder#addPodList(List)}
+ * 1) taskmasters by {@link TaskBuilder#addJobList(List)}
+ * 2) executors and outputFilers by {@link TaskBuilder#addJobList(List)}
+ * 3) pods by {@link TaskBuilder#addPodList(List)}
  */
-public class TaskListBuilder extends AbstractTaskBuilder {
+public class TaskListStrategy implements BuildStrategy {
 
     private Map<String, Task> tasksById = new LinkedHashMap<>();
 
     @Override
-    protected void addTaskMasterJob(Job taskmasterJob) {
+    public void addTaskMasterJob(Job taskmasterJob) {
         this.tasksById.putIfAbsent(taskmasterJob.getJob().getMetadata().getName(), new Task(taskmasterJob));
     }
 
     @Override
-    protected void addExecutorJob(Job executorJob) {
+    public void addExecutorJob(Job executorJob) {
         String taskmasterName = executorJob.getJob().getMetadata().getLabels().get(LABEL_TESTASK_ID_KEY);
         Task taskmaster = this.tasksById.get(taskmasterName);
         if (taskmaster != null) {
@@ -41,7 +41,7 @@ public class TaskListBuilder extends AbstractTaskBuilder {
     }
 
     @Override
-    protected void addOutputFilerJob(Job executorJob) {
+    public void addOutputFilerJob(Job executorJob) {
         int outputFilerSuffix = executorJob.getJobName().indexOf(JOB_NAME_FILER_SUF);
         if (outputFilerSuffix <= -1) return;
         String taskmasterName = executorJob.getJobName().substring(0, outputFilerSuffix);

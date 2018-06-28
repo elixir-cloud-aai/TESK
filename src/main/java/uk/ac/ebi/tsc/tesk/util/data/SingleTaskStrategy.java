@@ -1,7 +1,9 @@
 package uk.ac.ebi.tsc.tesk.util.data;
 
+import com.google.common.collect.Lists;
 import io.kubernetes.client.models.V1Job;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -12,27 +14,27 @@ import java.util.List;
  * (the class does not perform job objects filtering itself).
  * Pods must be added, when all jobs have already been added.
  * Thus, correct order of calls:
- * 1) taskmaster {@link AbstractTaskBuilder#addJobList(List)} or {@link AbstractTaskBuilder#addJob(V1Job)}
- * 2) executors and outputFiler {@link AbstractTaskBuilder#addJobList(List)} or {@link AbstractTaskBuilder#addJob(V1Job)}
- * 3) pods by {@link AbstractTaskBuilder#addPodList(List)}
+ * 1) taskmaster {@link TaskBuilder#addJobList(List)} or {@link TaskBuilder#addJob(V1Job)}
+ * 2) executors and outputFiler {@link TaskBuilder#addJobList(List)} or {@link TaskBuilder#addJob(V1Job)}
+ * 3) pods by {@link TaskBuilder#addPodList(List)}
  */
-public class SingleTaskBuilder extends AbstractTaskBuilder {
+public class SingleTaskStrategy implements BuildStrategy {
 
     private Task task;
 
     @Override
-    protected void addTaskMasterJob(Job taskmasterJob) {
+    public void addTaskMasterJob(Job taskmasterJob) {
         this.task = new Task(taskmasterJob);
     }
 
     @Override
-    protected void addExecutorJob(Job executorJob) {
+    public void addExecutorJob(Job executorJob) {
         if (task != null) {
             task.addExecutor(executorJob);
         }
     }
     @Override
-    protected void addOutputFilerJob(Job executorJob) {
+    public void addOutputFilerJob(Job executorJob) {
         if (task != null) {
             task.setOutputFiler(executorJob);
         }
@@ -45,6 +47,6 @@ public class SingleTaskBuilder extends AbstractTaskBuilder {
 
     @Override
     public List<Task> getTaskList() {
-        throw new UnsupportedOperationException();
+        return Lists.newArrayList(task);
     }
 }

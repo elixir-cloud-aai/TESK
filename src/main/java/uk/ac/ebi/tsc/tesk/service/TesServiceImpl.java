@@ -75,7 +75,7 @@ public class TesServiceImpl implements TesService {
         V1Job taskMasterJob = this.kubernetesClientWrapper.readTaskmasterJob(taskId);
         V1JobList executorJobs = this.kubernetesClientWrapper.listSingleTaskExecutorJobs(taskMasterJob.getMetadata().getName());
         V1PodList taskMasterPods = this.kubernetesClientWrapper.listSingleJobPods(taskMasterJob);
-        AbstractTaskBuilder taskBuilder = new SingleTaskBuilder().addJob(taskMasterJob).addJobList(executorJobs.getItems()).addPodList(taskMasterPods.getItems());
+        TaskBuilder taskBuilder = TaskBuilder.newSingleTask().addJob(taskMasterJob).addJobList(executorJobs.getItems()).addPodList(taskMasterPods.getItems());
         for (V1Job executorJob : executorJobs.getItems()) {
             V1PodList executorJobPods = this.kubernetesClientWrapper.listSingleJobPods(executorJob);
             taskBuilder.addPodList(executorJobPods.getItems());
@@ -139,7 +139,7 @@ public class TesServiceImpl implements TesService {
         V1JobList executorJobs = this.kubernetesClientWrapper.listAllTaskExecutorJobs();
         V1JobList filerJobs = this.kubernetesClientWrapper.listAllFilerJobs();
         V1PodList jobPods = this.kubernetesClientWrapper.listAllJobPods();
-        AbstractTaskBuilder taskListBuilder = new TaskListBuilder().addJobList(taskmasterJobs.getItems()).addJobList(executorJobs.getItems()).
+        TaskBuilder taskListBuilder = TaskBuilder.newTaskList().addJobList(taskmasterJobs.getItems()).addJobList(executorJobs.getItems()).
                 addJobList(filerJobs.getItems()).addPodList(jobPods.getItems());
         List<TesTask> tasks = taskListBuilder.getTaskList().stream().map(task -> this.getTask(task, view, true)).collect(Collectors.toList());
         TesListTasksResponse response = new TesListTasksResponse();
@@ -160,7 +160,7 @@ public class TesServiceImpl implements TesService {
     public void cancelTask(String taskId) {
         V1Job taskMasterJob = this.kubernetesClientWrapper.readTaskmasterJob(taskId);
         V1PodList taskMasterPods = this.kubernetesClientWrapper.listSingleJobPods(taskMasterJob);
-        AbstractTaskBuilder taskBuilder = new SingleTaskBuilder().addJob(taskMasterJob).addPodList(taskMasterPods.getItems());
+        TaskBuilder taskBuilder = TaskBuilder.newSingleTask().addJob(taskMasterJob).addPodList(taskMasterPods.getItems());
         TesState state = this.converter.extractStateFromK8sJobs(taskBuilder.getTask());
         if (COMPLETED_STATES.contains(state)) {
             throw new CancelNotRunningTask(taskId);
