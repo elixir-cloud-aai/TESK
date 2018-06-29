@@ -45,5 +45,24 @@ public class TaskListStrategyTest {
 
     @Test
     public void addOutputFilerJob() {
+        BuildStrategy taskListMaker = new TaskListStrategy();
+        Job taskmaster1 = new Job(new V1Job().metadata(new V1ObjectMeta().name("tm1")));
+        Job taskmaster2 = new Job(new V1Job().metadata(new V1ObjectMeta().name("tm2")));
+        Job wrong_filer = new Job(new V1Job().metadata(new V1ObjectMeta().name("tm1-filer-outputs")));
+        Job correct_filer = new Job(new V1Job().metadata(new V1ObjectMeta().name("tm2-outputs-filer")));
+        taskListMaker.addTaskMasterJob(taskmaster1);
+        taskListMaker.addTaskMasterJob(taskmaster2);
+        taskListMaker.addOutputFilerJob(wrong_filer);
+        taskListMaker.addOutputFilerJob(correct_filer);
+        assertThat(taskListMaker.getTaskList().stream().
+                filter(task -> task.getTaskmaster().getJobName().equals("tm1")).findFirst().get().getOutputFiler().isPresent(), is(false));
+        assertThat(taskListMaker.getTaskList().stream().
+                filter(task -> task.getTaskmaster().getJobName().equals("tm2")).findFirst().get().getOutputFiler().isPresent(), is(true));
+    }
+
+    @Test(expected = UnsupportedOperationException.class)
+    public void getTask_unsupported() {
+        BuildStrategy taskListMaker = new TaskListStrategy();
+        taskListMaker.getTask();
     }
 }

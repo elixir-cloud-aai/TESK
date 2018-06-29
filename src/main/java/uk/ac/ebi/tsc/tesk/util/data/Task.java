@@ -93,7 +93,11 @@ public class Task {
 
     private int extractExecutorNumber(Job executor) {
         String taskmasterName = this.taskmaster.getJobName();
-        return Integer.parseInt(executor.getJobName().substring(taskmasterName.length() + JOB_NAME_EXEC_PREFIX.length(), taskmasterName.length() + JOB_NAME_EXEC_PREFIX.length() + JOB_NAME_EXEC_NO_LENGTH));
+        String prefix = taskmasterName + JOB_NAME_EXEC_PREFIX;
+        if (executor.getJobName().startsWith(prefix)) {
+            return Integer.parseInt(executor.getJobName().substring(prefix.length()));
+        }
+        return Integer.MAX_VALUE;
     }
 
     public String getExecutorName(int executorIndex) {

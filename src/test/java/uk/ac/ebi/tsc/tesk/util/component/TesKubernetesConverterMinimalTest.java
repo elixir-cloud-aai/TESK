@@ -3,6 +3,8 @@ package uk.ac.ebi.tsc.tesk.util.component;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
 import io.kubernetes.client.models.V1Job;
+import io.kubernetes.client.models.V1JobStatus;
+import io.kubernetes.client.models.V1ObjectMeta;
 import io.kubernetes.client.models.V1PodList;
 import org.hamcrest.CoreMatchers;
 import org.junit.Before;
@@ -238,7 +240,7 @@ public class TesKubernetesConverterMinimalTest {
     }
 
     @Test
-    public void fromK8sToTask_system_error_1() throws IOException {
+    public void fromK8sToTask_system_error_no_state() throws IOException {
         TaskBuilder taskBuilder = this.prepareBaseTaskBuider(false, false);
         TesTask expectedTask = this.prepareBaseExpectedTask();
         expectedTask.setState(TesState.SYSTEM_ERROR);
@@ -261,6 +263,18 @@ public class TesKubernetesConverterMinimalTest {
         TaskBuilder taskBuilder = this.prepareBaseTaskBuider(true, false);
         taskBuilder.getTask().getTaskmaster().getJob().getStatus().succeeded(1);
         taskBuilder.getTask().getLastExecutor().get().getJob().getStatus().active(1);
+        TesTask expectedTask = this.prepareBaseExpectedTask();
+        expectedTask.setState(TesState.SYSTEM_ERROR);
+        TesTask outputTask = this.converter.fromK8sJobsToTesTaskMinimal(taskBuilder.getTask(), false);
+        assertThat(outputTask, CoreMatchers.is(expectedTask));
+    }
+
+    @Test
+    public void fromK8sToTask_system_error_filer() throws IOException {
+        TaskBuilder taskBuilder = this.prepareBaseTaskBuider(true, false)
+        .addJob(new V1Job().metadata(new V1ObjectMeta().putLabelsItem("aa", "vv")).status(new V1JobStatus().failed(2)));
+        taskBuilder.getTask().getTaskmaster().getJob().getStatus().succeeded(1);
+        taskBuilder.getTask().getLastExecutor().get().getJob().getStatus().succeeded(1);
         TesTask expectedTask = this.prepareBaseExpectedTask();
         expectedTask.setState(TesState.SYSTEM_ERROR);
         TesTask outputTask = this.converter.fromK8sJobsToTesTaskMinimal(taskBuilder.getTask(), false);
