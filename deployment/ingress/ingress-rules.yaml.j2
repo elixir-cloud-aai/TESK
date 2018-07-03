@@ -13,6 +13,6 @@ spec:
       paths:
       - path: /
         backend:
-          serviceName: tesk-svc
-          servicePort: {{ tesk.port }}
+          serviceName: tesk-api
+          servicePort: {{ ingress.svc_port }}
 
