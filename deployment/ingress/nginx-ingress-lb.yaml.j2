@@ -10,10 +10,11 @@ spec:
   - {{ ingress.external_ip }}
   ports:
   - name: http
-    port: 80
+    port: 80 {% if not ingress.tls_secret_name %}
+    nodePort: {{ ingress.node_port }} {% endif %} {% if ingress.tls_secret_name %}
   - name: https
     port: 443
-    nodePort: {{ ingress.node_port }}
+    nodePort: {{ ingress.node_port }} {% endif %}
   selector:
     app: nginx-ingress
 
