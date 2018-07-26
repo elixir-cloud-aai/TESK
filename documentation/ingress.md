@@ -1,5 +1,5 @@
 ## Set up Ingress external IP
--   Clone the Tesk repository where you plan to install the Kubernetes CLI.
+-   Clone the TESK repository where you plan to install the Kubernetes CLI.
 -   Find out what is the external IP for the cluster. E.g. with the command `minikube ip`
 -   Edit the `external_ip` value in `deployment/ingress/config.ini` with that IP
 
@@ -10,7 +10,7 @@ node_port=30977
 ```
 `127.0.0.1` <-- replace this with your cluster's external ip address
 
-## Deploy Tesk
+## Deploy TESK
 Follow the [deployment instructions for TESK](deployment.md).
 
 ## Testing
