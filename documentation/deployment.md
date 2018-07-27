@@ -1,11 +1,11 @@
-# Deployment instructions for Tesk
-The deployment of Tesk can be executed in any Kubernetes environment, with a minimal configuration required for setting up the API access point.
+# Deployment instructions for TESK
+The deployment of `TESK` can be executed in any Kubernetes environment, with a minimal configuration required for setting up the API access point.
 
 We provide templates - that can easily produce static `yaml` files - for three deployment scenarios:
 
--   exposing Tesk service directly; should work on each environment, tested for Minikube (NodePort) and GCP (LoadBalancer)
+-   exposing Tesk service directly; should work on each environment, tested for GCP (LoadBalancer) and Local-machine with Minikube (NodePort)
 -   exposing Tesk via Ingress; should work on each environment, tested for On-Premises VMs in `OpenStack`
--   exposing Tesk via OpenShift Route; will work only on `OpenShift`, recommended scenario for `OpenShift`
+-   exposing Tesk via OpenShift Route; will work only on `OpenShift`, recommended scenario for Hosted solution with `OpenShift`
 
 The templates are written using the "Jinja2" syntax and are available in `deployment` folder. For each of the scenarios you will need files from `common` subfolder. Additionally:
 
@@ -24,7 +24,12 @@ cd deployment/common
 ```
 Edit the `config.ini` file, setting up the few variables specific to your deployment.  
 In general, the only variables that have to be edited are just the fields that follow the comment:  
-`# the following variables are specific to each deployment`. Make sure that the variable `auth.mode` is set to `noauth` as in the snippet below or absent from the `config.ini` file. This will switch off authentication via OAuth2 and make testing TESK deployment easier. You can switch on authentication later on (for more on the topic, see [Authentication and Authorisation](https://github.com/EMBL-EBI-TSI/tesk-api/blob/master/auth.md)).  
+
+`# the following variables are specific to each deployment`.
+
+Make sure that the variable `auth.mode` is set to `noauth` as in the snippet below or absent from the `config.ini` file.
+This will switch off authentication via `OAuth2` and make testing `TESK` deployment easier.
+You can switch on authentication later on.
 
 ```
 [auth]
@@ -32,7 +37,11 @@ In general, the only variables that have to be edited are just the fields that f
 mode=noauth
 ```
 
-Compile the `yaml` file using the following command:
+For more on the topic, see
+[Authentication and Authorisation](https://github.com/EMBL-EBI-TSI/tesk-api/blob/master/auth.md).  
+
+
+Compile the `yaml` file using the following command (Jinja2 Command Line Tool):
 
 ```
 j2 -g "*.j2" config.ini
@@ -42,10 +51,9 @@ This will produce a set of `.yaml` files, one for each `.j2` file, present in th
 
 If you chose Ingress or OpenShift scenario, then change directory to `deployment/ingress` or `deployment/openshift` accordingly and repeat all the above steps to obtain additional `.yaml` files.
 
-## Deploy Tesk
+## Deploy TESK
 
-Once you have all needed `yaml` files, deploying **Tesk** is just a single command.
-Change directory to `deployment/common` and run:
+Once you have all needed `yaml` files, deploying **TESK** is just a single command:
 
 ```
 kubectl create -f .
@@ -56,21 +64,24 @@ or in the case of `OpenShift`:
 ```
 oc create -f .
 ```
+
 If you chose Ingress or OpenShift scenario, then change directory once again to `deployment/ingress` or `deployment/openshift` accordingly and run the same command once again:
 
 ```
 kubectl create -f .
 ```
+
 or for `OpenShift`
+
 ```
 oc create -f .
 ```
 
-## Testing Tesk
+## Testing TESK
 
 ### Submit a demo task
 
-Run a `curl` console command with a POST message:
+Run a `curl` console command with a `POST` message:
 
 ```
  curl \
@@ -124,14 +135,20 @@ When a task is successfully completed, the output will contain the task id from 
 
 It can take a couple of minutes: just refresh the browser if the state is `"INITIALIZING"` or `"QUEUED"`.
 
-## Requirements:
+## Soft Requirements:
 
 ### OpenShift client
-This is a requirement only if you use OpenShift:
-[https://github.com/openshift/origin/releases](https://github.com/openshift/origin/releases)
+This is a requirement only if you use [OpenShift](https://github.com/openshift/origin/releases).
 
 Form Mac users:
 
 ```
 brew install openshift-cli
+```
+
+### Jinja2 Command Line Tool
+A Jinja2 Command Line Tools, i.e. [shinto-cli](https://github.com/istrategylabs/shinto-cli), which provides file globbing:
+
+```
+pip install shinto-cli
 ```
