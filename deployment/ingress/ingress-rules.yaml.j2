@@ -2,17 +2,17 @@ apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
   name: ingress-rules
-spec:
+spec: {% if ingress.tls_secret_name %}
   tls:
   - hosts:
     - {{ ingress.host_name }}
-    secretName: {{ ingress.tls_secret_name }}
+    secretName: {{ ingress.tls_secret_name }} {% endif %}
   rules:
   - host: {{ ingress.host_name }}
     http:
       paths:
       - path: /
         backend:
-          serviceName: tesk-svc
-          servicePort: {{ tesk.port }}
+          serviceName: tesk-api
+          servicePort: {{ ingress.svc_port }}
 
