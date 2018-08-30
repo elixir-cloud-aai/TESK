@@ -8,6 +8,7 @@ import sys
 import json
 import re
 import os
+import enum
 import distutils.dir_util
 import logging
 import requests
@@ -17,6 +18,12 @@ try:
 except ModuleNotFoundError:
     from urlparse import urlparse
 
+
+@enum.unique
+class Type(enum.Enum):
+    File = 'FILE'
+    Directory = 'DIRECTORY'
+
 class Transput:
     def __init__(self, path, url, ftype):
         self.path = path
@@ -24,16 +31,16 @@ class Transput:
         self.ftype = ftype
 
     def upload(self):
-        if self.ftype == 'FILE':
+        if self.ftype == Type.File:
             return self.upload_file()
-        if self.ftype == 'DIRECTORY':
+        if self.ftype == Type.Directory:
             return self.upload_dir()
         return 1
 
     def download(self):
-        if self.ftype == 'FILE':
+        if self.ftype == Type.File:
             return self.download_file()
-        if self.ftype == 'DIRECTORY':
+        if self.ftype == Type.Directory:
             return self.download_dir()
         return 1
 
@@ -96,9 +103,9 @@ class HTTPTransput(Transput):
         for listing in os.listdir(self.path):
             file_path = self.path + '/' + listing
             if os.path.isdir(file_path):
-                ftype = 'DIRECTORY'
+                ftype = Type.Directory
             elif os.path.isfile(file_path):
-                ftype = 'FILE'
+                ftype = Type.File
             else:
                 return 1
             to_upload.append(HTTPTransput(file_path, self.url + '/' + listing, ftype))
@@ -138,9 +145,9 @@ class FTPTransput(Transput):
             file_url = self.url + '/' + file
 
             if os.path.isdir(file_path):
-                ftype = 'DIRECTORY'
+                ftype = Type.Directory
             elif os.path.isfile(file_path):
-                ftype = 'FILE'
+                ftype = Type.File
             else:
                 logging.error(
                     'Directory listing is neither file nor directory: %s',
@@ -209,9 +216,9 @@ class FTPTransput(Transput):
             file_url = self.url + '/' + name
 
             if dirbit == 'd':
-                ftype = 'DIRECTORY'
+                ftype = Type.Directory
             else:
-                ftype = 'FILE'
+                ftype = Type.File
 
             # We recurse into new transputs, ending with files which are downloaded
             # Downside is nothing happens with empty dirs.
