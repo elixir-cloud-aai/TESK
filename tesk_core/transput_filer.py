@@ -52,6 +52,14 @@ class Transput:
     def upload_dir(self):
         raise NotImplementedError()
 
+    # make it compatible with contexts (with keyword)
+    def __enter__(self):
+        return self
+
+    def __exit__(self, error_type, error_value, traceback):
+        self.delete()
+        # Swallow all exceptions since the filer mostly works with error codes
+        return False
 
 class HTTPTransput(Transput):
     def __init__(self, path, url, ftype):
@@ -135,7 +143,7 @@ class FTPTransput(Transput):
                 ftype = 'FILE'
             else:
                 logging.error(
-                    'Directory listing is nether file nor directory: %s',
+                    'Directory listing is neither file nor directory: %s',
                     file_path
                 )
                 return 1
@@ -144,11 +152,9 @@ class FTPTransput(Transput):
 
             # We recurse into new transputs, ending with files which are uploaded
             # Downside is nothing happens with empty dirs.
-            transfer = FTPTransput(file_path, file_url, ftype)
-            error = transfer.upload()
-            transfer.delete()
-            if error:
-                return 1
+            with FTPTransput(file_path, file_url, ftype) as transfer:
+                if transfer.upload():
+                    return 1
         return 0
 
     def upload_file(self):
@@ -209,11 +215,9 @@ class FTPTransput(Transput):
 
             # We recurse into new transputs, ending with files which are downloaded
             # Downside is nothing happens with empty dirs.
-            transfer = FTPTransput(file_path, file_url, ftype)
-            error = transfer.download()
-            transfer.delete()
-            if error:
-                return 1
+            with FTPTransput(file_path, file_url, ftype, self.ftp_connection) as transfer:
+                if transfer.download():
+                    return 1
         return 0
 
     def download_file(self):
@@ -290,16 +294,11 @@ def process_file(ttype, filedata):
         logging.error('Unknown protocol %s', scheme)
         return 1
 
-    transfer = trans(filedata['path'], filedata['url'], filedata['type'])
-    if ttype == 'inputs':
-        result = transfer.download()
-        transfer.delete()
-        return result
-    if ttype == 'outputs':
-        result = transfer.upload()
-        transfer.delete()
-        return result
-    transfer.delete()
+    with trans(filedata['path'], filedata['url'], filedata['type']) as transfer:
+        if ttype == 'inputs':
+            return transfer.download()
+        if ttype == 'outputs':
+            return transfer.upload()
 
     logging.info('There was no action to do with %s', filedata['path'])
     return 0
