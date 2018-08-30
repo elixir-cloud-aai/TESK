@@ -11,8 +11,11 @@ import os
 import distutils.dir_util
 import logging
 import requests
-from io import BytesIO
 
+try:
+    from urllib.parse import urlparse
+except ModuleNotFoundError:
+    from urlparse import urlparse
 
 class Transput:
     def __init__(self, path, url, ftype):
@@ -25,15 +28,29 @@ class Transput:
             return self.upload_file()
         if self.ftype == 'DIRECTORY':
             return self.upload_dir()
+        return 1
 
     def download(self):
         if self.ftype == 'FILE':
             return self.download_file()
         if self.ftype == 'DIRECTORY':
             return self.download_dir()
+        return 1
 
     def delete(self):
         pass
+
+    def download_file(self):
+        raise NotImplementedError()
+
+    def download_dir(self):
+        raise NotImplementedError()
+
+    def upload_file(self):
+        raise NotImplementedError()
+
+    def upload_dir(self):
+        raise NotImplementedError()
 
 
 class HTTPTransput(Transput):
@@ -41,47 +58,49 @@ class HTTPTransput(Transput):
         Transput.__init__(self, path, url, ftype)
 
     def download_file(self):
-        r = requests.get(self.url)
+        req = requests.get(self.url)
 
-        if r.status_code < 200 or r.status_code >= 300:
-            logging.error('Got status code: ' + str(r.status_code))
-            logging.error(r.text)
+        if req.status_code < 200 or req.status_code >= 300:
+            logging.error('Got status code: %d', req.status_code)
+            logging.error(req.text)
             return 1
-        else:
-            logging.debug('OK, got status code: ' + str(r.status_code))
+        logging.debug('OK, got status code: %d', req.status_code)
 
-        fp = open(self.path, 'wb')
-        fp.write(r.content)
-        fp.close
+        with open(self.path, 'wb') as file:
+            file.write(req.content)
         return 0
 
     def upload_file(self):
-        fp = open(self.path, 'r')
-        r = requests.put(self.url, data=fp.read())
+        with open(self.path, 'r') as file:
+            file_contents = file.read()
+        req = requests.put(self.url, data=file_contents)
 
-        if r.status_code < 200 or r.status_code >= 300:
-            logging.error('Got status code: ' + str(r.status_code))
-            logging.error(r.text)
+        if req.status_code < 200 or req.status_code >= 300:
+            logging.error('Got status code: %d', req.status_code)
+            logging.error(req.text)
             return 1
-        else:
-            logging.debug('OK, got status code: ' + str(r.status_code))
+        logging.debug('OK, got status code: %d', req.status_code)
 
-        fp.close
         return 0
 
     def upload_dir(self):
-        for f in os.listdir(self.path):
-            fpath = self.path + '/' + f
-            if os.path.isdir(fpath):
+        to_upload = []
+        for listing in os.listdir(self.path):
+            file_path = self.path + '/' + listing
+            if os.path.isdir(file_path):
                 ftype = 'DIRECTORY'
-            if os.path.isfile(fpath):
+            elif os.path.isfile(file_path):
                 ftype = 'FILE'
+            else:
+                return 1
+            to_upload.append(HTTPTransput(file_path, self.url + '/' + listing, ftype))
 
-        return HTTPTransput(fpath, self.url + '/' + f, ftype).upload()
+        # return 1 if any upload failed
+        return min(sum([transput.upload() for transput in to_upload]), 1)
 
     def download_dir(self):
         logging.error(
-            'Won\'t crawl http directory, so unable to download url: ' +
+            'Won\'t crawl http directory, so unable to download url: %s',
             self.url)
         return 1
 
@@ -90,46 +109,52 @@ class FTPTransput(Transput):
     def __init__(self, path, url, ftype):
         Transput.__init__(self, path, url, ftype)
 
-        p = re.compile('[a-z]+://([-a-z.]+)/(.*)')
-        self.ftp_baseurl = p.match(url).group(1)
-        self.ftp_path = p.match(url).group(2)
+        parsed_url = urlparse(url)
+        self.ftp_baseurl = parsed_url.netloc
+        self.ftp_path = parsed_url.path
         self.ftp = FTP(self.ftp_baseurl)
 
-        if os.environ.get('TESK_FTP_USERNAME') is not None:
+        if 'TESK_FTP_USERNAME' in os.environ and 'TESK_FTP_PASSWORD' in os.environ:
+            user = os.environ['TESK_FTP_USERNAME']
+            password = os.environ['TESK_FTP_PASSWORD']
             try:
-                user = os.environ['TESK_FTP_USERNAME']
-                pw = os.environ['TESK_FTP_PASSWORD']
-                self.ftp.login(user, pw)
+                self.ftp.login(user, password)
             except ftplib.error_perm:
                 self.ftp.login()
         else:
             self.ftp.login()
 
     def upload_dir(self):
-        for f in os.listdir(self.path):
-            fpath = self.path + '/' + f
-            newurl = self.url + '/' + f
-            if os.path.isdir(fpath):
-                ftype = 'DIRECTORY'
-            if os.path.isfile(fpath):
-                ftype = 'FILE'
+        for file in os.listdir(self.path):
+            file_path = self.path + '/' + file
+            file_url = self.url + '/' + file
 
-            logging.debug(''.join([
-                "in upload_dir, fpath:" + fpath +
-                "ftype is:" + ftype
-            ]))
+            if os.path.isdir(file_path):
+                ftype = 'DIRECTORY'
+            elif os.path.isfile(file_path):
+                ftype = 'FILE'
+            else:
+                logging.error(
+                    'Directory listing is nether file nor directory: %s',
+                    file_path
+                )
+                return 1
+
+            logging.debug('Uploading %s\t"%s"', ftype.value, file_path)
 
             # We recurse into new transputs, ending with files which are uploaded
             # Downside is nothing happens with empty dirs.
-            t = FTPTransput(fpath, newurl, ftype)
-            if t.upload():
+            transfer = FTPTransput(file_path, file_url, ftype)
+            error = transfer.upload()
+            transfer.delete()
+            if error:
                 return 1
-            t.delete()
+        return 0
 
     def upload_file(self):
         try:
             # this will do nothing if directory exists so safe to do always
-            logging.debug("in upload_file, self.ftp_path: " + self.ftp_path)
+            logging.debug("in upload_file, self.ftp_path: %s", self.ftp_path)
             create_ftp_dir(os.path.dirname('/' + self.ftp_path), self.ftp)
 
             # We are NOT scp, so we won't create a file when filename is not
@@ -137,45 +162,45 @@ class FTPTransput(Transput):
             try:
                 self.ftp.cwd('/' + self.ftp_path)
                 logging.error(
-                    'Target ftp path /' + self.ftp_path +
-                    ' already exists and is a folder. Please specify a target filename and retry')
+                    'Target ftp path /%s already exists and is a folder. \
+                    Please specify a target filename and retry',
+                    self.ftp_path)
                 return 1
-            except:
+            except ftplib.error_perm:
                 pass
 
-            fp = open(self.path, 'r+b')
-            self.ftp.storbinary("STOR /" + self.ftp_path, fp)
-            fp.close()
+            with open(self.path, 'r+b') as file:
+                self.ftp.storbinary("STOR /" + self.ftp_path, file)
         except:
             logging.error(
-                'Unable to store file ' + self.path +
-                ' at FTP location /' + self.ftp_path)
-            raise
+                'Unable to store file %s at FTP location /%s',
+                self.path,
+                self.ftp_path)
             return 1
 
         return 0
 
     def download_dir(self):
-        logging.debug(' '.join([
-            'processing ftp dir: ' + self.url +
-            ' target: ' + self.path]))
+        logging.debug('Processing ftp dir: %s target: %s', self.url, self.path)
         self.ftp.cwd(self.ftp_path)
 
-        # This is horrible and I'm sorry but it works flawlessly. Credit to Chris Haas for writing this
+        # This is horrible and I'm sorry but it works flawlessly.
+        # Credit to Chris Haas for writing this
         # See https://stackoverflow.com/questions/966578/parse-response-from-ftp-list-command-syntax-variations
         # for attribution
-        p = re.compile(
-            '^(?P<dir>[\-ld])(?P<permission>([\-r][\-w][\-xs]){3})\s+(?P<filecode>\d+)\s+(?P<owner>\w+)\s+(?P<group>\w+)\s+(?P<size>\d+)\s+(?P<timestamp>((\w{3})\s+(\d{2})\s+(\d{1,2}):(\d{2}))|((\w{3})\s+(\d{1,2})\s+(\d{4})))\s+(?P<name>.+)$')
+        ftp_command = re.compile(
+            r'^(?P<dir>[\-ld])(?P<permission>([\-r][\-w][\-xs]){3})\s+(?P<filecode>\d+)\s+(?P<owner>\w+)\s+(?P<group>\w+)\s+(?P<size>\d+)\s+(?P<timestamp>((\w{3})\s+(\d{2})\s+(\d{1,2}):(\d{2}))|((\w{3})\s+(\d{1,2})\s+(\d{4})))\s+(?P<name>.+)$')
 
-        ls = []
-        self.ftp.retrlines('LIST', ls.append)
+        lines = []
+        self.ftp.retrlines('LIST', lines.append)
 
-        for l in ls:
-            dirbit = p.match(l).group('dir')
-            name = p.match(l).group('name')
+        for line in lines:
+            matches = ftp_command.match(line)
+            dirbit = matches.group('dir')
+            name = matches.group('name')
 
-            fpath = self.path + '/' + name
-            newurl = self.url + '/' + name
+            file_path = self.path + '/' + name
+            file_url = self.url + '/' + name
 
             if dirbit == 'd':
                 ftype = 'DIRECTORY'
@@ -184,25 +209,23 @@ class FTPTransput(Transput):
 
             # We recurse into new transputs, ending with files which are downloaded
             # Downside is nothing happens with empty dirs.
-            t = FTPTransput(fpath, newurl, ftype)
-            if t.download():
+            transfer = FTPTransput(file_path, file_url, ftype)
+            error = transfer.download()
+            transfer.delete()
+            if error:
                 return 1
-            t.delete()
+        return 0
 
     def download_file(self):
-        logging.debug(' '.join([
-            'downloading ftp file:' + self.url +
-            'target:' + self.path]))
+        logging.debug('Downloading ftp file: "%s" Target: %s', self.url, self.path)
         basedir = os.path.dirname(self.path)
         distutils.dir_util.mkpath(basedir)
 
         try:
-            fp = open(self.path, 'w+b')
-            self.ftp.retrbinary("RETR " + self.ftp_path, fp.write)
-            fp.close()
+            with open(self.path, 'w+b') as file:
+                self.ftp.retrbinary("RETR " + self.ftp_path, file.write)
         except:
             logging.error('Unable to retrieve file')
-            raise
             return 1
         return 0
 
@@ -211,7 +234,7 @@ class FTPTransput(Transput):
 
 
 def create_ftp_dir(target, ftp):
-    # check if directory exists, if yes just return
+    # if directory exists do not do anything else
     try:
         ftp.cwd(target)
         return
@@ -220,33 +243,32 @@ def create_ftp_dir(target, ftp):
 
     parent = os.path.dirname(target)
     basename = os.path.basename(target)
-    logging.debug('parent: ' + parent + ', basename: ' + basename)
+    logging.debug('parent: %s, basename: %s', parent, basename)
 
     if parent == target:  # we have recursed to root, nothing left to do
         raise RuntimeError('Unable to create parent dir')
+
     try:
         ftp.cwd(parent)
     except:
-        logging.error('cannot stat: ' + parent + ', trying to create parent')
+        logging.error('cannot stat: %s, trying to create parent', parent)
         create_ftp_dir(parent, ftp)
+
         ftp.cwd(parent)
 
-    logging.debug('Current wd is: ' + ftp.pwd())
-    logging.debug('Creating: ' + ftp.pwd() + '/' + basename)
+    logging.debug('Current wd is: %s', ftp.pwd())
+    logging.debug('Creating: %s/%s', ftp.pwd(), basename)
 
     try:
         ftp.mkd(basename)
     except:
-        logging.error(
-            'Unable to create directory ' + ftp.pwd() +
-            '/' + basename)
+        logging.error('Unable to create directory %s/%s', ftp.pwd(), basename)
         raise
 
 
 def file_from_content(filedata):
-    fh = open(filedata['path'], 'w')
-    fh.write(str(filedata['content']))
-    fh.close()
+    with open(filedata['path'], 'w') as file:
+        file.write(str(filedata['content']))
 
     return 0
 
@@ -255,31 +277,35 @@ def process_file(ttype, filedata):
     if filedata.get('content') is not None:
         return file_from_content(filedata)
 
-    try:
-        protocol = re.match('([a-z]+)://', filedata['url']).group(1)
-    except AttributeError:
-        logging.error(
-            'Could not determine protocol for url: ' +
-            filedata['url'])
+    scheme = urlparse(filedata['url']).scheme
+    if scheme == '':
+        logging.error('Could not determine protocol for url: %s', filedata['url'])
         return 1
 
-    if protocol == 'ftp':
-        t = FTPTransput(filedata['path'], filedata['url'], filedata['type'])
-    elif protocol == 'http' or protocol == 'https':
-        t = HTTPTransput(filedata['path'], filedata['url'], filedata['type'])
+    if scheme == 'ftp':
+        trans = FTPTransput
+    elif scheme in ['http', 'https']:
+        trans = HTTPTransput
     else:
-        logging.error('Unknown protocol ' + protocol)
+        logging.error('Unknown protocol %s', scheme)
         return 1
 
+    transfer = trans(filedata['path'], filedata['url'], filedata['type'])
     if ttype == 'inputs':
-        return t.download()
+        result = transfer.download()
+        transfer.delete()
+        return result
     if ttype == 'outputs':
-        return t.upload()
+        result = transfer.upload()
+        transfer.delete()
+        return result
+    transfer.delete()
 
-    t.delete()
+    logging.info('There was no action to do with %s', filedata['path'])
+    return 0
 
 
-def main(argv):
+def main():
     parser = argparse.ArgumentParser(
         description='Filer script for down- and uploading files')
     parser.add_argument(
@@ -304,20 +330,20 @@ def main(argv):
         format='%(asctime)s %(levelname)s: %(message)s',
         datefmt='%m/%d/%Y %I:%M:%S',
         level=loglevel)
-    logging.debug('Starting filer...')
+
+    logging.info('Starting filer...')
 
     data = json.loads(args.data)
 
     for afile in data[args.transputtype]:
-        logging.debug('processing file: ' + afile['path'])
+        logging.debug('processing file: %s', afile['path'])
         if process_file(args.transputtype, afile):
             logging.error('Unable to process all files, aborting')
             return 1
-        else:
-            logging.debug('Processed file: ' + afile['path'])
+        logging.debug('Processed file: %s', afile['path'])
 
     return 0
 
 
 if __name__ == "__main__":
-    sys.exit(main(sys.argv))
+    sys.exit(main())
