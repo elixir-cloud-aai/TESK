@@ -125,23 +125,18 @@ class HTTPTransput(Transput):
 
 
 class FTPTransput(Transput):
-    def __init__(self, path, url, ftype):
+    def __init__(self, path, url, ftype, ftp_conn=None):
         Transput.__init__(self, path, url, ftype)
 
+        self.connection_owner = ftp_conn is None
+        self.ftp_connection = FTP() if ftp_conn is None else ftp_conn
 
-        self.ftp_baseurl = self.netloc
-        self.ftp_path = self.url_path
-        self.ftp = FTP(self.ftp_baseurl)
-
-        if 'TESK_FTP_USERNAME' in os.environ and 'TESK_FTP_PASSWORD' in os.environ:
-            user = os.environ['TESK_FTP_USERNAME']
-            password = os.environ['TESK_FTP_PASSWORD']
-            try:
-                self.ftp.login(user, password)
-            except ftplib.error_perm:
-                self.ftp.login()
-        else:
-            self.ftp.login()
+    # entice users to use contexts when using this class
+    def __enter__(self):
+        if self.connection_owner:
+            self.ftp_connection.connect(self.netloc)
+            ftp_login(self.ftp_connection)
+        return self
 
     def upload_dir(self):
         for file in os.listdir(self.path):
@@ -169,37 +164,22 @@ class FTPTransput(Transput):
         return 0
 
     def upload_file(self):
-        try:
-            # this will do nothing if directory exists so safe to do always
-            logging.debug("in upload_file, self.ftp_path: %s", self.ftp_path)
-            create_ftp_dir(os.path.dirname('/' + self.ftp_path), self.ftp)
-
-            # We are NOT scp, so we won't create a file when filename is not
-            # specified (mirrors input behaviour)
-            try:
-                self.ftp.cwd('/' + self.ftp_path)
-                logging.error(
-                    'Target ftp path /%s already exists and is a folder. \
-                    Please specify a target filename and retry',
-                    self.ftp_path)
-                return 1
-            except ftplib.error_perm:
-                pass
-
-            with open(self.path, 'r+b') as file:
-                self.ftp.storbinary("STOR /" + self.ftp_path, file)
-        except:
+        error = ftp_make_dirs(self.ftp_connection, os.path.dirname(self.url_path))
+        if error:
             logging.error(
-                'Unable to store file %s at FTP location /%s',
-                self.path,
-                self.ftp_path)
+                'Unable to create remote directories needed for location %s',
+                self.url_path
+            )
             return 1
 
-        return 0
+        if not ftp_check_directory(self.ftp_connection, self.url_path):
+            return 1
+
+        return ftp_upload_file(self.ftp_connection, self.path, self.url_path)
 
     def download_dir(self):
         logging.debug('Processing ftp dir: %s target: %s', self.url, self.path)
-        self.ftp.cwd(self.ftp_path)
+        self.ftp_connection.cwd(self.url_path)
 
         # This is horrible and I'm sorry but it works flawlessly.
         # Credit to Chris Haas for writing this
@@ -209,7 +189,7 @@ class FTPTransput(Transput):
             r'^(?P<dir>[\-ld])(?P<permission>([\-r][\-w][\-xs]){3})\s+(?P<filecode>\d+)\s+(?P<owner>\w+)\s+(?P<group>\w+)\s+(?P<size>\d+)\s+(?P<timestamp>((\w{3})\s+(\d{2})\s+(\d{1,2}):(\d{2}))|((\w{3})\s+(\d{1,2})\s+(\d{4})))\s+(?P<name>.+)$')
 
         lines = []
-        self.ftp.retrlines('LIST', lines.append)
+        self.ftp_connection.retrlines('LIST', lines.append)
 
         for line in lines:
             matches = ftp_command.match(line)
@@ -236,50 +216,145 @@ class FTPTransput(Transput):
         basedir = os.path.dirname(self.path)
         distutils.dir_util.mkpath(basedir)
 
-        try:
-            with open(self.path, 'w+b') as file:
-                self.ftp.retrbinary("RETR " + self.ftp_path, file.write)
-        except:
-            logging.error('Unable to retrieve file')
-            return 1
-        return 0
+        return ftp_download_file(self.ftp_connection, self.url_path, self.path)
 
     def delete(self):
-        self.ftp.close()
+        if self.connection_owner:
+            self.ftp_connection.close()
 
 
-def create_ftp_dir(target, ftp):
+def ftp_login(ftp_connection):
+    if 'TESK_FTP_USERNAME' in os.environ and 'TESK_FTP_PASSWORD' in os.environ:
+        user = os.environ['TESK_FTP_USERNAME']
+        password = os.environ['TESK_FTP_PASSWORD']
+        try:
+            ftp_connection.login(user, password)
+        except ftplib.error_perm:
+            ftp_connection.login()
+    else:
+        ftp_connection.login()
+
+def ftp_check_directory(ftp_connection, path):
+    """
+    Following convention with the rest of the code,
+    return 0 if it is a directory, 1 if it is not or failed to do the check
+    """
+    response = ftp_connection.pwd()
+    if response == '':
+        return 1
+    original_directory = response
+
+    # We are NOT scp, so we won't create a file when filename is not
+    # specified (mirrors input behaviour)
+    try:
+        ftp_connection.cwd(path)
+        logging.error(
+            'Target ftp path %s already exists and is a folder. \
+            Please specify a target filename and retry',
+            path)
+        is_directory = True
+    except ftplib.error_perm:
+        is_directory = False
+    except (ftplib.error_reply, ftplib.error_temp):
+        logging.exception('Could not check if path is directory')
+        return 1
+    try:
+        ftp_connection.cwd(original_directory)
+    except (ftplib.error_reply, ftplib.error_perm, ftplib.error_temp):
+        logging.exception('Error when checking if file was a directory')
+        return 1
+
+    return 0 if is_directory else 1
+
+def ftp_upload_file(ftp_connection, local_source_path, remote_destination_path):
+    try:
+        with open(local_source_path, 'r+b') as file:
+            ftp_connection.storbinary("STOR /" + remote_destination_path, file)
+    except (ftplib.error_reply, ftplib.error_perm):
+        logging.exception(
+            'Unable to store file %s at FTP location /%s',
+            local_source_path,
+            remote_destination_path)
+        return 1
+    except ftplib.error_temp:
+        logging.exception(
+            'Unable to store file %s at FTP location /%s',
+            local_source_path,
+            remote_destination_path)
+        return 1
+    return 0
+
+def ftp_download_file(ftp_connection, remote_source_path, local_destination_path):
+    try:
+        with open(local_destination_path, 'w+b') as file:
+            ftp_connection.retrbinary("RETR " + remote_source_path, file.write)
+    except (ftplib.error_reply, ftplib.error_perm, ftplib.error_temp):
+        logging.exception(
+            'Unable to download file "%s" to "%s"',
+            remote_source_path,
+            local_destination_path
+        )
+        return 1
+    return 0
+
+def subfolders_in(whole_path):
+    """
+    Returns all subfolders in a path, in order
+
+    >>> subfolders_in('/')
+    ['/']
+
+    >>> subfolders_in('/this/is/a/path')
+    ['/this', '/this/is', '/this/is/a', '/this/is/a/path']
+
+    >>> subfolders_in('this/is/a/path')
+    ['this', 'this/is', 'this/is/a', 'this/is/a/path']
+    """
+    path_fragments = whole_path.lstrip('/').split('/')
+    if whole_path.startswith('/'):
+        path_fragments[0] = '/' + path_fragments[0]
+    path = path_fragments[0]
+    subfolders = [path]
+    for fragment in path_fragments[1:]:
+        path += '/' + fragment
+        subfolders.append(path)
+    return subfolders
+
+def ftp_make_dirs(ftp_connection, path):
+    response = ftp_connection.pwd()
+    if response == '':
+        return 1
+    original_directory = response
+
     # if directory exists do not do anything else
     try:
-        ftp.cwd(target)
-        return
-    except ftplib.error_perm:
+        ftp_connection.cwd(path)
+        return 0
+    except (ftplib.error_perm, ftplib.error_temp):
         pass
+    except ftplib.error_reply:
+        logging.exception('Unable to create directory %s', path)
+        return 1
 
-    parent = os.path.dirname(target)
-    basename = os.path.basename(target)
-    logging.debug('parent: %s, basename: %s', parent, basename)
-
-    if parent == target:  # we have recursed to root, nothing left to do
-        raise RuntimeError('Unable to create parent dir')
-
-    try:
-        ftp.cwd(parent)
-    except:
-        logging.error('cannot stat: %s, trying to create parent', parent)
-        create_ftp_dir(parent, ftp)
-
-        ftp.cwd(parent)
-
-    logging.debug('Current wd is: %s', ftp.pwd())
-    logging.debug('Creating: %s/%s', ftp.pwd(), basename)
+    for subfolder in subfolders_in(path):
+        try:
+            ftp_connection.cwd(subfolder)
+        except (ftplib.error_perm, ftplib.error_temp):
+            try:
+                ftp_connection.mkd(subfolder)
+            except (ftplib.error_reply, ftplib.error_perm, ftplib.error_temp):
+                logging.exception('Unable to create directory %s', subfolder)
+                return 1
+        except ftplib.error_reply:
+            logging.exception('Unable to create directory %s', path)
+            return 1
 
     try:
-        ftp.mkd(basename)
-    except:
-        logging.error('Unable to create directory %s/%s', ftp.pwd(), basename)
-        raise
-
+        ftp_connection.cwd(original_directory)
+    except (ftplib.error_reply, ftplib.error_perm, ftplib.error_temp):
+        logging.exception('Unable to create directory %s', path)
+        return 1
+    return 0
 
 def file_from_content(filedata):
     with open(filedata['path'], 'w') as file:
