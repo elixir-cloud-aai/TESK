@@ -30,6 +30,10 @@ class Transput:
         self.url = url
         self.ftype = ftype
 
+        parsed_url = urlparse(url)
+        self.netloc = parsed_url.netloc
+        self.url_path = parsed_url.path
+
     def upload(self):
         if self.ftype == Type.File:
             return self.upload_file()
@@ -124,9 +128,9 @@ class FTPTransput(Transput):
     def __init__(self, path, url, ftype):
         Transput.__init__(self, path, url, ftype)
 
-        parsed_url = urlparse(url)
-        self.ftp_baseurl = parsed_url.netloc
-        self.ftp_path = parsed_url.path
+
+        self.ftp_baseurl = self.netloc
+        self.ftp_path = self.url_path
         self.ftp = FTP(self.ftp_baseurl)
 
         if 'TESK_FTP_USERNAME' in os.environ and 'TESK_FTP_PASSWORD' in os.environ:
