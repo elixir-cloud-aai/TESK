@@ -15,7 +15,7 @@ import requests
 
 try:
     from urllib.parse import urlparse
-except ModuleNotFoundError:
+except ImportError:
     from urlparse import urlparse
 
 
