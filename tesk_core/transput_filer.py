@@ -35,6 +35,7 @@ class Transput:
         self.url_path = parsed_url.path
 
     def upload(self):
+        logging.debug('%s uploading %s %s', self.__class__.__name__, self.ftype, self.url)
         if self.ftype == Type.File:
             return self.upload_file()
         if self.ftype == Type.Directory:
@@ -42,6 +43,7 @@ class Transput:
         return 1
 
     def download(self):
+        logging.debug('%s downloading %s %s', self.__class__.__name__, self.ftype, self.url)
         if self.ftype == Type.File:
             return self.download_file()
         if self.ftype == Type.Directory:
@@ -359,12 +361,10 @@ def ftp_make_dirs(ftp_connection, path):
 def file_from_content(filedata):
     with open(filedata['path'], 'w') as file:
         file.write(str(filedata['content']))
-
     return 0
 
-
 def process_file(ttype, filedata):
-    if filedata.get('content') is not None:
+    if 'content' in filedata:
         return file_from_content(filedata)
 
     scheme = urlparse(filedata['url']).scheme
@@ -380,7 +380,7 @@ def process_file(ttype, filedata):
         logging.error('Unknown protocol %s', scheme)
         return 1
 
-    with trans(filedata['path'], filedata['url'], filedata['type']) as transfer:
+    with trans(filedata['path'], filedata['url'], Type(filedata['type'])) as transfer:
         if ttype == 'inputs':
             return transfer.download()
         if ttype == 'outputs':
@@ -416,14 +416,14 @@ def main():
         datefmt='%m/%d/%Y %I:%M:%S',
         level=loglevel)
 
-    logging.info('Starting filer...')
+    logging.info('Starting %s filer...', args.transputtype)
 
     data = json.loads(args.data)
 
     for afile in data[args.transputtype]:
-        logging.debug('processing file: %s', afile['path'])
-        if process_file(args.transputtype, afile):
-            logging.error('Unable to process all files, aborting')
+        logging.debug('Processing file: %s', afile['path'])
+        if process_file(args.transputtype, afile) != 0:
+            logging.error('Unable to process file, aborting')
             return 1
         logging.debug('Processed file: %s', afile['path'])
 
