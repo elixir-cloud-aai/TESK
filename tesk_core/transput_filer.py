@@ -151,8 +151,8 @@ class FTPTransput(Transput):
                 ftype = Type.File
             else:
                 logging.error(
-                    'Directory listing is neither file nor directory: %s',
-                    file_path
+                    'Directory listing in is neither file nor directory: "%s"',
+                    file_url
                 )
                 return 1
 
@@ -169,8 +169,8 @@ class FTPTransput(Transput):
         error = ftp_make_dirs(self.ftp_connection, os.path.dirname(self.url_path))
         if error:
             logging.error(
-                'Unable to create remote directories needed for location %s',
-                self.url_path
+                'Unable to create remote directories needed for %s',
+                self.url
             )
             return 1
 
@@ -251,19 +251,21 @@ def ftp_check_directory(ftp_connection, path):
     try:
         ftp_connection.cwd(path)
         logging.error(
-            'Target ftp path %s already exists and is a folder. \
+            'Path "%s" at "%s" already exists and is a folder. \
             Please specify a target filename and retry',
-            path)
+            path, ftp_connection.host)
         is_directory = True
     except ftplib.error_perm:
         is_directory = False
     except (ftplib.error_reply, ftplib.error_temp):
-        logging.exception('Could not check if path is directory')
+        logging.exception('Could not check if path "%s" in "%s" is directory',
+                          path, ftp_connection.host)
         return 1
     try:
         ftp_connection.cwd(original_directory)
     except (ftplib.error_reply, ftplib.error_perm, ftplib.error_temp):
-        logging.exception('Error when checking if file was a directory')
+        logging.exception('Error when checking if "%s" in "%s" was a directory',
+                          path, ftp_connection.host)
         return 1
 
     return 0 if is_directory else 1
@@ -274,14 +276,16 @@ def ftp_upload_file(ftp_connection, local_source_path, remote_destination_path):
             ftp_connection.storbinary("STOR /" + remote_destination_path, file)
     except (ftplib.error_reply, ftplib.error_perm):
         logging.exception(
-            'Unable to store file %s at FTP location /%s',
+            'Unable to upload file "%s" to "%s" as "%s"',
             local_source_path,
+            ftp_connection.host,
             remote_destination_path)
         return 1
     except ftplib.error_temp:
         logging.exception(
-            'Unable to store file %s at FTP location /%s',
+            'Unable to upload file "%s" to "%s" as "%s"',
             local_source_path,
+            ftp_connection.host,
             remote_destination_path)
         return 1
     return 0
@@ -292,8 +296,9 @@ def ftp_download_file(ftp_connection, remote_source_path, local_destination_path
             ftp_connection.retrbinary("RETR " + remote_source_path, file.write)
     except (ftplib.error_reply, ftplib.error_perm, ftplib.error_temp):
         logging.exception(
-            'Unable to download file "%s" to "%s"',
+            'Unable to download file "%s" from "%s" as "%s"',
             remote_source_path,
+            ftp_connection.host,
             local_destination_path
         )
         return 1
@@ -335,7 +340,8 @@ def ftp_make_dirs(ftp_connection, path):
     except (ftplib.error_perm, ftplib.error_temp):
         pass
     except ftplib.error_reply:
-        logging.exception('Unable to create directory %s', path)
+        logging.exception('Unable to create directory "%s" at "%s"',
+                          path, ftp_connection.host)
         return 1
 
     for subfolder in subfolders_in(path):
@@ -345,16 +351,19 @@ def ftp_make_dirs(ftp_connection, path):
             try:
                 ftp_connection.mkd(subfolder)
             except (ftplib.error_reply, ftplib.error_perm, ftplib.error_temp):
-                logging.exception('Unable to create directory %s', subfolder)
+                logging.exception('Unable to create directory "%s" at "%s"',
+                                  subfolder, ftp_connection.host)
                 return 1
         except ftplib.error_reply:
-            logging.exception('Unable to create directory %s', path)
+            logging.exception('Unable to create directory "%s" at "%s"',
+                              path, ftp_connection.host)
             return 1
 
     try:
         ftp_connection.cwd(original_directory)
     except (ftplib.error_reply, ftplib.error_perm, ftplib.error_temp):
-        logging.exception('Unable to create directory %s', path)
+        logging.exception('Unable to create directory "%s" at "%s"',
+                          path, ftp_connection.host)
         return 1
     return 0
 
@@ -369,7 +378,7 @@ def process_file(ttype, filedata):
 
     scheme = urlparse(filedata['url']).scheme
     if scheme == '':
-        logging.error('Could not determine protocol for url: %s', filedata['url'])
+        logging.error('Could not determine protocol for url: "%s"', filedata['url'])
         return 1
 
     if scheme == 'ftp':
@@ -377,7 +386,7 @@ def process_file(ttype, filedata):
     elif scheme in ['http', 'https']:
         trans = HTTPTransput
     else:
-        logging.error('Unknown protocol %s', scheme)
+        logging.error('Unknown protocol "%s" in url "%s"', scheme, filedata['url'])
         return 1
 
     with trans(filedata['path'], filedata['url'], Type(filedata['type'])) as transfer:
