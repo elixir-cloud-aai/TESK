@@ -9,7 +9,7 @@ with codecs.open(path.join(HERE, 'README.md'), encoding='utf-8') as f:
     LONG_DESC = f.read()
 
 INSTALL_DEPS = ['kubernetes==5.0.0',
-                'requests==2.18.4',
+                'requests>=2.20.0',
                 'urllib3==1.22',
                 'future==0.16.0',
                 'enum34==1.1.6']
