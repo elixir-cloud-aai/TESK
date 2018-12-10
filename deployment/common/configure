@@ -1,0 +1,4 @@
+
+
+j2 -g "*.j2" config.ini
+

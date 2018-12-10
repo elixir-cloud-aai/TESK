@@ -1,0 +1,12 @@
+
+
+curl -iv                                    \
+-X POST                                     \
+-s                                          \
+--header 'Content-Type: application/json'   \
+--header 'Accept: application/json'         \
+-d @success/stdout.json                     \
+'http://192.168.99.100:31934/v1/tasks'
+
+
+
