@@ -1,5 +1,19 @@
 
 
+# 
+# Usage:
+# 
+# 1. Update 'baseUrl' (below)
+# 
+# 2. Call this script
+# 
+#         taskCreate <JSON payload>
+# 
+#     e.g.
+# 
+#         taskCreate localftp/taskWithIO.json
+# 
+
 # $ minikube service list
 # |-------------|----------------------|-----------------------------|
 # |  NAMESPACE  |         NAME         |             URL             |
@@ -12,14 +26,13 @@
 
 baseUrl='http://192.168.99.100:31209'
 
+jsonFile="$1"
 
 curl -iv                                    \
 -X POST                                     \
 -s                                          \
 --header 'Content-Type: application/json'   \
 --header 'Accept: application/json'         \
--d @success/stdout.json                     \
+-d "@${jsonFile}"                           \
 "$baseUrl/v1/tasks"
-
-
 
