@@ -1,12 +1,25 @@
 
 
+# $ minikube service list
+# |-------------|----------------------|-----------------------------|
+# |  NAMESPACE  |         NAME         |             URL             |
+# |-------------|----------------------|-----------------------------|
+# | default     | kubernetes           | No node port                |
+# | default     | tesk-api             | http://192.168.99.100:31934 |    <= baseUrl
+# | kube-system | kube-dns             | No node port                |
+# | kube-system | kubernetes-dashboard | No node port                |
+# |-------------|----------------------|-----------------------------|
+
+baseUrl='http://192.168.99.100:31209'
+
+
 curl -iv                                    \
 -X POST                                     \
 -s                                          \
 --header 'Content-Type: application/json'   \
 --header 'Accept: application/json'         \
 -d @success/stdout.json                     \
-'http://192.168.99.100:31934/v1/tasks'
+"$baseUrl/v1/tasks"
 
 
 
