@@ -1,0 +1,49 @@
+{
+  "description": "An example presenting: Inputs, Outputs, Resources, Stdout, Workdir",
+  "executors": [
+    {
+      "command": [
+        "sh",
+        "-c",
+        "cat ./input ; echo Hello $SECRET_PROJECT_NAME"
+      ],
+      "env": {
+        "SECRET_PROJECT_NAME": "TESK"
+      },
+      "image": "alpine",
+      "stderr": "/tes/err",
+      "stdout": "/tes/output",
+      "workdir": "/tes"
+    }
+  ],
+  "inputs": [
+    {
+      "description": "Downloading a single file from FTP",
+      "name": "File from FTP",
+      "path": "/tes/input",
+      "type": "FILE",
+      "url": "ftp://ftp/home/tesk/input.txt"
+    }
+  ],
+  "name": "hello tesk",
+  "outputs": [
+    {
+      "description": "Example of uploading a directory to FTP",
+      "name": "Dir to FTP",
+      "path": "/tes",
+      "type": "DIRECTORY",
+      "url": "ftp://ftp/home/tesk/output"
+    }
+  ],
+  "resources": {
+    "cpu_cores": 1,
+    "disk_gb": 0.1,
+    "ram_gb": 1
+  },
+  "tags": {
+    "Version": "5.15"
+  },
+  "volumes": [
+    "/tes/temp"
+  ]
+}
