@@ -33,6 +33,9 @@ spec:
         args:
          # - -nginx-configmaps=$(POD_NAMESPACE)/nginx-config
           - -default-server-tls-secret=$(POD_NAMESPACE)/default-server-secret
+         {% if ingress.scope != 'Cluster' %}
+          - -watch-namespace=$(POD_NAMESPACE)
+         {% endif %}
          #- -v=3 # Enables extensive logging. Useful for trooublshooting.
          #- -report-ingress-status
          #- -external-service=nginx-ingress

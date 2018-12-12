@@ -3,7 +3,7 @@ kind: ServiceAccount
 metadata:
   name: nginx-ingress
 ---
-kind: ClusterRole
+kind: {{ ingress.scope }}Role
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: nginx-ingress
@@ -46,7 +46,7 @@ rules:
   - list
   - watch
 ---
-kind: ClusterRoleBinding
+kind: {{ ingress.scope }}RoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: nginx-ingress
@@ -55,6 +55,6 @@ subjects:
   name: nginx-ingress
   namespace: {{ ingress.namespace }}
 roleRef:
-  kind: ClusterRole
+  kind: {{ ingress.scope }}Role
   name: nginx-ingress
   apiGroup: rbac.authorization.k8s.io
