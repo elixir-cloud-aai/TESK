@@ -4,6 +4,6 @@ metadata:
     name: ftp
 subsets:
     - addresses:
-        - ip: 192.168.99.1  # ipv4 address from vboxnet0
+        - ip: {{ ftp.virtualboxip }}  # ipv4 address from vboxnet0
       ports:
         - port: 21
