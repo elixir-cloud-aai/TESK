@@ -62,7 +62,6 @@ setup(
 
     scripts=[
         'tesk_core/taskmaster.py',
-        'tesk_core/filer.py',
         'tesk_core/transput_filer.py',
         'tesk_core/filer_class.py',
         'tesk_core/pvc.py',
