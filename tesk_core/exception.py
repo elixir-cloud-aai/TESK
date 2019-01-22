@@ -1,0 +1,4 @@
+
+
+class UnknownProtocol(Exception):
+    pass

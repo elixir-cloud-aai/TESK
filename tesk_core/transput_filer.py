@@ -12,6 +12,7 @@ import enum
 import distutils.dir_util
 import logging
 import requests
+from exception import UnknownProtocol
 
 try:
     from urllib.parse import urlparse
@@ -124,7 +125,6 @@ class HTTPTransput(Transput):
             'Won\'t crawl http directory, so unable to download url: %s',
             self.url)
         return 1
-
 
 class FTPTransput(Transput):
     def __init__(self, path, url, ftype, ftp_conn=None):
@@ -372,7 +372,25 @@ def file_from_content(filedata):
         file.write(str(filedata['content']))
     return 0
 
+
+def newTransput(scheme):
+    
+    if scheme == 'ftp':
+        trans = FTPTransput
+    elif scheme in ['http', 'https']:
+        trans = HTTPTransput
+    else:
+        raise UnknownProtocol(f"Unknown protocol: '{scheme}'")
+    
+    return trans
+
+
 def process_file(ttype, filedata):
+    '''
+    @param ttype: str
+           Can be 'inputs' or 'outputs'
+    '''
+    
     if 'content' in filedata:
         return file_from_content(filedata)
 
@@ -381,13 +399,7 @@ def process_file(ttype, filedata):
         logging.error('Could not determine protocol for url: "%s"', filedata['url'])
         return 1
 
-    if scheme == 'ftp':
-        trans = FTPTransput
-    elif scheme in ['http', 'https']:
-        trans = HTTPTransput
-    else:
-        logging.error('Unknown protocol "%s" in url "%s"', scheme, filedata['url'])
-        return 1
+    trans = newTransput(filedata, scheme)
 
     with trans(filedata['path'], filedata['url'], Type(filedata['type'])) as transfer:
         if ttype == 'inputs':
