@@ -5,18 +5,28 @@ from exception import UnknownProtocol
 
 class FilerTest(unittest.TestCase):
 
-    
+    # TODO move to another class? To a library?
+    def assertThrows(self, func, exceptionClass, errorMessage = None):
+        
+        with self.assertRaises(exceptionClass) as cm:
+            
+            func()
+            
+        if errorMessage:
+        
+            self.assertEqual(str(cm.exception), errorMessage)
+            
+
     def test_newTransput(self):
         
         self.assertEquals(newTransput('ftp')   , FTPTransput)
         self.assertEquals(newTransput('http')  , HTTPTransput)
         self.assertEquals(newTransput('https') , HTTPTransput)
         
-        with self.assertRaises(UnknownProtocol) as cm:
-             
-            newTransput('svn')
-             
-        self.assertEqual(str(cm.exception), "Unknown protocol: 'svn'")
+        self.assertThrows( lambda: newTransput('svn')
+                         , UnknownProtocol
+                         , "Unknown protocol: 'svn'"
+                         )
 
 
 
