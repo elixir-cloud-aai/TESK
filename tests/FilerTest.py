@@ -1,21 +1,10 @@
 import unittest
 from transput_filer import newTransput, FTPTransput, HTTPTransput
 from exception import UnknownProtocol
+from assertThrows import AssertThrowsMixin
 
 
-class FilerTest(unittest.TestCase):
-
-    # TODO move to another class? To a library?
-    def assertThrows(self, func, exceptionClass, errorMessage = None):
-        
-        with self.assertRaises(exceptionClass) as cm:
-            
-            func()
-            
-        if errorMessage:
-        
-            self.assertEqual(str(cm.exception), errorMessage)
-            
+class FilerTest(unittest.TestCase, AssertThrowsMixin):
 
     def test_newTransput(self):
         
