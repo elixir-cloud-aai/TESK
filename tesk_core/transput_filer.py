@@ -126,6 +126,59 @@ class HTTPTransput(Transput):
             self.url)
         return 1
 
+    
+class FileTransput(Transput):
+    def __init__(self, path, url, ftype):
+        Transput.__init__(self, path, url, ftype)
+
+    def download_file(self):
+        req = requests.get(self.url)
+
+        if req.status_code < 200 or req.status_code >= 300:
+            logging.error('Got status code: %d', req.status_code)
+            logging.error(req.text)
+            return 1
+        logging.debug('OK, got status code: %d', req.status_code)
+
+        with open(self.path, 'wb') as file:
+            file.write(req.content)
+        return 0
+
+    def upload_file(self):
+        with open(self.path, 'r') as file:
+            file_contents = file.read()
+        req = requests.put(self.url, data=file_contents)
+
+        if req.status_code < 200 or req.status_code >= 300:
+            logging.error('Got status code: %d', req.status_code)
+            logging.error(req.text)
+            return 1
+        logging.debug('OK, got status code: %d', req.status_code)
+
+        return 0
+
+    def upload_dir(self):
+        to_upload = []
+        for listing in os.listdir(self.path):
+            file_path = self.path + '/' + listing
+            if os.path.isdir(file_path):
+                ftype = Type.Directory
+            elif os.path.isfile(file_path):
+                ftype = Type.File
+            else:
+                return 1
+            to_upload.append(HTTPTransput(file_path, self.url + '/' + listing, ftype))
+
+        # return 1 if any upload failed
+        return min(sum([transput.upload() for transput in to_upload]), 1)
+
+    def download_dir(self):
+        logging.error(
+            'Won\'t crawl http directory, so unable to download url: %s',
+            self.url)
+        return 1
+
+
 class FTPTransput(Transput):
     def __init__(self, path, url, ftype, ftp_conn=None):
         Transput.__init__(self, path, url, ftype)
@@ -375,15 +428,12 @@ def file_from_content(filedata):
 
 def newTransput(scheme):
     
-    if scheme == 'ftp':
-        trans = FTPTransput
-    elif scheme in ['http', 'https']:
-        trans = HTTPTransput
+    if   scheme == 'ftp'             : return FTPTransput
+    elif scheme == 'file'            : return FileTransput
+    elif scheme in ['http', 'https'] : return HTTPTransput
     else:
         raise UnknownProtocol(f"Unknown protocol: '{scheme}'")
     
-    return trans
-
 
 def process_file(ttype, filedata):
     '''
