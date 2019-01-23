@@ -1,15 +1,14 @@
 import unittest
 from transput_filer import newTransput, FTPTransput, HTTPTransput, FileTransput,\
     process_file, logConfig, getPath
-from exception import UnknownProtocol
+from exception import UnknownProtocol, InvalidHostPath
 from assertThrows import AssertThrowsMixin
 import logging
 from unittest.mock import patch
 from path import containerPath
-import path
 
 
-@patch('path.HOST_BASE_PATH'      , '/home/tfga/workspace/cwl-tes/')
+@patch('path.HOST_BASE_PATH'      , '/home/tfga/workspace/cwl-tes')
 @patch('path.CONTAINER_BASE_PATH' , '/transfer')
 class FilerTest(unittest.TestCase, AssertThrowsMixin):
     
@@ -52,9 +51,12 @@ class FilerTest(unittest.TestCase, AssertThrowsMixin):
         self.assertEquals( containerPath('/home/tfga/workspace/cwl-tes/tmphrtip1o8/md5')
                          ,               '/transfer/tmphrtip1o8/md5')
         
-        # What happens if 'path' is not below HOST_BASE_PATH?
-#         self.assertEquals( containerPath('/home/tfga/workspace/someOtherFolder/tmphrtip1o8/md5')
-#                          ,               '/transfer/tmphrtip1o8/md5')
+        # What happens if 'path' is not a descendant of HOST_BASE_PATH?
+        self.assertThrows( lambda: containerPath('/someOtherFolder')
+                         , InvalidHostPath
+                         , "'/someOtherFolder' is not a descendant of 'HOST_BASE_PATH' (/home/tfga/workspace/cwl-tes)"
+                         )
+        
         
         
         
