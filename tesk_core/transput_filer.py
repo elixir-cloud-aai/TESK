@@ -13,6 +13,7 @@ import distutils.dir_util
 import logging
 import requests
 from exception import UnknownProtocol
+import shutil
 
 try:
     from urllib.parse import urlparse
@@ -127,21 +128,25 @@ class HTTPTransput(Transput):
         return 1
 
     
+def getPath(url):
+    
+    parsed_url = urlparse(url)
+
+    return parsed_url.path
+
+    
 class FileTransput(Transput):
     def __init__(self, path, url, ftype):
         Transput.__init__(self, path, url, ftype)
 
     def download_file(self):
-        req = requests.get(self.url)
+        
+        src = getPath(self.url)        
+        dst = self.path
 
-        if req.status_code < 200 or req.status_code >= 300:
-            logging.error('Got status code: %d', req.status_code)
-            logging.error(req.text)
-            return 1
-        logging.debug('OK, got status code: %d', req.status_code)
+        logging.debug(f"Copying {src} to {dst}")
+        shutil.copy(src, dst)
 
-        with open(self.path, 'wb') as file:
-            file.write(req.content)
         return 0
 
     def upload_file(self):
@@ -449,7 +454,7 @@ def process_file(ttype, filedata):
         logging.error('Could not determine protocol for url: "%s"', filedata['url'])
         return 1
 
-    trans = newTransput(filedata, scheme)
+    trans = newTransput(scheme)
 
     with trans(filedata['path'], filedata['url'], Type(filedata['type'])) as transfer:
         if ttype == 'inputs':
@@ -460,6 +465,14 @@ def process_file(ttype, filedata):
     logging.info('There was no action to do with %s', filedata['path'])
     return 0
 
+
+
+def logConfig(loglevel):
+    
+    logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s', 
+                        datefmt='%m/%d/%Y %I:%M:%S', 
+                        level=loglevel,
+                        stream=sys.stdout)
 
 def main():
     parser = argparse.ArgumentParser(
@@ -482,10 +495,7 @@ def main():
     else:
         loglevel = logging.ERROR
 
-    logging.basicConfig(
-        format='%(asctime)s %(levelname)s: %(message)s',
-        datefmt='%m/%d/%Y %I:%M:%S',
-        level=loglevel)
+    logConfig(loglevel)
 
     logging.info('Starting %s filer...', args.transputtype)
 
