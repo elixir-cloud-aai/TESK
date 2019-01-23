@@ -5,9 +5,12 @@ from exception import UnknownProtocol
 from assertThrows import AssertThrowsMixin
 import logging
 from unittest.mock import patch
+from path import containerPath
+import path
 
 
-
+@patch('path.HOST_BASE_PATH'      , '/home/tfga/workspace/cwl-tes/')
+@patch('path.CONTAINER_BASE_PATH' , '/transfer')
 class FilerTest(unittest.TestCase, AssertThrowsMixin):
     
 
@@ -34,7 +37,7 @@ class FilerTest(unittest.TestCase, AssertThrowsMixin):
         
         process_file('inputs', filedata)
         
-        copyMock.assert_called_once_with( '/home/tfga/workspace/cwl-tes/tmphrtip1o8/md5'
+        copyMock.assert_called_once_with( '/transfer/tmphrtip1o8/md5'
                                         , '/var/lib/cwl/stgda974802-fa81-4f0b-8fe4-341d5655af4b/md5')
 
         
@@ -42,6 +45,16 @@ class FilerTest(unittest.TestCase, AssertThrowsMixin):
         
         self.assertEquals( getPath('file:///home/tfga/workspace/cwl-tes/tmphrtip1o8/md5')
                          ,                '/home/tfga/workspace/cwl-tes/tmphrtip1o8/md5')
+        
+        
+    def test_containerPath(self):
+        
+        self.assertEquals( containerPath('/home/tfga/workspace/cwl-tes/tmphrtip1o8/md5')
+                         ,               '/transfer/tmphrtip1o8/md5')
+        
+        # What happens if 'path' is not below HOST_BASE_PATH?
+#         self.assertEquals( containerPath('/home/tfga/workspace/someOtherFolder/tmphrtip1o8/md5')
+#                          ,               '/transfer/tmphrtip1o8/md5')
         
         
         

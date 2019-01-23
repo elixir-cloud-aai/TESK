@@ -14,6 +14,7 @@ import logging
 import requests
 from exception import UnknownProtocol
 import shutil
+from path import containerPath, getPath
 
 try:
     from urllib.parse import urlparse
@@ -127,21 +128,14 @@ class HTTPTransput(Transput):
             self.url)
         return 1
 
-    
-def getPath(url):
-    
-    parsed_url = urlparse(url)
 
-    return parsed_url.path
-
-    
 class FileTransput(Transput):
     def __init__(self, path, url, ftype):
         Transput.__init__(self, path, url, ftype)
 
     def download_file(self):
         
-        src = getPath(self.url)        
+        src = containerPath(getPath(self.url))        
         dst = self.path
 
         logging.debug(f"Copying {src} to {dst}")
