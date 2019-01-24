@@ -32,6 +32,6 @@ COPY --from=builder /usr/bin/python2.7 /usr/bin/
 COPY --from=builder /usr/lib/libpython2.7.so.1.0 /usr/lib/
 COPY --from=builder /usr/lib/python2.7/ /usr/lib/python2.7/
 
-COPY --from=builder /usr/bin/transput_filer.py /usr/bin/filer.py
+COPY --from=builder /usr/bin/filer.py /usr/bin/
 
 ENTRYPOINT ["filer.py"]
