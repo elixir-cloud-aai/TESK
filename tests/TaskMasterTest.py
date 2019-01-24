@@ -15,7 +15,24 @@ class ParserTest(unittest.TestCase):
         print(args)
         
         self.assertEquals( args 
-                         , Namespace(debug=False, file=None, filer_version='v0.1.9', json='json', namespace='default', poll_interval=5, state_file='/tmp/.teskstate')
+                         , Namespace( debug=False, file=None, filer_version='v0.1.9', json='json', namespace='default', poll_interval=5, state_file='/tmp/.teskstate'
+                                    , localKubeConfig=False
+                                    )
+                         )
+
+
+    def test_localKubeConfig(self):
+        
+        parser = newParser()
+        
+        args = parser.parse_args(['json', '--localKubeConfig'])
+        
+        print(args)
+        
+        self.assertEquals( args 
+                         , Namespace( debug=False, file=None, filer_version='v0.1.9', json='json', namespace='default', poll_interval=5, state_file='/tmp/.teskstate'
+                                    , localKubeConfig=True 
+                                    )
                          )
 
 

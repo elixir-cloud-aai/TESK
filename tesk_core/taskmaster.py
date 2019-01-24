@@ -198,6 +198,10 @@ def newParser():
         '--debug',
         help='Set debug mode',
         action='store_true')
+    parser.add_argument(
+        '--localKubeConfig',
+        help='Read k8s configuration from localhost',
+        action='store_true')
     
     return parser
 
@@ -234,7 +238,10 @@ def main(argv):
             data = json.load(fh)
 
     # Load kubernetes config file
-    config.load_incluster_config()
+    if args.localKubeConfig:
+        config.load_kube_config()
+    else:
+        config.load_incluster_config()
 
     global created_pvc
     created_pvc = None
@@ -264,7 +271,13 @@ def exit_cancelled(reason='Unknown reason'):
 
 
 def check_cancelled():
-    with open('/podinfo/labels') as fh:
+    
+    labelInfoFile = '/podinfo/labels'
+    
+    if not os.path.exists(labelInfoFile):
+        return False
+        
+    with open(labelInfoFile) as fh:
         for line in fh.readlines():
             name, label = line.split('=')
             logging.debug('Got label: ' + label)
