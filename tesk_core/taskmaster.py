@@ -160,7 +160,8 @@ def run_task(data, filer_version):
             pvc.delete()
 
 
-def main(argv):
+def newParser():
+    
     parser = argparse.ArgumentParser(description='TaskMaster main module')
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument(
@@ -197,8 +198,15 @@ def main(argv):
         '--debug',
         help='Set debug mode',
         action='store_true')
+    
+    return parser
 
+
+def main(argv):
+    
+    parser = newParser()
     global args
+    
     args = parser.parse_args()
 
     poll_interval = args.poll_interval
