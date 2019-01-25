@@ -138,7 +138,7 @@ class FileTransput(Transput):
         src = containerPath(getPath(self.url))        
         dst = self.path
 
-        logging.debug(f"Copying {src} to {dst}")
+        logging.debug("Copying {src} to {dst}".format(**locals()))
         shutil.copy(src, dst)
 
         return 0
@@ -431,7 +431,7 @@ def newTransput(scheme):
     elif scheme == 'file'            : return FileTransput
     elif scheme in ['http', 'https'] : return HTTPTransput
     else:
-        raise UnknownProtocol(f"Unknown protocol: '{scheme}'")
+        raise UnknownProtocol("Unknown protocol: '{scheme}'".format(**locals()))
     
 
 def process_file(ttype, filedata):

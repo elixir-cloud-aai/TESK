@@ -4,7 +4,12 @@ from filer import newTransput, FTPTransput, HTTPTransput, FileTransput,\
 from exception import UnknownProtocol, InvalidHostPath
 from assertThrows import AssertThrowsMixin
 import logging
-from unittest.mock import patch
+
+try:
+    from unittest.mock import patch  # Python 3 @UnresolvedImport
+except:
+    from mock import patch
+
 from path import containerPath
 
 

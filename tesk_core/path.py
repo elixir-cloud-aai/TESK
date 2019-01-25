@@ -37,14 +37,16 @@ def isDescendant(base, path):
     Is 'path' is a descendant of 'base'?
     '''
     
-    return os.path.commonpath([base, path]) == base
+    return os.path.commonprefix([base, path]) == base
 
 
 def validatePath(path):
     
     if not isDescendant(HOST_BASE_PATH, path):
         
-        raise InvalidHostPath(f"'{path}' is not a descendant of 'HOST_BASE_PATH' ({HOST_BASE_PATH})")
+        raise InvalidHostPath("'{path}' is not a descendant of 'HOST_BASE_PATH' ({HOST_BASE_PATH})".format( path           = path
+                                                                                                          , HOST_BASE_PATH = HOST_BASE_PATH
+                                                                                                          ))
 
 
 def containerPath(path):
