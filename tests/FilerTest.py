@@ -1,5 +1,5 @@
 import unittest
-from transput_filer import newTransput, FTPTransput, HTTPTransput, FileTransput,\
+from filer import newTransput, FTPTransput, HTTPTransput, FileTransput,\
     process_file, logConfig, getPath
 from exception import UnknownProtocol, InvalidHostPath
 from assertThrows import AssertThrowsMixin
@@ -19,7 +19,7 @@ class FilerTest(unittest.TestCase, AssertThrowsMixin):
         logConfig(logging.DEBUG)        # Doesn't work...
 
     
-    @patch('transput_filer.shutil.copy')
+    @patch('filer.shutil.copy')
     def test_process_file(self, copyMock):
         
         filedata = {
