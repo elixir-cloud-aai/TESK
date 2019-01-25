@@ -1,0 +1,5 @@
+
+virtualenv --clear -p python2.7 .venv
+
+pip install .
+
