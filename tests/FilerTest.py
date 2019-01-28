@@ -1,7 +1,7 @@
 import unittest
-from filer import newTransput, FTPTransput, HTTPTransput, FileTransput,\
+from tesk_core.filer import newTransput, FTPTransput, HTTPTransput, FileTransput,\
     process_file, logConfig, getPath
-from exception import UnknownProtocol, InvalidHostPath
+from tesk_core.exception import UnknownProtocol, InvalidHostPath
 from assertThrows import AssertThrowsMixin
 import logging
 
@@ -10,11 +10,11 @@ try:
 except:
     from mock import patch
 
-from path import containerPath
+from tesk_core.path import containerPath
 
 
-@patch('path.HOST_BASE_PATH'      , '/home/tfga/workspace/cwl-tes')
-@patch('path.CONTAINER_BASE_PATH' , '/transfer')
+@patch('tesk_core.path.HOST_BASE_PATH'      , '/home/tfga/workspace/cwl-tes')
+@patch('tesk_core.path.CONTAINER_BASE_PATH' , '/transfer')
 class FilerTest(unittest.TestCase, AssertThrowsMixin):
     
 
@@ -24,7 +24,7 @@ class FilerTest(unittest.TestCase, AssertThrowsMixin):
         logConfig(logging.DEBUG)        # Doesn't work...
 
     
-    @patch('filer.shutil.copy')
+    @patch('tesk_core.filer.shutil.copy')
     def test_process_file(self, copyMock):
         
         filedata = {

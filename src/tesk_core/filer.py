@@ -12,9 +12,9 @@ import enum
 import distutils.dir_util
 import logging
 import requests
-from exception import UnknownProtocol
+from tesk_core.exception import UnknownProtocol
 import shutil
-from path import containerPath, getPath
+from tesk_core.path import containerPath, getPath
 
 try:
     from urllib.parse import urlparse

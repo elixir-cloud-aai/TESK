@@ -1,6 +1,6 @@
 import os
 from os.path import relpath
-from exception import InvalidHostPath
+from tesk_core.exception import InvalidHostPath
 try:
     from urllib.parse import urlparse
 except ImportError:

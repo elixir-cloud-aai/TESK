@@ -1,5 +1,5 @@
 import unittest
-from taskmaster import newParser
+from tesk_core.taskmaster import newParser
 from argparse import Namespace
 
 

@@ -58,19 +58,15 @@ setup(
     # What does your project relate to?
     keywords='tes kubernetes ebi',
 
-    packages=find_packages(
-        exclude=[
-            'examples',
-            'docs',
-            'tests',
-            'containers']),
+    packages = find_packages('src'),
+    package_dir = {'': 'src'},
 
     scripts=[
-        'tesk_core/taskmaster.py',
-        'tesk_core/filer.py',
-        'tesk_core/filer_class.py',
-        'tesk_core/pvc.py',
-        'tesk_core/job.py'
+        'src/tesk_core/taskmaster.py',
+        'src/tesk_core/filer.py',
+        'src/tesk_core/filer_class.py',
+        'src/tesk_core/pvc.py',
+        'src/tesk_core/job.py'
     ],
     test_suite='tests',
 
