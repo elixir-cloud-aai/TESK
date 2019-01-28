@@ -1,4 +1,1 @@
-
-
-docker run "eu.gcr.io/tes-wes/$1:testing"
-
+scripts//dockerRun
