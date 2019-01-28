@@ -1,0 +1,9 @@
+
+
+pip install .
+
+echo
+echo 'Creating links...'
+
+ln -sfv .venv/bin/filer.py       filer
+ln -sfv .venv/bin/taskmaster.py  taskmaster
