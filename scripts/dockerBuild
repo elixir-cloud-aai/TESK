@@ -1,0 +1,10 @@
+
+
+# 
+# Usage:
+# 
+#     buildDockerImage filer          or
+#     buildDockerImage taskmaster
+# 
+
+docker build -t "eu.gcr.io/tes-wes/$1:testing" -f "containers/$1.Dockerfile" .

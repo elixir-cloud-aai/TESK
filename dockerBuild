@@ -1,10 +1,1 @@
-
-
-# 
-# Usage:
-# 
-#     buildDockerImage filer          or
-#     buildDockerImage taskmaster
-# 
-
-docker build -t eu.gcr.io/tes-wes/taskmaster:testing -f "containers/$1.Dockerfile" .
+scripts//dockerBuild
