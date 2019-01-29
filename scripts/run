@@ -1,0 +1,3 @@
+
+
+./taskmaster -f input.json -fv 'testing' -d --localKubeConfig
