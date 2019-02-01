@@ -1,0 +1,3 @@
+
+
+PYTHONPATH="src" python src/tesk_core/taskmaster.py "$@"
