@@ -13,9 +13,9 @@ except:
 def pvcCreateMock(self):    print '[mock] Creating PVC...'
 def pvcDeleteMock(self):    print '[mock] Deleting PVC...'
 
-def jobRunToCompletionMock(a, b, c):
+def jobRunToCompletionMock(job, b, c):
     
-    print '[mock] Creating job...'
+    print "[mock] Creating job '{}'...".format(job.name)
     
     return 'Complete'
 
