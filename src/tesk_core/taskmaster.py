@@ -102,7 +102,7 @@ def init_pvc(data, filer):
     logging.debug(mounts)
     logging.debug(type(mounts))
     pvc.set_volume_mounts(mounts)
-    filer.set_volume_mounts(pvc)
+    filer.add_volume_mount(pvc)
     
     pvc.create()
     # to global var for cleanup purposes

@@ -55,7 +55,7 @@ class Filer:
         env.append({"name": "TESK_FTP_USERNAME", "value": user})
         env.append({"name": "TESK_FTP_PASSWORD", "value": pw})
 
-    def set_volume_mounts(self, pvc):
+    def add_volume_mount(self, pvc):
         self.getVolumeMounts().append(pvc.volume_mounts)
         self.getVolumes().append({ "name"                  : "task-volume",
                                    "persistentVolumeClaim" : {"claimName": pvc.name}})
