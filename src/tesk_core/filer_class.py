@@ -48,6 +48,14 @@ class Filer:
               "name"      : 'transfer-volume'
             , 'mountPath' : path.CONTAINER_BASE_PATH 
         })
+        
+        self.getVolumes().append({
+            
+              "name"        : 'transfer-volume'
+            , 'hostPath'    : { 'name'  : 'path'  
+                              , 'value' : '/transferAtNode'                     
+                              } 
+        })
 
 
     def set_ftp(self, user, pw):

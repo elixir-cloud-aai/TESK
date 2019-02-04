@@ -69,6 +69,16 @@ class FilerClassTest(unittest.TestCase):
             }
         ])
         
+        self.assertEquals(f.getVolumes(), [
+            
+            { "name"        : 'transfer-volume'
+            , 'hostPath'    : { 'name'  : 'path'  
+                              , 'value' : '/transferAtNode'                     
+                              } 
+            }
+        ])
+
+        
 
 
 
