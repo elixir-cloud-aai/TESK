@@ -2,6 +2,7 @@ from kubernetes import client, config
 
 
 class PVC():
+
     def __init__(self, name='task-pvc', size_gb=1, namespace='default'):
         self.name = name
         self.spec = {'apiVersion': 'v1',
@@ -17,8 +18,6 @@ class PVC():
         self.subpath_idx = 0
         self.namespace = namespace
         self.cv1 = client.CoreV1Api()
-        self.cv1.create_namespaced_persistent_volume_claim(
-            self.namespace, self.spec)
 
     def set_volume_mounts(self, mounts):
         self.volume_mounts = mounts
@@ -27,6 +26,9 @@ class PVC():
         subpath = 'dir' + str(self.subpath_idx)
         self.subpath_idx += 1
         return subpath
+    
+    def create(self):
+        return self.cv1.create_namespaced_persistent_volume_claim(self.namespace, self.spec)
 
     def delete(self):
         cv1 = client.CoreV1Api()

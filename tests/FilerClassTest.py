@@ -1,6 +1,9 @@
+# encoding: utf-8
+
 import unittest
 from tesk_core.filer_class import Filer
 import json
+from tesk_core import path
 
 try:
     from unittest.mock import patch  # Python 3 @UnresolvedImport
@@ -29,6 +32,41 @@ class FilerClassTest(unittest.TestCase):
             { 'name': 'JSON_INPUT'           , 'value': '{"a": 1}'                      }
            ,{ 'name': 'HOST_BASE_PATH'       , 'value': '/home/tfga/workspace/cwl-tes'  }
            ,{ 'name': 'CONTAINER_BASE_PATH'  , 'value': '/transfer'                     }
+        ])
+
+    
+    def test_mounts(self):
+        '''
+        kind: Pod
+        apiVersion: v1
+        metadata:
+          name: tfga-pod
+        spec:
+          containers:
+            - name: tfga-container
+              image: eu.gcr.io/tes-wes/filer:testing
+              volumeMounts:
+                - mountPath: /transfer
+                  name: transfer-volume
+          volumes:
+            - name: transfer-volume
+              hostPath:
+                path: /transferAtNode
+              # persistentVolumeClaim:
+              #  claimName: task-pv-claim
+        '''
+        
+        f = Filer('name', {'a': 1})
+        
+        pprint(f.spec)
+        
+        pprint(f.getVolumeMounts())
+        
+        self.assertEquals(f.getVolumeMounts(), [
+            
+            { "name"        : 'transfer-volume'
+            , 'mountPath'   : path.CONTAINER_BASE_PATH 
+            }
         ])
         
 

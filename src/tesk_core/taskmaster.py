@@ -15,7 +15,8 @@ from filer_class import Filer
 created_jobs = []
 poll_interval = 5
 task_volume_basename = 'task-volume'
-
+args = None
+logger = None
 
 def run_executor(executor, namespace, pvc=None):
     jobname = executor['metadata']['name']
@@ -97,16 +98,17 @@ def init_pvc(data, filer):
     pvc_size = data['resources']['disk_gb']
     pvc = PVC(pvc_name, pvc_size, args.namespace)
 
-    # to global var for cleanup purposes
-    global created_pvc
-    created_pvc = pvc
-
     mounts = generate_mounts(data, pvc)
     logging.debug(mounts)
     logging.debug(type(mounts))
     pvc.set_volume_mounts(mounts)
-
     filer.set_volume_mounts(pvc)
+    
+    pvc.create()
+    # to global var for cleanup purposes
+    global created_pvc
+    created_pvc = pvc
+
     filerjob = Job(
         filer.get_spec('inputs', args.debug),
         task_name + '-inputs-filer',
@@ -206,6 +208,18 @@ def newParser():
     return parser
 
 
+def newLogger(loglevel):
+    logging.basicConfig(
+        format='%(asctime)s %(levelname)s: %(message)s',
+        datefmt='%m/%d/%Y %I:%M:%S',
+        level=loglevel)
+    logging.getLogger('kubernetes.client').setLevel(logging.CRITICAL)
+    logger = logging.getLogger(__name__)
+
+    return logger
+
+
+
 def main(argv):
     
     parser = newParser()
@@ -220,12 +234,7 @@ def main(argv):
         loglevel = logging.DEBUG
 
     global logger
-    logging.basicConfig(
-        format='%(asctime)s %(levelname)s: %(message)s',
-        datefmt='%m/%d/%Y %I:%M:%S',
-        level=loglevel)
-    logging.getLogger('kubernetes.client').setLevel(logging.CRITICAL)
-    logger = logging.getLogger(__name__)
+    logger = newLogger(loglevel)
     logger.debug('Starting taskmaster')
 
     # Get input JSON
