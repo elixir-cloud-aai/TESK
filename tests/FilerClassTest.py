@@ -2,8 +2,8 @@
 
 import unittest
 from tesk_core.filer_class import Filer
-import json
 from tesk_core import path
+from tesk_core.Util import pprint
 
 try:
     from unittest.mock import patch  # Python 3 @UnresolvedImport
@@ -12,10 +12,6 @@ except:
 
 
 
-def pprint(data):
-    
-    print json.dumps(data, indent=4)
-    
 
 @patch('tesk_core.path.HOST_BASE_PATH'      , '/home/tfga/workspace/cwl-tes')
 @patch('tesk_core.path.CONTAINER_BASE_PATH' , '/transfer')

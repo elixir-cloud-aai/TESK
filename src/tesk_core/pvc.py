@@ -1,4 +1,6 @@
 from kubernetes import client, config
+from tesk_core.Util import pprint
+import logging
 
 
 class PVC():
@@ -28,6 +30,10 @@ class PVC():
         return subpath
     
     def create(self):
+        
+        logging.debug('Creating PVC...')
+        logging.debug(pprint(self.spec))
+        
         return self.cv1.create_namespaced_persistent_volume_claim(self.namespace, self.spec)
 
     def delete(self):

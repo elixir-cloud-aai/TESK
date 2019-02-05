@@ -1,6 +1,7 @@
 import logging
 import time
 from kubernetes import client, config
+from tesk_core.Util import pprint
 
 
 class Job:
@@ -13,7 +14,10 @@ class Job:
         self.body['metadata']['name'] = self.name
 
     def run_to_completion(self, poll_interval, check_cancelled):
-        logging.debug(self.body)
+        
+        logging.debug('Creating job...')
+        logging.debug(pprint(self.body))
+        
         self.bv1.create_namespaced_job(self.namespace, self.body)
         status = self.get_status()
         while status == 'Running':
