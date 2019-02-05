@@ -52,9 +52,7 @@ class Filer:
         self.getVolumes().append({
             
               "name"        : 'transfer-volume'
-            , 'hostPath'    : { 'name'  : 'path'  
-                              , 'value' : '/transferAtNode'                     
-                              } 
+            , 'hostPath'    : { 'path' : '/transferAtNode' } 
         })
 
 
@@ -64,7 +62,7 @@ class Filer:
         env.append({"name": "TESK_FTP_PASSWORD", "value": pw})
 
     def add_volume_mount(self, pvc):
-        self.getVolumeMounts().append(pvc.volume_mounts)
+        self.getVolumeMounts().extend(pvc.volume_mounts)
         self.getVolumes().append({ "name"                  : "task-volume",
                                    "persistentVolumeClaim" : {"claimName": pvc.name}})
 
