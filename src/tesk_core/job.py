@@ -15,7 +15,7 @@ class Job:
 
     def run_to_completion(self, poll_interval, check_cancelled):
         
-        logging.debug('Creating job...')
+        logging.debug("Creating job '{}'...".format(self.name))
         logging.debug(pprint(self.body))
         
         self.bv1.create_namespaced_job(self.namespace, self.body)
