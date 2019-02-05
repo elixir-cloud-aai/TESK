@@ -1,3 +1,21 @@
 
 
-./taskmaster -f input.json -fv 'testing' -d --localKubeConfig
+
+
+deleteAll() {
+
+    objType="$1"
+    
+    echo "-- Deleting all $objType ------------------------------------"
+    kubectl delete "$objType" --all
+    echo
+}
+
+deleteAll pods
+deleteAll jobs
+deleteAll pvc
+
+echo "-- Running --------------------------------------------------"
+echo
+
+./taskmaster -f examples/inputFile.json -fv 'testing' -d --localKubeConfig
