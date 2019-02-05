@@ -11,9 +11,11 @@ import uk.ac.ebi.tsc.tesk.util.data.Job;
 
 import java.io.*;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.StringJoiner;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import static uk.ac.ebi.tsc.tesk.util.constant.Constants.*;
 import static uk.ac.ebi.tsc.tesk.util.constant.K8sConstants.*;
@@ -68,7 +70,9 @@ public class KubernetesObjectsSupplier {
             String taskMasterName = this.jobNameGenerator.getTaskMasterName();
             new Job(job).changeJobName(taskMasterName);
             Set<V1EnvVar> toBeRemoved = new HashSet<>();
-            job.getSpec().getTemplate().getSpec().getContainers().get(0).getEnv().stream().filter(env -> FTP_SECRET_USERNAME_ENV.equals(env.getName()) || FTP_SECRET_PASSWORD_ENV.equals(env.getName()))
+            List<V1EnvVar> containerEnvironment = job.getSpec().getTemplate().getSpec().getContainers().get(0).getEnv();
+            containerEnvironment.addAll(taskmasterEnvProperties.getEnvironment().entrySet().stream().map(e -> new V1EnvVar().name(e.getKey()).value(e.getValue())).collect(Collectors.toList()));
+            containerEnvironment.stream().filter(env -> FTP_SECRET_USERNAME_ENV.equals(env.getName()) || FTP_SECRET_PASSWORD_ENV.equals(env.getName()))
                     .forEach(env -> {
                         if (taskmasterEnvProperties.getFtp().isEnabled()) {
                             //update secret name, if FTP enabled
@@ -79,7 +83,7 @@ public class KubernetesObjectsSupplier {
                         }
                     });
 
-            toBeRemoved.stream().forEach(job.getSpec().getTemplate().getSpec().getContainers().get(0).getEnv()::remove);
+            toBeRemoved.stream().forEach(containerEnvironment::remove);
             return job;
         } catch (IOException ex) {
             throw new RuntimeException(ex);

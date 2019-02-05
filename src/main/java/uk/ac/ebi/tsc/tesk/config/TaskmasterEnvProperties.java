@@ -4,6 +4,9 @@ import org.apache.commons.lang.StringUtils;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * @author Ania Niewielska <aniewielska@ebi.ac.uk>
  * <p>
@@ -40,6 +43,12 @@ public class TaskmasterEnvProperties {
      * (it passes additional flag to taskmaster and sets image pull policy to Always)
      */
     private boolean debug;
+
+
+    /**
+     * Environment variables, that will be passed to taskmaster
+     */
+    private Map<String, String> environment = new HashMap<>();
 
 
     public Ftp getFtp() {
@@ -88,6 +97,10 @@ public class TaskmasterEnvProperties {
 
     public void setDebug(boolean debug) {
         this.debug = debug;
+    }
+
+    public Map<String, String> getEnvironment() {
+        return environment;
     }
 
     /**

@@ -23,7 +23,12 @@
         "containers": [
           {
             "args": [
-              "$(JSON_INPUT)", "-n", "default", "-fv", "task-full-filer-image-version", "-d"
+              "$(JSON_INPUT)",
+              "-n",
+              "default",
+              "-fv",
+              "task-full-filer-image-version",
+              "-d"
             ],
             "env": [
               {
@@ -49,6 +54,14 @@
                     "optional": true
                   }
                 }
+              },
+              {
+                "name": "WES_BASE_PATH",
+                "value": "/usr/sth/path"
+              },
+              {
+                "name": "TES_BASE_PATH",
+                "value": "/tesk/share"
               }
             ],
             "volumeMounts": [
