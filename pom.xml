@@ -26,7 +26,7 @@
         <springfox-swagger.version>2.8.0</springfox-swagger.version>
         <kubernetes.client-java.version>1.0.0-beta1</kubernetes.client-java.version>
         <guava.version>22.0</guava.version>
-
+        <maven-surefire-plugin.version>2.22.1</maven-surefire-plugin.version>
     </properties>
 
     <dependencies>
