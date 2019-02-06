@@ -56,7 +56,7 @@ import static uk.ac.ebi.tsc.tesk.util.constant.Constants.LABEL_TASKSTATE_VALUE_C
                 "tesk.api.taskmaster.ftp.secret-name = secretstorage",
                 "tesk.api.taskmaster.service-account-name = custom-service-account",
                 "tesk.api.taskmaster.debug = true",
-                "tesk.api.taskmaster.environment.WES_BASE_PATH = /usr/sth/path",
+                "tesk.api.taskmaster.environment.wes.base.path = /usr/sth/path",
                 "tesk.api.taskmaster.environment.TES_BASE_PATH = /tesk/share"
         })
 @EnableConfigurationProperties(TaskmasterEnvProperties.class)

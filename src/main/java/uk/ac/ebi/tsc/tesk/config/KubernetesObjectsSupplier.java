@@ -71,7 +71,7 @@ public class KubernetesObjectsSupplier {
             new Job(job).changeJobName(taskMasterName);
             Set<V1EnvVar> toBeRemoved = new HashSet<>();
             List<V1EnvVar> containerEnvironment = job.getSpec().getTemplate().getSpec().getContainers().get(0).getEnv();
-            containerEnvironment.addAll(taskmasterEnvProperties.getEnvironment().entrySet().stream().map(e -> new V1EnvVar().name(e.getKey()).value(e.getValue())).collect(Collectors.toList()));
+            containerEnvironment.addAll(taskmasterEnvProperties.getEnvironment().entrySet().stream().map(e -> new V1EnvVar().name(e.getKey().toUpperCase().replaceAll("\\.", "_")).value(e.getValue())).collect(Collectors.toList()));
             containerEnvironment.stream().filter(env -> FTP_SECRET_USERNAME_ENV.equals(env.getName()) || FTP_SECRET_PASSWORD_ENV.equals(env.getName()))
                     .forEach(env -> {
                         if (taskmasterEnvProperties.getFtp().isEnabled()) {
