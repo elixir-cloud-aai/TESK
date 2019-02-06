@@ -1,6 +1,6 @@
 steps:
-- name: 'openjdk:8-jdk-alpine'
-  entrypoint: 'sh'
+- name: 'openjdk:8-jdk'
+  entrypoint: 'bash'
   args: ['-c', './mvnw clean verify']
 - name: 'gcr.io/cloud-builders/docker'
   args: ['build',
