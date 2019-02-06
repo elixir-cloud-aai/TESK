@@ -51,8 +51,9 @@ class Filer:
         
         self.getVolumes().append({
             
-              "name"        : 'transfer-volume'
-            , 'hostPath'    : { 'path' : '/transferAtNode' } 
+              "name"                  : 'transfer-volume'
+            , 'persistentVolumeClaim' : { 'claimName' : 'transfer-pvc' }   # your cluster must have a PVC called 'transfer-pvc'
+                                                                           # Yes, this is hard-coded.
         })
 
 

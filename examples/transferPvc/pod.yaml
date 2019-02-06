@@ -1,0 +1,15 @@
+kind: Pod
+apiVersion: v1
+metadata:
+  name: nginx-pod
+spec:
+  volumes:
+    - name: transfer-volume
+      persistentVolumeClaim:
+       claimName: transfer-pvc
+  containers:
+    - name: nginx-container
+      image: nginx
+      volumeMounts:
+        - mountPath: /transfer
+          name: transfer-volume
