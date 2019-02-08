@@ -24,8 +24,9 @@ class FilerTest(unittest.TestCase, AssertThrowsMixin):
         logConfig(logging.DEBUG)        # Doesn't work...
 
     
+    @patch('tesk_core.filer.shutil.copytree')
     @patch('tesk_core.filer.shutil.copy')
-    def test_process_file(self, copyMock):
+    def test_download_file(self, copyMock, copytreeMock):
         
         filedata = {
             
@@ -41,8 +42,29 @@ class FilerTest(unittest.TestCase, AssertThrowsMixin):
         
         process_file('inputs', filedata)
         
+        copytreeMock.assert_not_called()
+        
         copyMock.assert_called_once_with( '/transfer/tmphrtip1o8/md5'
                                         , '/var/lib/cwl/stgda974802-fa81-4f0b-8fe4-341d5655af4b/md5')
+
+    @patch('tesk_core.filer.shutil.copytree')
+    @patch('tesk_core.filer.shutil.copy')
+    def test_upload_dir(self, copyMock, copytreeMock):
+        
+        filedata = {
+            
+            "url": "file:///home/tfga/workspace/cwl-tes/tmphrtip1o8/",
+            "path": "/TclSZU",
+            "type": "DIRECTORY",
+            "name": "workdir"
+        }
+        
+        process_file('outputs', filedata)
+        
+        copyMock.assert_not_called()
+        
+        copytreeMock.assert_called_once_with( '/TclSZU'
+                                            , '/transfer/tmphrtip1o8')
 
         
     def test_getPath(self):

@@ -134,6 +134,9 @@ class FileTransput(Transput):
         Transput.__init__(self, path, url, ftype)
 
     def download_file(self):
+        '''
+        copy url => path
+        '''
         
         src = containerPath(getPath(self.url))        
         dst = self.path
@@ -157,19 +160,18 @@ class FileTransput(Transput):
         return 0
 
     def upload_dir(self):
-        to_upload = []
-        for listing in os.listdir(self.path):
-            file_path = self.path + '/' + listing
-            if os.path.isdir(file_path):
-                ftype = Type.Directory
-            elif os.path.isfile(file_path):
-                ftype = Type.File
-            else:
-                return 1
-            to_upload.append(HTTPTransput(file_path, self.url + '/' + listing, ftype))
+        '''
+        copydir path => url
+        '''
+        
+        src = self.path
+        dst = containerPath(getPath(self.url))
+        
+        logging.debug("Copying {src} to {dst}".format(**locals()))
+        shutil.copytree(src, dst)
 
-        # return 1 if any upload failed
-        return min(sum([transput.upload() for transput in to_upload]), 1)
+        return 0
+        
 
     def download_dir(self):
         logging.error(
