@@ -132,19 +132,18 @@ class HTTPTransput(Transput):
 class FileTransput(Transput):
     def __init__(self, path, url, ftype):
         Transput.__init__(self, path, url, ftype)
-
-    def download_file(self):
-        '''
-        copy url => path
-        '''
         
-        src = containerPath(getPath(self.url))        
-        dst = self.path
+        self.urlContainerPath = containerPath(getPath(self.url))
 
+
+    def transfer(self, copyFn, src, dst):
+        
         logging.debug("Copying {src} to {dst}".format(**locals()))
-        shutil.copy(src, dst)
+        copyFn(src, dst)
 
-        return 0
+    def download_file(self): self.transfer(shutil.copy      , self.urlContainerPath , self.path)
+    def upload_dir(self):    self.transfer(shutil.copytree  , self.path             , self.urlContainerPath)        
+        
 
     def upload_file(self):
         with open(self.path, 'r') as file:
@@ -159,19 +158,6 @@ class FileTransput(Transput):
 
         return 0
 
-    def upload_dir(self):
-        '''
-        copydir path => url
-        '''
-        
-        src = self.path
-        dst = containerPath(getPath(self.url))
-        
-        logging.debug("Copying {src} to {dst}".format(**locals()))
-        shutil.copytree(src, dst)
-
-        return 0
-        
 
     def download_dir(self):
         logging.error(
