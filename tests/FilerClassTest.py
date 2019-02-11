@@ -15,7 +15,7 @@ except:
 
 @patch('tesk_core.path.HOST_BASE_PATH'      , '/home/tfga/workspace/cwl-tes')
 @patch('tesk_core.path.CONTAINER_BASE_PATH' , '/transfer')
-class FilerClassTest(unittest.TestCase):
+class FilerClassTest_env(unittest.TestCase):
 
     def test_env_vars(self):
         
@@ -71,6 +71,20 @@ class FilerClassTest(unittest.TestCase):
             , 'persistentVolumeClaim' : { 'claimName' : 'transfer-pvc' }
             }
         ])
+
+        
+class FilerClassTest_no_env(unittest.TestCase):
+
+    def test_mounts_file_disabled(self):
+        
+        f = Filer('name', {'a': 1})
+        
+        pprint(f.spec)
+        
+        pprint(f.getVolumeMounts())
+        
+        self.assertEquals(f.getVolumeMounts()   , [])
+        self.assertEquals(f.getVolumes()        , [])
 
         
 

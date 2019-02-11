@@ -1,5 +1,6 @@
 import json
 from tesk_core import path
+from tesk_core.path import fileEnabled
 
 
 class Filer:
@@ -43,18 +44,20 @@ class Filer:
         env.append({ "name": "HOST_BASE_PATH"       , "value": path.HOST_BASE_PATH       })
         env.append({ "name": "CONTAINER_BASE_PATH"  , "value": path.CONTAINER_BASE_PATH  })
 
-        self.getVolumeMounts().append({ 
+        if fileEnabled():
             
-              "name"      : 'transfer-volume'
-            , 'mountPath' : path.CONTAINER_BASE_PATH 
-        })
-        
-        self.getVolumes().append({
+            self.getVolumeMounts().append({ 
+                
+                  "name"      : 'transfer-volume'
+                , 'mountPath' : path.CONTAINER_BASE_PATH 
+            })
             
-              "name"                  : 'transfer-volume'
-            , 'persistentVolumeClaim' : { 'claimName' : 'transfer-pvc' }   # your cluster must have a PVC called 'transfer-pvc'
-                                                                           # Yes, this is hard-coded.
-        })
+            self.getVolumes().append({
+                
+                  "name"                  : 'transfer-volume'
+                , 'persistentVolumeClaim' : { 'claimName' : 'transfer-pvc' }   # your cluster must have a PVC called 'transfer-pvc'
+                                                                               # Yes, this is hard-coded.
+            })
 
 
     def set_ftp(self, user, pw):
