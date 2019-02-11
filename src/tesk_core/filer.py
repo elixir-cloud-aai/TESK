@@ -142,23 +142,11 @@ class FileTransput(Transput):
         copyFn(src, dst)
 
     def download_file(self): self.transfer(shutil.copy      , self.urlContainerPath , self.path)
+    def upload_file(self):   self.transfer(shutil.copy      , self.path             , self.urlContainerPath)        
     def upload_dir(self):    self.transfer(shutil.copytree  , self.path             , self.urlContainerPath)        
         
 
-    def upload_file(self):
-        with open(self.path, 'r') as file:
-            file_contents = file.read()
-        req = requests.put(self.url, data=file_contents)
-
-        if req.status_code < 200 or req.status_code >= 300:
-            logging.error('Got status code: %d', req.status_code)
-            logging.error(req.text)
-            return 1
-        logging.debug('OK, got status code: %d', req.status_code)
-
-        return 0
-
-
+    
     def download_dir(self):
         logging.error(
             'Won\'t crawl http directory, so unable to download url: %s',
