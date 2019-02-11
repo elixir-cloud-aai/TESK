@@ -142,18 +142,11 @@ class FileTransput(Transput):
         copyFn(src, dst)
 
     def download_file(self): self.transfer(shutil.copy      , self.urlContainerPath , self.path)
+    def download_dir(self):  self.transfer(shutil.copytree  , self.urlContainerPath , self.path)
     def upload_file(self):   self.transfer(shutil.copy      , self.path             , self.urlContainerPath)        
     def upload_dir(self):    self.transfer(shutil.copytree  , self.path             , self.urlContainerPath)        
         
-
     
-    def download_dir(self):
-        logging.error(
-            'Won\'t crawl http directory, so unable to download url: %s',
-            self.url)
-        return 1
-
-
 class FTPTransput(Transput):
     def __init__(self, path, url, ftype, ftp_conn=None):
         Transput.__init__(self, path, url, ftype)

@@ -50,6 +50,26 @@ class FilerTest(unittest.TestCase, AssertThrowsMixin):
 
     @patch('tesk_core.filer.shutil.copytree')
     @patch('tesk_core.filer.shutil.copy')
+    def test_download_dir(self, copyMock, copytreeMock):
+        
+        filedata = {
+            
+            "url": "file:///home/tfga/workspace/cwl-tes/tmphrtip1o8/",
+            "path": "/TclSZU",
+            "type": "DIRECTORY",
+            "name": "workdir"
+        }
+        
+        process_file('inputs', filedata)
+        
+        copyMock.assert_not_called()
+        
+        copytreeMock.assert_called_once_with( '/transfer/tmphrtip1o8'
+                                            , '/TclSZU')
+        
+
+    @patch('tesk_core.filer.shutil.copytree')
+    @patch('tesk_core.filer.shutil.copy')
     def test_upload_dir(self, copyMock, copytreeMock):
         
         filedata = {
