@@ -24,6 +24,11 @@ def getPathEnv(varName):
 HOST_BASE_PATH      = getPathEnv('HOST_BASE_PATH')
 CONTAINER_BASE_PATH = getPathEnv('CONTAINER_BASE_PATH')
 
+def fileEnabled():
+    
+    return HOST_BASE_PATH       is not None  \
+       and CONTAINER_BASE_PATH  is not None
+
 
 def getPath(url):
     

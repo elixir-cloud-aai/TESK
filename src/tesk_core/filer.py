@@ -12,9 +12,9 @@ import enum
 import distutils.dir_util
 import logging
 import requests
-from tesk_core.exception import UnknownProtocol
+from tesk_core.exception import UnknownProtocol, FileProtocolDisabled
 import shutil
-from tesk_core.path import containerPath, getPath
+from tesk_core.path import containerPath, getPath, fileEnabled
 
 try:
     from urllib.parse import urlparse
@@ -415,9 +415,20 @@ def file_from_content(filedata):
 
 def newTransput(scheme):
     
-    if   scheme == 'ftp'             : return FTPTransput
-    elif scheme == 'file'            : return FileTransput
-    elif scheme in ['http', 'https'] : return HTTPTransput
+    def fileTransputIfEnabled():
+        
+        if fileEnabled(): 
+            return FileTransput  
+        else:
+            raise FileProtocolDisabled( "'file:' protocol disabled\n"
+                                        "To enable it, both '{}' and '{}' environment variables must be defined."
+                                        .format('HOST_BASE_PATH', 'CONTAINER_BASE_PATH')
+                                      )
+    
+    
+    if   scheme == 'ftp'                : return FTPTransput
+    elif scheme == 'file'               : return fileTransputIfEnabled()
+    elif scheme in ['http', 'https']    : return HTTPTransput
     else:
         raise UnknownProtocol("Unknown protocol: '{scheme}'".format(**locals()))
     

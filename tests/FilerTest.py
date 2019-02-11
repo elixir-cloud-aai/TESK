@@ -1,7 +1,8 @@
 import unittest
 from tesk_core.filer import newTransput, FTPTransput, HTTPTransput, FileTransput,\
     process_file, logConfig, getPath
-from tesk_core.exception import UnknownProtocol, InvalidHostPath
+from tesk_core.exception import UnknownProtocol, InvalidHostPath,\
+    FileProtocolDisabled
 from assertThrows import AssertThrowsMixin
 import logging
 
@@ -97,6 +98,16 @@ class FilerTest(unittest.TestCase, AssertThrowsMixin):
         self.assertThrows( lambda: newTransput('svn')
                          , UnknownProtocol
                          , "Unknown protocol: 'svn'"
+                         )
+        
+class FilerTest_no_env(unittest.TestCase, AssertThrowsMixin):
+
+    def test_newTransput_file_disabled(self):
+        
+        self.assertThrows( lambda: newTransput('file')
+                         , FileProtocolDisabled
+                         , "'file:' protocol disabled\n"
+                           "To enable it, both 'HOST_BASE_PATH' and 'CONTAINER_BASE_PATH' environment variables must be defined."
                          )
 
 
