@@ -1,4 +1,12 @@
 
+# 
+# Usage:
+# 
+#     ./run examples/inputFile.json
+# 
+
+jsonFile="$1"
+
 
 require map
 
@@ -33,7 +41,7 @@ map kuCreate examples/transferPvc/pv.yaml   \
 echo "-- Running -----------------------------------------------------"
 echo
 
-./taskmaster -f examples/inputFile.json -fv 'testing' -d --localKubeConfig
+./taskmaster -f "$jsonFile" -fv 'testing' -d --localKubeConfig
 
 echo "-- Result ------------------------------------------------------"
 echo
