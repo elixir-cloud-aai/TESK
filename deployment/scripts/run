@@ -2,12 +2,6 @@
 
 require map
 
-export HOST_BASE_PATH='/home/tfga/workspace/cwl-tes/'
-export CONTAINER_BASE_PATH='/transfer'
-
-echo "HOST_BASE_PATH='$HOST_BASE_PATH'"
-echo "CONTAINER_BASE_PATH='$CONTAINER_BASE_PATH'"
-echo
 
 
 deleteAll() {
@@ -32,6 +26,12 @@ deleteAll serviceaccounts
 deleteAll deployments.extensions
 map deleteAll roles rolebindings services
 
+echo "-- Waiting until the pod dies ----------------------------------"
+echo
+
+# TODO create an ABS script that exits when this thing is 0?
+watch --chgexit --color 'kubectl get pods -o json | jsonpath items.length'
+
 echo "-- Creating transfer PV ----------------------------------------"
 echo
 
@@ -52,11 +52,10 @@ echo
 kubectl get pods 
 echo
 
-echo "-- curl --------------------------------------------------------"
+echo "-- Finish -------------------------------------------------------"
+echo
+echo "Now run 'teskTasks'."
+echo "You have to run it manually. For some reason, inside the script, it fails :-/"
 echo
 
-echo 'Sleeping for a while...'
-sleep 5
-
-curl "$(teskUrl)/v1/tasks"
-
+# teskTasks
