@@ -129,6 +129,36 @@ class HTTPTransput(Transput):
         return 1
 
 
+def copyContent(src, dst, symlinks=False, ignore=None):
+    '''
+    https://stackoverflow.com/a/12514470/1553043
+    '''
+    
+    for item in os.listdir(src):
+        s = os.path.join(src, item)
+        d = os.path.join(dst, item)
+        if os.path.isdir(s):
+            shutil.copytree(s, d, symlinks, ignore)
+        else:
+            shutil.copy2(s, d)
+
+
+def copyDir(src, dst):
+    '''
+    Limitation of shutil.copytree:
+    
+    > The destination directory, named by dst, must not already exist; it will be created as well as missing parent directories.
+    '''
+    
+    if os.path.exists(dst):
+        
+        copyContent(src, dst)
+        
+    else:
+        
+        shutil.copytree(src, dst)
+
+
 class FileTransput(Transput):
     def __init__(self, path, url, ftype):
         Transput.__init__(self, path, url, ftype)
@@ -141,10 +171,10 @@ class FileTransput(Transput):
         logging.debug("Copying {src} to {dst}".format(**locals()))
         copyFn(src, dst)
 
-    def download_file(self): self.transfer(shutil.copy      , self.urlContainerPath , self.path)
-    def download_dir(self):  self.transfer(shutil.copytree  , self.urlContainerPath , self.path)
-    def upload_file(self):   self.transfer(shutil.copy      , self.path             , self.urlContainerPath)        
-    def upload_dir(self):    self.transfer(shutil.copytree  , self.path             , self.urlContainerPath)        
+    def download_file(self): self.transfer(shutil.copy  , self.urlContainerPath , self.path)
+    def download_dir(self):  self.transfer(copyDir      , self.urlContainerPath , self.path)
+    def upload_file(self):   self.transfer(shutil.copy  , self.path             , self.urlContainerPath)        
+    def upload_dir(self):    self.transfer(copyDir      , self.path             , self.urlContainerPath)        
         
     
 class FTPTransput(Transput):

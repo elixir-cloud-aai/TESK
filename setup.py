@@ -16,6 +16,7 @@ INSTALL_DEPS = ['kubernetes==5.0.0',
 TEST_DEPS = [ 'pytest'
             , 'unittest2'
             , 'mock'
+            , 'fs'
             ]
 
 INSTALL_DEPS += TEST_DEPS    # Python 2 only

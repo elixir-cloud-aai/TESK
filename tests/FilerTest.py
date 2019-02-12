@@ -1,10 +1,14 @@
 import unittest
 from tesk_core.filer import newTransput, FTPTransput, HTTPTransput, FileTransput,\
-    process_file, logConfig, getPath
+    process_file, logConfig, getPath, copyDir
 from tesk_core.exception import UnknownProtocol, InvalidHostPath,\
     FileProtocolDisabled
 from assertThrows import AssertThrowsMixin
 import logging
+import os
+from fs.opener import open_fs
+from StringIO import StringIO
+from string import strip
 
 try:
     from unittest.mock import patch  # Python 3 @UnresolvedImport
@@ -12,6 +16,26 @@ except:
     from mock import patch
 
 from tesk_core.path import containerPath
+
+
+def getTree(rootDir):
+        
+        strio = StringIO()
+        with open_fs(rootDir) as dst1_fs:
+            
+            dst1_fs.tree(file = strio)
+            
+            treeTxt = strio.getvalue()
+            
+            strio.close()
+            
+            return treeTxt
+
+        
+def stripLines(txt):
+    
+    return '\n'.join([ strip(line) for line in txt.splitlines()[1:] ])
+
 
 
 @patch('tesk_core.path.HOST_BASE_PATH'      , '/home/tfga/workspace/cwl-tes')
@@ -25,9 +49,9 @@ class FilerTest(unittest.TestCase, AssertThrowsMixin):
         logConfig(logging.DEBUG)        # Doesn't work...
 
     
-    @patch('tesk_core.filer.shutil.copytree')
+    @patch('tesk_core.filer.copyDir')
     @patch('tesk_core.filer.shutil.copy')
-    def test_download_file(self, copyMock, copytreeMock):
+    def test_download_file(self, copyMock, copyDirMock):
         
         filedata = {
             
@@ -43,14 +67,14 @@ class FilerTest(unittest.TestCase, AssertThrowsMixin):
         
         process_file('inputs', filedata)
         
-        copytreeMock.assert_not_called()
+        copyDirMock.assert_not_called()
         
         copyMock.assert_called_once_with( '/transfer/tmphrtip1o8/md5'
                                         , '/var/lib/cwl/stgda974802-fa81-4f0b-8fe4-341d5655af4b/md5')
 
-    @patch('tesk_core.filer.shutil.copytree')
+    @patch('tesk_core.filer.copyDir')
     @patch('tesk_core.filer.shutil.copy')
-    def test_download_dir(self, copyMock, copytreeMock):
+    def test_download_dir(self, copyMock, copyDirMock):
         
         filedata = {
             
@@ -64,13 +88,13 @@ class FilerTest(unittest.TestCase, AssertThrowsMixin):
         
         copyMock.assert_not_called()
         
-        copytreeMock.assert_called_once_with( '/transfer/tmphrtip1o8'
+        copyDirMock.assert_called_once_with( '/transfer/tmphrtip1o8'
                                             , '/TclSZU')
         
 
-    @patch('tesk_core.filer.shutil.copytree')
+    @patch('tesk_core.filer.copyDir')
     @patch('tesk_core.filer.shutil.copy')
-    def test_upload_dir(self, copyMock, copytreeMock):
+    def test_upload_dir(self, copyMock, copyDirMock):
         
         filedata = {
             
@@ -84,12 +108,12 @@ class FilerTest(unittest.TestCase, AssertThrowsMixin):
         
         copyMock.assert_not_called()
         
-        copytreeMock.assert_called_once_with( '/TclSZU'
+        copyDirMock.assert_called_once_with( '/TclSZU'
                                             , '/transfer/tmphrtip1o8')
 
-    @patch('tesk_core.filer.shutil.copytree')
+    @patch('tesk_core.filer.copyDir')
     @patch('tesk_core.filer.shutil.copy')
-    def test_upload_file(self, copyMock, copytreeMock):
+    def test_upload_file(self, copyMock, copyDirMock):
         
         filedata = {
             
@@ -101,11 +125,66 @@ class FilerTest(unittest.TestCase, AssertThrowsMixin):
         
         process_file('outputs', filedata)
         
-        copytreeMock.assert_not_called()
+        copyDirMock.assert_not_called()
         
         copyMock.assert_called_once_with( '/TclSZU/md5'
                                         , '/transfer/tmphrtip1o8/md5')
 
+        
+    def test_copyDir(self):
+        
+        def rmDir(d):
+            
+            os.system('rm -r {}'.format(d))
+
+
+        baseDir = 'tests/resources/copyDirTest/'
+        src     = os.path.join(baseDir, 'src')
+        dst1    = os.path.join(baseDir, 'dst1')
+        dst2    = os.path.join(baseDir, 'dst2')
+        
+        rmDir(dst1)
+        rmDir(dst2)
+        
+        self.assertTrue(os.path.exists(src))    # src should exist
+        self.assertFalse(os.path.exists(dst1))  # dst1 shouldn't
+        self.assertFalse(os.path.exists(dst2))  # dst2 shouldn't
+        
+        
+        # Copying to existing dst ------------------------------------------------
+        # Let's create dst1
+        os.mkdir(dst1)
+        self.assertTrue(os.path.exists(dst1))  # Now dst1 should exist
+        
+        # Let's try to copy
+        copyDir(src, dst1)
+        
+        self.assertEquals( getTree(dst1)
+                         , stripLines('''
+                            |-- a
+                            |   |-- 1.txt
+                            |   `-- 2.txt
+                            `-- 3.txt
+                            '''          
+                            )
+                         )
+        
+        # Copying to non-existing dst ------------------------------------------------
+        self.assertFalse(os.path.exists(dst2))  # dst2 should not exist
+        
+        # Let's try to copy
+        copyDir(src, dst2)
+        
+        self.assertEquals( getTree(dst2)
+                         , stripLines('''
+                            |-- a
+                            |   |-- 1.txt
+                            |   `-- 2.txt
+                            `-- 3.txt
+                            '''          
+                            )
+                         )
+        
         
     def test_getPath(self):
         
