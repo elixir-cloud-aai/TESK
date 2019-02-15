@@ -26,11 +26,10 @@ deleteAll serviceaccounts
 deleteAll deployments.extensions
 map deleteAll roles rolebindings services
 
-echo "-- Waiting until the pod dies ----------------------------------"
+echo "-- Waiting until all pods die ----------------------------------"
 echo
 
-# TODO create an ABS script that exits when this thing is 0?
-watch --chgexit --color 'kubectl get pods -o json | jsonpath items.length'
+waitForAllPodsToDie
 
 echo "-- Creating transfer PV ----------------------------------------"
 echo
