@@ -36,9 +36,6 @@ class Filer:
             }
         }
 
-        if debug:
-            self.spec['spec']['template']['spec']['containers'][0]['imagePullPolicy'] = 'Always'
-
         env = self.getEnv()
         env.append({ "name": "JSON_INPUT"           , "value": json.dumps(data)          })
         env.append({ "name": "HOST_BASE_PATH"       , "value": path.HOST_BASE_PATH       })
