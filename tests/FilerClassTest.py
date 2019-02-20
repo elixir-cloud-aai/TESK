@@ -13,8 +13,9 @@ except:
 
 
 
-@patch('tesk_core.path.HOST_BASE_PATH'      , '/home/tfga/workspace/cwl-tes')
-@patch('tesk_core.path.CONTAINER_BASE_PATH' , '/transfer')
+@patch('tesk_core.path.HOST_BASE_PATH'          , '/home/tfga/workspace/cwl-tes')
+@patch('tesk_core.path.CONTAINER_BASE_PATH'     , '/transfer')
+@patch('tesk_core.path.TRANSFER_VOLUME_NAME'    , 'transfer-volume')
 class FilerClassTest_env(unittest.TestCase):
 
     def test_env_vars(self):

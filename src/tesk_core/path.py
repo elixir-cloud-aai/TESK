@@ -8,6 +8,12 @@ except ImportError:
 
 
 
+
+def getEnv(varName):
+    
+    return os.environ.get(varName)
+
+
 def getPathEnv(varName):
     '''
     Gets a path from env var 'varName' and normalizes it
@@ -16,13 +22,14 @@ def getPathEnv(varName):
     This removes some cases from the rest of the code.
     '''
     
-    varContent = os.environ.get(varName)
+    varContent = getEnv(varName)
     
     return os.path.normpath(varContent) if varContent else None
 
 
-HOST_BASE_PATH      = getPathEnv('HOST_BASE_PATH')
-CONTAINER_BASE_PATH = getPathEnv('CONTAINER_BASE_PATH')
+HOST_BASE_PATH       = getPathEnv('HOST_BASE_PATH')
+CONTAINER_BASE_PATH  = getPathEnv('CONTAINER_BASE_PATH')
+TRANSFER_VOLUME_NAME = getEnv('TRANSFER_VOLUME_NAME')
 
 def fileEnabled():
     

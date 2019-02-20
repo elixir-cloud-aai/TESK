@@ -45,13 +45,13 @@ class Filer:
             
             self.getVolumeMounts().append({ 
                 
-                  "name"      : 'transfer-volume'
+                  "name"      : path.TRANSFER_VOLUME_NAME
                 , 'mountPath' : path.CONTAINER_BASE_PATH 
             })
             
             self.getVolumes().append({
                 
-                  "name"                  : 'transfer-volume'
+                  "name"                  : path.TRANSFER_VOLUME_NAME
                 , 'persistentVolumeClaim' : { 'claimName' : 'transfer-pvc' }   # your cluster must have a PVC called 'transfer-pvc'
                                                                                # Yes, this is hard-coded.
             })
