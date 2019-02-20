@@ -7,6 +7,7 @@ metadata:
 spec:
   ports:
   - port: {{ tesk.port }}
+    nodePort: {{ service.node_port }}   # valid only if {{service.type}} == NodePort
   selector:
     app: tesk-api
   type: {{ service.type if service.type else 'ClusterIP' }}
