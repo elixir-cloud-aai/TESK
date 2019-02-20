@@ -42,7 +42,7 @@ spec:
           value: {{ transfer.transfer_volume_name }}
 
         - name: TESK_API_TASKMASTER_DEBUG
-          value: {{ tesk.debug }}
+          value: "{{ tesk.debug }}"
 
         - name: TESK_API_SWAGGER_OAUTH_CLIENT_ID
           valueFrom:
