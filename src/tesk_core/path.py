@@ -29,7 +29,7 @@ def getPathEnv(varName):
 
 HOST_BASE_PATH       = getPathEnv('HOST_BASE_PATH')
 CONTAINER_BASE_PATH  = getPathEnv('CONTAINER_BASE_PATH')
-TRANSFER_VOLUME_NAME = getEnv('TRANSFER_VOLUME_NAME')
+TRANSFER_PVC_NAME    = getEnv('TRANSFER_PVC_NAME')
 
 def fileEnabled():
     
