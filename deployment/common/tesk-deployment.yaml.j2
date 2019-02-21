@@ -38,8 +38,8 @@ spec:
         - name: TESK_API_TASKMASTER_ENVIRONMENT_CONTAINER_BASE_PATH
           value: {{ transfer.tes_base_path }}
 
-        - name: TESK_API_TASKMASTER_ENVIRONMENT_TRANSFER_VOLUME_NAME
-          value: {{ transfer.transfer_volume_name }}
+        - name: TESK_API_TASKMASTER_ENVIRONMENT_TRANSFER_PVC_NAME
+          value: {{ transfer.pvc_name }}
 
         - name: TESK_API_TASKMASTER_DEBUG
           value: "{{ tesk.debug }}"
