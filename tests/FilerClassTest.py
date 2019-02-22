@@ -88,6 +88,16 @@ class FilerClassTest_no_env(unittest.TestCase):
         self.assertEquals(f.getVolumes()        , [])
 
         
+    def test_image_pull_policy(self):
+        
+        f = Filer('name', {'a': 1})
+        self.assertEquals(f.getImagePullPolicy()   , 'IfNotPresent')
+
+        f = Filer('name', {'a': 1}, imagePullPolicy='Always')
+        self.assertEquals(f.getImagePullPolicy()   , 'Always')
+        
+
+        
 
 
 

@@ -5,12 +5,16 @@ from tesk_core.path import fileEnabled
 
 class Filer:
     
-    def getVolumes(self):       return self.spec['spec']['template']['spec']['volumes']
-    def getVolumeMounts(self):  return self.spec['spec']['template']['spec']['containers'][0]['volumeMounts']
-    def getEnv(self):           return self.spec['spec']['template']['spec']['containers'][0]['env']
+    def getVolumes(self):           return self.spec['spec']['template']['spec']['volumes']
+                                    
+    def getContainer(self, i):      return self.spec['spec']['template']['spec']['containers'][i]
+    
+    def getVolumeMounts(self):      return self.getContainer(0)['volumeMounts']
+    def getEnv(self):               return self.getContainer(0)['env']
+    def getImagePullPolicy(self):   return self.getContainer(0)['imagePullPolicy']
 
     
-    def __init__(self, name, data, filer_version='v0.5', debug=False):
+    def __init__(self, name, data, filer_version='v0.5', imagePullPolicy=None):
         self.name = name
         self.spec = {
             "kind": "Job",
@@ -26,7 +30,7 @@ class Filer:
                             "args": [],
                             "env": [],
                             "volumeMounts": [],
-                            "imagePullPolicy": "IfNotPresent"
+                            "imagePullPolicy": imagePullPolicy if imagePullPolicy else "IfNotPresent"
                         }
                         ],
                         "volumes": [],
