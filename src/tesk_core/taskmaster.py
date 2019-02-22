@@ -204,6 +204,10 @@ def newParser():
         '--localKubeConfig',
         help='Read k8s configuration from localhost',
         action='store_true')
+    parser.add_argument(
+        '--pull-policy-always',
+        help="set imagePullPolicy = 'Always'",
+        action='store_true')
     
     return parser
 

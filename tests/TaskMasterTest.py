@@ -34,6 +34,7 @@ class ParserTest(unittest.TestCase):
         self.assertEquals( args 
                          , Namespace( debug=False, file=None, filer_version='v0.1.9', json='json', namespace='default', poll_interval=5, state_file='/tmp/.teskstate'
                                     , localKubeConfig=False
+                                    , pull_policy_always=False
                                     )
                          )
 
@@ -49,8 +50,18 @@ class ParserTest(unittest.TestCase):
         self.assertEquals( args 
                          , Namespace( debug=False, file=None, filer_version='v0.1.9', json='json', namespace='default', poll_interval=5, state_file='/tmp/.teskstate'
                                     , localKubeConfig=True 
+                                    , pull_policy_always=False
                                     )
                          )
+
+        
+    def test_pullPolicyAlways(self):
+        
+        parser = newParser()
+        
+        self.assertEquals( parser.parse_args(['json'                        ]).pull_policy_always,       False )
+        self.assertEquals( parser.parse_args(['json', '--pull-policy-always']).pull_policy_always,       True  )
+
 
         
     @patch('tesk_core.taskmaster.args'                  , Namespace(debug=True, namespace='default'))
