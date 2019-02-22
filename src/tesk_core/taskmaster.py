@@ -130,7 +130,7 @@ def run_task(data, filer_version):
 
     if data['volumes'] or data['inputs'] or data['outputs']:
 
-        filer = Filer(task_name + '-filer', data, filer_version, args.debug)
+        filer = Filer(task_name + '-filer', data, filer_version, args.pull_policy_always)
         if os.environ.get('TESK_FTP_USERNAME') is not None:
             filer.set_ftp(
                 os.environ['TESK_FTP_USERNAME'],

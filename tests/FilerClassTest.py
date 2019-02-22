@@ -93,7 +93,7 @@ class FilerClassTest_no_env(unittest.TestCase):
         f = Filer('name', {'a': 1})
         self.assertEquals(f.getImagePullPolicy()   , 'IfNotPresent')
 
-        f = Filer('name', {'a': 1}, imagePullPolicy='Always')
+        f = Filer('name', {'a': 1}, pullPolicyAlways = True)
         self.assertEquals(f.getImagePullPolicy()   , 'Always')
         
 

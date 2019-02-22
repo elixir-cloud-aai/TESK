@@ -14,7 +14,7 @@ class Filer:
     def getImagePullPolicy(self):   return self.getContainer(0)['imagePullPolicy']
 
     
-    def __init__(self, name, data, filer_version='v0.5', imagePullPolicy=None):
+    def __init__(self, name, data, filer_version='v0.5', pullPolicyAlways = False):
         self.name = name
         self.spec = {
             "kind": "Job",
@@ -30,7 +30,7 @@ class Filer:
                             "args": [],
                             "env": [],
                             "volumeMounts": [],
-                            "imagePullPolicy": imagePullPolicy if imagePullPolicy else "IfNotPresent"
+                            "imagePullPolicy": 'Always' if pullPolicyAlways else 'IfNotPresent'
                         }
                         ],
                         "volumes": [],

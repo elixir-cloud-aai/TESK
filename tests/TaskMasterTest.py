@@ -64,7 +64,7 @@ class ParserTest(unittest.TestCase):
 
 
         
-    @patch('tesk_core.taskmaster.args'                  , Namespace(debug=True, namespace='default'))
+    @patch('tesk_core.taskmaster.args'                  , Namespace(debug=True, namespace='default', pull_policy_always=True))
     @patch('tesk_core.taskmaster.logger'                , newLogger(logging.DEBUG))
     @patch('tesk_core.taskmaster.PVC.create'            , pvcCreateMock)
     @patch('tesk_core.taskmaster.PVC.delete'            , pvcDeleteMock)
