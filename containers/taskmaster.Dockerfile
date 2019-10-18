@@ -1,44 +1,28 @@
-### Produce wheels and install them
-############################################################
+# Builder: produce wheels
 
-FROM alpine:3.7 as builder
+FROM alpine:3.10 as builder
 
-RUN apk add --no-cache python2 py2-pip git
-RUN pip install -U pip wheel
+RUN apk add --no-cache python3
+RUN apk add --no-cache git
+RUN python3 -m pip install --upgrade setuptools pip wheel
 
 WORKDIR /app/
 COPY . .
-COPY .git .git
 
-RUN python setup.py bdist_wheel --dist-dir=/wheels/
-RUN pip wheel --wheel-dir=/wheels /wheels/*.whl
+RUN python3 setup.py bdist_wheel
 
-RUN pip install /wheels/*.whl
+# Install: copy tesk-core*.whl and install it with dependencies
 
-RUN pip uninstall wheel -y
-RUN apk del --no-cache py2-pip
+FROM alpine:3.10
 
-### Copy and paste necessary bits to image
-############################################################
+RUN apk add --no-cache python3
 
-FROM alpine:3.7
-
-RUN apk add --no-cache curl openssl
-
-# https://pkgs.alpinelinux.org/contents?branch=v3.7&name=python2&arch=x86_64&repo=main
-COPY --from=builder /usr/bin/python /usr/bin/
-COPY --from=builder /usr/bin/python2 /usr/bin/
-COPY --from=builder /usr/bin/python2.7 /usr/bin/
-COPY --from=builder /usr/lib/libpython2.7.so.1.0 /usr/lib/
-COPY --from=builder /usr/lib/python2.7/ /usr/lib/python2.7/
-
-COPY --from=builder /usr/bin/taskmaster.py /usr/bin/
-COPY --from=builder /usr/bin/filer.py /usr/bin/
-COPY --from=builder /usr/bin/job.py /usr/bin/
-COPY --from=builder /usr/bin/pvc.py /usr/bin/
-COPY --from=builder /usr/bin/filer_class.py /usr/bin/
+WORKDIR /root/
+COPY --from=builder /app/dist/tesk*.whl .
+RUN python3 -m pip install --disable-pip-version-check --no-cache-dir tesk*.whl
 
 RUN adduser -S taskmaster
 USER taskmaster
+WORKDIR /home/taskmaster
 
-ENTRYPOINT ["taskmaster.py"]
+ENTRYPOINT ["taskmaster"]
