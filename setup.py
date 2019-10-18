@@ -8,18 +8,12 @@ HERE = path.abspath(path.dirname(__file__))
 with codecs.open(path.join(HERE, 'README.md'), encoding='utf-8') as f:
     LONG_DESC = f.read()
 
-INSTALL_DEPS = ['kubernetes==5.0.0',
+INSTALL_DEPS = ['kubernetes==6.1.0',
                 'requests>=2.20.0',
-                'urllib3==1.22',
-                'future==0.16.0',
-                'enum34==1.1.6']
+                'urllib3==1.22']
 TEST_DEPS = [ 'pytest'
-            , 'unittest2'
-            , 'mock'
             , 'fs'
             ]
-
-INSTALL_DEPS += TEST_DEPS    # Python 2 only
 
 DEV_DEPS = []
 
@@ -52,8 +46,8 @@ setup(
 
         'License :: OSI Approved :: Apache Software License',
 
-        'Programming Language :: Python :: 2',
-        'Programming Language :: Python :: 2.7'
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.7'
     ],
 
     # What does your project relate to?
@@ -62,13 +56,12 @@ setup(
     packages = find_packages('src'),
     package_dir = {'': 'src'},
 
-    scripts=[
-        'src/tesk_core/taskmaster.py',
-        'src/tesk_core/filer.py',
-        'src/tesk_core/filer_class.py',
-        'src/tesk_core/pvc.py',
-        'src/tesk_core/job.py'
-    ],
+    entry_points={
+        'console_scripts' : [
+            'filer = tesk_core.filer:main',
+            'taskmaster = tesk_core.taskmaster:main'
+        ]
+    },
     test_suite='tests',
 
     # List run-time dependencies here.  These will be installed by pip when
@@ -77,11 +70,11 @@ setup(
     # https://packaging.python.org/en/latest/requirements.html
     install_requires=INSTALL_DEPS,
 
-    setup_requires=['setuptools_scm', 'pytest-runner'],
+    setup_requires=['setuptools_scm'],
 
-    tests_requires=TEST_DEPS,
+    tests_require=TEST_DEPS,
 
-    python_requires='>=2.7, !=3.0.*, !=3.1.*, !=3.2.*,  !=3.3.*, <4.0',
+    python_requires='>=3.5, <4.0',
 
     # List additional groups of dependencies here (e.g. development
     # dependencies). You can install these using the following syntax,

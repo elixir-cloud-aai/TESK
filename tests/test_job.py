@@ -1,9 +1,9 @@
-import unittest2
+import unittest
 
 from tesk_core.job import Job
 
 
-class JobTestCase(unittest2.TestCase):
+class JobTestCase(unittest.TestCase):
     def test_job(self):
         job = Job({'metadata': {'name': 'test'}})
         self.assertEqual(job.name, 'task-job')
@@ -11,4 +11,4 @@ class JobTestCase(unittest2.TestCase):
 
 
 if __name__ == '__main__':
-    unittest2.main()
+    unittest.main()
