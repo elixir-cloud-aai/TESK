@@ -17,12 +17,10 @@ FROM alpine:3.10
 
 RUN apk add --no-cache python3
 
-WORKDIR /root/
-COPY --from=builder /app/dist/tesk*.whl .
-RUN python3 -m pip install --disable-pip-version-check --no-cache-dir tesk*.whl
+COPY --from=builder /app/dist/tesk*.whl /root/
+RUN python3 -m pip install --disable-pip-version-check --no-cache-dir /root/tesk*.whl
 
 RUN adduser -S taskmaster
 USER taskmaster
-WORKDIR /home/taskmaster
 
 ENTRYPOINT ["taskmaster"]
