@@ -10,7 +10,7 @@ A minimal TES task is represented as follows:
 {
     "inputs": [
       {
-        "url":  "http://adresss/to/input_file",
+        "url":  "http://address/to/input_file",
         "path": "/container/input"
       }
     ],
