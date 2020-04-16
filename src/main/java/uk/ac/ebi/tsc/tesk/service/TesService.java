@@ -21,7 +21,7 @@ public interface TesService {
      * Creates new TES task, by converting input and calling create method.
      * In case of detecting duplicated task ID, retries with new generated ID (up to a limit of retries)
      */
-    @PreAuthorize("hasRole(@authorisationProperties.baseGroup) AND" +
+    @PreAuthorize("hasRole(@authorisationProperties.baseGroupFull) AND" +
             "(#user.member OR #user.teskAdmin) AND" +
             "(#task.tags?.get('GROUP_NAME') == null OR #user.isGroupMember(#task.tags['GROUP_NAME']))")
     TesCreateTaskResponse createTask(TesTask task, User user);
@@ -63,6 +63,6 @@ public interface TesService {
      *
      * @param taskId - TES task ID (==taskmaster's job name)
      */
-    @PreAuthorize("hasRole(@authorisationProperties.baseGroup)")
+    @PreAuthorize("hasRole(@authorisationProperties.baseGroupFull)")
     void cancelTask(String taskId);
 }

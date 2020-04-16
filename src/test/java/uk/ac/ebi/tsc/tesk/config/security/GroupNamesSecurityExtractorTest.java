@@ -16,7 +16,7 @@ public class GroupNamesSecurityExtractorTest {
 
     @Test
     public void extractAuthorities_array() {
-        GroupNamesSecurityExtractor extractor = new GroupNamesSecurityExtractor();
+        GroupNamesSecurityExtractor extractor = new GroupNamesSecurityExtractor("groupNames", "whatever");
         Map<String, Object> authorities = new HashMap<>();
         authorities.put("groupNames", new String[]{"abc", "xyz"});
         List<GrantedAuthority> result = extractor.extractAuthorities(authorities);
@@ -25,19 +25,19 @@ public class GroupNamesSecurityExtractorTest {
 
     @Test
     public void extractAuthorities_collection() {
-        GroupNamesSecurityExtractor extractor = new GroupNamesSecurityExtractor();
+        GroupNamesSecurityExtractor extractor = new GroupNamesSecurityExtractor("entitlement", "whatever");
         Map<String, Object> authorities = new HashMap<>();
-        authorities.put("groupNames", Arrays.asList("abc", "xyz"));
+        authorities.put("entitlement", Arrays.asList("abc", "xyz"));
         List<GrantedAuthority> result = extractor.extractAuthorities(authorities);
         assertThat(result, containsInAnyOrder(new SimpleGrantedAuthority("abc"), new SimpleGrantedAuthority("xyz")));
     }
 
     @Test
     public void extractAuthorities_noGroups() {
-        GroupNamesSecurityExtractor extractor = new GroupNamesSecurityExtractor();
+        GroupNamesSecurityExtractor extractor = new GroupNamesSecurityExtractor("groupNames", "prefix");
         Map<String, Object> authorities = new HashMap<>();
         authorities.put("sthElse", new String[]{"abc", "xyz"});
         List<GrantedAuthority> result = extractor.extractAuthorities(authorities);
-        assertThat(result, containsInAnyOrder(new SimpleGrantedAuthority("elixir:USER")));
+        assertThat(result, containsInAnyOrder(new SimpleGrantedAuthority("prefix:USER")));
     }
 }

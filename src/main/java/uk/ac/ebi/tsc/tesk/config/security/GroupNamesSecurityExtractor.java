@@ -20,13 +20,18 @@ import org.springframework.boot.autoconfigure.security.oauth2.resource.FixedAuth
  */
 public class GroupNamesSecurityExtractor implements AuthoritiesExtractor {
 
-    private static final String AUTHORITIES = "groupNames";
+    public GroupNamesSecurityExtractor(String authoritiesClaim, String groupPrefix) {
+        this.authoritiesClaim = authoritiesClaim;
+        this.groupPrefix = groupPrefix;
+    }
+    private final String authoritiesClaim;
+    private final String groupPrefix;
 
     @Override
     public List<GrantedAuthority> extractAuthorities(Map<String, Object> map) {
-        String authorities = "elixir:USER";
-        if (map.containsKey(AUTHORITIES)) {
-            authorities = asAuthorities(map.get(AUTHORITIES));
+        String authorities = this.groupPrefix + ":USER";
+        if (map.containsKey(this.authoritiesClaim)) {
+            authorities = asAuthorities(map.get(this.authoritiesClaim));
         }
         return AuthorityUtils.commaSeparatedStringToAuthorityList(authorities);
     }
