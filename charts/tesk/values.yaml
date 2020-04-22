@@ -1,0 +1,105 @@
+# Default values for tesk.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+host_name: csc-tesk-test.rahtiapp.fi
+# There are two options here: "openshift" or "kubernetes"
+clusterType: openshift
+#
+#
+#
+wes_tes_enabled: false
+storage: none
+
+tesk:
+    image: eu.gcr.io/tes-wes/tesk-api:v0.4.2
+    port: 8080
+    taskmaster_image_version: v0.6
+    taskmaster_filer_image_version: v0.6
+    debug: false
+
+transfer:
+    # If you want local file systems support (i.e. 'file:' urls in inputs and outputs),
+    # you have to define these 2 properties.
+    active: false
+
+    # wes_base_path: '/data'      # WesElixir via docker-compose
+    wes_base_path: '/tmp'         # WesElixir locally
+                                  # Change the value of $wesBasePath in minikubeStart accordingly
+    tes_base_path: '/transfer'
+    pvc_name: 'transfer-pvc'
+
+auth:
+    # the following variables are specific to each deployment
+    # mode: auth/noauth
+    mode: noauth
+    # EBI/CSC
+    env_subgroup: CSC
+    env_basegroup: ECP_CLN
+    client_id: changeme
+    client_secret: changeme
+
+service:
+    # the following variables are specific to each deployment
+    # use:
+    # - NodePort, if you want to expose API directly
+    # - LoadBalancer for cloud provider (gcloud) or empty otherwise
+    #type: NodePort
+    #node_port: 31567
+    type: ""
+    node_port: ""
+
+ftp:
+    active: false
+    # ipv4 address from vboxnet0
+    #
+    #    $ ifconfig vboxnet0
+    #    vboxnet0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+    #            inet 192.168.99.1  netmask 255.255.255.0  broadcast 192.168.99.255      # <= here
+    #            inet6 fe80::800:27ff:fe00:0  prefixlen 64  scopeid 0x20<link>
+    #            ether 0a:00:27:00:00:00  txqueuelen 1000  (Ethernet)
+    #            RX packets 0  bytes 0 (0.0 B)
+    #            RX errors 0  dropped 0  overruns 0  frame 0
+    #            TX packets 13133  bytes 8222562 (8.2 MB)
+    #            TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+    #
+    virtualboxip: 192.168.99.1
+
+    # Credentials
+    # -----------
+    #
+    # Both 'username' and 'password' must be the base64-encoded.
+    #
+    #     echo -n 'admin' | base64
+    #
+    # https://kubernetes.io/docs/concepts/configuration/secret/
+    #
+    username: xxx
+    password: yyy
+
+#
+# Configure this, only if you choose "kubernetes" as "clusterTYpe"
+#
+kubernetes:
+    deploy_ingress: false
+    nginx_image: nginx/nginx-ingress:1.3.0
+    # the following variables are specific to each deployment
+    # We used externalIP to expose Ingress on 80/443 port. On OpenStack internal IP of master node (10.*) worked for us.
+    # Could be any node, but calls to the service have to be using it. In our case DNS entry is assigned to master's external IP
+    # Use NodePort as an alternative
+    external_ip: 10.1.1.1
+    node_port: 30977
+    # If no TLS secret name configured, TLS will be switched off
+    tls_secret_name:
+    # the following variables are specific to each deployment
+    # use:
+    # - scope=Cluster, if you want Ingress to listen to all namespaces (requires ClusterAdmin)
+    # - scope= , if you want Ingress to listen only to its own namespace
+    scope: ""
+    #
+    #
+    tls_letsencrypt:
+       annotations:
+           ingressclass: "nginx"
+           tlsacme: "true"
+           clusterissuer: "letsencrypt-prod"

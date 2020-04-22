@@ -1,0 +1,22 @@
+{{ if .Values.wes_tes_enabled }}
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/rewrite-target: /$1
+  name: userworkspace
+spec:
+  rules:
+  - host: wes-tes-example.tsi.ebi.ac.uk
+    http:
+      paths:
+      - backend:
+          serviceName: userworkspace
+          servicePort: 2015
+        path: /data/?(.*)
+  tls:
+  - hosts:
+    - wes-tes-example.tsi.ebi.ac.uk
+    secretName: tls-prod-cert
+{{ end }}

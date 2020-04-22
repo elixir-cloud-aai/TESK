@@ -1,0 +1,50 @@
+{{ if .Values.wes_tes_enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tesk-api
+spec:
+  selector:
+    matchLabels:
+      app: tesk-api
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: tesk-api
+    spec:
+      serviceAccountName: taskmaster
+      containers:
+      - name: tesk-api
+        image: eu.gcr.io/tes-wes/tesk-api:v0.4.2
+        resources:
+          limits:
+            cpu: 500m
+            memory: 1024Mi
+          requests:
+            cpu: 500m
+            memory: 1024Mi
+        env:
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: TESK_API_TASKMASTER_IMAGE_VERSION
+          value: v0.6.2
+        - name: TESK_API_TASKMASTER_FILER_IMAGE_VERSION
+          value: v0.6.2
+        - name: TESK_API_K8S_NAMESPACE
+          value: $(POD_NAMESPACE)
+        - name: TESK_API_TASKMASTER_SERVICE_ACCOUNT_NAME
+          value: taskmaster
+        - name: SPRING_PROFILES_ACTIVE
+          value: noauth
+        - name: TESK_API_TASKMASTER_ENVIRONMENT_HOST_BASE_PATH
+          value: /data
+        - name: TESK_API_TASKMASTER_ENVIRONMENT_CONTAINER_BASE_PATH
+          value: /transfer
+        - name: TESK_API_TASKMASTER_ENVIRONMENT_TRANSFER_PVC_NAME
+          value: wes-elixir
+        ports:
+        - containerPort: 8080
+{{ end }}
