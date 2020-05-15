@@ -110,6 +110,9 @@ def init_pvc(data, filer):
     global created_pvc
     created_pvc = pvc
 
+    if os.environ.get('NETRC_SECRET_NAME') is not None:
+        filer.add_netrc_mount(os.environ.get('NETRC_SECRET_NAME'))
+
     filerjob = Job(
         filer.get_spec('inputs', args.debug),
         task_name + '-inputs-filer',

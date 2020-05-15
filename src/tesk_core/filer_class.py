@@ -1,4 +1,5 @@
 import json
+import os
 from tesk_core import path
 from tesk_core.path import fileEnabled
 
@@ -69,6 +70,31 @@ class Filer:
         self.getVolumeMounts().extend(pvc.volume_mounts)
         self.getVolumes().append({ "name"                  : "task-volume",
                                    "persistentVolumeClaim" : {"claimName": pvc.name}})
+
+
+    def add_netrc_mount(self, netrc_name='netrc'):
+        '''
+            Mounts the secret netrc into $HOME/.netrc. Neither the secret name nor the folder
+                can be changed.
+        '''
+
+        self.getVolumeMounts().append({"name"      : 'netrc',
+                                       "mountPath" : os.path.join(os.environ['HOME'], '.netrc'),
+                                       "subPath" : ".netrc"
+                                      })
+        self.getVolumes().append({"name"   : "netrc",
+                                  "secret" : {
+                                      "secretName" : netrc_name,
+                                      "defaultMode" :  420,
+                                      "items" : [
+                                          {
+                                              "key": "netrc",
+                                              "path": ".netrc"
+                                          }
+                                      ]
+                                  }
+                                 })
+
 
     def get_spec(self, mode, debug=False):
         self.spec['spec']['template']['spec']['containers'][0]['args'] = [

@@ -10,6 +10,7 @@ import os
 import enum
 import distutils.dir_util
 import logging
+import netrc
 import requests
 from tesk_core.exception import UnknownProtocol, FileProtocolDisabled
 import shutil
@@ -35,6 +36,14 @@ class Transput:
         parsed_url = urlparse(url)
         self.netloc = parsed_url.netloc
         self.url_path = parsed_url.path
+        self.netrc_file = None
+        try:
+            self.netrc_file = netrc.netrc(os.path.join(os.environ['HOME'], '.netrc'))
+        except IOError as fnfe:
+            logging.error(fnfe)
+        except netrc.NetrcParseError as err:
+            logging.error('netrc.NetrcParseError')
+            logging.error(err)
 
     def upload(self):
         logging.debug('%s uploading %s %s', self.__class__.__name__, self.ftype, self.url)
@@ -187,7 +196,7 @@ class FTPTransput(Transput):
     def __enter__(self):
         if self.connection_owner:
             self.ftp_connection.connect(self.netloc)
-            ftp_login(self.ftp_connection)
+            ftp_login(self.ftp_connection, self.netloc, self.netrc_file)
         return self
 
     def upload_dir(self):
@@ -275,10 +284,16 @@ class FTPTransput(Transput):
             self.ftp_connection.close()
 
 
-def ftp_login(ftp_connection):
-    if 'TESK_FTP_USERNAME' in os.environ and 'TESK_FTP_PASSWORD' in os.environ:
+def ftp_login(ftp_connection, netloc, netrc_file):
+    if netrc_file is not None:
+        creds = netrc_file.authenticators(netloc)
+        if creds:
+            user, _, password = creds
+    elif 'TESK_FTP_USERNAME' in os.environ and 'TESK_FTP_PASSWORD' in os.environ:
         user = os.environ['TESK_FTP_USERNAME']
         password = os.environ['TESK_FTP_PASSWORD']
+
+    if user:
         try:
             ftp_connection.login(user, password)
         except ftplib.error_perm:
