@@ -65,11 +65,11 @@ public class ResourceServerConfiguration extends ResourceServerConfigurerAdapter
     }
 
     /**
-     * Magic, that changes default role prefix from ROLE_ to elixir:
+     * Magic, that changes default role prefix from ROLE_ to (...)elixir:
      */
     @Bean
     public GrantedAuthorityDefaults grantedAuthorityDefaults() {
-        return new GrantedAuthorityDefaults("elixir:");
+        return new GrantedAuthorityDefaults(this.authorisationProperties.getGroupPrefix());
     }
 
     /**
@@ -77,7 +77,7 @@ public class ResourceServerConfiguration extends ResourceServerConfigurerAdapter
      */
     @Bean
     public AuthoritiesExtractor authoritiesExtractor() {
-        return new GroupNamesSecurityExtractor();
+        return new GroupNamesSecurityExtractor(authorisationProperties.getGroupsClaim(), authorisationProperties.getGroupPrefix());
     }
 
     /**

@@ -177,8 +177,11 @@ public class User implements Serializable, UserDetails, Principal {
                 ", givenName='" + givenName + '\'' +
                 ", familyName='" + familyName + '\'' +
                 ", email='" + email + '\'' +
-                ", allGroups=(" + StringUtils.collectionToCommaDelimitedString(allGroups) +
-                ")}";
+                ", allGroups=(" + StringUtils.collectionToCommaDelimitedString(allGroups) + ")" +
+                ", memberedGroups=(" + StringUtils.collectionToCommaDelimitedString(teskMemberedGroups) + ")" +
+                ", managedGroups=(" + StringUtils.collectionToCommaDelimitedString(teskManagedGroups) + ")" +
+                ", iasAdmin=" + isTeskAdmin() +
+                "}";
     }
 
     @Override

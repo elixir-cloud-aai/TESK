@@ -12,24 +12,25 @@ import org.springframework.context.annotation.Configuration;
 @ConfigurationProperties(prefix = "tesk.api.authorisation")
 public class AuthorisationProperties {
     /**
-     * Delimiter of nested group names (:)
+     * The name of the claim in userInfo that contains user's group membership
      */
-    private String delimiter;
-    /**
-     * Top level group name (all groups will have be direct or indirect subgroups of the group)
-     */
-    private String parentGroup;
-    /**
-     * Environment subgroup name - subgroup of base group representing single installation of TESK (EBI, CSC)
-     */
-    private String envSubgroup;
+    private String groupsClaim;
 
     /**
-     * Basic group required to perform any operation (parentGroup + envSubgroup)
+     * The prefix before actual group name
      */
-    private String baseGroup;
+    private String groupPrefix;
     /**
-     * Base group name + delimiter (to use as a prefix to even more nested groups)
+     * The suffix after actual group name
+     */
+    private String groupSuffix = "";
+
+    /**
+     * Full name of base group required to perform any operation (prefix + parentGroup + envSubgroup + suffix)
+     */
+    private String baseGroupFull;
+    /**
+     * (Prefix) + Base group name + delimiter (to use as a prefix to even more nested groups)
      */
     private String baseGroupPrefix;
     /**
@@ -38,40 +39,40 @@ public class AuthorisationProperties {
     private String adminSubgroup;
 
     /**
-     * Group representing admins of single installation of TESK
+     * Full name of a group representing admins of a single installation of TESK
      */
-    private String adminGroup;
+    private String adminGroupFull;
 
-    public String getDelimiter() {
-        return delimiter;
+    public String getGroupsClaim() {
+        return groupsClaim;
     }
 
-    public void setDelimiter(String delimiter) {
-        this.delimiter = delimiter;
+    public void setGroupsClaim(String groupsClaim) {
+        this.groupsClaim = groupsClaim;
     }
 
-    public String getParentGroup() {
-        return parentGroup;
+    public String getGroupPrefix() {
+        return groupPrefix;
     }
 
-    public void setParentGroup(String parentGroup) {
-        this.parentGroup = parentGroup;
+    public void setGroupPrefix(String groupPrefix) {
+        this.groupPrefix = groupPrefix;
     }
 
-    public String getEnvSubgroup() {
-        return envSubgroup;
+    public String getGroupSuffix() {
+        return groupSuffix;
     }
 
-    public void setEnvSubgroup(String envSubgroup) {
-        this.envSubgroup = envSubgroup;
+    public void setGroupSuffix(String groupSuffix) {
+        this.groupSuffix = groupSuffix;
     }
 
-    public String getBaseGroup() {
-        return baseGroup;
+    public String getBaseGroupFull() {
+        return baseGroupFull;
     }
 
-    public void setBaseGroup(String baseGroup) {
-        this.baseGroup = baseGroup;
+    public void setBaseGroupFull(String baseGroupFull) {
+        this.baseGroupFull = baseGroupFull;
     }
 
     public String getAdminSubgroup() {
@@ -90,11 +91,11 @@ public class AuthorisationProperties {
         this.baseGroupPrefix = baseGroupPrefix;
     }
 
-    public String getAdminGroup() {
-        return adminGroup;
+    public String getAdminGroupFull() {
+        return adminGroupFull;
     }
 
-    public void setAdminGroup(String adminGroup) {
-        this.adminGroup = adminGroup;
+    public void setAdminGroupFull(String adminGroupFull) {
+        this.adminGroupFull = adminGroupFull;
     }
 }

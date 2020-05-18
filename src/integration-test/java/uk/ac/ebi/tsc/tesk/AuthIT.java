@@ -66,7 +66,7 @@ public class AuthIT {
 
         mockElixir.givenThat(
                 WireMock.get("/")
-                        .willReturn(okJson("{\"sub\" : \"123\",  \"groupNames\" : [\"elixir:GA4GH:GA4GH-CAP:EBI\", \"elixir:GA4GH:GA4GH-CAP:EBI:ADMIN\"]}")));
+                        .willReturn(okJson("{\"sub\" : \"123\",  \"eduperson_entitlement\" : [\"urn:geant:elixir-europe.org:group:elixir:GA4GH:GA4GH-CAP:EBI#perun.elixir-czech.cz\", \"urn:geant:elixir-europe.org:group:elixir:GA4GH:GA4GH-CAP:EBI:ADMIN#perun.elixir-czech.cz\"]}")));
 
         mockKubernetes.givenThat(
                 WireMock.post("/apis/batch/v1/namespaces/default/jobs")
@@ -87,7 +87,7 @@ public class AuthIT {
 
         mockElixir.givenThat(
                 WireMock.get("/")
-                        .willReturn(okJson("{\"sub\" : \"123\",  \"groupNames\" : [\"elixir:GA4GH:GA4GH-CAP:EBI\", \"elixir:GA4GH:GA4GH-CAP:EBI:ADMIN\", \"elixir:GA4GH:GA4GH-CAP:EBI:TEST\"]}")));
+                        .willReturn(okJson("{\"sub\" : \"123\",  \"eduperson_entitlement\" : [\"urn:geant:elixir-europe.org:group:elixir:GA4GH:GA4GH-CAP:EBI#perun.elixir-czech.cz\", \"urn:geant:elixir-europe.org:group:elixir:GA4GH:GA4GH-CAP:EBI:ADMIN#perun.elixir-czech.cz\", \"urn:geant:elixir-europe.org:group:elixir:GA4GH:GA4GH-CAP:EBI:TEST#perun.elixir-czech.cz\"]}")));
 
         mockKubernetes.givenThat(
                 WireMock.post("/apis/batch/v1/namespaces/default/jobs")
@@ -108,7 +108,7 @@ public class AuthIT {
 
         mockElixir.givenThat(
                 WireMock.get("/")
-                        .willReturn(okJson("{\"sub\" : \"123\",  \"groupNames\" : [\"elixir:GA4GH:GA4GH-CAP:EBI\", \"elixir:GA4GH:GA4GH-CAP:EBI:ADMIN\"]}")));
+                        .willReturn(okJson("{\"sub\" : \"123\",  \"eduperson_entitlement\" : [\"urn:geant:elixir-europe.org:group:elixir:GA4GH:GA4GH-CAP:EBI#perun.elixir-czech.cz\", \"urn:geant:elixir-europe.org:group:elixir:GA4GH:GA4GH-CAP:EBI:ADMIN#perun.elixir-czech.cz\"]}")));
 
         String path = "fromTesToK8s/task.json";
         this.mvc.perform(post("/v1/tasks")
@@ -123,7 +123,7 @@ public class AuthIT {
 
         mockElixir.givenThat(
                 WireMock.get("/")
-                        .willReturn(okJson("{\"sub\" : \"123\",  \"groupNames\" : [\"elixir:GA4GH:GA4GH-CAP:EBI\", \"elixir:GA4GH:GA4GH-CAP:EBI:TEST\"]}")));
+                        .willReturn(okJson("{\"sub\" : \"123\",  \"eduperson_entitlement\" : [\"urn:geant:elixir-europe.org:group:elixir:GA4GH:GA4GH-CAP:EBI#perun.elixir-czech.cz\", \"urn:geant:elixir-europe.org:group:elixir:GA4GH:GA4GH-CAP:EBI:TEST#perun.elixir-czech.cz\"]}")));
 
         mockKubernetes.givenThat(
                 WireMock.post("/apis/batch/v1/namespaces/default/jobs")
@@ -144,7 +144,7 @@ public class AuthIT {
 
         mockElixir.givenThat(
                 WireMock.get("/")
-                        .willReturn(okJson("{\"sub\" : \"123\",  \"groupNames\" : [\"elixir:GA4GH:GA4GH-CAP:EBI\", \"elixir:GA4GH:GA4GH-CAP:EBI:TEST\", \"elixir:GA4GH:GA4GH-CAP:EBI:ABC\"]}")));
+                        .willReturn(okJson("{\"sub\" : \"123\",  \"eduperson_entitlement\" : [\"urn:geant:elixir-europe.org:group:elixir:GA4GH:GA4GH-CAP:EBI#perun.elixir-czech.cz\", \"urn:geant:elixir-europe.org:group:elixir:GA4GH:GA4GH-CAP:EBI:TEST#perun.elixir-czech.cz\", \"urn:geant:elixir-europe.org:group:elixir:GA4GH:GA4GH-CAP:EBI:ABC#perun.elixir-czech.cz\"]}")));
 
         mockKubernetes.givenThat(
                 WireMock.post("/apis/batch/v1/namespaces/default/jobs")
@@ -164,7 +164,7 @@ public class AuthIT {
 
         mockElixir.givenThat(
                 WireMock.get("/")
-                        .willReturn(okJson("{\"sub\" : \"123\",  \"groupNames\" : [\"elixir:GA4GH:GA4GH-CAP:EBI\", \"elixir:GA4GH:GA4GH-CAP:EBI:TEST\", \"elixir:GA4GH:GA4GH-CAP:EBI:ABC\"]}")));
+                        .willReturn(okJson("{\"sub\" : \"123\",  \"eduperson_entitlement\" : [\"urn:geant:elixir-europe.org:group:elixir:GA4GH:GA4GH-CAP:EBI#perun.elixir-czech.cz\", \"urn:geant:elixir-europe.org:group:elixir:GA4GH:GA4GH-CAP:EBI:TEST#perun.elixir-czech.cz\", \"urn:geant:elixir-europe.org:group:elixir:GA4GH:GA4GH-CAP:EBI:ABC#perun.elixir-czech.cz\"]}")));
 
         mockKubernetes.givenThat(
                 WireMock.post("/apis/batch/v1/namespaces/default/jobs")
@@ -185,7 +185,7 @@ public class AuthIT {
 
         mockElixir.givenThat(
                 WireMock.get("/")
-                        .willReturn(okJson("{\"sub\" : \"123\",  \"groupNames\" : [\"elixir:GA4GH:GA4GH-CAP:EBI\", \"elixir:GA4GH:GA4GH-CAP:EBI:TEST\", \"elixir:GA4GH:GA4GH-CAP:EBI:XYZ\"]}")));
+                        .willReturn(okJson("{\"sub\" : \"123\",  \"eduperson_entitlement\" : [\"urn:geant:elixir-europe.org:group:elixir:GA4GH:GA4GH-CAP:EBI#perun.elixir-czech.cz\", \"urn:geant:elixir-europe.org:group:elixir:GA4GH:GA4GH-CAP:EBI:TEST#perun.elixir-czech.cz\", \"urn:geant:elixir-europe.org:group:elixir:GA4GH:GA4GH-CAP:EBI:XYZ#perun.elixir-czech.cz\"]}")));
 
         String path = "fromTesToK8s/task.json";
         this.mvc.perform(post("/v1/tasks")
@@ -210,7 +210,7 @@ public class AuthIT {
 
         mockElixir.givenThat(
                 WireMock.get("/")
-                        .willReturn(okJson("{\"sub\":\"123\",\"groupNames\":[\"elixir:different\"]}")));
+                        .willReturn(okJson("{\"sub\":\"123\",\"eduperson_entitlement\":[\"urn:geant:elixir-europe.org:group:elixir:different#perun.elixir-czech.cz\"]}")));
 
         String path = "fromTesToK8s_minimal/task.json";
         this.mvc.perform(post("/v1/tasks")
@@ -225,7 +225,7 @@ public class AuthIT {
 
         mockElixir.givenThat(
                 WireMock.get("/")
-                        .willReturn(okJson("{\"sub\":\"123\",\"groupNames\":[]}")));
+                        .willReturn(okJson("{\"sub\":\"123\",\"eduperson_entitlement\":[]}")));
 
         String path = "fromTesToK8s_minimal/task.json";
         this.mvc.perform(post("/v1/tasks")
@@ -255,7 +255,7 @@ public class AuthIT {
 
         mockElixir.givenThat(
                 WireMock.get("/")
-                        .willReturn(okJson("{\"sub\":\"123\",\"groupNames\":[\"GA4GH:GA4GH-CAP:EBI\"]}")));
+                        .willReturn(okJson("{\"sub\":\"123\",\"eduperson_entitlement\":[\"GA4GH:GA4GH-CAP:EBI#perun.elixir-czech.cz\"]}")));
 
         String path = "fromTesToK8s_minimal/task.json";
         this.mvc.perform(post("/v1/tasks")
@@ -282,7 +282,7 @@ public class AuthIT {
 
         mockElixir.givenThat(
                 WireMock.get("/")
-                        .willReturn(okJson("{\"sub\" : \"123\",  \"groupNames\" : [\"elixir:GA4GH:GA4GH-CAP:EBI\", \"elixir:GA4GH:GA4GH-CAP:EBI:TEST\"]}")));
+                        .willReturn(okJson("{\"sub\" : \"123\",  \"eduperson_entitlement\" : [\"urn:geant:elixir-europe.org:group:elixir:GA4GH:GA4GH-CAP:EBI#perun.elixir-czech.cz\", \"urn:geant:elixir-europe.org:group:elixir:GA4GH:GA4GH-CAP:EBI:TEST#perun.elixir-czech.cz\"]}")));
 
         MockUtil.mockGetTaskKubernetesResponses(this.mockKubernetes);
 
@@ -304,7 +304,7 @@ public class AuthIT {
 
         mockElixir.givenThat(
                 WireMock.get("/")
-                        .willReturn(okJson("{\"sub\" : \"123\",  \"groupNames\" : [\"elixir:GA4GH:GA4GH-CAP:EBI\", \"elixir:GA4GH:GA4GH-CAP:EBI:TEST\"]}")));
+                        .willReturn(okJson("{\"sub\" : \"123\",  \"eduperson_entitlement\" : [\"urn:geant:elixir-europe.org:group:elixir:GA4GH:GA4GH-CAP:EBI#perun.elixir-czech.cz\", \"urn:geant:elixir-europe.org:group:elixir:GA4GH:GA4GH-CAP:EBI:TEST#perun.elixir-czech.cz\"]}")));
 
         MockUtil.mockGetTaskKubernetesResponses(this.mockKubernetes);
 
@@ -321,7 +321,7 @@ public class AuthIT {
 
         mockElixir.givenThat(
                 WireMock.get("/")
-                        .willReturn(okJson("{\"sub\" : \"124\",  \"groupNames\" : [\"elixir:GA4GH:GA4GH-CAP:EBI\", \"elixir:GA4GH:GA4GH-CAP:EBI:TEST\"]}")));
+                        .willReturn(okJson("{\"sub\" : \"124\",  \"eduperson_entitlement\" : [\"urn:geant:elixir-europe.org:group:elixir:GA4GH:GA4GH-CAP:EBI#perun.elixir-czech.cz\", \"urn:geant:elixir-europe.org:group:elixir:GA4GH:GA4GH-CAP:EBI:TEST#perun.elixir-czech.cz\"]}")));
 
         MockUtil.mockGetTaskKubernetesResponses(this.mockKubernetes);
 
@@ -338,7 +338,7 @@ public class AuthIT {
 
         mockElixir.givenThat(
                 WireMock.get("/")
-                        .willReturn(okJson("{\"sub\" : \"124\",  \"groupNames\" : [\"elixir:GA4GH:GA4GH-CAP:EBI\", \"elixir:GA4GH:GA4GH-CAP:EBI:TEST\"]}")));
+                        .willReturn(okJson("{\"sub\" : \"124\",  \"eduperson_entitlement\" : [\"urn:geant:elixir-europe.org:group:elixir:GA4GH:GA4GH-CAP:EBI#perun.elixir-czech.cz\", \"urn:geant:elixir-europe.org:group:elixir:GA4GH:GA4GH-CAP:EBI:TEST#perun.elixir-czech.cz\"]}")));
 
         MockUtil.mockGetTaskKubernetesResponses(this.mockKubernetes);
 
@@ -358,7 +358,7 @@ public class AuthIT {
 
         mockElixir.givenThat(
                 WireMock.get("/")
-                        .willReturn(okJson("{\"sub\" : \"124\",  \"groupNames\" : [\"elixir:GA4GH:GA4GH-CAP:EBI\", \"elixir:GA4GH:GA4GH-CAP:EBI:TEST:ADMIN\"]}")));
+                        .willReturn(okJson("{\"sub\" : \"124\",  \"eduperson_entitlement\" : [\"urn:geant:elixir-europe.org:group:elixir:GA4GH:GA4GH-CAP:EBI#perun.elixir-czech.cz\", \"urn:geant:elixir-europe.org:group:elixir:GA4GH:GA4GH-CAP:EBI:TEST:ADMIN#perun.elixir-czech.cz\"]}")));
 
         MockUtil.mockGetTaskKubernetesResponses(this.mockKubernetes);
 
@@ -378,7 +378,7 @@ public class AuthIT {
 
         mockElixir.givenThat(
                 WireMock.get("/")
-                        .willReturn(okJson("{\"sub\" : \"123\",  \"groupNames\" : [\"elixir:GA4GH:GA4GH-CAP:EBI\"]}")));
+                        .willReturn(okJson("{\"sub\" : \"123\",  \"eduperson_entitlement\" : [\"urn:geant:elixir-europe.org:group:elixir:GA4GH:GA4GH-CAP:EBI#perun.elixir-czech.cz\"]}")));
 
         MockUtil.mockGetTaskKubernetesResponses(this.mockKubernetes);
 
@@ -398,7 +398,7 @@ public class AuthIT {
 
         mockElixir.givenThat(
                 WireMock.get("/")
-                        .willReturn(okJson("{\"sub\" : \"xyz\",  \"groupNames\" : [\"elixir:GA4GH:GA4GH-CAP:EBI:ADMIN\"]}")));
+                        .willReturn(okJson("{\"sub\" : \"xyz\",  \"eduperson_entitlement\" : [\"urn:geant:elixir-europe.org:group:elixir:GA4GH:GA4GH-CAP:EBI:ADMIN#perun.elixir-czech.cz\"]}")));
 
         MockUtil.mockGetTaskKubernetesResponses(this.mockKubernetes);
 
@@ -418,7 +418,7 @@ public class AuthIT {
 
         mockElixir.givenThat(
                 WireMock.get("/")
-                        .willReturn(okJson("{\"sub\" : \"123\",  \"groupNames\" : [\"elixir:GA4GH:GA4GH-CAP:EBI\",\"elixir:GA4GH:GA4GH-CAP:EBI:TEST\"]}")));
+                        .willReturn(okJson("{\"sub\" : \"123\",  \"eduperson_entitlement\" : [\"urn:geant:elixir-europe.org:group:elixir:GA4GH:GA4GH-CAP:EBI#perun.elixir-czech.cz\",\"urn:geant:elixir-europe.org:group:elixir:GA4GH:GA4GH-CAP:EBI:TEST#perun.elixir-czech.cz\"]}")));
 
         mockKubernetes.givenThat(
                 WireMock.get("/apis/batch/v1/namespaces/default/jobs?labelSelector=job-type%3Dtaskmaster" +
@@ -435,7 +435,7 @@ public class AuthIT {
 
         mockElixir.givenThat(
                 WireMock.get("/")
-                        .willReturn(okJson("{\"sub\" : \"123\",  \"groupNames\" : [\"elixir:GA4GH:GA4GH-CAP:EBI:ADMIN\"]}")));
+                        .willReturn(okJson("{\"sub\" : \"123\",  \"eduperson_entitlement\" : [\"urn:geant:elixir-europe.org:group:elixir:GA4GH:GA4GH-CAP:EBI:ADMIN#perun.elixir-czech.cz\"]}")));
 
         mockKubernetes.givenThat(
                 WireMock.get("/apis/batch/v1/namespaces/default/jobs?labelSelector=job-type%3Dtaskmaster")
@@ -451,7 +451,7 @@ public class AuthIT {
 
         mockElixir.givenThat(
                 WireMock.get("/")
-                        .willReturn(okJson("{\"sub\" : \"123\",  \"groupNames\" : [\"elixir:GA4GH:GA4GH-CAP:EBI:TEST:ADMIN\"]}")));
+                        .willReturn(okJson("{\"sub\" : \"123\",  \"eduperson_entitlement\" : [\"urn:geant:elixir-europe.org:group:elixir:GA4GH:GA4GH-CAP:EBI:TEST:ADMIN#perun.elixir-czech.cz\"]}")));
 
         mockKubernetes.givenThat(
                 WireMock.get("/apis/batch/v1/namespaces/default/jobs?labelSelector=job-type%3Dtaskmaster" +
@@ -468,7 +468,7 @@ public class AuthIT {
 
         mockElixir.givenThat(
                 WireMock.get("/")
-                        .willReturn(okJson("{\"sub\" : \"123\",  \"groupNames\" : [\"elixir:GA4GH:GA4GH-CAP:EBI:ABC:ADMIN\",\"elixir:GA4GH:GA4GH-CAP:EBI:TEST\"]}")));
+                        .willReturn(okJson("{\"sub\" : \"123\",  \"eduperson_entitlement\" : [\"urn:geant:elixir-europe.org:group:elixir:GA4GH:GA4GH-CAP:EBI:ABC:ADMIN#perun.elixir-czech.cz\",\"urn:geant:elixir-europe.org:group:elixir:GA4GH:GA4GH-CAP:EBI:TEST#perun.elixir-czech.cz\"]}")));
 
         mockKubernetes.givenThat(
                 WireMock.get("/apis/batch/v1/namespaces/default/jobs?labelSelector=job-type%3Dtaskmaster" +
@@ -499,7 +499,7 @@ public class AuthIT {
 
         mockElixir.givenThat(
                 WireMock.get("/")
-                        .willReturn(okJson("{\"sub\" : \"123\",  \"groupNames\" : [\"sth\",\"elixir:GA4GH:GA4GH-CAP\"]}")));
+                        .willReturn(okJson("{\"sub\" : \"123\",  \"eduperson_entitlement\" : [\"sth\",\"urn:geant:elixir-europe.org:group:elixir:GA4GH:GA4GH-CAP#perun.elixir-czech.cz\"]}")));
 
         this.mvc.perform(get("/v1/tasks")
                 .header("Authorization", "Bearer BAR"))
