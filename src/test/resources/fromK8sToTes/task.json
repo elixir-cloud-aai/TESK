@@ -54,7 +54,8 @@
         {
           "start_time": "2018-05-31T09:23:15.000Z",
           "end_time": "2018-05-31T09:23:54.000Z",
-          "exit_code": 123
+          "exit_code": 123,
+          "stdout": ""
         }
       ],
       "metadata": {

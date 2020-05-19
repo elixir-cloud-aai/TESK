@@ -103,14 +103,19 @@ public class TesServiceImpl implements TesService {
                 TesExecutorLog executorLog = task.getLogs().get(0).getLogs().get(i);
                 if (view == TaskView.FULL) {
                     String executorPodLog = this.kubernetesClientWrapper.readPodLog(executorJob.getFirstPod().getMetadata().getName());
-                    executorLog.setStdout(executorPodLog);
+                    if (executorPodLog != null) { //to ensure compatibility with py-tes -- keep stdout non-null
+                        executorLog.setStdout(executorPodLog);
+                    }
                 }
             }
         }
 
         if (taskObjects.getTaskmaster().hasPods()) {
             String taskMasterPodLog = this.kubernetesClientWrapper.readPodLog(taskObjects.getTaskmaster().getFirstPod().getMetadata().getName());
-            task.getLogs().get(0).addSystemLogsItem(taskMasterPodLog);
+            if (taskMasterPodLog != null) {
+                //to ensure compatibility with py-tes, which does not like the array of nulls
+                task.getLogs().get(0).addSystemLogsItem(taskMasterPodLog);
+            }
         }
         return task;
 

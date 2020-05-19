@@ -230,6 +230,8 @@ public class TesKubernetesConverter {
         //TODO - better return controller startTime, when possible (now it behaves as if started, even if it is pending)
         log.setStartTime(Optional.ofNullable(executorJob.getStatus().getStartTime()).map(DATE_FORMATTER::print).orElse(null));
         log.setEndTime(Optional.ofNullable(executorJob.getStatus().getCompletionTime()).map(DATE_FORMATTER::print).orElse(null));
+        //workaround for py-tes compatibility. py-tes breaks for ExecutorLogs that can unmarshal to TaskLogs. Non-null stdout prevents that.
+        log.setStdout("");
         if (executor.hasPods()) {
             log.setExitCode(Optional.ofNullable(executor.getFirstPod().getStatus()).
                     map(V1PodStatus::getContainerStatuses).
