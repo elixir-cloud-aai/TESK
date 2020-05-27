@@ -44,6 +44,8 @@ public class TaskmasterEnvProperties {
      */
     private boolean debug;
 
+    private ExecutorSecret executorSecret;
+
 
     /**
      * Environment variables, that will be passed to taskmaster
@@ -103,10 +105,32 @@ public class TaskmasterEnvProperties {
         return environment;
     }
 
+    public ExecutorSecret getExecutorSecret() {
+        return executorSecret;
+    }
+
+    public void setExecutorSecret(ExecutorSecret executorSecret) {
+        this.executorSecret = executorSecret;
+    }
+
+    public boolean isFTPEnabled() {
+        if (this.getFtp() == null)
+            return false;
+        return this.getFtp().enabled;
+    };
+
+    public boolean isExecutorSecretEnabled() {
+        if (this.getExecutorSecret() == null)
+            return false;
+        return this.getExecutorSecret().enabled;
+    };
+
     /**
      * Test FTP account settings
      */
     public static class Ftp {
+
+
         /**
          * Name of the secret with FTP acoount credentials
          */
@@ -128,8 +152,38 @@ public class TaskmasterEnvProperties {
             }
         }
 
-        public boolean isEnabled() {
-            return enabled;
+    }
+    public static class ExecutorSecret {
+
+        /**
+         * Name of a secret that will be mounted as volume to each executor. The same name will be used for the secret and the volume
+         */
+        private String name;
+
+        /**
+         * The path where the secret will be mounted to executors
+         */
+        private String mountPath;
+
+        private boolean enabled;
+
+        public String getName() {
+            return name;
+        }
+
+        public void setName(String name) {
+            this.name = name;
+            if (!StringUtils.isEmpty(this.name)) {
+                this.enabled = true;
+            }
+        }
+
+        public String getMountPath() {
+            return mountPath;
+        }
+
+        public void setMountPath(String mountPath) {
+            this.mountPath = mountPath;
         }
 
 

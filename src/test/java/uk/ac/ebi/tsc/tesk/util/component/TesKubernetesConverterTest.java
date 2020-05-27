@@ -57,7 +57,9 @@ import static uk.ac.ebi.tsc.tesk.util.constant.Constants.LABEL_TASKSTATE_VALUE_C
                 "tesk.api.taskmaster.service-account-name = custom-service-account",
                 "tesk.api.taskmaster.debug = true",
                 "tesk.api.taskmaster.environment.wes.base.path = /usr/sth/path",
-                "tesk.api.taskmaster.environment.TES_BASE_PATH = /tesk/share"
+                "tesk.api.taskmaster.environment.TES_BASE_PATH = /tesk/share",
+                "tesk.api.taskmaster.executor-secret.name = mysecret",
+                "tesk.api.taskmaster.executor-secret.mount-path = /etc/secret"
         })
 @EnableConfigurationProperties(TaskmasterEnvProperties.class)
 public class TesKubernetesConverterTest {
@@ -157,8 +159,8 @@ public class TesKubernetesConverterTest {
         taskMasterInputJson.extractingJsonPathArrayValue("executors[*].spec.template.spec.containers[0].resources.requests.cpu").containsOnly("4").hasSize(2);
         taskMasterInputJson.extractingJsonPathArrayValue("executors[*].spec.template.spec.containers[0].resources.requests.memory").containsOnly("15.0G").hasSize(2);
 
-        taskMasterInputJson.extractingJsonPathMapValue("executors[0].spec.template.spec.containers[0]").containsOnlyKeys("name", "image", "command", "resources");
-        taskMasterInputJson.extractingJsonPathMapValue("executors[1].spec.template.spec.containers[0]").containsOnlyKeys("name", "image", "command", "resources", "workingDir", "env");
+        taskMasterInputJson.extractingJsonPathMapValue("executors[0].spec.template.spec.containers[0]").containsOnlyKeys("name", "image", "command", "resources", "volumeMounts");
+        taskMasterInputJson.extractingJsonPathMapValue("executors[1].spec.template.spec.containers[0]").containsOnlyKeys("name", "image", "command", "resources", "workingDir", "env", "volumeMounts");
         taskMasterInputJson.extractingJsonPathArrayValue("executors[0].spec.template.spec.containers[0].command").containsExactly("/bin/sh", "-c", "echo 'hello world' > /tmp/stdout");
         taskMasterInputJson.extractingJsonPathArrayValue("executors[1].spec.template.spec.containers[0].command").containsExactly("/bin/sh", "-c", "sh -c 'md5sum $src' > /tes/output.txt 2> /tes/err.txt");
         taskMasterInputJson.extractingJsonPathStringValue("executors[0].spec.template.spec.containers[0].image").isEqualTo("ubuntu");
