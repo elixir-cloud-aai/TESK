@@ -22,9 +22,11 @@ def run_executor(executor, namespace, pvc=None):
     spec = executor['spec']['template']['spec']
 
     if pvc is not None:
-        spec['containers'][0]['volumeMounts'] = pvc.volume_mounts
-        spec['volumes'] = [{'name': task_volume_basename, 'persistentVolumeClaim': {
-            'readonly': False, 'claimName': pvc.name}}]
+        mounts = spec['containers'][0].setdefault('volumeMounts', [])
+        mounts.extend(pvc.volume_mounts)
+        volumes = spec.setdefault('volumes', [])
+        volumes.extend([{'name': task_volume_basename, 'persistentVolumeClaim': {
+            'readonly': False, 'claimName': pvc.name}}])
 
     logger.debug('Created job: ' + jobname)
     job = Job(executor, jobname, namespace)
