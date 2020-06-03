@@ -66,6 +66,9 @@ The meaning of environment variables:
  `TESK_API_TASKMASTER_FILER_IMAGE_VERSION` | Version of filer image, passed on as a parameter to taskmaster. Taskmaster will create Inputs/Outputs filer using the image in this version. If omitted, should default to latest stable version.
  `TESK_API_K8S_NAMESPACE` | K8s namespace, where all the Job objects will be created. If omitted, defaults to `default`.
  `TESK_API_TASKMASTER_FTP_SECRET_NAME` | Name of K8s secret storing credentials to a single FTP account. FTP account is used to demonstrate uploading output files to external storage. If ENV variable is set, FTP username and password will be included by API as taskmaster ENV variables. Otherwise (TESK_API_TASKMASTER_FTP_SECRET_NAME env variable not set), TESK should still work, but without the ability to upload files to a private FTP server.
+ `TESK_API_TASKMASTER_ENVIRONMENT_*` | Variables passed through to taskmaster as environment variables. Of those currently implemented in taskmaster: `TESK_API_TASKMASTER_ENVIRONMENT_TRANSFER_PVC_NAME`, `TESK_API_TASKMASTER_ENVIRONMENT_HOST_BASE_PATH`, `TESK_API_TASKMASTER_ENVIRONMENT_CONTAINER_BASE_PATH` have been used to implement TESK using shared filesystem instead of FTP to exchange inputs and outputs 
+ `TESK_API_TASKMASTER_EXECUTOR_SECRET_NAME` | A name of a secret that (if variable not empty) will be mounted to each executor as a volume. The secret can contain multiple files.
+ `TESK_API_TASKMASTER_EXECUTOR_SECRET_MOUNT_PATH` | A path, where a secret named `TESK_API_TASKMASTER_EXECUTOR_SECRET_NAME` will be mounted. Defaults to `/secret`. 
  `SPRING_PROFILES_ACTIVE` | (default) `noauth` - authN/Z switched off. `auth` - authN/Z switched on.
  `TESK_API_AUTHORISATION_*` | A set of env variables configuring authorisation using Elixir group membership
  `TESK_API_SWAGGER_OAUTH_*` | A set of env variables configuring OAuth2/OIDC client built in Swagger UI

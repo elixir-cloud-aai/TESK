@@ -70,10 +70,25 @@
                     "cpu": "4",
                     "memory": "15.0G"
                   }
-                }
+                },
+                "volumeMounts": [
+                  {
+                    "name": "mysecret",
+                    "mountPath": "/etc/secret",
+                    "readOnly": true
+                  }
+                ]
               }
             ],
-            "restartPolicy": "Never"
+            "restartPolicy": "Never",
+            "volumes": [
+              {
+                "name": "mysecret",
+                "secret": {
+                  "secretName": "mysecret"
+                }
+              }
+            ]
           }
         }
       }
@@ -124,10 +139,25 @@
                     "memory": "15.0G"
                   }
                 },
-                "workingDir": "/starthere"
+                "workingDir": "/starthere",
+                "volumeMounts": [
+                  {
+                    "name": "mysecret",
+                    "mountPath": "/etc/secret",
+                    "readOnly": true
+                  }
+                ]
               }
             ],
-            "restartPolicy": "Never"
+            "restartPolicy": "Never",
+            "volumes": [
+              {
+                "name": "mysecret",
+                "secret": {
+                  "secretName": "mysecret"
+                }
+              }
+            ]
           }
         }
       }

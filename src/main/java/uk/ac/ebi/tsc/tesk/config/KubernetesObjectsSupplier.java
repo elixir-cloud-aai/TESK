@@ -74,7 +74,7 @@ public class KubernetesObjectsSupplier {
             containerEnvironment.addAll(taskmasterEnvProperties.getEnvironment().entrySet().stream().map(e -> new V1EnvVar().name(e.getKey().toUpperCase().replaceAll("\\.", "_")).value(e.getValue())).collect(Collectors.toList()));
             containerEnvironment.stream().filter(env -> FTP_SECRET_USERNAME_ENV.equals(env.getName()) || FTP_SECRET_PASSWORD_ENV.equals(env.getName()))
                     .forEach(env -> {
-                        if (taskmasterEnvProperties.getFtp().isEnabled()) {
+                        if (taskmasterEnvProperties.isFTPEnabled()) {
                             //update secret name, if FTP enabled
                             env.getValueFrom().getSecretKeyRef().setName(this.taskmasterEnvProperties.getFtp().getSecretName());
                         } else {
@@ -101,11 +101,15 @@ public class KubernetesObjectsSupplier {
     @Scope(value = "prototype")
     public V1Job executorTemplate() {
         V1Container container = new V1Container().
-                resources(new V1ResourceRequirements());/*.
-                addVolumeMountsItem(new V1VolumeMount().
-                        readOnly(Boolean.FALSE).
-                        name(VOLUME_NAME));*/
-        return new V1Job().
+                resources(new V1ResourceRequirements());
+        if (this.taskmasterEnvProperties.isExecutorSecretEnabled()) {
+            container.addVolumeMountsItem(new V1VolumeMount().
+                    readOnly(Boolean.TRUE).
+                    name(this.taskmasterEnvProperties.getExecutorSecret().getName()).
+                    mountPath(this.taskmasterEnvProperties.getExecutorSecret().getMountPath()));
+        }
+
+        V1Job job = new V1Job().
                 apiVersion(K8S_BATCH_API_VERSION).kind(K8S_BATCH_API_JOB_TYPE).
                 metadata(new V1ObjectMeta().
                         putLabelsItem(LABEL_JOBTYPE_KEY, LABEL_JOBTYPE_VALUE_EXEC)).
@@ -114,12 +118,14 @@ public class KubernetesObjectsSupplier {
                                 metadata(new V1ObjectMeta()).
                                 spec(new V1PodSpec().
                                         addContainersItem(container).
-                                        restartPolicy(JOB_RESTART_POLICY))));/*.
-                                        addVolumesItem(new V1Volume().
-                                                name(VOLUME_NAME).
-                                                persistentVolumeClaim(new V1PersistentVolumeClaimVolumeSource().
-                                                        readOnly(Boolean.FALSE))))));*/
-
+                                        restartPolicy(JOB_RESTART_POLICY))));
+        if (this.taskmasterEnvProperties.isExecutorSecretEnabled()) {
+            job.getSpec().getTemplate().getSpec().
+                    addVolumesItem(new V1Volume().
+                            name(this.taskmasterEnvProperties.getExecutorSecret().getName()).
+                            secret(new V1SecretVolumeSource().secretName(this.taskmasterEnvProperties.getExecutorSecret().getName())));
+        }
+        return job;
 
     }
 
