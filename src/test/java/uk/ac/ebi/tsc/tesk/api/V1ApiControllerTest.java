@@ -22,6 +22,7 @@ import org.springframework.security.oauth2.provider.token.ResourceServerTokenSer
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 import uk.ac.ebi.tsc.tesk.config.security.User;
+import uk.ac.ebi.tsc.tesk.service.ServiceInfoService;
 import uk.ac.ebi.tsc.tesk.service.TesService;
 
 import java.util.List;
@@ -71,6 +72,8 @@ public class V1ApiControllerTest {
 
     @MockBean
     private TesService tesService;
+    @MockBean
+    ServiceInfoService serviceInfoService;
 
     @Test
     public void createTask_valid() throws Exception {

@@ -118,6 +118,13 @@ public class NoAuthIT {
                 .header("Authorization", "Bearer BAR"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.tasks.length()").value(4));
     }
+    @Test
+    public void serviceInfo() throws Exception {
+        this.mvc.perform(get("/v1/tasks/service-info"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("TESK in EBI"))
+                .andExpect(jsonPath("$.doc").value("https://github.com/EMBL-EBI-TSI/TESK"));
+    }
 
 
 }

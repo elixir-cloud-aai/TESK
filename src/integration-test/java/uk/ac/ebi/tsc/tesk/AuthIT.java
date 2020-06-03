@@ -511,6 +511,11 @@ public class AuthIT {
                 .header("Authorization", "Bearer BAR"))
                 .andExpect(status().isForbidden());
     }
+    @Test
+    public void anybody_can_see_serviceInfo() throws Exception {
+        this.mvc.perform(get("/v1/tasks/service-info"))
+                .andExpect(status().isOk());
+    }
 
 
 

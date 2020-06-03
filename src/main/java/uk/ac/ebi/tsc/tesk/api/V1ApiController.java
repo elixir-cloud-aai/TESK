@@ -1,6 +1,7 @@
 package uk.ac.ebi.tsc.tesk.api;
 
 import io.swagger.annotations.ApiParam;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import uk.ac.ebi.tsc.tesk.config.security.User;
 import uk.ac.ebi.tsc.tesk.model.*;
+import uk.ac.ebi.tsc.tesk.service.ServiceInfoService;
 import uk.ac.ebi.tsc.tesk.service.TesService;
 import uk.ac.ebi.tsc.tesk.util.constant.TaskView;
 
@@ -21,11 +23,11 @@ import javax.validation.Valid;
 @javax.annotation.Generated(value = "io.swagger.codegen.languages.SpringCodegen", date = "2017-11-07T14:45:12.993Z")
 
 @Controller
+@RequiredArgsConstructor
 public class V1ApiController implements V1Api {
 
-
-    @Autowired
-    private TesService tesService;
+    private final TesService tesService;
+    private final ServiceInfoService serviceInfo;
 
     public ResponseEntity<TesCancelTaskResponse> cancelTask(@ApiParam(value = "", required = true) @PathVariable("id") String id) {
         //getTask - for authZ purposes (cancellation only possible for the same tasks, a user can actually see
@@ -40,8 +42,8 @@ public class V1ApiController implements V1Api {
     }
 
     public ResponseEntity<TesServiceInfo> getServiceInfo() {
-        // do some magic!
-        return new ResponseEntity<TesServiceInfo>(HttpStatus.OK);
+        TesServiceInfo response = this.serviceInfo.serviceInfo();
+        return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
     public ResponseEntity<TesTask> getTask(@ApiParam(value = "", required = true) @PathVariable("id") String id,
