@@ -19,6 +19,37 @@ How to use local FTP
   write_enable=YES
   ```
 
+* To configure TLS with vsftpd (Optional),
+  if you are planning to use cwl-tes, then you have to add TLS certificate to vsftpd.
+  ```
+  sudo mkdir /etc/ssl/private
+  openssl req -x509 -nodes -days 365 -newkey rsa:1024 -keyout /etc/ssl/private/vsftpd.pem -out /etc/ssl/private/vsftpd.pem
+  ```
+  Open the vsftpd configuration file as root:
+  ```
+  sudo nano /etc/vsftpd/vsftpd.conf
+  ```
+  Now, specify the location of our certificate, key files and other configurations to the end of the file.
+  ```
+  rsa_cert_file=/etc/ssl/private/vsftpd.pem
+  rsa_private_key_file=/etc/ssl/private/vsftpd.pem
+  ssl_enable=YES
+  allow_anon_ssl=NO
+  force_local_data_ssl=NO
+  force_local_logins_ssl=NO
+  ssl_tlsv1=YES
+  ssl_sslv2=NO
+  ssl_sslv3=NO
+  require_ssl_reuse=NO
+  ssl_ciphers=HIGH
+  ```
+  Save and close the file.
+   Restart vsftpd to enable our changes
+   ```
+   sudo /etc/init.d/vsftpd restart
+   ```
+
+
 * Edit the input and output URLs in the task's JSON (e.g.: `examples/localftp/taskWithIO.json`):
 
   ```
