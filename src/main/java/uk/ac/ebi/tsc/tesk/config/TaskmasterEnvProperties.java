@@ -25,6 +25,11 @@ public class TaskmasterEnvProperties {
     private String imageVersion;
 
     /**
+     * Filer image name
+     */
+    private String filerImageName;
+
+    /**
      * Filer image version
      */
     private String filerImageVersion;
@@ -67,6 +72,14 @@ public class TaskmasterEnvProperties {
 
     public void setImageName(String imageName) {
         this.imageName = imageName;
+    }
+
+    public String getFilerImageName() {
+        return filerImageName;
+    }
+
+    public void setFilerImageName(String filerImageName) {
+        this.filerImageName = filerImageName;
     }
 
     public String getFilerImageVersion() {

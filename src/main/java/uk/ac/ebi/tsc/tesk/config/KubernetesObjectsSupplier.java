@@ -62,6 +62,12 @@ public class KubernetesObjectsSupplier {
             V1Container taskmasterContainer = job.getSpec().getTemplate().getSpec().getContainers().get(0).
                     image(new StringJoiner(":").add(taskmasterEnvProperties.getImageName()).add(taskmasterEnvProperties.getImageVersion()).toString())
                     .addArgsItem("-n").addArgsItem(namespace).addArgsItem("-fv").addArgsItem(this.taskmasterEnvProperties.getFilerImageVersion());
+
+            if (this.taskmasterEnvProperties.getFilerImageName() != null) {
+                taskmasterContainer.addArgsItem("-fn")
+                        .addArgsItem(this.taskmasterEnvProperties.getFilerImageName());
+            }
+
             if (this.taskmasterEnvProperties.isDebug()) {
                 taskmasterContainer.addArgsItem("-d")
                         .setImagePullPolicy("Always");
