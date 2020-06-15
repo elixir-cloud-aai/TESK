@@ -14,7 +14,7 @@ class Filer:
     def getImagePullPolicy(self):   return self.getContainer(0)['imagePullPolicy']
 
     
-    def __init__(self, name, data, filer_version='v0.5', pullPolicyAlways = False):
+    def __init__(self, name, data, filer_name='eu.gcr.io/tes-wes/filer', filer_version='v0.5', pullPolicyAlways = False):
         self.name = name
         self.spec = {
             "kind": "Job",
@@ -26,7 +26,7 @@ class Filer:
                     "spec": {
                         "containers": [{
                             "name": "filer",
-                            "image": "eu.gcr.io/tes-wes/filer:" + filer_version,
+                            "image": "%s:%s" % (filer_name, filer_version),
                             "args": [],
                             "env": [],
                             "volumeMounts": [],
