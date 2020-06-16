@@ -1,0 +1,50 @@
+{
+  "outputs": [
+  ],
+  "inputs": [
+  ],
+  "volumes": [
+  ],
+  "executors": [
+    {
+      "apiVersion": "batch/v1",
+      "kind": "Job",
+      "metadata": {
+        "annotations": {
+        },
+        "labels": {
+          "job-type": "executor",
+          "taskmaster-name": "task-98605447",
+          "executor-no": "0",
+          "creator-user-id": "test-user-id"
+        },
+        "name": "task-98605447-ex-00"
+      },
+      "spec": {
+        "template": {
+          "metadata": {
+            "name": "task-98605447-ex-00"
+          },
+          "spec": {
+            "containers": [
+              {
+                "command": [
+                  "echo",
+                  "hello world"
+                ],
+                "image": "ubuntu",
+                "name": "task-98605447-ex-00",
+                "resources": {
+                }
+              }
+            ],
+            "restartPolicy": "Never"
+          }
+        }
+      }
+    }
+  ],
+  "resources": {
+    "disk_gb": 0.1
+  }
+}

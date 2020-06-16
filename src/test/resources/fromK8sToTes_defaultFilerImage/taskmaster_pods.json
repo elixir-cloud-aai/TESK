@@ -1,0 +1,14 @@
+{
+  "items": [
+    {
+      "metadata": {
+        "labels": {
+          "controller-uid": "34a36c28-64b4-11e8-a06f-fa163ecf0042"
+        }
+      },
+      "status": {
+        "phase": "anything"
+      }
+    }
+  ]
+}
