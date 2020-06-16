@@ -22,7 +22,7 @@
         "containers": [
           {
             "args": [
-              "$(JSON_INPUT)", "-n", "test-namespace", "-fv", "task-minimal-filer-image-version"
+              "$(JSON_INPUT)", "-n", "test-namespace", "-fv", "task-minimal-filer-image-version", "-fn", "task-minimal-filer-image-name"
             ],
             "env": [
               {

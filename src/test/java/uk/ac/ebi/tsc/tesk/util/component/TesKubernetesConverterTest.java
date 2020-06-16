@@ -53,6 +53,7 @@ import static uk.ac.ebi.tsc.tesk.util.constant.Constants.LABEL_TASKSTATE_VALUE_C
         properties = {"tesk.api.taskmaster.image-name = task-full-image-name",
                 "tesk.api.taskmaster.image-version = task-full-image-version",
                 "tesk.api.taskmaster.filer-image-version = task-full-filer-image-version",
+                "tesk.api.taskmaster.filer-image-name = task-full-filer-image-name",
                 "tesk.api.taskmaster.ftp.secret-name = secretstorage",
                 "tesk.api.taskmaster.service-account-name = custom-service-account",
                 "tesk.api.taskmaster.debug = true",
@@ -128,6 +129,8 @@ public class TesKubernetesConverterTest {
         assertEquals(outputJob.getSpec().getTemplate().getSpec().getServiceAccountName(), "custom-service-account");
         assertEquals(outputJob.getSpec().getTemplate().getSpec().getContainers().get(0).getArgs().get(0), "$(JSON_INPUT)");
         assertEquals(outputJob.getSpec().getTemplate().getSpec().getContainers().get(0).getArgs().get(2), "default");
+        assertEquals(outputJob.getSpec().getTemplate().getSpec().getContainers().get(0).getArgs().get(4), "task-full-filer-image-version");
+        assertEquals(outputJob.getSpec().getTemplate().getSpec().getContainers().get(0).getArgs().get(6), "task-full-filer-image-name");
         assertEquals(outputJob.getSpec().getTemplate().getSpec().getContainers().get(0).getImage(), "task-full-image-name:task-full-image-version");
         assertEquals(outputJob.getSpec().getTemplate().getSpec().getRestartPolicy(), "Never");
 

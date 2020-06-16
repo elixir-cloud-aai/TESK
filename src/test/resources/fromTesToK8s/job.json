@@ -28,6 +28,8 @@
               "default",
               "-fv",
               "task-full-filer-image-version",
+              "-fn",
+              "task-full-filer-image-name",
               "-d"
             ],
             "env": [
