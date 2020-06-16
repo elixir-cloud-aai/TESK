@@ -1,6 +1,5 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 
-from __future__ import print_function
 import argparse
 import json
 import os
@@ -8,9 +7,9 @@ import re
 import sys
 import logging
 from kubernetes import client, config
-from job import Job
-from pvc import PVC
-from filer_class import Filer
+from tesk_core.job import Job
+from tesk_core.pvc import PVC
+from tesk_core.filer_class import Filer
 
 created_jobs = []
 poll_interval = 5
@@ -103,7 +102,7 @@ def init_pvc(data, filer):
     logging.debug(type(mounts))
     pvc.set_volume_mounts(mounts)
     filer.add_volume_mount(pvc)
-    
+
     pvc.create()
     # to global var for cleanup purposes
     global created_pvc
@@ -163,7 +162,7 @@ def run_task(data, filer_version):
 
 
 def newParser():
-    
+
     parser = argparse.ArgumentParser(description='TaskMaster main module')
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument(
@@ -208,7 +207,7 @@ def newParser():
         '--pull-policy-always',
         help="set imagePullPolicy = 'Always'",
         action='store_true')
-    
+
     return parser
 
 
@@ -224,11 +223,11 @@ def newLogger(loglevel):
 
 
 
-def main(argv):
-    
+def main():
+
     parser = newParser()
     global args
-    
+
     args = parser.parse_args()
 
     poll_interval = args.poll_interval
@@ -284,12 +283,12 @@ def exit_cancelled(reason='Unknown reason'):
 
 
 def check_cancelled():
-    
+
     labelInfoFile = '/podinfo/labels'
-    
+
     if not os.path.exists(labelInfoFile):
         return False
-        
+
     with open(labelInfoFile) as fh:
         for line in fh.readlines():
             name, label = line.split('=')
@@ -302,6 +301,6 @@ def check_cancelled():
 
 if __name__ == "__main__":
     try:
-        main(sys.argv)
+        main()
     except KeyboardInterrupt:
         clean_on_interrupt()

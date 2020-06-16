@@ -9,19 +9,16 @@ It contains the code needed to generate 2 types of agents that reside in kuberne
 * The filer, which populates volumes and input files and uploads output files
 
 ## How to use
+
 Since the code is meant to be in kubernetes pods, the code needs to be packaged into containers.
 Their descriptions can be found in `containers/`.
 The root folder assumed to build the containers is the root of this package.
 
 ## Unit testing
-Unit testing needs the `tox` package, although `detox` is recommended and it parallelizes the workload:
+
+Unit testing needs the `tox` package.
+This software will take care of creating virtual environments and installing dependencies in them before running the actual tests and generating the coverage reports.
 
 ```
-  pip install detox
-```
-
-This software will take care of instancing virtual environments and installing dependencies in them before running the actual tests and generating the coverage reports
-
-```
-  detox
+$ tox
 ```
