@@ -13,6 +13,7 @@ import logging
 import requests
 from tesk_core.exception import UnknownProtocol, FileProtocolDisabled
 import shutil
+from glob import glob
 from tesk_core.path import containerPath, getPath, fileEnabled
 
 try:
@@ -157,6 +158,21 @@ def copyDir(src, dst):
         
         shutil.copytree(src, dst)
 
+def copyFile(src, dst):
+    '''
+    Limitations of shutil.copy:
+
+    It does not interpret * as a glob, but as a character.
+    '''
+
+    # If there is any * in 'dst', use only the dirname (base path)
+    p = re.compile('.*\*.*')
+    if p.match(dst):
+        dst=os.path.dirname(dst)
+
+    for file in glob(src):
+       shutil.copy(file, dst)
+
 
 class FileTransput(Transput):
     def __init__(self, path, url, ftype):
@@ -172,7 +188,7 @@ class FileTransput(Transput):
 
     def download_file(self): self.transfer(shutil.copy  , self.urlContainerPath , self.path)
     def download_dir(self):  self.transfer(copyDir      , self.urlContainerPath , self.path)
-    def upload_file(self):   self.transfer(shutil.copy  , self.path             , self.urlContainerPath)        
+    def upload_file(self):   self.transfer(copyFile  , self.path             , self.urlContainerPath)
     def upload_dir(self):    self.transfer(copyDir      , self.path             , self.urlContainerPath)        
         
     
