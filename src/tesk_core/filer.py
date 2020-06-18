@@ -454,8 +454,8 @@ def process_file(ttype, filedata):
 
     scheme = urlparse(filedata['url']).scheme
     if scheme == '':
-        logging.error('Could not determine protocol for url: "%s"', filedata['url'])
-        return 1
+        logging.info('Could not determine protocol for url: "%s", assuming "file"', filedata['url'])
+        scheme='file'
 
     trans = newTransput(scheme)
 
