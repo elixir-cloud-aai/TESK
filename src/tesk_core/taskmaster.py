@@ -125,13 +125,13 @@ def init_pvc(data, filer):
     return pvc
 
 
-def run_task(data, filer_version):
+def run_task(data, filer_name, filer_version):
     task_name = data['executors'][0]['metadata']['labels']['taskmaster-name']
     pvc = None
 
     if data['volumes'] or data['inputs'] or data['outputs']:
 
-        filer = Filer(task_name + '-filer', data, filer_version, args.pull_policy_always)
+        filer = Filer(task_name + '-filer', data, filer_name, filer_version, args.pull_policy_always)
         if os.environ.get('TESK_FTP_USERNAME') is not None:
             filer.set_ftp(
                 os.environ['TESK_FTP_USERNAME'],
@@ -181,6 +181,11 @@ def newParser():
         '--poll-interval',
         help='Job polling interval',
         default=5)
+    parser.add_argument(
+        '-fn',
+        '--filer-name',
+        help='Filer image version',
+        default='eu.gcr.io/tes-wes/filer')
     parser.add_argument(
         '-fv',
         '--filer-version',
@@ -264,7 +269,7 @@ def main():
     if check_cancelled():
         exit_cancelled('Cancelled during init')
 
-    run_task(data, args.filer_version)
+    run_task(data, args.filer_name, args.filer_version)
 
 
 def clean_on_interrupt():
