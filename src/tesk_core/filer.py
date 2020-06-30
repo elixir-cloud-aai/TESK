@@ -171,7 +171,7 @@ def copyFile(src, dst):
         dst=os.path.dirname(dst)
 
     for file in glob(src):
-       shutil.copy(file, dst)
+        shutil.copy(file, dst)
 
 
 class FileTransput(Transput):
