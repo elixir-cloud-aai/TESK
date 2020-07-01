@@ -38,7 +38,11 @@ class Transput:
         self.url_path = parsed_url.path
         self.netrc_file = None
         try:
-            self.netrc_file = netrc.netrc(os.path.join(os.environ['HOME'], '.netrc'))
+            netrc_path = os.path.join(os.environ['HOME'], '.netrc')
+        except KeyError as kerror:
+            netrc_path = '/.netrc'
+        try:
+            self.netrc_file = netrc.netrc(netrc_path)
         except IOError as fnfe:
             logging.error(fnfe)
         except netrc.NetrcParseError as err:
