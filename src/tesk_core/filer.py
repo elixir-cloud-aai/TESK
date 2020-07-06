@@ -504,8 +504,13 @@ def main():
 
     data = json.loads(args.data)
 
-    for afile in data[args.transputtype]:                                                                                                                                                                                                            logging.debug('Processing file: %s', afile['path'])                                                                                                                                                                                          if process_file(args.transputtype, afile) != 0:                                                                                                                                                                                                  logging.error('Unable to process file, aborting')                                                                                                                                                                                            return 1                                                                                                                                                                                                                                 logging.debug('Processed file: %s', afile['path'])
-    
+    for afile in data[args.transputtype]:
+        logging.debug('Processing file: %s', afile['path'])
+        if process_file(args.transputtype, afile) != 0:
+            logging.error('Unable to process file, aborting')
+            return 1
+        logging.debug('Processed file: %s', afile['path'])
+
     return 0
 
 
