@@ -65,6 +65,15 @@ class Filer:
         env.append({"name": "TESK_FTP_USERNAME", "value": user})
         env.append({"name": "TESK_FTP_PASSWORD", "value": pw})
 
+    def set_backoffLimit(self, limit):
+        """Set a number of retries of a job execution (default value is 6). Use the environment variable
+        TESK_API_FILER_ENVIRONMENT_BACKOFF_LIMIT to explicitly set this value.
+
+        Args:
+            limit: The number of retries before considering a Job as failed.
+        """
+        self.spec['spec'].update({"backoffLimit": limit})
+
     def add_volume_mount(self, pvc):
         self.getVolumeMounts().extend(pvc.volume_mounts)
         self.getVolumes().append({ "name"                  : "task-volume",

@@ -21,6 +21,9 @@ def run_executor(executor, namespace, pvc=None):
     jobname = executor['metadata']['name']
     spec = executor['spec']['template']['spec']
 
+    if os.environ.get('TESK_API_EXECUTOR_ENVIRONMENT_BACKOFF_LIMIT') is not None:
+        executor['spec'].update({'backoffLimit': os.environ['TESK_API_EXECUTOR_ENVIRONMENT_BACKOFF_LIMIT']})
+
     if pvc is not None:
         mounts = spec['containers'][0].setdefault('volumeMounts', [])
         mounts.extend(pvc.volume_mounts)
@@ -136,6 +139,9 @@ def run_task(data, filer_name, filer_version):
             filer.set_ftp(
                 os.environ['TESK_FTP_USERNAME'],
                 os.environ['TESK_FTP_PASSWORD'])
+        
+        if os.environ.get('TESK_API_FILER_ENVIRONMENT_BACKOFF_LIMIT') is not None:
+            filer.set_backoffLimit(os.environ['TESK_API_FILER_ENVIRONMENT_BACKOFF_LIMIT'])
 
         pvc = init_pvc(data, filer)
 
