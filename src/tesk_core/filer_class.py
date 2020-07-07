@@ -67,7 +67,7 @@ class Filer:
 
     def set_backoffLimit(self, limit):
         """Set a number of retries of a job execution (default value is 6). Use the environment variable
-        TESK_API_FILER_ENVIRONMENT_BACKOFF_LIMIT to explicitly set this value.
+        TESK_API_TASKMASTER_ENVIRONMENT_FILER_BACKOFF_LIMIT to explicitly set this value.
 
         Args:
             limit: The number of retries before considering a Job as failed.
