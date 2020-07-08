@@ -27,7 +27,6 @@ def run_executor(executor, namespace, pvc=None):
         volumes = spec.setdefault('volumes', [])
         volumes.extend([{'name': task_volume_basename, 'persistentVolumeClaim': {
             'readonly': False, 'claimName': pvc.name}}])
-
     logger.debug('Created job: ' + jobname)
     job = Job(executor, jobname, namespace)
     logger.debug('Job spec: ' + str(job.body))
@@ -35,8 +34,10 @@ def run_executor(executor, namespace, pvc=None):
     global created_jobs
     created_jobs.append(job)
 
-    status = job.run_to_completion(poll_interval, check_cancelled)
+    status = job.run_to_completion(poll_interval, check_cancelled,args.pod_timeout)
     if status != 'Complete':
+        if status == 'Error':
+            job.delete()
         exit_cancelled('Got status ' + status)
 
 # TODO move this code to PVC class
@@ -118,7 +119,7 @@ def init_pvc(data, filer):
     global created_jobs
     created_jobs.append(filerjob)
     # filerjob.run_to_completion(poll_interval)
-    status = filerjob.run_to_completion(poll_interval, check_cancelled)
+    status = filerjob.run_to_completion(poll_interval, check_cancelled, args.pod_timeout)
     if status != 'Complete':
         exit_cancelled('Got status ' + status)
 
@@ -156,7 +157,7 @@ def run_task(data, filer_name, filer_version):
         created_jobs.append(filerjob)
 
         # filerjob.run_to_completion(poll_interval)
-        status = filerjob.run_to_completion(poll_interval, check_cancelled)
+        status = filerjob.run_to_completion(poll_interval, check_cancelled, args.pod_timeout)
         if status != 'Complete':
             exit_cancelled('Got status ' + status)
         else:
@@ -181,6 +182,12 @@ def newParser():
         '--poll-interval',
         help='Job polling interval',
         default=5)
+    parser.add_argument(
+        '-pt',
+        '--pod-timeout',
+        type=int,
+        help='Pod creation timeout',
+        default=240)
     parser.add_argument(
         '-fn',
         '--filer-name',
@@ -214,6 +221,7 @@ def newParser():
         '--pull-policy-always',
         help="set imagePullPolicy = 'Always'",
         action='store_true')
+
 
     return parser
 
