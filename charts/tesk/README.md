@@ -10,7 +10,7 @@ the namespace is created depends on the cluster, so it is not documented here.
 
 To deploy the application:
  * modify [`values.yaml`](values.yaml)
- * Create a `secrets.yaml` file. You need to fill up the `username` and `password` of the ftp server configured in WES. If you activated authentication (auth.mode == 'auth' in `values.yaml`), you need as well the `client_id` and `client_secret`, otherwise the auth section must be removed:
+ * Create a `secrets.yaml` file. You need to fill up the `username` and `password` of the ftp server configured in WES. If you activated authentication (auth.mode == 'auth' in `values.yaml`), optionally you may activate as well he OICD client. To do so, supply the `client_id` and `client_secret` values, otherwise the auth section must be removed. This is independent of the fact that after activating auth mode, TESK will require a valid TOKEN:
 
  ```
  ftp:
