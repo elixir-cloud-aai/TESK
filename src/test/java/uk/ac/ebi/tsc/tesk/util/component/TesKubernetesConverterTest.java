@@ -60,7 +60,8 @@ import static uk.ac.ebi.tsc.tesk.util.constant.Constants.LABEL_TASKSTATE_VALUE_C
                 "tesk.api.taskmaster.environment.wes.base.path = /usr/sth/path",
                 "tesk.api.taskmaster.environment.TES_BASE_PATH = /tesk/share",
                 "tesk.api.taskmaster.executor-secret.name = mysecret",
-                "tesk.api.taskmaster.executor-secret.mount-path = /etc/secret"
+                "tesk.api.taskmaster.executor-secret.mount-path = /etc/secret",
+                "tesk.api.k8s.namespace = test-namespace"
         })
 @EnableConfigurationProperties(TaskmasterEnvProperties.class)
 public class TesKubernetesConverterTest {
@@ -128,9 +129,9 @@ public class TesKubernetesConverterTest {
 
         assertEquals(outputJob.getSpec().getTemplate().getSpec().getServiceAccountName(), "custom-service-account");
         assertEquals(outputJob.getSpec().getTemplate().getSpec().getContainers().get(0).getArgs().get(0), "$(JSON_INPUT)");
-        assertEquals(outputJob.getSpec().getTemplate().getSpec().getContainers().get(0).getArgs().get(2), "default");
-        assertEquals(outputJob.getSpec().getTemplate().getSpec().getContainers().get(0).getArgs().get(4), "task-full-filer-image-version");
-        assertEquals(outputJob.getSpec().getTemplate().getSpec().getContainers().get(0).getArgs().get(6), "task-full-filer-image-name");
+        assertEquals(outputJob.getSpec().getTemplate().getSpec().getContainers().get(0).getArgs().get(2), "test-namespace");
+        assertEquals(outputJob.getSpec().getTemplate().getSpec().getContainers().get(0).getArgs().get(4), "task-full-filer-image-name");
+        assertEquals(outputJob.getSpec().getTemplate().getSpec().getContainers().get(0).getArgs().get(6), "task-full-filer-image-version");
         assertEquals(outputJob.getSpec().getTemplate().getSpec().getContainers().get(0).getImage(), "task-full-image-name:task-full-image-version");
         assertEquals(outputJob.getSpec().getTemplate().getSpec().getRestartPolicy(), "Never");
 

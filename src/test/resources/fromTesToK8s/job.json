@@ -25,11 +25,11 @@
             "args": [
               "$(JSON_INPUT)",
               "-n",
-              "default",
-              "-fv",
-              "task-full-filer-image-version",
+              "test-namespace",
               "-fn",
               "task-full-filer-image-name",
+              "-fv",
+              "task-full-filer-image-version",
               "-d"
             ],
             "env": [
