@@ -25,7 +25,9 @@
             "args": [
               "$(JSON_INPUT)",
               "-n",
-              "default",
+              "test-namespace",
+              "-fn",
+              "task-full-filer-image-name",
               "-fv",
               "task-full-filer-image-version",
               "-d"
