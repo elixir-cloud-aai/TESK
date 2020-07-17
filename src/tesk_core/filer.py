@@ -506,7 +506,7 @@ def main():
 
     for afile in data[args.transputtype]:
         logging.debug('Processing file: %s', afile['path'])
-        if process_file(args.transputtype, afile) != 0:
+        if process_file(args.transputtype, afile):
             logging.error('Unable to process file, aborting')
             return 1
         logging.debug('Processed file: %s', afile['path'])
