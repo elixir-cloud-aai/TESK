@@ -2,7 +2,9 @@
 
 import argparse
 import json
+from yaml import safe_dump
 import os
+from base64 import b64encode
 import re
 import sys
 import logging
@@ -113,6 +115,28 @@ def init_pvc(data, filer):
     # to global var for cleanup purposes
     global created_pvc
     created_pvc = pvc
+
+    # S3_SECRET_NAME environment variable contains the secret file name
+    if os.environ.get('S3_SECRET_NAME') is not None:
+
+        secret = {
+            "apiVersion": "v1",
+            "kind": "Secret",
+            "metadata": {
+                "name": "s3-conf",
+            },
+            "data": {
+                # credentials and config files could be in a different
+                # location (not inside a local .aws folder).
+                "credentials": b64encode(open(".aws/credentials", "r")
+                                         .read()),
+                "config": b64encode(open(".aws/config", "r").read())
+            }
+        }
+
+        with open(os.environ["S3_SECRET_NAME"], "w") as secret_file:
+            safe_dump(secret, secret_file)
+        filer.add_s3_mount(os.environ.get('S3_SECRET_NAME'))
 
     filerjob = Job(
         filer.get_spec('inputs', args.debug),

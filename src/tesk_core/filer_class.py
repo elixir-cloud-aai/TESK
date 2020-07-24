@@ -3,6 +3,8 @@ from tesk_core import path
 from tesk_core.path import fileEnabled
 
 
+
+
 class Filer:
     
     def getVolumes(self):           return self.spec['spec']['template']['spec']['volumes']
@@ -55,9 +57,42 @@ class Filer:
             
             self.getVolumes().append({
                 
-                  "name"                  : 'transfer-volume'
+                  "name": 'transfer-volume'
                 , 'persistentVolumeClaim' : { 'claimName' : path.TRANSFER_PVC_NAME }
             })
+
+    def add_s3_mount(self, s3_config_name='s3_config'):
+        """ Mounts the s3 configuration file into $HOME/.aws/config. The secret
+            name is given through the 'S3_SECRET_NAME' environment variable.
+        """
+
+        self.getVolumeMounts().append(
+            {
+                "name": "s3-conf",
+                "mountPath": "~/.aws",
+                # Or os.path.join(os.environ['HOME'], '/.aws') ?
+                # Also, should the subdir '.aws' exist?
+                "readOnly": True,
+            }
+        )
+        self.getVolumes().append(
+            {
+                "name": "s3-conf",
+                  "secret": {
+                      "secretName": s3_config_name,
+                      "items": [
+                          {
+                              "key": "credentials",
+                              "path": "credentials"
+                          },
+                          {
+                              "key": "config",
+                              "path": "config"
+                          }
+                      ]
+                  }
+            }
+        )
 
 
     def set_ftp(self, user, pw):
