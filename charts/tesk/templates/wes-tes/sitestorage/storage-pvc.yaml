@@ -1,0 +1,12 @@
+{{ if .Values.wes_tes_enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: site-storage
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 50Gi
+{{ end }}

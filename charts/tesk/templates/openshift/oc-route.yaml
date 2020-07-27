@@ -1,0 +1,22 @@
+{{ if eq .Values.clusterType "openshift" }}
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: tesk-svc
+spec:
+  host: {{ .Values.host_name }}
+  tls:
+    insecureEdgeTerminationPolicy: Redirect
+    termination: edge
+  to:
+    kind: Service
+    name: tesk-api
+    weight: 100
+  wildcardPolicy: None
+status:
+  ingress:
+    - conditions:
+      host: {{ .Values.host_name }}
+      routerName: router
+      wildcardPolicy: None
+{{ end }}

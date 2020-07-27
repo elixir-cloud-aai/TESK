@@ -1,0 +1,14 @@
+{{ if .Values.wes_tes_enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: tesk-api
+  labels:
+    app: tesk-api
+spec:
+  ports:
+  - port: 8080
+  selector:
+    app: tesk-api
+  type: ClusterIP
+{{ end }}

@@ -1,4 +1,4 @@
 *.swp
 *.pyc
-*.yaml
+#*.yaml
 !/deployment/wes-tes/**

@@ -1,0 +1,24 @@
+{{ if eq .Values.clusterType "kubernetes" }}
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: ingress-rules {{ if .Values.kubernetes.tls_letsencrypt }}
+  annotations:
+    kubernetes.io/ingress.class: {{ .Values.kubernetes.tls_letsencrypt.annotations.ingressclass }}
+    kubernetes.io/tls-acme: "{{ .Values.kubernetes.tls_letsencrypt.annotations.tlsacme }}"
+    cert-manager.io/cluster-issuer: {{ .Values.kubernetes.tls_letsencrypt.annotations.clusterissuer }}
+  {{ end }}
+spec: {{ if .Values.kubernetes.tls_secret_name }}
+  tls:
+  - hosts:
+    - {{ .Values.host_name }}
+    secretName: {{ .Values.kubernetes.tls_secret_name }} {{ end }}
+  rules:
+  - host: {{ .Values.host_name }}
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: tesk-api
+          servicePort: {{ .Values.tesk.port }}
+{{ end }}

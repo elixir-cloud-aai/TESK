@@ -1,0 +1,60 @@
+{{ if .Values.wes_tes_enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wes-celery-worker
+  labels:
+    app: wes-celery
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: wes-celery-worker
+  template:
+    metadata:
+      labels:
+        app: wes-celery-worker
+    spec:
+      initContainers:
+      - name: vol-init
+        image: busybox
+        securityContext:
+          runAsUser: 0
+        command: [ 'mkdir'  ]
+        args: [ '-p', '/data/db', '/data/output', '/data/tmp' ]
+        volumeMounts:
+        - mountPath: /data
+          name: wes-elixir
+      containers:
+      - name: wes-celery-worker
+        image: ebiacuk/wes-elixir
+        workingDir: '/app/wes_elixir'
+        command: [ 'celery' ]
+        args: [ 'worker', '-A', 'celery_worker', '-E', '--loglevel=info', '-c', '1', '-Q', 'celery' ]
+        env:
+        - name: MONGO_HOST
+          value: mongo
+        - name: MONGO_PORT
+          value: "27017"
+        resources:
+          requests:
+            memory: "500Mi"
+            cpu: "200m"
+          limits:
+            memory: "500Mi"
+            cpu: "200m"
+        volumeMounts:
+        - mountPath: /data
+          name: wes-elixir
+        - name: wes-elixir-config
+          subPath: app_config.yaml
+          mountPath: /app/wes_elixir/config/app_config.yaml
+      volumes:
+      - name: wes-elixir
+        persistentVolumeClaim:
+          claimName: wes-elixir
+      - name: wes-elixir-config
+        configMap:
+          name: wes-elixir-config
+{{ end }}

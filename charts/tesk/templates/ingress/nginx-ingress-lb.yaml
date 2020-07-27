@@ -1,0 +1,21 @@
+{{ if and (eq .Values.clusterType "kubernetes") .Values.kubernetes.deploy_ingress }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-ingress-lb
+  labels:
+    app: nginx-ingress
+spec:
+  type: NodePort
+  externalIPs:
+  - {{ .Values.kubernetes.external_ip }}
+  ports:
+  - name: http
+    port: 80 {{ if not .Values.kubernetes.tls_secret_name }}
+    nodePort: {{ .Values.kubernetes.node_port }} {{ end }} {{ if .Values.kubernetes.tls_secret_name }}
+  - name: https
+    port: 443
+    nodePort: {{ .Values.kubernetes.node_port }} {{ end }}
+  selector:
+    app: nginx-ingress
+{{ end }}

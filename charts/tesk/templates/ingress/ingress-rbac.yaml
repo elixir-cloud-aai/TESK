@@ -1,0 +1,62 @@
+{{ if eq .Values.clusterType "kubernetes" }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: nginx-ingress
+---
+kind: {{ .Values.kubernetes.scope }}Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: nginx-ingress
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - services
+  - endpoints
+  verbs:
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  - secrets
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - list
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+- apiGroups:
+  - extensions
+  resources:
+  - ingresses
+  verbs:
+  - list
+  - watch
+---
+kind: {{ .Values.kubernetes.scope }}RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: nginx-ingress
+subjects:
+- kind: ServiceAccount
+  name: nginx-ingress
+  namespace: {{ .Release.Namespace }}
+roleRef:
+  kind: {{ .Values.kubernetes.scope }}Role
+  name: nginx-ingress
+  apiGroup: rbac.authorization.k8s.io
+{{ end }}

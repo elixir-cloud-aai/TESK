@@ -1,0 +1,70 @@
+{{ if .Values.wes_tes_enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: site-storage-config
+data:
+  Caddyfile: |-
+        http://site-storage
+        root /data
+        browse
+        log stdout
+        header / Content-Type "application/octet-stream"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    run: site-storage
+  name: site-storage
+spec:
+  type: ClusterIP
+  ports:
+  - name: port-1
+    port: 80
+    protocol: TCP
+    targetPort: 80
+  selector:
+    app: site-storage
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: site-storage
+  labels:
+    app: site-storage
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: site-storage
+  template:
+    metadata:
+      labels:
+        app: site-storage
+    spec:
+      containers:
+      - image:  eu.gcr.io/tes-wes/caddy
+        imagePullPolicy: Always
+        name: caddy
+        volumeMounts:
+        - mountPath: /data
+          name: site-storage
+        - name:  site-storage-config
+          subPath: Caddyfile
+          mountPath: /etc/Caddyfile
+        resources:
+          limits:
+            cpu: 500m
+            memory: 1024Mi
+          requests:
+            cpu: 500m
+            memory: 1024Mi
+      volumes:
+      - name: site-storage
+        persistentVolumeClaim:
+          claimName: site-storage
+      - name: site-storage-config
+        configMap:
+          name: site-storage-config
+{{ end }}

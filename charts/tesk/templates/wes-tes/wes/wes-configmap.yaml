@@ -1,0 +1,107 @@
+{{ if .Values.wes_tes_enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: wes-elixir-config
+data:
+  app_config.yaml: |-
+        # General server/service settings
+        server:
+            host: '0.0.0.0'
+            port: 8888
+            debug: True
+            environment: development
+            testing: False
+            use_reloader: True
+
+        # Security settings
+        security:
+            authorization_required: False
+            jwt:
+                name: "ELIXIR AAI"
+                algorithm: RS256
+                public_key: |-
+                    -----BEGIN PUBLIC KEY-----
+                    MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAyUt09EkKGW30jpggX1PY
+                    qrxuUw4Fo7a/uMiNvmy8CwBLfo+BgaI35Qi+ke/Dz9784CmNXjlIzNPFq+DUi+8p
+                    BDGAJ5hznfEoQI2TDzdiG7uIART4AEpLo9xCKrL1al37jrDmvgk98gbumnHsWKQb
+                    7KFRKHpIBvNVQ6v+z3nOQZ+fl1552S750ZSIfTXWXqlZohLVE9K8JwsM9i9z7h5E
+                    BU2cJkxPbFoZEs6zGMFEOohiAA99Nm7cW/3m3dCn+Nm5TJadEt/xR08b2GXhcg+t
+                    AC7qoBthpDFnUOrLbwvNWQIyE+Mch+z4+5LVTfElOGRem2tZaqYcMG/mY6EBra8p
+                    UwIDAQAB
+                    -----END PUBLIC KEY-----
+                header_name: Authorization
+                token_prefix: Bearer
+                identity_claim: sub
+
+        # Database settings
+        database:
+            host: 'mongo'
+            port: 27017
+            name: wes-elixir-db
+            run_id:
+                length: 6
+                charset: string.ascii_uppercase + string.digits
+
+        # Storage
+        storage:
+            permanent_dir: '/data/output'
+            tmp_dir: '/data/tmp'
+
+        # Celery task queue
+        celery:
+            broker_url: 'pyamqp://rabbitmq:5672//'
+            broker_host: 'rabbitmq'
+            broker_port: '5672'
+            result_backend: 'rpc://'
+            include:
+                - wes_elixir.tasks.tasks.run_workflow
+                - wes_elixir.tasks.tasks.cancel_run
+            monitor:
+                timeout: 0.1
+            message_maxsize: 16777216
+
+        # OpenAPI specs
+        api:
+            specs:
+                - path: '20181010.be85140.workflow_execution_service.swagger.yaml'
+                  strict_validation: True
+                  validate_responses: True
+                  swagger_ui: True
+                  swagger_json: True
+            endpoint_params:
+                default_page_size: 10
+                timeout_cancel_run: 60
+                timeout_run_workflow: Null
+
+        # WES service info settings
+        service_info:
+            contact_info: 'https://github.com/elixir-europe/WES-ELIXIR'
+            auth_instructions_url: 'https://www.elixir-europe.org/services/compute/aai'
+            supported_file_system_protocols:
+                - http
+            supported_wes_versions:
+                - 0.3.0
+            workflow_type_versions:
+                CWL:
+                    workflow_type_version:
+                        - v1.0
+            workflow_engine_versions:
+                cwl-tes: 0.2.0
+            default_workflow_engine_parameters:
+                - type: string
+                  default_value: some_string
+                - type: int
+                  default_value: '5'
+            tags:
+                known_tes_endpoints: https://tes-dev.tsi.ebi.ac.uk/|https://csc-tesk.c03.k8s-popup.csc.fi/|https://tesk.c01.k8s-popup.csc.fi/'
+                wes_elixir_version: 0.14.0
+
+        # TES server
+        tes:
+            url: 'http://tesk-api.tes:8080'
+            timeout: 5
+            get_logs:
+                url_root: 'v1/tasks/'
+                query_params: '?view=FULL'
+{{ end }}

@@ -1,0 +1,78 @@
+{{ if .Values.wes_tes_enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    run: wes-elixir
+  name: wes-elixir
+spec:
+  type: ClusterIP
+  ports:
+  - name: port-1
+    port: 8888
+    protocol: TCP
+    targetPort: 8888
+  selector:
+    app: wes-elixir
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: wes-elixir-dev
+  labels:
+    app: wes-elixir
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: wes-elixir
+  template:
+    metadata:
+      labels:
+        app: wes-elixir
+    spec:
+      terminationGracePeriodSeconds: 0
+      initContainers:
+      - name: vol-init
+        image: busybox
+        command: [ 'mkdir'  ]
+        args: [ '-p', '/data/db', '/data/output', '/data/tmp' ]
+        volumeMounts:
+        - mountPath: /data
+          name: wes-elixir
+      containers:
+      - image:  ebiacuk/wes-elixir
+        imagePullPolicy: Always
+        name: wes-elixir
+        workingDir: '/app/wes_elixir'
+        command:
+        - python
+        args:
+        - /app/wes_elixir/app.py
+        env:
+        - name: MONGO_HOST
+          value: mongo
+        - name: MONGO_PORT
+          value: "27017"
+        volumeMounts:
+        - mountPath: /data
+          name: wes-elixir
+        - name: wes-elixir-config
+          subPath: app_config.yaml
+          mountPath: /app/wes_elixir/config/app_config.yaml
+        resources:
+          limits:
+            cpu: 500m
+            memory: 1024Mi
+          requests:
+            cpu: 500m
+            memory: 1024Mi
+      volumes:
+      - name: wes-elixir
+        persistentVolumeClaim:
+          claimName: wes-elixir
+      - name: wes-elixir-config
+        configMap:
+          name: wes-elixir-config
+{{ end }}

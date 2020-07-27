@@ -1,0 +1,12 @@
+{{ if .Values.wes_tes_enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: wes-elixir
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 100Gi
+{{ end }}

@@ -1,0 +1,7 @@
+
+
+# wesBasePath='/home/tfga/workspace/WesElixir/data'     # WesElixir via docker-compose
+wesBasePath='/tmp'                                      # WesElixir locally
+
+minikube start --mount --mount-string "$wesBasePath:/transferAtNode"
+

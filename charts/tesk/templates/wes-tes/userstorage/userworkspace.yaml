@@ -1,0 +1,73 @@
+{{ if .Values.wes_tes_enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: caddy-config
+data:
+  Caddyfile: |-
+        :2015
+        root /data
+        browse /tmp
+        upload /tmp {
+          to "/data/tmp"
+        }
+        log stdout
+        header / Content-Type "application/octet-stream"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    run: userworkspace
+  name: userworkspace
+spec:
+  type: ClusterIP
+  ports:
+  - name: port-1
+    port: 2015
+    protocol: TCP
+    targetPort: 2015
+  selector:
+    app: userworkspace
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: userworkspace
+  labels:
+    app: userworkspace
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: userworkspace
+  template:
+    metadata:
+      labels:
+        app: userworkspace
+    spec:
+      containers:
+      - image:  eu.gcr.io/tes-wes/caddy
+        imagePullPolicy: Always
+        name: userworkspace
+        volumeMounts:
+        - mountPath: /data
+          name: wes-elixir
+        - name:  caddy-config
+          subPath: Caddyfile
+          mountPath: /etc/Caddyfile
+        resources:
+          limits:
+            cpu: 500m
+            memory: 1024Mi
+          requests:
+            cpu: 500m
+            memory: 1024Mi
+      volumes:
+      - name: wes-elixir
+        persistentVolumeClaim:
+          claimName: wes-elixir
+      - name: caddy-config
+        configMap:
+          name: caddy-config
+{{ end }}
