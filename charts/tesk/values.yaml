@@ -4,11 +4,11 @@
 
 host_name: csc-tesk-test.rahtiapp.fi
 # There are two options here: "openshift" or "kubernetes"
-clusterType: openshift
+clusterType: kubernetes
 #
 #
 #
-wes_tes_enabled: false
+
 storage: none
 
 tesk:
@@ -65,41 +65,31 @@ ftp:
     #
     virtualboxip: 192.168.99.1
 
-    # Credentials
-    # -----------
-    #
-    # Both 'username' and 'password' must be the base64-encoded.
-    #
-    #     echo -n 'admin' | base64
-    #
-    # https://kubernetes.io/docs/concepts/configuration/secret/
-    #
-    username: xxx
-    password: yyy
-
 #
 # Configure this, only if you choose "kubernetes" as "clusterTYpe"
 #
-kubernetes:
-    deploy_ingress: false
-    nginx_image: nginx/nginx-ingress:1.3.0
-    # the following variables are specific to each deployment
-    # We used externalIP to expose Ingress on 80/443 port. On OpenStack internal IP of master node (10.*) worked for us.
-    # Could be any node, but calls to the service have to be using it. In our case DNS entry is assigned to master's external IP
-    # Use NodePort as an alternative
-    external_ip: 10.1.1.1
-    node_port: 30977
-    # If no TLS secret name configured, TLS will be switched off
-    tls_secret_name:
-    # the following variables are specific to each deployment
-    # use:
-    # - scope=Cluster, if you want Ingress to listen to all namespaces (requires ClusterAdmin)
-    # - scope= , if you want Ingress to listen only to its own namespace
-    scope: ""
-    #
-    #
+ingress:
+    active: false
     tls_letsencrypt:
        annotations:
            ingressclass: "nginx"
            tlsacme: "true"
            clusterissuer: "letsencrypt-prod"
+    deploy_ingress:
+        active: false
+        nginx_image: nginx/nginx-ingress:1.3.0
+        # the following variables are specific to each deployment
+        # We used externalIP to expose Ingress on 80/443 port. On OpenStack internal IP of master node (10.*) worked for us.
+        # Could be any node, but calls to the service have to be using it. In our case DNS entry is assigned to master's external IP
+        # Use NodePort as an alternative
+        external_ip: 10.1.1.1
+        node_port: 30977
+        # If no TLS secret name configured, TLS will be switched off
+        tls_secret_name:
+        # the following variables are specific to each deployment
+        # use:
+        # - scope=Cluster, if you want Ingress to listen to all namespaces (requires ClusterAdmin)
+        # - scope= , if you want Ingress to listen only to its own namespace
+        scope: ""
+        #
+        #
