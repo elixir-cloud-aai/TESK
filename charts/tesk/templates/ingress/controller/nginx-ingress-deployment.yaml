@@ -1,4 +1,4 @@
-{{ if and (eq .Values.clusterType "kubernetes") .Values.kubernetes.deploy_ingress }}
+{{ if .Values.ingress.deploy_ingress.active }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -15,7 +15,7 @@ spec:
     spec:
       serviceAccountName: nginx-ingress
       containers:
-      - image: {{ .Values.kubernetes.nginx_image }}
+      - image: {{ .Values.ingress.deploy_ingress.nginx_image }}
         name: nginx-ingress
         ports:
         - name: http
@@ -34,7 +34,7 @@ spec:
         args:
          # - -nginx-configmaps=$(POD_NAMESPACE)/nginx-config
           - -default-server-tls-secret=$(POD_NAMESPACE)/default-server-secret
-         {{ if ne .Values.kubernetes.scope "Cluster" }}
+         {{ if ne .Values.ingress.deploy_ingress.scope "Cluster" }}
           - -watch-namespace=$(POD_NAMESPACE)
          {{ end }}
          #- -v=3 # Enables extensive logging. Useful for trooublshooting.

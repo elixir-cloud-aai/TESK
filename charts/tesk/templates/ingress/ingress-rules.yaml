@@ -1,18 +1,18 @@
-{{ if eq .Values.clusterType "kubernetes" }}
+{{ if .Values.ingress.active }}
 apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
-  name: ingress-rules {{ if .Values.kubernetes.tls_letsencrypt }}
+  name: ingress-rules {{ if .Values.ingress.tls_letsencrypt }}
   annotations:
-    kubernetes.io/ingress.class: {{ .Values.kubernetes.tls_letsencrypt.annotations.ingressclass }}
-    kubernetes.io/tls-acme: "{{ .Values.kubernetes.tls_letsencrypt.annotations.tlsacme }}"
-    cert-manager.io/cluster-issuer: {{ .Values.kubernetes.tls_letsencrypt.annotations.clusterissuer }}
+    kubernetes.io/ingress.class: {{ .Values.ingress.tls_letsencrypt.annotations.ingressclass }}
+    kubernetes.io/tls-acme: "{{ .Values.ingress.tls_letsencrypt.annotations.tlsacme }}"
+    cert-manager.io/cluster-issuer: {{ .Values.ingress.tls_letsencrypt.annotations.clusterissuer }}
   {{ end }}
-spec: {{ if .Values.kubernetes.tls_secret_name }}
+spec: {{ if .Values.ingress.tls_secret_name }}
   tls:
   - hosts:
     - {{ .Values.host_name }}
-    secretName: {{ .Values.kubernetes.tls_secret_name }} {{ end }}
+    secretName: {{ .Values.ingress.tls_secret_name }} {{ end }}
   rules:
   - host: {{ .Values.host_name }}
     http:
