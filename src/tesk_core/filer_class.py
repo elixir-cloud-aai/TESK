@@ -3,20 +3,25 @@ from tesk_core import path
 from tesk_core.path import fileEnabled
 
 
-
-
 class Filer:
-    
-    def getVolumes(self):           return self.spec['spec']['template']['spec']['volumes']
-                                    
-    def getContainer(self, i):      return self.spec['spec']['template']['spec']['containers'][i]
-    
-    def getVolumeMounts(self):      return self.getContainer(0)['volumeMounts']
-    def getEnv(self):               return self.getContainer(0)['env']
-    def getImagePullPolicy(self):   return self.getContainer(0)['imagePullPolicy']
 
-    
-    def __init__(self, name, data, filer_name='eu.gcr.io/tes-wes/filer', filer_version='v0.5', pullPolicyAlways = False):
+    def getVolumes(self):
+        return self.spec['spec']['template']['spec']['volumes']
+
+    def getContainer(self, i):
+        return self.spec['spec']['template']['spec']['containers'][i]
+
+    def getVolumeMounts(self):
+        return self.getContainer(0)['volumeMounts']
+
+    def getEnv(self):
+        return self.getContainer(0)['env']
+
+    def getImagePullPolicy(self):
+        return self.getContainer(0)['imagePullPolicy']
+
+    def __init__(self, name, data, filer_name='eu.gcr.io/tes-wes/filer',
+                 filer_version='v0.5', pullPolicyAlways=False):
         self.name = name
         self.spec = {
             "kind": "Job",
@@ -43,57 +48,67 @@ class Filer:
         }
 
         env = self.getEnv()
-        env.append({ "name": "JSON_INPUT"           , "value": json.dumps(data)          })
-        env.append({ "name": "HOST_BASE_PATH"       , "value": path.HOST_BASE_PATH       })
-        env.append({ "name": "CONTAINER_BASE_PATH"  , "value": path.CONTAINER_BASE_PATH  })
+        env.append({"name": "JSON_INPUT", "value": json.dumps(data)})
+        env.append({"name": "HOST_BASE_PATH", "value": path.HOST_BASE_PATH})
+        env.append(
+            {"name": "CONTAINER_BASE_PATH", "value": path.CONTAINER_BASE_PATH})
 
         if fileEnabled():
-            
-            self.getVolumeMounts().append({ 
-                
-                  "name"      : 'transfer-volume'
-                , 'mountPath' : path.CONTAINER_BASE_PATH 
-            })
-            
-            self.getVolumes().append({
-                
-                  "name": 'transfer-volume'
-                , 'persistentVolumeClaim' : { 'claimName' : path.TRANSFER_PVC_NAME }
+            self.getVolumeMounts().append({
+
+                "name": 'transfer-volume'
+                , 'mountPath': path.CONTAINER_BASE_PATH
             })
 
-    def add_s3_mount(self, s3_config_name='s3_config'):
-        """ Mounts the s3 configuration file into $HOME/.aws/config. The secret
-            name is given through the 'S3_SECRET_NAME' environment variable.
+            self.getVolumes().append({
+
+                "name": 'transfer-volume'
+                ,
+                'persistentVolumeClaim': {'claimName': path.TRANSFER_PVC_NAME}
+            })
+
+        self.add_s3_mount()
+
+    def add_s3_mount(self):
+        """ Mounts the s3 configuration file. The secret name is hardcoded and
+            set to 'aws-secret'.
         """
+
+        env = self.getEnv()
+        env.append({"name": "AWS_CONFIG_FILE", "value": "/aws/config"})
+        env.append(
+            {
+                "name": "AWS_SHARED_CREDENTIALS_FILE",
+                "value": "/aws/credentials"
+            }
+        )
 
         self.getVolumeMounts().append(
             {
                 "name": "s3-conf",
-                "mountPath": "~/.aws",
-                # Or os.path.join(os.environ['HOME'], '/.aws') ?
-                # Also, should the subdir '.aws' exist?
+                "mountPath": "/aws",
                 "readOnly": True,
             }
         )
         self.getVolumes().append(
             {
                 "name": "s3-conf",
-                  "secret": {
-                      "secretName": s3_config_name,
-                      "items": [
-                          {
-                              "key": "credentials",
-                              "path": "credentials"
-                          },
-                          {
-                              "key": "config",
-                              "path": "config"
-                          }
-                      ]
-                  }
+                "secret": {
+                    "secretName": "aws-secret",
+                    "items": [
+                        {
+                            "key": "credentials",
+                            "path": "credentials"
+                        },
+                        {
+                            "key": "config",
+                            "path": "config"
+                        }
+                    ],
+                    "optional": True,
+                }
             }
         )
-
 
     def set_ftp(self, user, pw):
         env = self.getEnv()
@@ -111,15 +126,17 @@ class Filer:
 
     def add_volume_mount(self, pvc):
         self.getVolumeMounts().extend(pvc.volume_mounts)
-        self.getVolumes().append({ "name"                  : "task-volume",
-                                   "persistentVolumeClaim" : {"claimName": pvc.name}})
+        self.getVolumes().append({"name": "task-volume",
+                                  "persistentVolumeClaim": {
+                                      "claimName": pvc.name}})
 
     def get_spec(self, mode, debug=False):
         self.spec['spec']['template']['spec']['containers'][0]['args'] = [
             mode, "$(JSON_INPUT)"]
 
         if debug:
-            self.spec['spec']['template']['spec']['containers'][0]['args'].append(
+            self.spec['spec']['template']['spec']['containers'][0][
+                'args'].append(
                 '-d')
 
         self.spec['spec']['template']['metadata']['name'] = self.name
