@@ -1,4 +1,4 @@
-{{ if .Values.ftp.active }}
+{{ if .Values.ftp.hostip }}
 kind: Service
 apiVersion: v1
 metadata:

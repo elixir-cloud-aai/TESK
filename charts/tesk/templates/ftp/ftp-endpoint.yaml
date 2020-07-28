@@ -1,11 +1,11 @@
-{{ if .Values.ftp.active }}
+{{ if .Values.ftp.hostip }}
 kind: Endpoints
 apiVersion: v1
 metadata:
     name: ftp
 subsets:
     - addresses:
-        - ip: {{ .Values.ftp.virtualboxip }}  # ipv4 address from vboxnet0
+        - ip: {{ .Values.ftp.hostip }}  # ipv4 address from vboxnet0
       ports:
         - port: 21
 {{ end }}
