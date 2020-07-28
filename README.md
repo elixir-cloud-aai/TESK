@@ -1,6 +1,5 @@
 <img src="documentation/img/TESKlogowfont.png" height="200">
 
-<a href="https://app.zenhub.com/workspace/o/embl-ebi-tsi/tesk/boards"><img src="https://raw.githubusercontent.com/ZenHubIO/support/master/zenhub-badge.png"></a>
 
 An implementation of a task execution engine based on the [TES standard](https://github.com/ga4gh/task-execution-schemas) running on `Kubernetes`. For more details on `TES`, see the (very) brief [introduction to TES](documentation/tesintro.md).
 
@@ -11,12 +10,7 @@ For organisational reasons, this project is split into 3 repositories:
 
 If the API is running on your cluster it will pull the images from our `gcr.io` repository automatically.
 
-`TESK` is designed with the goal to support any `Kubernetes` cluster, for its deployment please refer to the [deployment](documentation/deployment.md) page, the instructions provided there can be used in heterogeneous environments, with minimal configuration.
-
-We are also providing some specific instructions for setting up and exposing the `TESK` service using:
-
--   RedHat [OpenShift](documentation/openshift_setup.md)
--   On-Premises VMs in [OpenStack](documentation/ingress.md)
+`TESK` is designed with the goal to support any `Kubernetes` cluster, for its deployment please refer to the [deployment](documentation/deployment.md) page.
 
 The technical documentation is available in the [documentation](documentation) folder.
 
@@ -33,4 +27,7 @@ The `taskmaster` consumes the executor jobs, inputs and outputs. It first create
 After the last executor, the `filer` is called once more to process the outputs and push them to remote locations from the PVC. The PVC is the scrubbed, deleted and the taskmaster ends, completing the task.
 
 ## Requirements
--   A working [Kubernetes](https://kubernetes.io/) cluster version 1.8 and later.
+-   A working [Kubernetes](https://kubernetes.io/) cluster version 1.9 and later.
+-   If you want TESK to handle tasks with I/O (and you probably want), you additionally need:
+-   A default storage class, which TESK will use to create temporary PVCs. It is enough that the storage class supports the RWO mode.
+-   And, if you want TESK to integrate with workflow managers, you additionally need either an FTP account or a PVC that can be accessed from within or from outside of the cluster by the workflow manager (more in the [deployment](documentation/deployment.md) page).
