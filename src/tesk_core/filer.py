@@ -7,7 +7,6 @@ import sys
 import json
 import re
 import os
-import enum
 import distutils.dir_util
 import logging
 import netrc
@@ -16,82 +15,10 @@ from tesk_core.exception import UnknownProtocol, FileProtocolDisabled
 import shutil
 from glob import glob
 from tesk_core.path import containerPath, getPath, fileEnabled
-
-try:
-    from urllib.parse import urlparse
-except ImportError:
-    from urlparse import urlparse
+from tesk_core.transput import Type, Transput, urlparse
+from tesk_core.filer_s3 import S3Transput
 
 
-@enum.unique
-class Type(enum.Enum):
-    File = 'FILE'
-    Directory = 'DIRECTORY'
-
-
-class Transput:
-    def __init__(self, path, url, ftype):
-        self.path = path
-        self.url = url
-        self.ftype = ftype
-
-        parsed_url = urlparse(url)
-        self.netloc = parsed_url.netloc
-        self.url_path = parsed_url.path
-        self.netrc_file = None
-        try:
-            netrc_path = os.path.join(os.environ['HOME'], '.netrc')
-        except KeyError as kerror:
-            netrc_path = '/.netrc'
-        try:
-            self.netrc_file = netrc.netrc(netrc_path)
-        except IOError as fnfe:
-            logging.error(fnfe)
-        except netrc.NetrcParseError as err:
-            logging.error('netrc.NetrcParseError')
-            logging.error(err)
-
-    def upload(self):
-        logging.debug('%s uploading %s %s', self.__class__.__name__,
-                      self.ftype, self.url)
-        if self.ftype == Type.File:
-            return self.upload_file()
-        if self.ftype == Type.Directory:
-            return self.upload_dir()
-        return 1
-
-    def download(self):
-        logging.debug('%s downloading %s %s', self.__class__.__name__,
-                      self.ftype, self.url)
-        if self.ftype == Type.File:
-            return self.download_file()
-        if self.ftype == Type.Directory:
-            return self.download_dir()
-        return 1
-
-    def delete(self):
-        pass
-
-    def download_file(self):
-        raise NotImplementedError()
-
-    def download_dir(self):
-        raise NotImplementedError()
-
-    def upload_file(self):
-        raise NotImplementedError()
-
-    def upload_dir(self):
-        raise NotImplementedError()
-
-    # make it compatible with contexts (with keyword)
-    def __enter__(self):
-        return self
-
-    def __exit__(self, error_type, error_value, traceback):
-        self.delete()
-        # Swallow all exceptions since the filer mostly works with error codes
-        return False
 
 
 class HTTPTransput(Transput):
@@ -164,7 +91,7 @@ def copyContent(src, dst, symlinks=False, ignore=None):
 def copyDir(src, dst):
     '''
     Limitation of shutil.copytree:
-    
+
     > The destination directory, named by dst, must not already exist; it will be created as well as missing parent directories.
     '''
 
@@ -205,8 +132,8 @@ class FileTransput(Transput):
     def download_file(self): self.transfer(shutil.copy  , self.urlContainerPath , self.path)
     def download_dir(self):  self.transfer(copyDir      , self.urlContainerPath , self.path)
     def upload_file(self):   self.transfer(copyFile  , self.path             , self.urlContainerPath)
-    def upload_dir(self):    self.transfer(copyDir      , self.path             , self.urlContainerPath)        
-        
+    def upload_dir(self):    self.transfer(copyDir      , self.path             , self.urlContainerPath)
+
 
 class FTPTransput(Transput):
     def __init__(self, path, url, ftype, ftp_conn=None):
@@ -467,7 +394,8 @@ def file_from_content(filedata):
     return 0
 
 
-def newTransput(scheme):
+
+def newTransput(scheme, netloc):
     def fileTransputIfEnabled():
 
         if fileEnabled():
@@ -484,10 +412,13 @@ def newTransput(scheme):
     elif scheme == 'file':
         return fileTransputIfEnabled()
     elif scheme in ['http', 'https']:
+        if 's3' in netloc:
+            return S3Transput
         return HTTPTransput
+    elif scheme == 's3':
+        return S3Transput
     else:
-        raise UnknownProtocol(
-            "Unknown protocol: '{scheme}'".format(**locals()))
+        raise UnknownProtocol("Unknown protocol: '{scheme}'".format(**locals()))
 
 
 def process_file(ttype, filedata):
@@ -498,13 +429,14 @@ def process_file(ttype, filedata):
 
     if 'content' in filedata:
         return file_from_content(filedata)
-
-    scheme = urlparse(filedata['url']).scheme
+    parsed_url = urlparse(filedata['url'])
+    scheme = parsed_url.scheme
+    netloc = parsed_url.netloc
     if scheme == '':
         logging.info('Could not determine protocol for url: "%s", assuming "file"', filedata['url'])
         scheme='file'
 
-    trans = newTransput(scheme)
+    trans = newTransput(scheme, netloc)
 
     with trans(filedata['path'], filedata['url'],
                Type(filedata['type'])) as transfer:

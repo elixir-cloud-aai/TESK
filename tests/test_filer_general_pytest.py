@@ -38,7 +38,7 @@ def test_process_file_with_scheme(mocker):
     mock_new_Trans = mocker.patch('tesk_core.filer.newTransput')
     process_file('inputs', filedata)
 
-    mock_new_Trans.assert_called_once_with('http')
+    mock_new_Trans.assert_called_once_with('http','www.foo.bar')
 
 
 def test_process_file_from_content(tmpdir, tmp_path):

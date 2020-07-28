@@ -1,5 +1,4 @@
 import json
-import os
 from tesk_core import path
 from tesk_core.path import fileEnabled
 

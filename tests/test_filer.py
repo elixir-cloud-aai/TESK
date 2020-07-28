@@ -1,16 +1,25 @@
 import unittest
+import pytest
+import boto3
+import logging
+import os
 from tesk_core.filer import newTransput, FTPTransput, HTTPTransput, FileTransput,\
     process_file, logConfig, getPath, copyDir, copyFile, ftp_check_directory,\
     subfolders_in
 from tesk_core.exception import UnknownProtocol, InvalidHostPath,\
     FileProtocolDisabled
 from tesk_core.path import containerPath
+from tesk_core.filer_s3 import S3Transput
+from tesk_core.extract_endpoint import extract_endpoint
 from assertThrows import AssertThrowsMixin
-import logging
-import os
 from fs.opener import open_fs
 from io import StringIO
-from unittest.mock import patch
+from unittest.mock import patch, mock_open
+from moto import mock_s3
+
+
+
+
 
 
 def getTree(rootDir):
@@ -150,6 +159,7 @@ class FilerTest(unittest.TestCase, AssertThrowsMixin):
         # Let's try to copy
         copyDir(src, dst1)
 
+
         self.assertEqual(getTree(dst1),
                           stripLines('''
                             |-- a
@@ -178,7 +188,7 @@ class FilerTest(unittest.TestCase, AssertThrowsMixin):
 
     def test_getPath(self):
 
-        self.assertEquals( getPath('file:///home/tfga/workspace/cwl-tes/tmphrtip1o8/md5')
+        self.assertEqual( getPath('file:///home/tfga/workspace/cwl-tes/tmphrtip1o8/md5')
                          ,                '/home/tfga/workspace/cwl-tes/tmphrtip1o8/md5')
 
     def test_getPathNoScheme(self):
@@ -186,6 +196,8 @@ class FilerTest(unittest.TestCase, AssertThrowsMixin):
         self.assertEquals( getPath('/home/tfga/workspace/cwl-tes/tmphrtip1o8/md5')
                          ,         '/home/tfga/workspace/cwl-tes/tmphrtip1o8/md5')
 
+        self.assertEqual( containerPath('/home/tfga/workspace/cwl-tes/tmphrtip1o8/md5')
+                         ,               '/transfer/tmphrtip1o8/md5')
 
     def test_containerPath(self):
         self.assertEqual(
@@ -200,14 +212,16 @@ class FilerTest(unittest.TestCase, AssertThrowsMixin):
                           )
 
     def test_newTransput(self):
-        self.assertEqual(newTransput('ftp'), FTPTransput)
-        self.assertEqual(newTransput('http'), HTTPTransput)
-        self.assertEqual(newTransput('https'), HTTPTransput)
-        self.assertEqual(newTransput('file'), FileTransput)
+        self.assertEqual(newTransput('ftp', 'test.com'), FTPTransput)
+        self.assertEqual(newTransput('http', 'test.com'), HTTPTransput)
+        self.assertEqual(newTransput('https', 'test.com'), HTTPTransput)
+        self.assertEqual(newTransput('file', '/home/tfga/workspace/'), FileTransput)
+        self.assertEqual(newTransput('s3', '/home/tfga/workspace/'), S3Transput)
+        self.assertEqual(newTransput('http', 's3.aws.com'), S3Transput)
 
-        self.assertThrows(lambda: newTransput('svn'),
-                          UnknownProtocol,
-                          "Unknown protocol: 'svn'"
+        self.assertThrows(lambda: newTransput('svn', 'example.com')
+                          , UnknownProtocol
+                          , "Unknown protocol: 'svn'"
                           )
 
     @patch('ftplib.FTP')
@@ -224,16 +238,224 @@ class FilerTest(unittest.TestCase, AssertThrowsMixin):
         self.assertEqual(subfolders_in(path), subfldrs)
 
 
+
 class FilerTest_no_env(unittest.TestCase, AssertThrowsMixin):
 
     def test_newTransput_file_disabled(self):
-        self.assertThrows(lambda: newTransput('file'),
-                          FileProtocolDisabled,
-                          "'file:' protocol disabled\n"
-                          "To enable it, both 'HOST_BASE_PATH' and "
-                          "'CONTAINER_BASE_PATH' environment variables must be"
-                          " defined."
-                          )
+        self.assertThrows( lambda: newTransput('file','/home/user/test')
+                         , FileProtocolDisabled
+                         , "'file:' protocol disabled\n"
+                           "To enable it, both 'HOST_BASE_PATH' and 'CONTAINER_BASE_PATH' environment variables must be defined."
+                         )
+@pytest.fixture()
+def moto_boto():
+    with mock_s3():
+        client = boto3.resource('s3',endpoint_url="http://s3.amazonaws.com")
+        client.create_bucket(Bucket='tesk')
+        client.Bucket('tesk').put_object(Bucket='tesk', Key='folder/file.txt', Body='')
+        client.Bucket('tesk').put_object(Bucket='tesk', Key='folder1/folder2/file.txt', Body='')
+        yield
+
+@pytest.mark.parametrize("path, url, ftype,expected", [
+        ("/home/user/filer_test/file.txt", "http://tesk.s3.amazonaws.com/folder/file.txt","FILE",
+         ("tesk","folder/file.txt")),
+        ("/home/user/filer_test/file.txt", "http://tesk.s3-aws-region.amazonaws.com/folder/file.txt","FILE",
+         ("tesk","folder/file.txt")),
+        ("/home/user/filer_test/file.txt", "http://s3.amazonaws.com/tesk/folder/file.txt","FILE",
+         ("tesk","folder/file.txt")),
+        ("/home/user/filer_test/file.txt", "http://s3-aws-region.amazonaws.com/tesk/folder/file.txt","FILE",
+         ("tesk","folder/file.txt")),
+        ("/home/user/filer_test/file.txt", "s3://tesk/folder/file.txt","FILE",
+         ("tesk","folder/file.txt")),
+        ("/home/user/filer_test/file.txt", "http://tesk.s3.amazonaws.com/folder1/folder2","DIRECTORY",
+         ("tesk","folder1/folder2")),
+        ("/home/user/filer_test/file.txt", "http://tesk.s3-aws-region.amazonaws.com/folder1/folder2","DIRECTORY",
+         ("tesk","folder1/folder2")),
+        ("/home/user/filer_test/file.txt", "http://s3.amazonaws.com/tesk/folder1/folder2","DIRECTORY",
+         ("tesk","folder1/folder2")),
+        ("/home/user/filer_test/file.txt", "http://s3-aws-region.amazonaws.com/tesk/folder1/folder2","DIRECTORY",
+         ("tesk","folder1/folder2")),
+        ("/home/user/filer_test/file.txt", "s3://tesk/folder1/folder2","DIRECTORY",
+         ("tesk","folder1/folder2")),
+    ])
+def test_get_bucket_name_and_file_path( moto_boto, path, url, ftype,expected):
+        """
+        Check if the bucket name and path is extracted correctly for file and folders
+        """
+        trans = S3Transput(path, url, ftype)
+        assert trans.get_bucket_name_and_file_path() == expected
+
+@pytest.mark.parametrize("path, url, ftype,expected", [
+        ("/home/user/filer_test/file.txt", "http://tesk.s3.amazonaws.com/folder/file.txt","FILE",0),
+        ("/home/user/filer_test/file.txt", "http://tesk.s3-aws-region.amazonaws.com/folder/file.txt","FILE",0),
+        ("/home/user/filer_test/file.txt", "http://s3.amazonaws.com/tesk/folder/file.txt","FILE",0),
+        ("/home/user/filer_test/file.txt", "http://s3-aws-region.amazonaws.com/tesk/folder/file.txt","FILE",0),
+        ("/home/user/filer_test/file.txt", "s3://tesk/folder/file.txt","FILE",0),
+        ("/home/user/filer_test/file.txt", "http://mybucket.s3.amazonaws.com/folder/file.txt","FILE",1),
+        ("/home/user/filer_test/file.txt", "http://mybucket.s3-aws-region.amazonaws.com/folder/file.txt","FILE",1),
+        ("/home/user/filer_test/file.txt", "http://s3.amazonaws.com/mybucket/folder/file.txt","FILE",1),
+        ("/home/user/filer_test/file.txt", "http://s3-aws-region.amazonaws.com/mybucket/folder/file.txt","FILE",1),
+        ("/home/user/filer_test/file.txt", "s3://mybucket/folder/file.txt","FILE",1),
+        ("/home/user/filer_test/", "http://tesk.s3.amazonaws.com/folder1/folder2","DIRECTORY",0),
+        ("/home/user/filer_test/", "http://tesk.s3-aws-region.amazonaws.com/folder1/folder2","DIRECTORY",0),
+        ("/home/user/filer_test/", "http://s3.amazonaws.com/tesk/folder1/folder2","DIRECTORY",0),
+        ("/home/user/filer_test/", "http://s3-aws-region.amazonaws.com/tesk/folder1/folder2","DIRECTORY",0),
+        ("/home/user/filer_test/", "s3://tesk/folder1/folder2","DIRECTORY",0),
+        ("/home/user/filer_test/", "http://mybucket.s3.amazonaws.com/folder1/folder2","DIRECTORY",1),
+        ("/home/user/filer_test/", "http://mybucket.s3-aws-region.amazonaws.com/folder1/folder2","DIRECTORY",1),
+        ("/home/user/filer_test/", "http://s3.amazonaws.com/mybucket/folder1/folder2","DIRECTORY",1),
+        ("/home/user/filer_test/", "http://s3-aws-region.amazonaws.com/mybucket/folder1/folder2","DIRECTORY",1),
+        ("/home/user/filer_test/", "s3://mybucket/folder1/folder2","DIRECTORY",1)
+    ])
+def test_check_if_bucket_exists(moto_boto, path, url, ftype, expected):
+        """
+        Check if the bucket exists
+        """
+        client = boto3.resource('s3', endpoint_url="http://s3.amazonaws.com")
+        trans = S3Transput(path, url, ftype)
+        assert trans.check_if_bucket_exists(client) == expected
+
+@patch('tesk_core.filer.os.makedirs')
+@patch('builtins.open')
+@patch('s3transfer.utils.OSUtils.rename_file')
+@pytest.mark.parametrize("path, url, ftype,expected", [
+        ("/home/user/filer_test/file.txt", "http://tesk.s3.amazonaws.com/folder/file.txt","FILE",0),
+        ("/home/user/filer_test/file.txt", "http://tesk.s3-aws-region.amazonaws.com/folder/file.txt","FILE",0),
+        ("/home/user/filer_test/file.txt", "http://s3.amazonaws.com/tesk/folder/file.txt","FILE",0),
+        ("/home/user/filer_test/file.txt", "http://s3-aws-region.amazonaws.com/tesk/folder/file.txt","FILE",0),
+        ("/home/user/filer_test/file.txt", "s3://tesk/folder/file.txt","FILE",0),
+        ("/home/user/filer_test/file.txt", "http://mybucket.s3.amazonaws.com/folder/file.txt","FILE",1),
+        ("/home/user/filer_test/file.txt", "http://mybucket.s3-aws-region.amazonaws.com/folder/file.txt","FILE",1),
+        ("/home/user/filer_test/file.txt", "http://s3.amazonaws.com/mybucket/folder/file.txt","FILE",1),
+        ("/home/user/filer_test/file.txt", "http://s3-aws-region.amazonaws.com/mybucket/folder/file.txt","FILE",1),
+        ("/home/user/filer_test/file.txt", "s3://mybucket/folder/file.txt","FILE",1),
+    ])
+def test_s3_download_file(mock_makedirs, mock_open, mock_rename, moto_boto, path, url, ftype, expected):
+    """
+    Checking for successful/failed file download from Object storage server
+    """
+    trans = S3Transput(path, url, ftype)
+    client = boto3.resource('s3', endpoint_url="http://s3.amazonaws.com")
+    trans.bucket_obj = client.Bucket(trans.bucket)
+    assert trans.download_file() == expected
+
+
+@patch('tesk_core.filer.os.makedirs')
+@patch('builtins.open')
+@patch('s3transfer.utils.OSUtils.rename_file')
+@pytest.mark.parametrize("path, url, ftype,expected", [
+        ("/home/user/filer_test/", "http://tesk.s3.amazonaws.com/folder1/folder2","DIRECTORY",0),
+        ("/home/user/filer_test/", "http://tesk.s3-aws-region.amazonaws.com/folder1/folder2","DIRECTORY",0),
+        ("/home/user/filer_test/", "http://s3.amazonaws.com/tesk/folder1/folder2","DIRECTORY",0),
+        ("/home/user/filer_test/", "http://s3-aws-region.amazonaws.com/tesk/folder1/folder2","DIRECTORY",0),
+        ("/home/user/filer_test/", "s3://tesk/folder1/folder2","DIRECTORY",0),
+        ("/home/user/filer_test/", "http://tesk.s3.amazonaws.com/folder10/folder20","DIRECTORY",1),
+        ("/home/user/filer_test/", "http://tesk.s3-aws-region.amazonaws.com/folder10/folder20","DIRECTORY",1),
+        ("/home/user/filer_test/", "http://s3.amazonaws.com/tesk/folder10/folder20","DIRECTORY",1),
+        ("/home/user/filer_test/", "http://s3-aws-region.amazonaws.com/tesk/folder10/folder20","DIRECTORY",1),
+        ("/home/user/filer_test/", "s3://tesk/folder10/folder20","DIRECTORY",1)
+    ])
+def test_s3_download_directory( mock_makedirs, mock_open, mock_rename, path, url, ftype,
+                             expected, moto_boto, monkeypatch ):
+    """
+    test case to check directory download from Object storage server
+    """
+    monkeypatch.setattr("tesk_core.extract_endpoint.extract_endpoint", lambda _: "http://s3.amazonaws.com")
+    trans = S3Transput(path, url, ftype)
+    trans.bucket_obj = boto3.resource('s3',endpoint_url=extract_endpoint()).Bucket(trans.bucket)
+    assert  trans.download_dir() == expected
+
+
+@pytest.mark.parametrize("path, url, ftype,expected", [
+        ("/home/user/filer_test/file.txt", "http://tesk.s3.amazonaws.com/folder/file.txt","FILE",0),
+        ("/home/user/filer_test/file.txt", "http://tesk.s3-aws-region.amazonaws.com/folder/file.txt","FILE",0),
+        ("/home/user/filer_test/file.txt", "http://s3.amazonaws.com/tesk/folder/file.txt","FILE",0),
+        ("/home/user/filer_test/file.txt", "http://s3-aws-region.amazonaws.com/tesk/folder/file.txt","FILE",0),
+        ("/home/user/filer_test/file.txt", "s3://tesk/folder/file.txt","FILE",0),
+        ("/home/user/filer_test/file_new.txt", "http://mybucket.s3.amazonaws.com/folder/file.txt","FILE",1),
+        ("/home/user/filer_test/file_new.txt", "http://mybucket.s3-aws-region.amazonaws.com/folder/file.txt","FILE",1),
+        ("/home/user/filer_test/file_new.txt", "http://s3.amazonaws.com/mybucket/folder/file.txt","FILE",1),
+        ("/home/user/filer_test/file_new.txt", "http://s3-aws-region.amazonaws.com/mybucket/folder/file.txt","FILE",1),
+        ("/home/user/filer_test/file_new.txt", "s3://mybucket/folder/file.txt","FILE",1),
+    ])
+def test_s3_upload_file( moto_boto, path, url, ftype, expected,fs, caplog):
+    """
+        Testing successful/failed file upload to object storage server
+    """
+    fs.create_file("/home/user/filer_test/file.txt")
+    trans = S3Transput(path, url, ftype)
+    client = boto3.resource('s3', endpoint_url="http://s3.amazonaws.com")
+    trans.bucket_obj = client.Bucket(trans.bucket)
+    assert trans.upload_file() == expected
+    if expected:
+        assert "File upload failed for" in caplog.text
+
+@pytest.mark.parametrize("path, url, ftype,expected", [
+        ("/home/user/filer_test/", "http://tesk.s3.amazonaws.com/folder1/folder2","DIRECTORY",0),
+        ("/home/user/filer_test/", "http://tesk.s3-aws-region.amazonaws.com/folder1/folder2","DIRECTORY",0),
+        ("/home/user/filer_test/", "http://s3.amazonaws.com/tesk/folder1/folder2","DIRECTORY",0),
+        ("/home/user/filer_test/", "http://s3-aws-region.amazonaws.com/tesk/folder1/folder2","DIRECTORY",0),
+        ("/home/user/filer_test/", "s3://tesk/folder1/folder2","DIRECTORY",0),
+        ("/home/user/filer_test_new/", "http://tesk.s3.amazonaws.com/folder10/folder20","DIRECTORY",1),
+        ("/home/user/filer_test_new/", "http://tesk.s3-aws-region.amazonaws.com/folder10/folder20","DIRECTORY",1),
+        ("/home/user/filer_test_new/", "http://s3.amazonaws.com/tesk/folder10/folder20","DIRECTORY",1),
+        ("/home/user/filer_test_new/", "http://s3-aws-region.amazonaws.com/tesk/folder10/folder20","DIRECTORY",1),
+        ("/home/user/filer_test_new/", "s3://tesk/folder10/folder20","DIRECTORY",1)
+    ])
+def test_s3_upload_directory(path, url, ftype, expected, moto_boto, fs, caplog, monkeypatch):
+    """
+        Checking for successful and failed Directory upload to object storage server
+    """
+    fs.create_file("/home/user/filer_test/test.txt")
+    monkeypatch.setattr("tesk_core.extract_endpoint.extract_endpoint", lambda _: "http://s3.amazonaws.com")
+    trans = S3Transput(path, url, ftype)
+    client = boto3.resource('s3', endpoint_url=extract_endpoint())
+    trans.bucket_obj = client.Bucket(trans.bucket)
+    assert trans.upload_dir() == expected
+    if expected:
+        assert "File upload failed for" in caplog.text
+
+def test_upload_directory_for_unknown_file_type(moto_boto, fs, monkeypatch, caplog):
+    """
+        Checking whether an exception is raised when the object type is neither file or directory
+        If the exception is raised, an error message will be logged.
+    """
+    monkeypatch.setattr(os.path, 'isfile', lambda _:False)
+    fs.create_file("/home/user/filer_test/text.txt")
+    url, ftype = "s3://tesk/folder10/folder20","DIRECTORY"
+    path = "/home/user/filer_test/"
+    trans = S3Transput(path, url, ftype)
+    client = boto3.resource('s3', endpoint_url="http://s3.amazonaws.com")
+    trans.bucket_obj = client.Bucket(trans.bucket)
+    trans.upload_dir()
+    assert "Object is neither file or directory" in caplog.text
+
+
+@patch("tesk_core.filer.os.path.exists", return_value=1)
+def test_extract_url_from_config_file(mock_path_exists):
+    """
+    Testing extraction of endpoint url from default file location
+    """
+    trans = S3Transput("/home/user/filer_test/file.txt", "http://s3-aws-region.amazonaws.com/mybucket/folder/file.txt",
+                       "FILE")
+    read_data = '\n'.join(["[default]", "endpoint_url = http://s3-aws-region.amazonaws.com"])
+    with patch("builtins.open", mock_open(read_data=read_data), create=True) as mock_file:
+        mock_file.return_value.__iter__.return_value = read_data.splitlines()
+        assert extract_endpoint() == "http://s3-aws-region.amazonaws.com"
+        mock_file.assert_called_once_with("~/.aws/config", encoding=None)
+
+@patch.dict(os.environ, {"AWS_CONFIG_FILE": "~/.aws/config"})
+def test_extract_url_from_environ_variable():
+    """
+    Testing successful extraction of endpoint url read from file path saved on enviornment variable
+    """
+    trans = S3Transput("/home/user/filer_test/file.txt", "http://s3-aws-region.amazonaws.com/mybucket/folder/file.txt",
+                       "FILE")
+    read_data = '\n'.join(["[default]","endpoint_url = http://s3-aws-region.amazonaws.com"])
+    with patch("builtins.open", mock_open(read_data=read_data),create=True) as mock_file:
+        mock_file.return_value.__iter__.return_value = read_data.splitlines()
+        assert (extract_endpoint() == "http://s3-aws-region.amazonaws.com")
+        mock_file.assert_called_once_with(os.environ["AWS_CONFIG_FILE"], encoding=None)
 
 
 if __name__ == "__main__":
