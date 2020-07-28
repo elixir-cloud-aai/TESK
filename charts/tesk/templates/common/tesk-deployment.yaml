@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tesk-api
+spec:
+  selector:
+    matchLabels:
+      app: tesk-api
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: tesk-api
+    spec:
+      serviceAccountName: taskmaster
+      containers:
+      - name: tesk-api
+        image: {{ .Values.tesk.image }}
+        env:
+        - name: TESK_API_TASKMASTER_IMAGE_VERSION
+          value: {{ .Values.tesk.taskmaster_image_version }}
+        - name: TESK_API_TASKMASTER_FILER_IMAGE_VERSION
+          value: {{ .Values.tesk.taskmaster_filer_image_version }}
+        - name: TESK_API_K8S_NAMESPACE
+          value: {{.Release.Namespace}}
+        - name: TESK_API_TASKMASTER_SERVICE_ACCOUNT_NAME
+          value: taskmaster
+        - name: TESK_API_TASKMASTER_FTP_SECRET_NAME
+          value: ftp-secret
+        - name: TESK_API_AUTHORISATION_ENV_SUBGROUP
+          value: {{ .Values.auth.env_subgroup }}
+        - name: TESK_API_AUTHORISATION_BASE_GROUP
+          value: {{ .Values.auth.env_basegroup }}
+        - name: SPRING_PROFILES_ACTIVE
+          value: {{ .Values.auth.mode }}
+
+        {{ if .Values.transfer.active }}
+        - name: TESK_API_TASKMASTER_ENVIRONMENT_HOST_BASE_PATH
+          value: {{ .Values.transfer.wes_base_path }}
+        - name: TESK_API_TASKMASTER_ENVIRONMENT_CONTAINER_BASE_PATH
+          value: {{ .Values.transfer.tes_base_path }}
+        - name: TESK_API_TASKMASTER_ENVIRONMENT_TRANSFER_PVC_NAME
+          value: {{ .Values.transfer.pvc_name }}
+        {{ end }}
+
+        - name: TESK_API_TASKMASTER_DEBUG
+          value: "{{ .Values.tesk.debug }}"
+
+        - name: TESK_API_SWAGGER-OAUTH_SCOPES
+          value: openid:Standard openid,eduperson_entitlement:Access to groups membership,profile:Identity info about user,email:Email
+        - name: TESK_API_SWAGGER_OAUTH_CLIENT_ID
+          valueFrom:
+            secretKeyRef:
+              name: oauth-client-secret
+              key: id
+              optional: true
+        - name: TESK_API_SWAGGER_OAUTH_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: oauth-client-secret
+              key: secret
+              optional: true
+
+        ports:
+        - containerPort: {{ .Values.tesk.port }}

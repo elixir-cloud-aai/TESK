@@ -1,0 +1,62 @@
+{{ if .Values.ingress.deploy_ingress.active }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: nginx-ingress
+---
+kind: {{ .Values.ingress.deploy_ingress.scope }}Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: nginx-ingress
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - services
+  - endpoints
+  verbs:
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  - secrets
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - list
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+- apiGroups:
+  - extensions
+  resources:
+  - ingresses
+  verbs:
+  - list
+  - watch
+---
+kind: {{ .Values.ingress.deploy_ingress.scope }}RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: nginx-ingress
+subjects:
+- kind: ServiceAccount
+  name: nginx-ingress
+  namespace: {{ .Release.Namespace }}
+roleRef:
+  kind: {{ .Values.ingress.deploy_ingress.scope }}Role
+  name: nginx-ingress
+  apiGroup: rbac.authorization.k8s.io
+{{ end }}

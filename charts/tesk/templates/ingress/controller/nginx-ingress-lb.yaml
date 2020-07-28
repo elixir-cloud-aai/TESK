@@ -1,0 +1,21 @@
+{{ if .Values.ingress.deploy_ingress.active }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-ingress-lb
+  labels:
+    app: nginx-ingress
+spec:
+  type: NodePort
+  externalIPs:
+  - {{ .Values.ingress.deploy_ingress.external_ip }}
+  ports:
+  - name: http
+    port: 80 {{ if not .Values.ingress.tls_secret_name }}
+    nodePort: {{ .Values.ingress.deploy_ingress.node_port }} {{ end }} {{ if .Values.ingress.tls_secret_name }}
+  - name: https
+    port: 443
+    nodePort: {{ .Values.ingress.deploy_ingress.node_port }} {{ end }}
+  selector:
+    app: nginx-ingress
+{{ end }}

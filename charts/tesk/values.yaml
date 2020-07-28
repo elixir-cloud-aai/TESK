@@ -1,0 +1,91 @@
+# Default values for tesk.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+host_name: tesk.com
+# There are two options here: "openshift" or "kubernetes"
+clusterType: kubernetes
+#
+#
+#
+
+storage: none
+
+tesk:
+    image: eu.gcr.io/tes-wes/tesk-api:v0.4.2
+    port: 8080
+    taskmaster_image_version: v0.6
+    taskmaster_filer_image_version: v0.6
+    debug: false
+
+transfer:
+    # If you want local file systems support (i.e. 'file:' urls in inputs and outputs),
+    # you have to define these 2 properties.
+    active: false
+
+    # wes_base_path: '/data'      # WesElixir via docker-compose
+    wes_base_path: '/tmp'         # WesElixir locally
+                                  # Change the value of $wesBasePath in minikubeStart accordingly
+    tes_base_path: '/transfer'
+    pvc_name: 'transfer-pvc'
+
+auth:
+    # the following variables are specific to each deployment
+    # mode: auth/noauth
+    mode: noauth
+    # EBI/CSC
+    env_subgroup: CSC
+    env_basegroup: ECP_CLN
+    client_id: changeme
+    client_secret: changeme
+
+service:
+    # the following variables are specific to each deployment
+    # use:
+    # - NodePort, if you want to expose API directly
+    # - LoadBalancer for cloud provider (gcloud) or empty otherwise
+    #type: NodePort
+    #node_port: 31567
+    type: ""
+    node_port: ""
+
+ftp:
+    active: true
+    # If you install FTP locally, but outside of k8s and need a DNS entry for it (because your workflow manager might not like the IP address)
+    # one way of getting a DNS entry for your FTP service is to use a k8s "service without a selector"
+    # Put the IP under which your pods see see services running on your host (differs depending on the way you installes K8s)
+    # For virtualBox, it is 192.168.99.1 and your ftp service will be visible under ftp name
+    # You will be able to use it like this: ftp://ftp/file
+    hostip:
+
+#
+# Configure this, only if you choose "kubernetes" as "clusterTYpe"
+#
+ingress:
+    active: false
+    # If no TLS secret name configured, TLS will be switched off
+    tls_secret_name:
+    tls_letsencrypt:
+       annotations:
+           ingressclass: "nginx"
+           tlsacme: "true"
+           clusterissuer: "letsencrypt-prod"
+    deploy_ingress:
+        # This provides installation of one specific Ingress Controller https://github.com/nginxinc/kubernetes-ingress
+        # You will most probably be better off installing one of your choice yourself, as we may not update this section frequently enough.
+        # Also it is likely the installation of an Ingress Controller will be removed completely from the chart
+        active: false
+        nginx_image: nginx/nginx-ingress:1.4.6
+        # the following variables are specific to each deployment
+        # We used externalIP to expose Ingress on 80/443 port. On OpenStack internal IP of master node (10.*) worked for us.
+        # Could be any node, but calls to the service have to be using it. In our case DNS entry is assigned to master's external IP
+        # Use NodePort as an alternative (breaks Swagger)
+        external_ip: 10.1.1.1
+        node_port: 30977
+        # the following variables are specific to each deployment
+        # use:
+        # - scope=Cluster, if you want Ingress to listen to all namespaces (requires ClusterAdmin)
+        # - scope= , if you want Ingress to listen only to its own namespace
+        scope: ""
+        #
+        #
