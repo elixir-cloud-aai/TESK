@@ -57,6 +57,8 @@ See [`values.yaml`](values.yaml) for default values.
 | tesk.port | integer | |
 | tesk.taskmaster_image_version | string | |
 | tesk.taskmaster_filer_image_version | string | |
+| tesk.executor_retries| int | The number of retries on error - actual task compute (executor)|
+| tesk.filer_retries| int | The number of retries on error while handling I/O (filer)|
 | tesk.debug | boolean | Activates the debugging mode |
 | transfer.wes_base_path | string | WesElixir locally Change the value of $wesBasePath in minikubeStart accordingly |
 | transfer.tes_base_path | string | |
@@ -65,13 +67,12 @@ See [`values.yaml`](values.yaml) for default values.
 | auth.env_subgroup | string | Can be 'EBI' or 'CSC' |
 | service.type | string | Can be 'NodePort' or 'ClusterIp' |
 | service.node_port | integer | Only used if service.type is 'NodePort', specifies the port |
-| ftp.active | boolean | Activates or disables the local ftp |
-| ftp.virtualboxip | string | IP for the endpoint of the ftp |
-| ftp.username | string | Username of the ftp server |
-| ftp.password | string | Password of the ftp server |
-| kubernetes.nginx_image | string | Image to use for the nginx ingress |
-| kubernetes.external_ip | string | We used externalIP to expose Ingress on 80/443 port. On OpenStack internal IP of masternode (10.x.x.x) worked for us. Could be any node, but calls to the service have to be using it. In our case DNS entry is assigned to master's external IP. Use NodePort as an alternative.|
-| kubernetes.node_port | integer | |
-| kubernetes.tls_secret_name | string |  If no TLS secret name configured, TLS will be switched off. A template can be found at [deployment/tls_secret_name.yml-TEMPLATE](deployment/tls_secret_name.yml-TEMPLATE). |
-| kubernetes.scope | string | The following variables are specific to each deployment. Use "Cluster" if you want Ingress to listen to all namespaces (requires ClusterAdmin). Leave it blank if you want Ingress to listen only to its own namespace. |
-
+| ftp.active | boolean | Activates or disables the creation of an ftp secret|
+| ftp.hostip | string | IP of the endpoint of the ftp as seen by containers in K8s (only needed, if in need of a DNS entry for locally installed FTP server) |
+| ingress.active| boolean | Decides if an ingress object for tesk-api is created
+| ingress.deploy_ingress.active | boolean | Activates deployment of an ingress controller
+| ingress.tls_secret_name | string |  If no TLS secret name configured, TLS will be switched off. A template can be found at [deployment/tls_secret_name.yml-TEMPLATE](deployment/tls_secret_name.yml-TEMPLATE). |
+| ingress.deploy_ingress.nginx_image | string | Image to use for the nginx ingress |
+| ingress.deploy_ingress.external_ip | string | We used externalIP to expose Ingress on 80/443 port. On OpenStack internal IP of masternode (10.x.x.x) worked for us. Could be any node, but calls to the service have to be using it. In our case DNS entry is assigned to master's external IP. Use NodePort as an alternative.|
+| ingress.deploy_ingress.node_port | integer | |
+| ingress.deploy_ingress..scope | string | The following variables are specific to each deployment. Use "Cluster" if you want Ingress to listen to all namespaces (requires ClusterAdmin). Leave it blank if you want Ingress to listen only to its own namespace. |
