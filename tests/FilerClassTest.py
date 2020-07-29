@@ -21,7 +21,8 @@ class FilerClassTest_env(unittest.TestCase):
     def test_env_vars(self):
         
         f = Filer('name', {'a': 1})
-        
+        f.set_backoffLimit(10)
+
         pprint(f.spec)
         
         self.assertEquals(f.getEnv(), [
@@ -30,7 +31,7 @@ class FilerClassTest_env(unittest.TestCase):
            ,{ 'name': 'HOST_BASE_PATH'       , 'value': '/home/tfga/workspace/cwl-tes'  }
            ,{ 'name': 'CONTAINER_BASE_PATH'  , 'value': '/transfer'                     }
         ])
-
+        self.assertEquals(f.spec['spec']['backoffLimit'], 10)
     
     def test_mounts(self):
         '''
