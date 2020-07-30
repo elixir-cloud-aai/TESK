@@ -5,7 +5,7 @@ from unittest.mock import patch
 from tesk_core.extract_endpoint import extract_endpoint
 
 
-@patch.dict(os.environ, {"AWS_CONFIG_FILE": "resources/test_config"})
+@patch.dict(os.environ, {"AWS_CONFIG_FILE": "tests/resources/test_config"})
 class ExtractEndpointTest(unittest.TestCase):
 
     def test_default_profile(self):
