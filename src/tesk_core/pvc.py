@@ -39,4 +39,4 @@ class PVC():
     def delete(self):
         cv1 = client.CoreV1Api()
         cv1.delete_namespaced_persistent_volume_claim(
-            self.name, self.namespace, client.V1DeleteOptions())
+            self.name, self.namespace, body=client.V1DeleteOptions())
