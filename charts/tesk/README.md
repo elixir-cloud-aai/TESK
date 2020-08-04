@@ -4,13 +4,13 @@ Helm chart and config to deploy the TESK service. Tested with Helm v3.0.0.
 
 ## Usage
 
-First you must create a namespace in Kubernetes in which to deploy TESK. The
+First you must create a namespace in Kubernetes in which to deploy TESK. In development clusters such as Minikube it is fine to use the `default` namespace. The
 command below creates all deployments in the context of this namespace. How
 the namespace is created depends on the cluster, so it is not documented here.
 
 To deploy the application:
  * modify [`values.yaml`](values.yaml)
- * Create a `secrets.yaml` file. You need to fill up the `username` and `password` of the ftp server configured in WES. If you activated authentication (auth.mode == 'auth' in `values.yaml`), optionally you may activate as well he OICD client. To do so, supply the `client_id` and `client_secret` values, otherwise the auth section must be removed. This is independent of the fact that after activating auth mode, TESK will require a valid TOKEN:
+ * If you are installing the FTP storage backend and/or OIDC client, create a `secrets.yaml` file. You need to fill up the `username` and `password` of the ftp account that will be potentially used to exchange I/O with a workflow manager such as cwl-tes. If you activated authentication (auth.mode == 'auth' in `values.yaml`), optionally you may activate the OICD client in the Swagger UI as well (you need to register the client by your OIDC provider). To do so, supply the `client_id` and `client_secret` values obtained during the client registration, otherwise the auth section must be removed. 
 
  ```
  ftp:
@@ -22,7 +22,7 @@ To deploy the application:
    client_secret: <client_secret>
  ```
 
- * finaly execute:
+ * finally execute:
 
 ```bash
 $ helm upgrade --install tesk-release . -f secrets.yaml -f values.yaml
@@ -52,27 +52,26 @@ See [`values.yaml`](values.yaml) for default values.
 | --- | --- | --- |
 | host_name | string | FQDN to expose the application |
 | clusterType | string |type of Kubernetes cluster; either 'kubernetes' or 'openshift'|
-| wes-tes_enabled | boolean | Enables the wes-tes deployment. |
-| tesk.image | string | container image to be used to run TESK |
+| tesk.image | string | container image (including the version) to be used to run TESK API |
 | tesk.port | integer | |
-| tesk.taskmaster_image_version | string | |
-| tesk.taskmaster_filer_image_version | string | |
+| tesk.taskmaster_image_version | string | the version of the image to be used to run TESK Taskmaster Job |
+| tesk.taskmaster_filer_image_version | string | the version of the image to be used to run TESK Filer Job |
 | tesk.executor_retries| int | The number of retries on error - actual task compute (executor)|
 | tesk.filer_retries| int | The number of retries on error while handling I/O (filer)|
 | tesk.debug | boolean | Activates the debugging mode |
-| transfer.wes_base_path | string | WesElixir locally Change the value of $wesBasePath in minikubeStart accordingly |
+| transfer.wes_base_path | string | |
 | transfer.tes_base_path | string | |
 | transfer.pvc_name | string | |
 | auth.mode | string | Can be 'noauth' to disable authentication, or 'auth' to enable it |
 | auth.env_subgroup | string | Can be 'EBI' or 'CSC' |
-| service.type | string | Can be 'NodePort' or 'ClusterIp' |
+| service.type | string | Can be 'NodePort' or 'ClusterIp' or 'LoadBalancer' |
 | service.node_port | integer | Only used if service.type is 'NodePort', specifies the port |
 | ftp.active | boolean | Activates or disables the creation of an ftp secret|
 | ftp.hostip | string | IP of the endpoint of the ftp as seen by containers in K8s (only needed, if in need of a DNS entry for locally installed FTP server) |
-| ingress.active| boolean | Decides if an ingress object for tesk-api is created
+| ingress.active| boolean | Decides if an ingress resource for tesk-api is created
+| ingress.tls_secret_name | string |  If no TLS secret name configured, TLS will be switched off. A template can be found at [deployment/tls_secret_name.yml-TEMPLATE](deployment/tls_secret_name.yml-TEMPLATE). If you are using cert-manager the secret will be created automatically.|
 | ingress.deploy_ingress.active | boolean | Activates deployment of an ingress controller
-| ingress.tls_secret_name | string |  If no TLS secret name configured, TLS will be switched off. A template can be found at [deployment/tls_secret_name.yml-TEMPLATE](deployment/tls_secret_name.yml-TEMPLATE). |
 | ingress.deploy_ingress.nginx_image | string | Image to use for the nginx ingress |
 | ingress.deploy_ingress.external_ip | string | We used externalIP to expose Ingress on 80/443 port. On OpenStack internal IP of masternode (10.x.x.x) worked for us. Could be any node, but calls to the service have to be using it. In our case DNS entry is assigned to master's external IP. Use NodePort as an alternative.|
 | ingress.deploy_ingress.node_port | integer | |
-| ingress.deploy_ingress..scope | string | The following variables are specific to each deployment. Use "Cluster" if you want Ingress to listen to all namespaces (requires ClusterAdmin). Leave it blank if you want Ingress to listen only to its own namespace. |
+| ingress.deploy_ingress.scope | string | The following variables are specific to each deployment. Use "Cluster" if you want Ingress to listen to all namespaces (requires ClusterAdmin). Leave it blank if you want Ingress to listen only to its own namespace. |

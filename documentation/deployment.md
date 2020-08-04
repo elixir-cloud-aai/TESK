@@ -1,4 +1,6 @@
-# Deployment instructions for TESK
+# Deployment instructions for TESK using Jinja templates [Deprecated]
+*This is the previous version of instructions how to install TESK using Jinja templates. You can still use it, if you have done so previously, but we recommend that you switch to the current instructions of installing TESK using Helm. This installation method might not contain the recent changes/options and we plan to remove it in the future.*
+
 The deployment of `TESK` can be executed in any Kubernetes environment, with a minimal configuration required for setting up the API access point.
 
 We provide templates - that can easily produce static `yaml` files - for three deployment scenarios:
@@ -147,7 +149,7 @@ brew install openshift-cli
 ```
 
 ### Jinja2 Command Line Tool
-A Jinja2 Command Line Tools, i.e. [shinto-cli](https://github.com/istrategylabs/shinto-cli), which provides file globbing:
+A Jinja2 Command Line Tools, i.e. [shinto-cli](https://github.com/istrategylabs/shinto-cli), which provides file globbing. Unfortunately, it works only with Python 2.
 
 ```
 pip install shinto-cli
