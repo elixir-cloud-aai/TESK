@@ -67,11 +67,11 @@ ingress:
     active: false
     # If no TLS secret name configured, TLS will be switched off
     tls_secret_name:
-    tls_letsencrypt:
-       annotations:
-           ingressclass: "nginx"
-           tlsacme: "true"
-           clusterissuer: "letsencrypt-prod"
+    # Annotations for Ingress Resource.
+    annotations:
+        kubernetes.io/ingress.class: nginx
+        kubernetes.io/tls-acme: "true"
+        cert-manager.io/issuer: letsencrypt-production
     deploy_ingress:
         # This provides installation of one specific Ingress Controller https://github.com/nginxinc/kubernetes-ingress
         # You will most probably be better off installing one of your choice yourself, as we may not update this section frequently enough.

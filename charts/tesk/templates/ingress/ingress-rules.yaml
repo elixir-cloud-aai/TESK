@@ -2,12 +2,11 @@
 apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
-  name: ingress-rules {{ if .Values.ingress.tls_letsencrypt }}
+  name: ingress-rules {{ if .Values.ingress.annotations }}
   annotations:
-    kubernetes.io/ingress.class: {{ .Values.ingress.tls_letsencrypt.annotations.ingressclass }}
-    kubernetes.io/tls-acme: "{{ .Values.ingress.tls_letsencrypt.annotations.tlsacme }}"
-    cert-manager.io/cluster-issuer: {{ .Values.ingress.tls_letsencrypt.annotations.clusterissuer }}
-  {{ end }}
+  {{- range $key, $value := .Values.ingress.annotations }}
+    {{ $key }}: {{ $value | quote }}
+  {{- end }} {{ end }}
 spec: {{ if .Values.ingress.tls_secret_name }}
   tls:
   - hosts:
