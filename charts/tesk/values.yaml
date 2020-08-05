@@ -10,6 +10,7 @@ clusterType: kubernetes
 #
 #
 
+# 'openstack' or 's3'
 storage: none
 
 tesk:

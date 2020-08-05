@@ -22,6 +22,10 @@ To deploy the application:
    client_secret: <client_secret>
  ```
 
+ * If you're using `s3` as your storage option, do not forget to add the necessary `config` and `credentials` files
+ (see [here](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html)) under a folder named
+ **s3-config** (*charts/tesk/s3-config*).
+
  * finally execute:
 
 ```bash
@@ -52,6 +56,7 @@ See [`values.yaml`](values.yaml) for default values.
 | --- | --- | --- |
 | host_name | string | FQDN to expose the application |
 | clusterType | string |type of Kubernetes cluster; either 'kubernetes' or 'openshift'|
+| storage | string | Can be either 'openstack' or 's3' |
 | tesk.image | string | container image (including the version) to be used to run TESK API |
 | tesk.port | integer | |
 | tesk.taskmaster_image_version | string | the version of the image to be used to run TESK Taskmaster Job |
