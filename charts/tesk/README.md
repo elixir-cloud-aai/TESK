@@ -47,6 +47,8 @@ The first time running this command, the chart will be installed. Afterwards, it
 ```bash
 $ helm upgrade -n tesk --install tesk-release . -f secrets.yaml -f values.yaml
 ```
+*Note*: If you're running Helm 3, you might need to also use the `--create-namespace` option, as non-existent namespaces
+do not get created by default (see [this](https://github.com/helm/helm/issues/6794)). 
 
 ##  Description of values
 
