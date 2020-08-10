@@ -60,10 +60,6 @@ ftp:
     # For virtualBox, it is 192.168.99.1 and your ftp service will be visible under ftp name
     # You will be able to use it like this: ftp://ftp/file
     hostip:
-    
-    # the following variables are specific to each deployment
-    username: 
-    password:
 
 #
 # Configure this, only if you choose "kubernetes" as "clusterTYpe"
