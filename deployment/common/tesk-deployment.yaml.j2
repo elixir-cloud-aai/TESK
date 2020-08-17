@@ -31,7 +31,7 @@ spec:
           value: {{ auth.env_subgroup }}
         - name: SPRING_PROFILES_ACTIVE
           value: {{ auth.mode }}
-
+        {% if transfer.active == 'true' %}
         - name: TESK_API_TASKMASTER_ENVIRONMENT_HOST_BASE_PATH
           value: {{ transfer.wes_base_path }}
 
@@ -40,7 +40,7 @@ spec:
 
         - name: TESK_API_TASKMASTER_ENVIRONMENT_TRANSFER_PVC_NAME
           value: {{ transfer.pvc_name }}
-
+        {% endif %}
         - name: TESK_API_TASKMASTER_DEBUG
           value: "{{ tesk.debug }}"
 
