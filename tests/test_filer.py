@@ -1,6 +1,6 @@
 import unittest
 from tesk_core.filer import newTransput, FTPTransput, HTTPTransput, FileTransput,\
-    process_file, logConfig, getPath, copyDir
+    process_file, logConfig, getPath, copyDir, copyFile
 from tesk_core.exception import UnknownProtocol, InvalidHostPath,\
     FileProtocolDisabled
 from tesk_core.path import containerPath
@@ -94,8 +94,8 @@ class FilerTest(unittest.TestCase, AssertThrowsMixin):
                                             , '/transfer/tmphrtip1o8')
 
     @patch('tesk_core.filer.copyDir')
-    @patch('tesk_core.filer.shutil.copy')
-    def test_upload_file(self, copyMock, copyDirMock):
+    @patch('tesk_core.filer.copyFile')
+    def test_upload_file(self, copyFileMock, copyDirMock):
 
         filedata = {
             "url": "file:///home/tfga/workspace/cwl-tes/tmphrtip1o8/md5",
@@ -108,8 +108,27 @@ class FilerTest(unittest.TestCase, AssertThrowsMixin):
 
         copyDirMock.assert_not_called()
 
-        copyMock.assert_called_once_with( '/TclSZU/md5'
+        copyFileMock.assert_called_once_with( '/TclSZU/md5'
                                         , '/transfer/tmphrtip1o8/md5')
+
+
+    @patch('tesk_core.filer.copyDir')
+    @patch('tesk_core.filer.copyFile')
+    def test_upload_file_glob(self, copyFileMock, copyDirMock):
+
+        filedata = {
+            "url": "file:///home/tfga/workspace/cwl-tes/tmphrtip1o8/md5*",
+            "path": "/TclSZU/md5*",
+            "type": "FILE",
+            "name": "stdout"
+        }
+
+        process_file('outputs', filedata)
+
+        copyDirMock.assert_not_called()
+
+        copyFileMock.assert_called_once_with( '/TclSZU/md5*'
+                                        , '/transfer/tmphrtip1o8/md5*')
 
 
     def test_copyDir(self):
@@ -169,6 +188,11 @@ class FilerTest(unittest.TestCase, AssertThrowsMixin):
 
         self.assertEquals( getPath('file:///home/tfga/workspace/cwl-tes/tmphrtip1o8/md5')
                          ,                '/home/tfga/workspace/cwl-tes/tmphrtip1o8/md5')
+
+    def test_getPathNoScheme(self):
+
+        self.assertEquals( getPath('/home/tfga/workspace/cwl-tes/tmphrtip1o8/md5')
+                         ,         '/home/tfga/workspace/cwl-tes/tmphrtip1o8/md5')
 
 
     def test_containerPath(self):
