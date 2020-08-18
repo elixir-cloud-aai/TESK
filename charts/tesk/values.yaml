@@ -72,7 +72,10 @@ ingress:
     annotations:
         kubernetes.io/ingress.class: nginx
         kubernetes.io/tls-acme: "true"
-        cert-manager.io/issuer: letsencrypt-production
+        
+        # Choose one of the following depending on your setup
+        # cert-manager.io/issuer: letsencrypt-production
+        cert-manager.io/cluster-issuer: letsencrypt-production
     deploy_ingress:
         # This provides installation of one specific Ingress Controller https://github.com/nginxinc/kubernetes-ingress
         # You will most probably be better off installing one of your choice yourself, as we may not update this section frequently enough.
