@@ -5,16 +5,16 @@ from tesk_core.path import fileEnabled
 
 
 class Filer:
-    
+
     def getVolumes(self):           return self.spec['spec']['template']['spec']['volumes']
-                                    
+
     def getContainer(self, i):      return self.spec['spec']['template']['spec']['containers'][i]
-    
+
     def getVolumeMounts(self):      return self.getContainer(0)['volumeMounts']
     def getEnv(self):               return self.getContainer(0)['env']
     def getImagePullPolicy(self):   return self.getContainer(0)['imagePullPolicy']
 
-    
+
     def __init__(self, name, data, filer_name='eu.gcr.io/tes-wes/filer', filer_version='v0.5', pullPolicyAlways = False):
         self.name = name
         self.spec = {
@@ -47,15 +47,15 @@ class Filer:
         env.append({ "name": "CONTAINER_BASE_PATH"  , "value": path.CONTAINER_BASE_PATH  })
 
         if fileEnabled():
-            
-            self.getVolumeMounts().append({ 
-                
+
+            self.getVolumeMounts().append({
+
                   "name"      : 'transfer-volume'
-                , 'mountPath' : path.CONTAINER_BASE_PATH 
+                , 'mountPath' : path.CONTAINER_BASE_PATH
             })
-            
+
             self.getVolumes().append({
-                
+
                   "name"                  : 'transfer-volume'
                 , 'persistentVolumeClaim' : { 'claimName' : path.TRANSFER_PVC_NAME }
             })
@@ -88,7 +88,7 @@ class Filer:
         '''
 
         self.getVolumeMounts().append({"name"      : 'netrc',
-                                       "mountPath" : os.path.join(os.environ['HOME'], '.netrc'),
+                                       "mountPath" : '/tmp/user/.netrc',
                                        "subPath" : ".netrc"
                                       })
         self.getVolumes().append({"name"   : "netrc",
@@ -97,12 +97,17 @@ class Filer:
                                       "defaultMode" :  420,
                                       "items" : [
                                           {
-                                              "key": "netrc",
+                                              "key": ".netrc",
                                               "path": ".netrc"
                                           }
                                       ]
                                   }
                                  })
+        self.getContainer(0)['lifecycle'] = { "postStart" : {
+                                                    "exec": {
+                                                        "command": ["/bin/sh", "-c", "cp /tmp/user/.netrc $HOME"]
+                                                    }
+                                            }}
 
 
     def get_spec(self, mode, debug=False):
