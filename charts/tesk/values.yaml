@@ -15,8 +15,8 @@ storage: none
 tesk:
     image: eu.gcr.io/tes-wes/tesk-api:v0.8.2
     port: 8080
-    taskmaster_image_version: v0.8.2
-    taskmaster_filer_image_version: v0.8.2
+    taskmaster_image_version: v0.8.3
+    taskmaster_filer_image_version: v0.8.3
     debug: false
     executor_retries: 2
     filer_retries: 2
@@ -39,8 +39,6 @@ auth:
     # EBI/CSC
     env_subgroup: CSC
     env_basegroup: ECP_CLN
-    client_id: changeme
-    client_secret: changeme
 
 service:
     # the following variables are specific to each deployment
@@ -53,7 +51,9 @@ service:
     node_port: ""
 
 ftp:
-    active: true
+    # If you need FTP configuration, choose one of the 2 methods of providing credentials
+    classic_ftp_secret: ftp-secret
+    netrc_secret:
     # If you install FTP locally, but outside of k8s and need a DNS entry for it (because your workflow manager might not like the IP address)
     # one way of getting a DNS entry for your FTP service is to use a k8s "service without a selector"
     # Put the IP under which your pods see see services running on your host (differs depending on the way you installes K8s)
@@ -72,7 +72,7 @@ ingress:
     annotations:
         kubernetes.io/ingress.class: nginx
         kubernetes.io/tls-acme: "true"
-        
+
         # Choose one of the following depending on your setup
         # cert-manager.io/issuer: letsencrypt-production
         cert-manager.io/cluster-issuer: letsencrypt-production
