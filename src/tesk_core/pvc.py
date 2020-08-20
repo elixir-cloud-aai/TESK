@@ -1,5 +1,6 @@
 from kubernetes import client, config
 from tesk_core.Util import pprint
+import os
 import logging
 
 
@@ -12,14 +13,18 @@ class PVC():
                      'metadata': {'name': name},
                      'spec': {
                          'accessModes': ['ReadWriteOnce'],
-                         'resources': {'requests': {'storage': str(size_gb) + 'Gi'}},
-                         # 'storageClassName': 'gold'
+                         'resources': {'requests': {'storage': str(size_gb) + 'Gi'}}
                      }
                      }
 
         self.subpath_idx = 0
         self.namespace = namespace
         self.cv1 = client.CoreV1Api()
+
+        # The environment variable 'TESK_API_TASKMASTER_ENVIRONMENT_STORAGE_CLASS_NAME'
+        # can be set to the preferred, non-default, user-defined storageClass
+        if os.environ.get('STORAGE_CLASS_NAME') is not None:
+            self.spec['spec'].update({'storageClassName': os.environ.get('STORAGE_CLASS_NAME')})
 
     def set_volume_mounts(self, mounts):
         self.volume_mounts = mounts
