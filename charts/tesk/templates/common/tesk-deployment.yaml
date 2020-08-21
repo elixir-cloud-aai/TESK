@@ -53,6 +53,11 @@ spec:
           value: {{ .Values.transfer.pvc_name }}
         {{ end }}
 
+        {{ if .Values.storage_class }}
+        - name: TESK_API_TASKMASTER_ENVIRONMENT_STORAGE_CLASS_NAME
+          value: {{ .Values.storage_class }}
+        {{ end }}
+
         - name: TESK_API_TASKMASTER_DEBUG
           value: "{{ .Values.tesk.debug }}"
 

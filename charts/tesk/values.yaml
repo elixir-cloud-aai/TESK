@@ -12,6 +12,9 @@ clusterType: kubernetes
 
 storage: none
 
+# Configurable storage class. 
+storage_class: 
+
 tesk:
     image: eu.gcr.io/tes-wes/tesk-api:v0.8.2
     port: 8080
@@ -45,8 +48,8 @@ service:
     # use:
     # - NodePort, if you want to expose API directly
     # - LoadBalancer for cloud provider (gcloud) or empty otherwise
-    #type: NodePort
-    #node_port: 31567
+    # type: NodePort
+    # node_port: 31567
     type: ""
     node_port: ""
 
