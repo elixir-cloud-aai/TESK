@@ -13,7 +13,7 @@ clusterType: kubernetes
 storage: none
 
 # Configurable storage class. 
-storage_class: 
+storageClass: 
 
 tesk:
     image: eu.gcr.io/tes-wes/tesk-api:v0.8.2
