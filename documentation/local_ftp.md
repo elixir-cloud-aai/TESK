@@ -94,3 +94,31 @@ minikube ssh "ping host.minikube.internal"
   cd examples/
   $ ./taskCreate localftp/taskWithIO.json
   ```
+* If you want to run `cwl-tes` locally with the locally installed FTP server, you need a couple more tricks:
+
+- You need a `hosts` entry with
+```
+127.0.0.1 ftp
+```
+so that both cwl-tes and TESK see the local FTP at the same address.
+- You need an `.netrc` file.   
+```
+machine ftp
+user tesk
+password <tesk-password>
+```
+It needs to be readable only to the owner
+```
+chmod 600 ~/.netrc
+```
+- Finally, you can run a workflow:
+```
+cwl-tes --tes http://minikube_ip:node_port  --remote-storage-url ftp://ftp/home/tesk hashsplitter-workflow.cwl hashsplitter-test.yml
+```
+- If the workflow uses FTP inputs, adjust them, so they point to existing files on your FTP server
+```
+input:
+  class: File
+  path: ftp://ftp/home/tesk/input.txt
+```
+
