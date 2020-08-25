@@ -23,7 +23,7 @@ How to use local FTP
   if you are planning to use cwl-tes, then you have to add TLS certificate to vsftpd.
   ```
   sudo mkdir /etc/ssl/private
-  openssl req -x509 -nodes -days 365 -newkey rsa:1024 -keyout /etc/ssl/private/vsftpd.pem -out /etc/ssl/private/vsftpd.pem
+  sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/ssl/private/vsftpd.pem -out /etc/ssl/private/vsftpd.pem
   ```
   Open the vsftpd configuration file as root:
   ```
