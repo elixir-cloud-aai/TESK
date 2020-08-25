@@ -83,12 +83,12 @@ class Filer:
 
     def add_netrc_mount(self, netrc_name='netrc'):
         '''
-            Mounts the secret netrc into $HOME/.netrc. Neither the secret name nor the folder
-                can be changed.
+            Sets $HOME to an arbitrary location (to prevent its change as a result of runAsUser), currently hardcoded to `/opt/home`
+            Mounts the secret netrc into that location: $HOME/.netrc.
         '''
 
         self.getVolumeMounts().append({"name"      : 'netrc',
-                                       "mountPath" : '/tmp/user/.netrc',
+                                       "mountPath" : '/opt/home/.netrc',
                                        "subPath" : ".netrc"
                                       })
         self.getVolumes().append({"name"   : "netrc",
@@ -103,11 +103,9 @@ class Filer:
                                       ]
                                   }
                                  })
-        self.getContainer(0)['lifecycle'] = { "postStart" : {
-                                                    "exec": {
-                                                        "command": ["/bin/sh", "-c", "cp /tmp/user/.netrc $HOME"]
-                                                    }
-                                            }}
+        self.getEnv().append({"name": "HOME",
+                              "value": "/opt/home"
+                            })
 
 
     def get_spec(self, mode, debug=False):
