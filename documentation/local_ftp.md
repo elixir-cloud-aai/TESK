@@ -13,7 +13,7 @@ How to use local FTP
   sudo apt install vsftpd
   ```
 
-* Make it writable
+* Make it writable. In `/etc/vsftpd.conf` set:
 
   ```
   write_enable=YES
@@ -27,7 +27,7 @@ How to use local FTP
   ```
   Open the vsftpd configuration file as root:
   ```
-  sudo nano /etc/vsftpd/vsftpd.conf
+  sudo nano /etc/vsftpd.conf
   ```
   Now, specify the location of our certificate, key files and other configurations to the end of the file.
   ```
@@ -48,8 +48,11 @@ How to use local FTP
    ```
    sudo /etc/init.d/vsftpd restart
    ```
-
-
+  If FTP server fails to start, investigate by trying to start it manually:
+  ```
+  sudo vsftpd
+  ```
+* You may need to configure or disable firewall (such as `ufw`)
 * Edit the input and output URLs in the task's JSON (e.g.: `examples/localftp/taskWithIO.json`):
 
   ```
@@ -74,24 +77,16 @@ How to use local FTP
     }
   ```
 
-* Configure credentials, service and endpoint:
-
-    1. `cd deployment/localftp/`
-
-    2. Edit `config.ini`.
-
-    3. Generate the YAMLs:
-
-        ```
-        $ ../scripts/configure
-        ['ftp-service.yaml', 'ftp-secret.yaml', 'ftp-endpoint.yaml']
-        ```
-
-    4. Create the stuff:
-
-       ```
-       kubectl create -f .
-       ```
+* Configure credentials and hostIP for FTP using the Helm chart according to instructions.
+```
+ ftp.hostip:
+```
+`hostIP` needs to be set to the IP, where containers running in your K8s see your services running on localhost. 
+For `docker` driver, it seems to be `172.30.0.1` (on Linux). For minikube with a VM driver (such as virtualbox), you can check the IP by running:
+```
+minikube ssh "ping host.minikube.internal"
+```
+  
 
 * Create the task:
 
