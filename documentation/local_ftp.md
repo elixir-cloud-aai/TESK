@@ -104,8 +104,8 @@ so that both cwl-tes and TESK see the local FTP at the same address.
 - You need an `.netrc` file.   
 ```
 machine ftp
-user tesk
-password <tesk-password>
+login tesk
+password <tesk-password>g
 ```
 It needs to be readable only to the owner
 ```
