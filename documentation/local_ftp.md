@@ -112,10 +112,17 @@ It needs to be readable only to the owner
 chmod 600 ~/.netrc
 ```
 - Finally, you can run a workflow:
+As a first step clone the following workspace from git - https://github.com/uniqueg/cwl-example-workflows.git.
+
+Then run the following command:
 ```
 cwl-tes --tes http://minikube_ip:node_port  --remote-storage-url ftp://ftp/home/tesk hashsplitter-workflow.cwl hashsplitter-test.yml
 ```
-- If the workflow uses FTP inputs, adjust them, so they point to existing files on your FTP server
+
+- If the workflow uses FTP inputs, adjust them, so they point to existing files on your FTP server.
+
+For example in the cwl-example-workflows/hashsplitter-test.yml make the following changes and also
+make sure the input.txt file is present in the /home/tesk/ folder.
 ```
 input:
   class: File
