@@ -10,9 +10,11 @@ import os
 import enum
 import distutils.dir_util
 import logging
+import netrc
 import requests
 from tesk_core.exception import UnknownProtocol, FileProtocolDisabled
 import shutil
+from glob import glob
 from tesk_core.path import containerPath, getPath, fileEnabled
 
 try:
@@ -26,6 +28,7 @@ class Type(enum.Enum):
     File = 'FILE'
     Directory = 'DIRECTORY'
 
+
 class Transput:
     def __init__(self, path, url, ftype):
         self.path = path
@@ -35,9 +38,22 @@ class Transput:
         parsed_url = urlparse(url)
         self.netloc = parsed_url.netloc
         self.url_path = parsed_url.path
+        self.netrc_file = None
+        try:
+            netrc_path = os.path.join(os.environ['HOME'], '.netrc')
+        except KeyError as kerror:
+            netrc_path = '/.netrc'
+        try:
+            self.netrc_file = netrc.netrc(netrc_path)
+        except IOError as fnfe:
+            logging.error(fnfe)
+        except netrc.NetrcParseError as err:
+            logging.error('netrc.NetrcParseError')
+            logging.error(err)
 
     def upload(self):
-        logging.debug('%s uploading %s %s', self.__class__.__name__, self.ftype, self.url)
+        logging.debug('%s uploading %s %s', self.__class__.__name__,
+                      self.ftype, self.url)
         if self.ftype == Type.File:
             return self.upload_file()
         if self.ftype == Type.Directory:
@@ -45,7 +61,8 @@ class Transput:
         return 1
 
     def download(self):
-        logging.debug('%s downloading %s %s', self.__class__.__name__, self.ftype, self.url)
+        logging.debug('%s downloading %s %s', self.__class__.__name__,
+                      self.ftype, self.url)
         if self.ftype == Type.File:
             return self.download_file()
         if self.ftype == Type.Directory:
@@ -75,6 +92,7 @@ class Transput:
         self.delete()
         # Swallow all exceptions since the filer mostly works with error codes
         return False
+
 
 class HTTPTransput(Transput):
     def __init__(self, path, url, ftype):
@@ -116,7 +134,8 @@ class HTTPTransput(Transput):
                 ftype = Type.File
             else:
                 return 1
-            to_upload.append(HTTPTransput(file_path, self.url + '/' + listing, ftype))
+            to_upload.append(
+                HTTPTransput(file_path, self.url + '/' + listing, ftype))
 
         # return 1 if any upload failed
         return min(sum([transput.upload() for transput in to_upload]), 1)
@@ -132,7 +151,7 @@ def copyContent(src, dst, symlinks=False, ignore=None):
     '''
     https://stackoverflow.com/a/12514470/1553043
     '''
-    
+
     for item in os.listdir(src):
         s = os.path.join(src, item)
         d = os.path.join(dst, item)
@@ -148,34 +167,47 @@ def copyDir(src, dst):
     
     > The destination directory, named by dst, must not already exist; it will be created as well as missing parent directories.
     '''
-    
+
     if os.path.exists(dst):
-        
+
         copyContent(src, dst)
-        
+
     else:
-        
+
         shutil.copytree(src, dst)
+
+def copyFile(src, dst):
+    '''
+    Limitations of shutil.copy:
+
+    It does not interpret * as a glob, but as a character.
+    '''
+
+    # If there is any * in 'dst', use only the dirname (base path)
+    p = re.compile('.*\*.*')
+    if p.match(dst):
+        dst=os.path.dirname(dst)
+
+    for file in glob(src):
+        shutil.copy(file, dst)
 
 
 class FileTransput(Transput):
     def __init__(self, path, url, ftype):
         Transput.__init__(self, path, url, ftype)
-        
+
         self.urlContainerPath = containerPath(getPath(self.url))
 
-
     def transfer(self, copyFn, src, dst):
-        
         logging.debug("Copying {src} to {dst}".format(**locals()))
         copyFn(src, dst)
 
     def download_file(self): self.transfer(shutil.copy  , self.urlContainerPath , self.path)
     def download_dir(self):  self.transfer(copyDir      , self.urlContainerPath , self.path)
-    def upload_file(self):   self.transfer(shutil.copy  , self.path             , self.urlContainerPath)        
+    def upload_file(self):   self.transfer(copyFile  , self.path             , self.urlContainerPath)
     def upload_dir(self):    self.transfer(copyDir      , self.path             , self.urlContainerPath)        
         
-    
+
 class FTPTransput(Transput):
     def __init__(self, path, url, ftype, ftp_conn=None):
         Transput.__init__(self, path, url, ftype)
@@ -187,7 +219,7 @@ class FTPTransput(Transput):
     def __enter__(self):
         if self.connection_owner:
             self.ftp_connection.connect(self.netloc)
-            ftp_login(self.ftp_connection)
+            ftp_login(self.ftp_connection, self.netloc, self.netrc_file)
         return self
 
     def upload_dir(self):
@@ -216,7 +248,8 @@ class FTPTransput(Transput):
         return 0
 
     def upload_file(self):
-        error = ftp_make_dirs(self.ftp_connection, os.path.dirname(self.url_path))
+        error = ftp_make_dirs(self.ftp_connection,
+                              os.path.dirname(self.url_path))
         if error:
             logging.error(
                 'Unable to create remote directories needed for %s',
@@ -258,13 +291,15 @@ class FTPTransput(Transput):
 
             # We recurse into new transputs, ending with files which are downloaded
             # Downside is nothing happens with empty dirs.
-            with FTPTransput(file_path, file_url, ftype, self.ftp_connection) as transfer:
+            with FTPTransput(file_path, file_url, ftype,
+                             self.ftp_connection) as transfer:
                 if transfer.download():
                     return 1
         return 0
 
     def download_file(self):
-        logging.debug('Downloading ftp file: "%s" Target: %s', self.url, self.path)
+        logging.debug('Downloading ftp file: "%s" Target: %s', self.url,
+                      self.path)
         basedir = os.path.dirname(self.path)
         distutils.dir_util.mkpath(basedir)
 
@@ -275,16 +310,24 @@ class FTPTransput(Transput):
             self.ftp_connection.close()
 
 
-def ftp_login(ftp_connection):
-    if 'TESK_FTP_USERNAME' in os.environ and 'TESK_FTP_PASSWORD' in os.environ:
+def ftp_login(ftp_connection, netloc, netrc_file):
+    user = None
+    if netrc_file is not None:
+        creds = netrc_file.authenticators(netloc)
+        if creds:
+            user, _, password = creds
+    elif 'TESK_FTP_USERNAME' in os.environ and 'TESK_FTP_PASSWORD' in os.environ:
         user = os.environ['TESK_FTP_USERNAME']
         password = os.environ['TESK_FTP_PASSWORD']
+
+    if user:
         try:
             ftp_connection.login(user, password)
         except ftplib.error_perm:
             ftp_connection.login()
     else:
         ftp_connection.login()
+
 
 def ftp_check_directory(ftp_connection, path):
     """
@@ -314,24 +357,20 @@ def ftp_check_directory(ftp_connection, path):
     try:
         ftp_connection.cwd(original_directory)
     except (ftplib.error_reply, ftplib.error_perm, ftplib.error_temp):
-        logging.exception('Error when checking if "%s" in "%s" was a directory',
-                          path, ftp_connection.host)
+        logging.exception(
+            'Error when checking if "%s" in "%s" was a directory',
+            path, ftp_connection.host)
         return 1
 
     return 0 if is_directory else 1
 
-def ftp_upload_file(ftp_connection, local_source_path, remote_destination_path):
+
+def ftp_upload_file(ftp_connection, local_source_path,
+                    remote_destination_path):
     try:
         with open(local_source_path, 'r+b') as file:
             ftp_connection.storbinary("STOR /" + remote_destination_path, file)
-    except (ftplib.error_reply, ftplib.error_perm):
-        logging.exception(
-            'Unable to upload file "%s" to "%s" as "%s"',
-            local_source_path,
-            ftp_connection.host,
-            remote_destination_path)
-        return 1
-    except ftplib.error_temp:
+    except (ftplib.error_reply, ftplib.error_perm, ftplib.error_temp):
         logging.exception(
             'Unable to upload file "%s" to "%s" as "%s"',
             local_source_path,
@@ -340,7 +379,9 @@ def ftp_upload_file(ftp_connection, local_source_path, remote_destination_path):
         return 1
     return 0
 
-def ftp_download_file(ftp_connection, remote_source_path, local_destination_path):
+
+def ftp_download_file(ftp_connection, remote_source_path,
+                      local_destination_path):
     try:
         with open(local_destination_path, 'w+b') as file:
             ftp_connection.retrbinary("RETR " + remote_source_path, file.write)
@@ -353,6 +394,7 @@ def ftp_download_file(ftp_connection, remote_source_path, local_destination_path
         )
         return 1
     return 0
+
 
 def subfolders_in(whole_path):
     """
@@ -376,6 +418,7 @@ def subfolders_in(whole_path):
         path += '/' + fragment
         subfolders.append(path)
     return subfolders
+
 
 def ftp_make_dirs(ftp_connection, path):
     response = ftp_connection.pwd()
@@ -417,6 +460,7 @@ def ftp_make_dirs(ftp_connection, path):
         return 1
     return 0
 
+
 def file_from_content(filedata):
     with open(filedata['path'], 'w') as file:
         file.write(str(filedata['content']))
@@ -424,42 +468,46 @@ def file_from_content(filedata):
 
 
 def newTransput(scheme):
-    
     def fileTransputIfEnabled():
-        
-        if fileEnabled(): 
-            return FileTransput  
+
+        if fileEnabled():
+            return FileTransput
         else:
-            raise FileProtocolDisabled( "'file:' protocol disabled\n"
-                                        "To enable it, both '{}' and '{}' environment variables must be defined."
-                                        .format('HOST_BASE_PATH', 'CONTAINER_BASE_PATH')
-                                      )
-    
-    
-    if   scheme == 'ftp'                : return FTPTransput
-    elif scheme == 'file'               : return fileTransputIfEnabled()
-    elif scheme in ['http', 'https']    : return HTTPTransput
+            raise FileProtocolDisabled("'file:' protocol disabled\n"
+                                       "To enable it, both '{}' and '{}' environment variables must be defined."
+                                       .format('HOST_BASE_PATH',
+                                               'CONTAINER_BASE_PATH')
+                                       )
+
+    if scheme == 'ftp':
+        return FTPTransput
+    elif scheme == 'file':
+        return fileTransputIfEnabled()
+    elif scheme in ['http', 'https']:
+        return HTTPTransput
     else:
-        raise UnknownProtocol("Unknown protocol: '{scheme}'".format(**locals()))
-    
+        raise UnknownProtocol(
+            "Unknown protocol: '{scheme}'".format(**locals()))
+
 
 def process_file(ttype, filedata):
     '''
     @param ttype: str
            Can be 'inputs' or 'outputs'
     '''
-    
+
     if 'content' in filedata:
         return file_from_content(filedata)
 
     scheme = urlparse(filedata['url']).scheme
     if scheme == '':
-        logging.error('Could not determine protocol for url: "%s"', filedata['url'])
-        return 1
+        logging.info('Could not determine protocol for url: "%s", assuming "file"', filedata['url'])
+        scheme='file'
 
     trans = newTransput(scheme)
 
-    with trans(filedata['path'], filedata['url'], Type(filedata['type'])) as transfer:
+    with trans(filedata['path'], filedata['url'],
+               Type(filedata['type'])) as transfer:
         if ttype == 'inputs':
             return transfer.download()
         if ttype == 'outputs':
@@ -469,13 +517,12 @@ def process_file(ttype, filedata):
     return 0
 
 
-
 def logConfig(loglevel):
-    
-    logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s', 
-                        datefmt='%m/%d/%Y %I:%M:%S', 
+    logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s',
+                        datefmt='%m/%d/%Y %I:%M:%S',
                         level=loglevel,
                         stream=sys.stdout)
+
 
 def main():
     parser = argparse.ArgumentParser(
