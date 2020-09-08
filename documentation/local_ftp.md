@@ -81,12 +81,12 @@ How to use local FTP
 ```
  ftp.hostip:
 ```
-`hostIP` needs to be set to the IP, where containers running in your K8s see your services running on localhost. 
+`hostIP` needs to be set to the IP, where containers running in your K8s see your services running on localhost.
 For `docker` driver, it seems to be `172.30.0.1` (on Linux). For minikube with a VM driver (such as virtualbox), you can check the IP by running:
 ```
 minikube ssh "ping host.minikube.internal"
 ```
-  
+
 
 * Create the task:
 
@@ -101,18 +101,19 @@ minikube ssh "ping host.minikube.internal"
 127.0.0.1 ftp
 ```
 so that both cwl-tes and TESK see the local FTP at the same address.
-- You need an `.netrc` file.   
+- You need a `.netrc` file.   
 ```
 machine ftp
 login tesk
-password <tesk-password>g
+password <tesk-password>
 ```
 It needs to be readable only to the owner
 ```
 chmod 600 ~/.netrc
 ```
 - Finally, you can run a workflow:
-As a first step clone the following workspace from git - https://github.com/uniqueg/cwl-example-workflows.git.
+A good workflow to test your setup is: https://github.com/uniqueg/cwl-example-workflows.git.
+which you need to clone
 
 Then run the following command:
 ```
@@ -121,11 +122,10 @@ cwl-tes --tes http://minikube_ip:node_port  --remote-storage-url ftp://ftp/home/
 
 - If the workflow uses FTP inputs, adjust them, so they point to existing files on your FTP server.
 
-For example in the cwl-example-workflows/hashsplitter-test.yml make the following changes and also
-make sure the input.txt file is present in the /home/tesk/ folder.
+For example in the `hashsplitter-test.yml` from the workflow above make the following changes and also
+make sure the input.txt file has been uploaded to your FTP.
 ```
 input:
   class: File
   path: ftp://ftp/home/tesk/input.txt
 ```
-
