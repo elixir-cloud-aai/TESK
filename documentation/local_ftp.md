@@ -129,3 +129,4 @@ input:
   class: File
   path: ftp://ftp/home/tesk/input.txt
 ```
+- Running the above workflow and passing a local file with `--input` parameter (so letting `cwl-tes` upload an input file to FTP) fails for the proposed FTP setup. Most probably this functionality works only with chroot enabled on FTP server. 
