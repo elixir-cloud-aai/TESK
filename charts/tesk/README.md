@@ -10,7 +10,7 @@ the namespace is created depends on the cluster, so it is not documented here.
 
 To deploy the application:
  * modify [`values.yaml`](values.yaml)
- * If you are installing the FTP storage backend and/or OIDC client, create a `secrets.yaml` file. You need to fill up the `username` and `password` of the ftp account that will be potentially used to exchange I/O with a workflow manager such as cwl-tes. If you activated authentication (auth.mode == 'auth' in `values.yaml`), optionally you may activate the OICD client in the Swagger UI as well (you need to register the client by your OIDC provider). To do so, supply the `client_id` and `client_secret` values obtained during the client registration, otherwise the auth section must be removed. 
+ * If you are installing the FTP storage backend (and will not use .netrc file for FTP credentials) and/or OIDC client, create a `secrets.yaml` file. You need to fill up the `username` and `password` of the ftp account that will be potentially used to exchange I/O with a workflow manager such as cwl-tes. If you activated authentication (auth.mode == 'auth' in `values.yaml`), optionally you may activate the OICD client in the Swagger UI as well (you need to register the client by your OIDC provider). To do so, supply the `client_id` and `client_secret` values obtained during the client registration, otherwise the auth section must be removed.
 
  ```
  ftp:
@@ -21,12 +21,14 @@ To deploy the application:
    client_id: <client_id>
    client_secret: <client_secret>
  ```
-
+ 
  * If you're using `s3` as your storage option, do not forget to add the necessary `config` and `credentials` files
  (see [here](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html)) under a folder named
  **s3-config** (*charts/tesk/s3-config*).
 
- * finally execute:
+ * If you are installing the FTP storage backend and want to use .netrc file for FTP credentials, place the .netrc in the `ftp` folder. There is a template in the folder.
+
+ * Finally execute:
 
 ```bash
 $ helm upgrade --install tesk-release . -f secrets.yaml -f values.yaml
@@ -73,7 +75,8 @@ See [`values.yaml`](values.yaml) for default values.
 | auth.env_subgroup | string | Can be 'EBI' or 'CSC' |
 | service.type | string | Can be 'NodePort' or 'ClusterIp' or 'LoadBalancer' |
 | service.node_port | integer | Only used if service.type is 'NodePort', specifies the port |
-| ftp.active | boolean | Activates or disables the creation of an ftp secret|
+| ftp.classic_ftp_secret | String | The name of a secret to store FTP credentials as keys. If empty, the old-style FTP secret is not created |
+| ftp.netrc_secret | String | The name of a secret to store FTP credentials as a netrc file. If empty, the netrc FTP secret is not created |
 | ftp.hostip | string | IP of the endpoint of the ftp as seen by containers in K8s (only needed, if in need of a DNS entry for locally installed FTP server) |
 | ingress.active| boolean | Decides if an ingress resource for tesk-api is created
 | ingress.tls_secret_name | string |  If no TLS secret name configured, TLS will be switched off. A template can be found at [deployment/tls_secret_name.yml-TEMPLATE](deployment/tls_secret_name.yml-TEMPLATE). If you are using cert-manager the secret will be created automatically.|

@@ -1,9 +1,9 @@
 # Deployment instructions for TESK
 ## Requirements
-*  **A Kubernetes cluster version 1.9 and later**. TESK works well in multi-tenancy clusters such as OpenShift and requires access to only one namespace. 
+*  **A Kubernetes cluster version 1.9 and later**. TESK works well in multi-tenancy clusters such as OpenShift and requires access to only one namespace.
 * **A default storage class.** To handle tasks with I/O TESK always requires a default storage class (regardless of the chosen storage backend). TESK uses the class to create temporary PVCs. It should be enough that the storage supports the RWO mode.
 * **A storage backend** to exchange I/O with the external world. At the moment TESK supports:
-  * FTP. R/W access to a single FTP account. 
+  * FTP. R/W access to a single FTP account.
   * Shared file system. This usually comes in the form of a RWX PVC.
   * S3 (WiP). R/W access to one bucket in S3-like storage
 
@@ -50,7 +50,7 @@ service.type="LoadBalancer"
 ```
 and consult [K8s documentation](https://kubernetes.io/docs/tasks/access-application-cluster/create-external-load-balancer/) on how to find out the IP of your TESK service.
 #### OpenShift
-The chart handles eexposing TESK API as OpenShift Route. 
+The chart handles eexposing TESK API as OpenShift Route.
 In the chart set the value:
 `clusterType: openshift`
 TESK API should be accessible under (Swagger UI):
@@ -59,11 +59,11 @@ and
 `https://project-name.openshift-host-name/v1/tasks`
 should return an empty list of tasks.
 #### Ingress
-Recommened way of exposing any public facing API from K8s cluster such as TESK API is to use Ingress. 
+Recommened way of exposing any public facing API from K8s cluster such as TESK API is to use Ingress.
 You need:
 * an **Ingress Controller**. If your cluster does not have one, the TESK Helm chart provides a way to Install one particular controller (the section `deploy_ingress`), but a recommened approach is to install an up-to-date Ingress Controller of your choice independently.
 * a **Hostname** - a DNS entry, where you will expose TESK. TESK can be installed at a subpath as well.
-* an **Ingress Resource**, which will instruct the Controller where to expose TESK. The chart provides an Ingress Resource template. 
+* an **Ingress Resource**, which will instruct the Controller where to expose TESK. The chart provides an Ingress Resource template.
 * A **TLS certificate** to serve TESK over https. You can obtain one from a certificate authority or automatically obtain one from [Let's Encrypt](https://letsencrypt.org/). The K8s way to do it is by installing [cert-manager](https://cert-manager.io/) and creating an ACME Issuer.
 The example values for TESK Helm chart to create Ingress Resource with annotations for cert-manager, but not to install the controller:
 ```
@@ -89,16 +89,16 @@ https://tes.ebi.ac.uk/v1/tasks
 #### Shared file system
 TESK can exchange Inputs and Outputs with the external world using the local/shared storage. You need to create a PVC that will be reachable for your workflow manager and for TESK at the same time.
 If the workflow manager (or anything else that produces paths to your inputs and outputs) is installed inside the same K8s cluster, you may use a PVC of a storage class providing RWX access and mount it to the pod where the workflow manager is installed in the directory where the manager will be creating/orchestrating inputs/outputs. Depending on the workflow manager, it may be a working directory of your workflow manager process.
-If the workflow manager is installed outside of the cluster, you may be able to use a volume mounting storage visible outside of the cluster (hostPath, NFS, etc) and a PVC bound to that volume. We used Minikube with the hostPath type of storage in this secenario successfuly. 
+If the workflow manager is installed outside of the cluster, you may be able to use a volume mounting storage visible outside of the cluster (hostPath, NFS, etc) and a PVC bound to that volume. We used Minikube with the hostPath type of storage in this secenario successfuly.
 Creating the shared PVC is not handled by TESK Helm chart.
 Finally you have to setup following values in the chart:
 ```
 transfer:
     active: true
-    # The directory under which your workflow manager sees the shared PVC. It can be the path under which it is mounted to the workflow manager pod                     # or the directory of your NFS share/hostPath as seen outside of the cluster. The value is used by TESK to translate paths of inputs/outputs from 
+    # The directory under which your workflow manager sees the shared PVC. It can be the path under which it is mounted to the workflow manager pod                     # or the directory of your NFS share/hostPath as seen outside of the cluster. The value is used by TESK to translate paths of inputs/outputs from
     # from `How Worflow Manager sees them` to `How TESK sees them`  
     wes_base_path: '/data'        
-    # The path where the shared PVC will be mounted in TESK filer. You can usually leave the default. 
+    # The path where the shared PVC will be mounted in TESK filer. You can usually leave the default.
     tes_base_path: '/transfer'
     # The name of the shared PVC
     pvc_name: 'transfer-pvc'      
@@ -106,12 +106,22 @@ transfer:
 
 #### FTP
 TESK can exchange Inputs and Outputs with the external world using an FTP account. Currently TLS is not supported in TESK, but if you plan to use TESK with cwl-tes and FTP, cwl-tes requires TLS for FTP. The solution is to enable TLS on your FTP server, but not enforce it.
-In the Helm chart set:
+In the Helm chart provide your credentials in one of 2 ways. The old way has been in TESK for a long time, but will be finally superseded by `.netrc`. Provide a name for a secret, which will store credentials (you can keep the default). An empty name switches off the creation of the old-style credentials secret.
 ```
 ftp:
-    active: true
+    classic_ftp_secret: ftp-secret
 ```
 and additionally provide your username and password in the `secrets.yaml`, as describe [here](../charts/tesk/README.md).
+
+Alternatively, you can use a `.netrc` file, which will allow storing credentials for more than one FTP server.
+Provide a name for a secret, which will store .netrc file:
+```
+ftp:
+    netrc_secret: ftp-secret
+```
+and additionally place a `.netrc` file in the folder `ftp` in the chart (the template of the file is already there).
+Keeping both secret names empty switches off FTP support altogether.
+
 #### S3
 TESK can also utilize S3 object storage for exchanging Inputs & Outputs. If you have an S3 endpoint (AWS, minio, etc) that you want to use, simply add the necessary `config` and `credentials` files (see [here](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html)) under a folder named **s3-config**. You can use the templates provided in *charts/tesk/s3-config* as a point of reference.
 
@@ -125,7 +135,4 @@ auth:
 At the moment enabling authentication also enables authorisation. Consult [this document](https://github.com/EMBL-EBI-TSI/tesk-api/blob/master/auth.md) for details of authorisation.  
 The support for authorisation configuration in the chart and its documentation is in progress.
 ### Additional configuration
-The Helm chart has been a fairly recent addition to TESK and TESK owes its to its fantastic contributors. There might be more options that are available for configuration in TESK that have not been reflected in the chart, yet. Have a look [here](https://github.com/EMBL-EBI-TSI/tesk-api) for more configuration options. 
-
-
-
+The Helm chart has been a fairly recent addition to TESK and TESK owes its to its fantastic contributors. There might be more options that are available for configuration in TESK that have not been reflected in the chart, yet. Have a look [here](https://github.com/EMBL-EBI-TSI/tesk-api) for more configuration options.

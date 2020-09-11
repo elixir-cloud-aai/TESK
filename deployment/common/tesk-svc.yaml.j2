@@ -6,8 +6,8 @@ metadata:
     app: tesk-api
 spec:
   ports:
-  - port: {{ tesk.port }}
-    nodePort: {{ service.node_port }}   # valid only if {{service.type}} == NodePort
+  - port: {{ tesk.port }}{% if service.node_port is defined and service.type == 'NodePort' %}
+    nodePort: {{ service.node_port }}   # valid only if {{service.type}} == NodePort{% endif %}
   selector:
     app: tesk-api
-  type: {{ service.type if service.type else 'ClusterIP' }}
+  type: {% if service.type is defined %}{{ service.type }}{% else %}ClusterIP{% endif %}
