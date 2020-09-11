@@ -1,27 +1,21 @@
 import json
+import os
 from tesk_core import path
 from tesk_core.path import fileEnabled
 
 
 class Filer:
 
-    def getVolumes(self):
-        return self.spec['spec']['template']['spec']['volumes']
+    def getVolumes(self):           return self.spec['spec']['template']['spec']['volumes']
 
-    def getContainer(self, i):
-        return self.spec['spec']['template']['spec']['containers'][i]
+    def getContainer(self, i):      return self.spec['spec']['template']['spec']['containers'][i]
 
-    def getVolumeMounts(self):
-        return self.getContainer(0)['volumeMounts']
+    def getVolumeMounts(self):      return self.getContainer(0)['volumeMounts']
+    def getEnv(self):               return self.getContainer(0)['env']
+    def getImagePullPolicy(self):   return self.getContainer(0)['imagePullPolicy']
 
-    def getEnv(self):
-        return self.getContainer(0)['env']
 
-    def getImagePullPolicy(self):
-        return self.getContainer(0)['imagePullPolicy']
-
-    def __init__(self, name, data, filer_name='eu.gcr.io/tes-wes/filer',
-                 filer_version='v0.5', pullPolicyAlways=False):
+    def __init__(self, name, data, filer_name='eu.gcr.io/tes-wes/filer', filer_version='v0.5', pullPolicyAlways = False):
         self.name = name
         self.spec = {
             "kind": "Job",
@@ -56,15 +50,15 @@ class Filer:
         if fileEnabled():
             self.getVolumeMounts().append({
 
-                "name": 'transfer-volume'
-                , 'mountPath': path.CONTAINER_BASE_PATH
+                  "name"      : 'transfer-volume'
+                , 'mountPath' : path.CONTAINER_BASE_PATH
             })
 
             self.getVolumes().append({
 
-                "name": 'transfer-volume'
-                ,
-                'persistentVolumeClaim': {'claimName': path.TRANSFER_PVC_NAME}
+                  "name"                  : 'transfer-volume'
+                , 'persistentVolumeClaim' : { 'claimName' : path.TRANSFER_PVC_NAME }
+
             })
 
         self.add_s3_mount()
@@ -129,6 +123,34 @@ class Filer:
         self.getVolumes().append({"name": "task-volume",
                                   "persistentVolumeClaim": {
                                       "claimName": pvc.name}})
+
+
+    def add_netrc_mount(self, netrc_name='netrc'):
+        '''
+            Sets $HOME to an arbitrary location (to prevent its change as a result of runAsUser), currently hardcoded to `/opt/home`
+            Mounts the secret netrc into that location: $HOME/.netrc.
+        '''
+
+        self.getVolumeMounts().append({"name"      : 'netrc',
+                                       "mountPath" : '/opt/home/.netrc',
+                                       "subPath" : ".netrc"
+                                      })
+        self.getVolumes().append({"name"   : "netrc",
+                                  "secret" : {
+                                      "secretName" : netrc_name,
+                                      "defaultMode" :  420,
+                                      "items" : [
+                                          {
+                                              "key": ".netrc",
+                                              "path": ".netrc"
+                                          }
+                                      ]
+                                  }
+                                 })
+        self.getEnv().append({"name": "HOME",
+                              "value": "/opt/home"
+                            })
+
 
     def get_spec(self, mode, debug=False):
         self.spec['spec']['template']['spec']['containers'][0]['args'] = [
