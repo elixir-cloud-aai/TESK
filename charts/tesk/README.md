@@ -21,8 +21,14 @@ To deploy the application:
    client_id: <client_id>
    client_secret: <client_secret>
  ```
+ 
+ * If you're using `s3` as your storage option, do not forget to add the necessary `config` and `credentials` files
+ (see [here](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html)) under a folder named
+ **s3-config** (*charts/tesk/s3-config*).
+
  * If you are installing the FTP storage backend and want to use .netrc file for FTP credentials, place the .netrc in the `ftp` folder. There is a template in the folder.
- * finally execute:
+
+ * Finally execute:
 
 ```bash
 $ helm upgrade --install tesk-release . -f secrets.yaml -f values.yaml
@@ -43,6 +49,8 @@ The first time running this command, the chart will be installed. Afterwards, it
 ```bash
 $ helm upgrade -n tesk --install tesk-release . -f secrets.yaml -f values.yaml
 ```
+*Note*: If you're running Helm 3, you might need to also use the `--create-namespace` option, as non-existent namespaces
+do not get created by default (see [this](https://github.com/helm/helm/issues/6794)). 
 
 ##  Description of values
 
@@ -52,6 +60,7 @@ See [`values.yaml`](values.yaml) for default values.
 | --- | --- | --- |
 | host_name | string | FQDN to expose the application |
 | clusterType | string |type of Kubernetes cluster; either 'kubernetes' or 'openshift'|
+| storage | string | Can be either 'openstack' or 's3' |
 | tesk.image | string | container image (including the version) to be used to run TESK API |
 | tesk.port | integer | |
 | tesk.taskmaster_image_version | string | the version of the image to be used to run TESK Taskmaster Job |
