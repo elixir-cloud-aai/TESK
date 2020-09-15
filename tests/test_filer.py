@@ -391,25 +391,23 @@ def test_s3_upload_file( moto_boto, path, url, ftype, expected,fs, caplog):
         assert "File upload failed for" in caplog.text
 
 @pytest.mark.parametrize("path, url, ftype,expected", [
-        ("/home/user/filer_test/", "http://tesk.s3.amazonaws.com/folder1/folder2","DIRECTORY",0),
-        ("/home/user/filer_test/", "http://tesk.s3-aws-region.amazonaws.com/folder1/folder2","DIRECTORY",0),
-        ("/home/user/filer_test/", "http://s3.amazonaws.com/tesk/folder1/folder2","DIRECTORY",0),
-        ("/home/user/filer_test/", "http://s3-aws-region.amazonaws.com/tesk/folder1/folder2","DIRECTORY",0),
-        ("/home/user/filer_test/", "s3://tesk/folder1/folder2","DIRECTORY",0),
+        ("tests", "http://tesk.s3.amazonaws.com/folder1/folder2","DIRECTORY",0),
+        ("tests", "http://tesk.s3-aws-region.amazonaws.com/folder1/folder2","DIRECTORY",0),
+        ("tests", "http://s3.amazonaws.com/tesk/folder1/folder2","DIRECTORY",0),
+        ("tests", "http://s3-aws-region.amazonaws.com/tesk/folder1/folder2","DIRECTORY",0),
+        ("tests", "s3://tesk/folder1/folder2","DIRECTORY",0),
         ("/home/user/filer_test_new/", "http://tesk.s3.amazonaws.com/folder10/folder20","DIRECTORY",1),
         ("/home/user/filer_test_new/", "http://tesk.s3-aws-region.amazonaws.com/folder10/folder20","DIRECTORY",1),
         ("/home/user/filer_test_new/", "http://s3.amazonaws.com/tesk/folder10/folder20","DIRECTORY",1),
         ("/home/user/filer_test_new/", "http://s3-aws-region.amazonaws.com/tesk/folder10/folder20","DIRECTORY",1),
         ("/home/user/filer_test_new/", "s3://tesk/folder10/folder20","DIRECTORY",1)
     ])
-def test_s3_upload_directory(path, url, ftype, expected, moto_boto, fs, caplog, monkeypatch):
+def test_s3_upload_directory(path, url, ftype, expected, moto_boto, caplog):
     """
         Checking for successful and failed Directory upload to object storage server
     """
-    fs.create_file("/home/user/filer_test/test.txt")
-    monkeypatch.setattr("tesk_core.extract_endpoint.extract_endpoint", lambda _: "http://s3.amazonaws.com")
     trans = S3Transput(path, url, ftype)
-    client = boto3.resource('s3', endpoint_url=extract_endpoint())
+    client = boto3.resource('s3', endpoint_url="http://s3.amazonaws.com")
     trans.bucket_obj = client.Bucket(trans.bucket)
     assert trans.upload_dir() == expected
     if expected:
@@ -436,8 +434,6 @@ def test_extract_url_from_config_file(mock_path_exists):
     """
     Testing extraction of endpoint url from default file location
     """
-    trans = S3Transput("/home/user/filer_test/file.txt", "http://s3-aws-region.amazonaws.com/mybucket/folder/file.txt",
-                       "FILE")
     read_data = '\n'.join(["[default]", "endpoint_url = http://s3-aws-region.amazonaws.com"])
     with patch("builtins.open", mock_open(read_data=read_data), create=True) as mock_file:
         mock_file.return_value.__iter__.return_value = read_data.splitlines()
@@ -449,8 +445,6 @@ def test_extract_url_from_environ_variable():
     """
     Testing successful extraction of endpoint url read from file path saved on enviornment variable
     """
-    trans = S3Transput("/home/user/filer_test/file.txt", "http://s3-aws-region.amazonaws.com/mybucket/folder/file.txt",
-                       "FILE")
     read_data = '\n'.join(["[default]","endpoint_url = http://s3-aws-region.amazonaws.com"])
     with patch("builtins.open", mock_open(read_data=read_data),create=True) as mock_file:
         mock_file.return_value.__iter__.return_value = read_data.splitlines()
