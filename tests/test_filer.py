@@ -394,17 +394,18 @@ def test_s3_upload_file( moto_boto, path, url, ftype, expected,fs, caplog):
         Testing successful/failed file upload to object storage server
     """
     fs.create_file("/home/user/filer_test/file.txt")
-    with S3Transput(path, url, ftype) as trans:
-        assert trans.upload_file() == expected
-        if expected:
-            assert "File upload failed for" in caplog.text
-        else:
-            client = boto3.resource('s3', endpoint_url="http://s3.amazonaws.com")
-            '''
-            Checking if the file was uploaded, if the object is found load() method will return None 
-            otherwise an exception will be raised.
-            '''
-            assert client.Object('tesk', 'folder/file.txt').load() == None
+    client = boto3.resource('s3', endpoint_url="http://s3.amazonaws.com")
+    trans = S3Transput(path, url, ftype)
+    trans.bucket_obj = client.Bucket(trans.bucket)
+    assert trans.upload_file() == expected
+    if expected:
+        assert "File upload failed for" in caplog.text
+    else:
+        '''
+        Checking if the file was uploaded, if the object is found, load() method will return None 
+        otherwise an exception will be raised.
+        '''
+        assert client.Object('tesk', 'folder/file.txt').load() == None
 
 
 
@@ -424,20 +425,20 @@ def test_s3_upload_directory(path, url, ftype, expected, moto_boto, caplog):
     """
         Checking for successful and failed Directory upload to object storage server
     """
-
-    with S3Transput(path, url, ftype) as trans:
-        assert trans.upload_dir() == expected
-        if expected:
-            print(caplog.text)
-            assert "File upload failed for" in caplog.text
-        else:
-            client = boto3.resource('s3', endpoint_url="http://s3.amazonaws.com")
-            '''
-            Checking if the file was uploaded, if the object is found load() method will return None 
-            otherwise an exception will be raised.
-            '''
-            assert client.Object('tesk', 'folder1/folder2/test_filer.py').load() == None
-
+    client = boto3.resource('s3', endpoint_url="http://s3.amazonaws.com")
+    trans = S3Transput(path, url, ftype)
+    trans.bucket_obj = client.Bucket(trans.bucket)
+    assert trans.upload_dir() == expected
+    if expected:
+        print(caplog.text)
+        assert "File upload failed for" in caplog.text
+    else:
+        client = boto3.resource('s3', endpoint_url="http://s3.amazonaws.com")
+        '''
+        Checking if the file was uploaded, if the object is found load() method will return None 
+        otherwise an exception will be raised.
+        '''
+        assert client.Object('tesk', 'folder1/folder2/test_filer.py').load() == None
 
 def test_upload_directory_for_unknown_file_type(moto_boto, fs, monkeypatch, caplog):
     """
