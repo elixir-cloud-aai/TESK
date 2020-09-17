@@ -10,12 +10,15 @@ with codecs.open(path.join(HERE, 'README.md'), encoding='utf-8') as f:
 
 INSTALL_DEPS = ['kubernetes==9.0.0',
                 'requests>=2.20.0',
-                'urllib3==1.24.2']
+                'urllib3==1.24.2',
+                'boto3==1.13.18',
+                ]
 TEST_DEPS = [ 'pytest',
-              'pyfakefs',
-              'pytest-mock',
-              'fs',
-              'pytest-localftpserver'
+            'pyfakefs',
+            'pytest-mock'
+            , 'fs',
+            'moto',
+            'pytest-localftpserver'
             ]
 
 DEV_DEPS = []

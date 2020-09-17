@@ -1,16 +1,22 @@
 import unittest
+import logging
+import os
 from tesk_core.filer import newTransput, FTPTransput, HTTPTransput, FileTransput,\
     process_file, logConfig, getPath, copyDir, copyFile, ftp_check_directory,\
     subfolders_in
 from tesk_core.exception import UnknownProtocol, InvalidHostPath,\
     FileProtocolDisabled
 from tesk_core.path import containerPath
+from tesk_core.filer_s3 import S3Transput
 from assertThrows import AssertThrowsMixin
-import logging
-import os
 from fs.opener import open_fs
 from io import StringIO
 from unittest.mock import patch
+
+
+
+
+
 
 
 def getTree(rootDir):
@@ -150,6 +156,7 @@ class FilerTest(unittest.TestCase, AssertThrowsMixin):
         # Let's try to copy
         copyDir(src, dst1)
 
+
         self.assertEqual(getTree(dst1),
                           stripLines('''
                             |-- a
@@ -178,7 +185,7 @@ class FilerTest(unittest.TestCase, AssertThrowsMixin):
 
     def test_getPath(self):
 
-        self.assertEquals( getPath('file:///home/tfga/workspace/cwl-tes/tmphrtip1o8/md5')
+        self.assertEqual( getPath('file:///home/tfga/workspace/cwl-tes/tmphrtip1o8/md5')
                          ,                '/home/tfga/workspace/cwl-tes/tmphrtip1o8/md5')
 
     def test_getPathNoScheme(self):
@@ -186,6 +193,8 @@ class FilerTest(unittest.TestCase, AssertThrowsMixin):
         self.assertEquals( getPath('/home/tfga/workspace/cwl-tes/tmphrtip1o8/md5')
                          ,         '/home/tfga/workspace/cwl-tes/tmphrtip1o8/md5')
 
+        self.assertEqual( containerPath('/home/tfga/workspace/cwl-tes/tmphrtip1o8/md5')
+                         ,               '/transfer/tmphrtip1o8/md5')
 
     def test_containerPath(self):
         self.assertEqual(
@@ -200,14 +209,16 @@ class FilerTest(unittest.TestCase, AssertThrowsMixin):
                           )
 
     def test_newTransput(self):
-        self.assertEqual(newTransput('ftp'), FTPTransput)
-        self.assertEqual(newTransput('http'), HTTPTransput)
-        self.assertEqual(newTransput('https'), HTTPTransput)
-        self.assertEqual(newTransput('file'), FileTransput)
+        self.assertEqual(newTransput('ftp', 'test.com'), FTPTransput)
+        self.assertEqual(newTransput('http', 'test.com'), HTTPTransput)
+        self.assertEqual(newTransput('https', 'test.com'), HTTPTransput)
+        self.assertEqual(newTransput('file', '/home/tfga/workspace/'), FileTransput)
+        self.assertEqual(newTransput('s3', '/home/tfga/workspace/'), S3Transput)
+        self.assertEqual(newTransput('http', 's3.aws.com'), S3Transput)
 
-        self.assertThrows(lambda: newTransput('svn'),
-                          UnknownProtocol,
-                          "Unknown protocol: 'svn'"
+        self.assertThrows(lambda: newTransput('svn', 'example.com')
+                          , UnknownProtocol
+                          , "Unknown protocol: 'svn'"
                           )
 
     @patch('ftplib.FTP')
@@ -224,16 +235,15 @@ class FilerTest(unittest.TestCase, AssertThrowsMixin):
         self.assertEqual(subfolders_in(path), subfldrs)
 
 
+
 class FilerTest_no_env(unittest.TestCase, AssertThrowsMixin):
 
     def test_newTransput_file_disabled(self):
-        self.assertThrows(lambda: newTransput('file'),
-                          FileProtocolDisabled,
-                          "'file:' protocol disabled\n"
-                          "To enable it, both 'HOST_BASE_PATH' and "
-                          "'CONTAINER_BASE_PATH' environment variables must be"
-                          " defined."
-                          )
+        self.assertThrows( lambda: newTransput('file','/home/user/test')
+                         , FileProtocolDisabled
+                         , "'file:' protocol disabled\n"
+                           "To enable it, both 'HOST_BASE_PATH' and 'CONTAINER_BASE_PATH' environment variables must be defined."
+                         )
 
 
 if __name__ == "__main__":
