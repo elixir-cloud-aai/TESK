@@ -31,6 +31,7 @@ import uk.ac.ebi.tsc.tesk.config.TaskmasterEnvProperties;
 import uk.ac.ebi.tsc.tesk.config.security.User;
 import uk.ac.ebi.tsc.tesk.model.TesState;
 import uk.ac.ebi.tsc.tesk.model.TesTask;
+import uk.ac.ebi.tsc.tesk.trs.TrsToolClient;
 import uk.ac.ebi.tsc.tesk.util.constant.Constants;
 import uk.ac.ebi.tsc.tesk.util.constant.K8sConstants;
 import uk.ac.ebi.tsc.tesk.util.data.TaskBuilder;
@@ -43,7 +44,11 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
+import static org.mockito.AdditionalAnswers.returnsFirstArg;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 import static uk.ac.ebi.tsc.tesk.util.constant.Constants.LABEL_TASKSTATE_KEY;
 import static uk.ac.ebi.tsc.tesk.util.constant.Constants.LABEL_TASKSTATE_VALUE_CANC;
 
@@ -59,6 +64,8 @@ public class TesKubernetesConverterMinimalTest {
 
     @MockBean
     private JobNameGenerator jobNameGenerator;
+
+    private TrsToolClient trsToolClient;
 
     @TestConfiguration
     @Import({KubernetesObjectsSupplier.class, GsonConfig.class})
@@ -84,9 +91,10 @@ public class TesKubernetesConverterMinimalTest {
 
     @Before
     public void setUpConverter() {
-
+        trsToolClient = mock(TrsToolClient.class);
+        when(trsToolClient.getDockerImageForToolVersionURI(anyString())).then(returnsFirstArg());
         this.converter = new TesKubernetesConverter(executorTemplateSupplier, taskmasterTemplateSupplier,
-                objectMapper, gson);
+                objectMapper, gson, trsToolClient);
     }
 
     @Test
