@@ -52,7 +52,7 @@ class Job:
                                                     , label_selector='job-name={}'.format(self.name))).items
                 is_all_pods_runnning = True
                 for pod in pods:
-                    if pod.status.phase == "Pending":
+                    if pod.status.phase == "Pending" and pod.status.start_time:
                         is_all_pods_runnning = False
                         delta = (datetime.now(timezone.utc) - pod.status.start_time).total_seconds()
                         if delta > self.timeout and \
