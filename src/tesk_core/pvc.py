@@ -38,9 +38,10 @@ class PVC():
             return self.cv1.create_namespaced_persistent_volume_claim(self.namespace, self.spec)
         except ApiException as ex:
             if ex.status == 409:
+                logging.debug(f"Reading existing PVC: {self.name}")
                 return self.cv1.read_namespaced_persistent_volume_claim(self.name, self.namespace)
             else:
-                logging.error(ex.body)
+                logging.debug(ex.body)
                 raise ApiException(ex.status, ex.reason)
 
 

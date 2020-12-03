@@ -27,9 +27,10 @@ class Job:
             self.bv1.create_namespaced_job(self.namespace, self.body)
         except ApiException as ex:
             if ex.status == 409:
+                logging.debug(f"Reading existing job: {self.name} ")
                 self.bv1.read_namespaced_job(self.name, self.namespace)
             else:
-                logging.error(ex.body)
+                logging.debug(ex.body)
                 raise ApiException(ex.status, ex.reason)
         is_all_pods_running = False
         status, is_all_pods_running = self.get_status(is_all_pods_running)
