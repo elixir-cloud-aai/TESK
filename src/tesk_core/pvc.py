@@ -37,8 +37,11 @@ class PVC():
         try:
             return self.cv1.create_namespaced_persistent_volume_claim(self.namespace, self.spec)
         except ApiException as ex:
-            logging.debug(ex)
-            return self.cv1.read_namespaced_persistent_volume_claim(self.name, self.namespace)
+            if ex.status == 409:
+                return self.cv1.read_namespaced_persistent_volume_claim(self.name, self.namespace)
+            else:
+                logging.error(ex.body)
+                raise ApiException(ex.status, ex.reason)
 
 
     def delete(self):

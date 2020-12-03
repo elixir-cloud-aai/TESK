@@ -8,6 +8,7 @@ from tesk_core import taskmaster
 from tesk_core.job import Job
 from argparse import Namespace
 from datetime import timezone
+from kubernetes.client.rest import ApiException
 
 START_TIME = datetime.datetime.now(timezone.utc)
 class MockObject(object):
@@ -166,6 +167,35 @@ class JobTestCase(unittest.TestCase):
             status = job.run_to_completion(taskmaster.args.poll_interval, taskmaster.check_cancelled,
                                            taskmaster.args.pod_timeout)
             self.assertEqual(status, "Cancelled")
+
+    @patch("tesk_core.taskmaster.check_cancelled", return_value=False)
+    @patch("kubernetes.client.BatchV1Api.create_namespaced_job", side_effect=ApiException(status=409,reason="conflict"))
+    @patch("tesk_core.job.Job.get_status", side_effect=[("Complete", True)])
+    @patch("kubernetes.client.BatchV1Api.read_namespaced_job", side_effect=read_namespaced_job_running)
+    def test_run_to_completion_check_conflict_exception(self, mock_get_status, mock_read_namespaced_job,
+                                                        mock_check_cancelled,mock_create_namespaced_job):
+        """
+        Checking if the Job status is complete when an ApiException of 409 is raised
+        """
+        for executor in self.data['executors']:
+            jobname = executor['metadata']['name']
+            job = Job(executor, jobname, taskmaster.args.namespace)
+            status = job.run_to_completion(taskmaster.args.poll_interval, taskmaster.check_cancelled,
+                                           taskmaster.args.pod_timeout)
+            self.assertEqual(status, "Complete")
+
+    @patch("kubernetes.client.BatchV1Api.create_namespaced_job",
+           side_effect=ApiException(status=500, reason="Random Exception"))
+    def test_run_to_completion_check_other_K8_exception(self,mock_create_namespaced_job):
+        """
+        Checking if the an exception is raised when ApiException status is other than 409
+        """
+        for executor in self.data['executors']:
+            jobname = executor['metadata']['name']
+            job = Job(executor, jobname, taskmaster.args.namespace)
+            with self.assertRaises(ApiException):
+                job.run_to_completion(taskmaster.args.poll_interval, taskmaster.check_cancelled,
+                                               taskmaster.args.pod_timeout)
 
     @patch("kubernetes.client.CoreV1Api.list_namespaced_pod")
     @patch("kubernetes.client.BatchV1Api.read_namespaced_job", side_effect=read_namespaced_job_error)
