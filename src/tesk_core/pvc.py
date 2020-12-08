@@ -1,4 +1,5 @@
 from kubernetes import client, config
+from kubernetes.client.rest import ApiException
 from tesk_core.Util import pprint
 import logging
 
@@ -33,8 +34,16 @@ class PVC():
         
         logging.debug('Creating PVC...')
         logging.debug(pprint(self.spec))
-        
-        return self.cv1.create_namespaced_persistent_volume_claim(self.namespace, self.spec)
+        try:
+            return self.cv1.create_namespaced_persistent_volume_claim(self.namespace, self.spec)
+        except ApiException as ex:
+            if ex.status == 409:
+                logging.debug(f"Reading existing PVC: {self.name}")
+                return self.cv1.read_namespaced_persistent_volume_claim(self.name, self.namespace)
+            else:
+                logging.debug(ex.body)
+                raise ApiException(ex.status, ex.reason)
+
 
     def delete(self):
         cv1 = client.CoreV1Api()

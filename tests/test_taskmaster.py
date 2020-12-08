@@ -5,6 +5,7 @@ from unittest.mock import patch
 from argparse import Namespace
 from tesk_core import taskmaster
 from tesk_core.filer_class import Filer
+from kubernetes.client.rest import ApiException
 from tesk_core.taskmaster import init_pvc, PVC, run_executor,\
     generate_mounts, append_mount, dirname, run_task,newParser
 
@@ -33,6 +34,20 @@ class TaskmasterTest(unittest.TestCase):
         Testing to check if the PVC volume was created successfully
         """
         self.assertIsInstance(init_pvc(self.data, self.filer), PVC)
+
+    @patch("kubernetes.client.CoreV1Api.read_namespaced_persistent_volume_claim")
+    @patch("kubernetes.client.CoreV1Api.create_namespaced_persistent_volume_claim", side_effect=ApiException(status=409,
+                                                                                                 reason="conflict"))
+    def test_create_pvc_check_for_conflict_exception(self, mock_create_namespaced_pvc,
+                                                 mock_read_namespaced_pvc):
+        self.pvc.create()
+        mock_read_namespaced_pvc.assert_called_once()
+
+    @patch("kubernetes.client.CoreV1Api.create_namespaced_persistent_volume_claim", side_effect=ApiException(status=500,
+                                                                                    reason="Random error"))
+    def test_create_pvc_check_for_other_exceptions(self, mock_create_namespaced_pvc):
+        with self.assertRaises(ApiException):
+            self.pvc.create()
 
 
     @patch("tesk_core.taskmaster.PVC.delete")

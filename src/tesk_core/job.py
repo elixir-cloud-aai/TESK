@@ -2,6 +2,7 @@ import logging
 import time
 from datetime import datetime, timezone
 from kubernetes import client, config
+from kubernetes.client.rest import ApiException
 from tesk_core.Util import pprint
 
 
@@ -22,7 +23,15 @@ class Job:
         logging.debug("Creating job '{}'...".format(self.name))
         logging.debug(pprint(self.body))
         self.timeout = pod_timeout
-        self.bv1.create_namespaced_job(self.namespace, self.body)
+        try:
+            self.bv1.create_namespaced_job(self.namespace, self.body)
+        except ApiException as ex:
+            if ex.status == 409:
+                logging.debug(f"Reading existing job: {self.name} ")
+                self.bv1.read_namespaced_job(self.name, self.namespace)
+            else:
+                logging.debug(ex.body)
+                raise ApiException(ex.status, ex.reason)
         is_all_pods_running = False
         status, is_all_pods_running = self.get_status(is_all_pods_running)
         while status == 'Running':
@@ -32,6 +41,7 @@ class Job:
             time.sleep(poll_interval)
             status, is_all_pods_running = self.get_status(is_all_pods_running)
         return status
+
 
     def get_status(self, is_all_pods_runnning):
         job = self.bv1.read_namespaced_job(self.name, self.namespace)

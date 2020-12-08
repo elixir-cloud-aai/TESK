@@ -296,13 +296,9 @@ def clean_on_interrupt():
     for job in created_jobs:
         job.delete()
 
-    if created_pvc:
-        created_pvc.delete()
 
 
 def exit_cancelled(reason='Unknown reason'):
-    if created_pvc:
-        created_pvc.delete()
     logger.error('Cancelling taskmaster: ' + reason)
     sys.exit(0)
 
