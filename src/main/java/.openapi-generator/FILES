@@ -2,7 +2,6 @@ uk/ac/ebi/tsc/tesk/api/ApiUtil.java
 uk/ac/ebi/tsc/tesk/api/ServiceInfoApi.java
 uk/ac/ebi/tsc/tesk/api/ServiceInfoApiController.java
 uk/ac/ebi/tsc/tesk/api/TasksApi.java
-uk/ac/ebi/tsc/tesk/api/TasksApiController.java
 uk/ac/ebi/tsc/tesk/model/Service.java
 uk/ac/ebi/tsc/tesk/model/ServiceOrganization.java
 uk/ac/ebi/tsc/tesk/model/ServiceType.java
