@@ -2,82 +2,80 @@ package uk.ac.ebi.tsc.tesk.model;
 
 import java.util.Objects;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonCreator;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
+import uk.ac.ebi.tsc.tesk.model.TesExecutor;
+import uk.ac.ebi.tsc.tesk.model.TesInput;
+import uk.ac.ebi.tsc.tesk.model.TesOutput;
+import uk.ac.ebi.tsc.tesk.model.TesResources;
+import uk.ac.ebi.tsc.tesk.model.TesState;
+import uk.ac.ebi.tsc.tesk.model.TesTaskLog;
 import javax.validation.Valid;
 import javax.validation.constraints.*;
-
-import static uk.ac.ebi.tsc.tesk.util.constant.Constants.ABSOLUTE_PATH_MESSAGE;
-import static uk.ac.ebi.tsc.tesk.util.constant.Constants.ABSOLUTE_PATH_REGEXP;
 
 /**
  * Task describes an instance of a task.
  */
 @ApiModel(description = "Task describes an instance of a task.")
-@javax.annotation.Generated(value = "io.swagger.codegen.languages.SpringCodegen", date = "2017-11-16T12:59:29.706Z")
-
+@javax.annotation.Generated(value = "org.openapitools.codegen.languages.SpringCodegen", date = "2021-03-24T17:10:08.716Z[Europe/London]")
 public class TesTask   {
-
-  @ApiModelProperty(readOnly = true)
   @JsonProperty("id")
-  private String id = null;
+  private String id;
 
-  @ApiModelProperty(readOnly = true)
   @JsonProperty("state")
-  private TesState state = null;
+  private TesState state = TesState.UNKNOWN;
 
-  @ApiModelProperty(example = "hello tesk")
   @JsonProperty("name")
-  private String name = null;
+  private String name;
 
-  @ApiModelProperty(example = "An example presenting: Inputs, Outputs, Resources, Stdout, Workdir")
   @JsonProperty("description")
-  private String description = null;
+  private String description;
 
   @JsonProperty("inputs")
+  @Valid
   private List<TesInput> inputs = null;
 
   @JsonProperty("outputs")
+  @Valid
   private List<TesOutput> outputs = null;
 
   @JsonProperty("resources")
-  private TesResources resources = null;
+  private TesResources resources;
 
-  @NotEmpty
   @JsonProperty("executors")
-  private List<TesExecutor> executors = null;
+  @Valid
+  private List<TesExecutor> executors = new ArrayList<>();
 
-  @ApiModelProperty(example = "[\"/tes/temp\"]")
   @JsonProperty("volumes")
-  private List<@Pattern(regexp = ABSOLUTE_PATH_REGEXP, message = ABSOLUTE_PATH_MESSAGE) String> volumes = null;
+  @Valid
+  private List<String> volumes = null;
 
-  @ApiModelProperty(example = "{\"Version\": \"5.15\"}")
   @JsonProperty("tags")
+  @Valid
   private Map<String, String> tags = null;
 
-  @ApiModelProperty(readOnly = true)
   @JsonProperty("logs")
+  @Valid
   private List<TesTaskLog> logs = null;
 
-  @ApiModelProperty(readOnly = true)
   @JsonProperty("creation_time")
-  private String creationTime = null;
+  private String creationTime;
 
   public TesTask id(String id) {
     this.id = id;
     return this;
   }
 
-   /**
+  /**
    * Task identifier assigned by the server.
    * @return id
-  **/
-  @ApiModelProperty(value = "Task identifier assigned by the server.")
+  */
+  @ApiModelProperty(example = "job-0012345", readOnly = true, value = "Task identifier assigned by the server.")
 
 
   public String getId() {
@@ -93,10 +91,10 @@ public class TesTask   {
     return this;
   }
 
-   /**
+  /**
    * Get state
    * @return state
-  **/
+  */
   @ApiModelProperty(value = "")
 
   @Valid
@@ -114,11 +112,11 @@ public class TesTask   {
     return this;
   }
 
-   /**
-   * Get name
+  /**
+   * User-provided task name.
    * @return name
-  **/
-  @ApiModelProperty(value = "")
+  */
+  @ApiModelProperty(value = "User-provided task name.")
 
 
   public String getName() {
@@ -134,11 +132,11 @@ public class TesTask   {
     return this;
   }
 
-   /**
-   * Get description
+  /**
+   * Optional user-provided description of task for documentation purposes.
    * @return description
-  **/
-  @ApiModelProperty(value = "")
+  */
+  @ApiModelProperty(value = "Optional user-provided description of task for documentation purposes.")
 
 
   public String getDescription() {
@@ -156,17 +154,17 @@ public class TesTask   {
 
   public TesTask addInputsItem(TesInput inputsItem) {
     if (this.inputs == null) {
-      this.inputs = new ArrayList<TesInput>();
+      this.inputs = new ArrayList<>();
     }
     this.inputs.add(inputsItem);
     return this;
   }
 
-   /**
-   * Input files. Inputs will be downloaded and mounted into the executor container.
+  /**
+   * Input files that will be used by the task. Inputs will be downloaded and mounted into the executor container as defined by the task request document.
    * @return inputs
-  **/
-  @ApiModelProperty(value = "Input files. Inputs will be downloaded and mounted into the executor container.")
+  */
+  @ApiModelProperty(example = "[{\"url\":\"s3://my-object-store/file1\",\"path\":\"/data/file1\"}]", value = "Input files that will be used by the task. Inputs will be downloaded and mounted into the executor container as defined by the task request document.")
 
   @Valid
 
@@ -185,17 +183,17 @@ public class TesTask   {
 
   public TesTask addOutputsItem(TesOutput outputsItem) {
     if (this.outputs == null) {
-      this.outputs = new ArrayList<TesOutput>();
+      this.outputs = new ArrayList<>();
     }
     this.outputs.add(outputsItem);
     return this;
   }
 
-   /**
+  /**
    * Output files. Outputs will be uploaded from the executor container to long-term storage.
    * @return outputs
-  **/
-  @ApiModelProperty(value = "Output files. Outputs will be uploaded from the executor container to long-term storage.")
+  */
+  @ApiModelProperty(example = "[{\"path\":\"/data/outfile\",\"url\":\"s3://my-object-store/outfile-1\",\"type\":\"FILE\"}]", value = "Output files. Outputs will be uploaded from the executor container to long-term storage.")
 
   @Valid
 
@@ -212,11 +210,11 @@ public class TesTask   {
     return this;
   }
 
-   /**
-   * Request that the task be run with these resources.
+  /**
+   * Get resources
    * @return resources
-  **/
-  @ApiModelProperty(value = "Request that the task be run with these resources.")
+  */
+  @ApiModelProperty(value = "")
 
   @Valid
 
@@ -235,17 +233,18 @@ public class TesTask   {
 
   public TesTask addExecutorsItem(TesExecutor executorsItem) {
     if (this.executors == null) {
-      this.executors = new ArrayList<TesExecutor>();
+      this.executors = new ArrayList<>();
     }
     this.executors.add(executorsItem);
     return this;
   }
 
-   /**
-   * A list of executors to be run, sequentially. Execution stops on the first error.
+  /**
+   * An array of executors to be run. Each of the executors will run one at a time sequentially. Each executor is a different command that will be run, and each can utilize a different docker image. But each of the executors will see the same mapped inputs and volumes that are declared in the parent CreateTask message.  Execution stops on the first error.
    * @return executors
-  **/
-  @ApiModelProperty(value = "A list of executors to be run, sequentially. Execution stops on the first error.")
+  */
+  @ApiModelProperty(required = true, value = "An array of executors to be run. Each of the executors will run one at a time sequentially. Each executor is a different command that will be run, and each can utilize a different docker image. But each of the executors will see the same mapped inputs and volumes that are declared in the parent CreateTask message.  Execution stops on the first error.")
+  @NotNull
 
   @Valid
 
@@ -264,17 +263,17 @@ public class TesTask   {
 
   public TesTask addVolumesItem(String volumesItem) {
     if (this.volumes == null) {
-      this.volumes = new ArrayList<String>();
+      this.volumes = new ArrayList<>();
     }
     this.volumes.add(volumesItem);
     return this;
   }
 
-   /**
-   * Volumes are directories which may be used to share data between Executors. Volumes are initialized as empty directories by the system when the task starts and are mounted at the same path in each Executor.  For example, given a volume defined at \"/vol/A\", executor 1 may write a file to \"/vol/A/exec1.out.txt\", then executor 2 may read from that file.  (Essentially, this translates to a `docker run -v` flag where the container path is the same for each executor).
+  /**
+   * Volumes are directories which may be used to share data between Executors. Volumes are initialized as empty directories by the system when the task starts and are mounted at the same path in each Executor.  For example, given a volume defined at `/vol/A`, executor 1 may write a file to `/vol/A/exec1.out.txt`, then executor 2 may read from that file.  (Essentially, this translates to a `docker run -v` flag where the container path is the same for each executor).
    * @return volumes
-  **/
-  @ApiModelProperty(value = "Volumes are directories which may be used to share data between Executors. Volumes are initialized as empty directories by the system when the task starts and are mounted at the same path in each Executor.  For example, given a volume defined at \"/vol/A\", executor 1 may write a file to \"/vol/A/exec1.out.txt\", then executor 2 may read from that file.  (Essentially, this translates to a `docker run -v` flag where the container path is the same for each executor).")
+  */
+  @ApiModelProperty(example = "[\"/vol/A/\"]", value = "Volumes are directories which may be used to share data between Executors. Volumes are initialized as empty directories by the system when the task starts and are mounted at the same path in each Executor.  For example, given a volume defined at `/vol/A`, executor 1 may write a file to `/vol/A/exec1.out.txt`, then executor 2 may read from that file.  (Essentially, this translates to a `docker run -v` flag where the container path is the same for each executor).")
 
 
   public List<String> getVolumes() {
@@ -292,17 +291,17 @@ public class TesTask   {
 
   public TesTask putTagsItem(String key, String tagsItem) {
     if (this.tags == null) {
-      this.tags = new HashMap<String, String>();
+      this.tags = new HashMap<>();
     }
     this.tags.put(key, tagsItem);
     return this;
   }
 
-   /**
-   * A key-value map of arbitrary tags.
+  /**
+   * A key-value map of arbitrary tags. These can be used to store meta-data and annotations about a task. Example: ``` {   \"tags\" : {       \"WORKFLOW_ID\" : \"cwl-01234\",       \"PROJECT_GROUP\" : \"alice-lab\"   } } ```
    * @return tags
-  **/
-  @ApiModelProperty(value = "A key-value map of arbitrary tags.")
+  */
+  @ApiModelProperty(example = "{\"WORKFLOW_ID\":\"cwl-01234\",\"PROJECT_GROUP\":\"alice-lab\"}", value = "A key-value map of arbitrary tags. These can be used to store meta-data and annotations about a task. Example: ``` {   \"tags\" : {       \"WORKFLOW_ID\" : \"cwl-01234\",       \"PROJECT_GROUP\" : \"alice-lab\"   } } ```")
 
 
   public Map<String, String> getTags() {
@@ -320,17 +319,17 @@ public class TesTask   {
 
   public TesTask addLogsItem(TesTaskLog logsItem) {
     if (this.logs == null) {
-      this.logs = new ArrayList<TesTaskLog>();
+      this.logs = new ArrayList<>();
     }
     this.logs.add(logsItem);
     return this;
   }
 
-   /**
+  /**
    * Task logging information. Normally, this will contain only one entry, but in the case where a task fails and is retried, an entry will be appended to this list.
    * @return logs
-  **/
-  @ApiModelProperty(value = "Task logging information. Normally, this will contain only one entry, but in the case where a task fails and is retried, an entry will be appended to this list.")
+  */
+  @ApiModelProperty(readOnly = true, value = "Task logging information. Normally, this will contain only one entry, but in the case where a task fails and is retried, an entry will be appended to this list.")
 
   @Valid
 
@@ -347,11 +346,11 @@ public class TesTask   {
     return this;
   }
 
-   /**
+  /**
    * Date + time the task was created, in RFC 3339 format. This is set by the system, not the client.
    * @return creationTime
-  **/
-  @ApiModelProperty(value = "Date + time the task was created, in RFC 3339 format. This is set by the system, not the client.")
+  */
+  @ApiModelProperty(example = "2020-10-02T10:00:00-05:00", readOnly = true, value = "Date + time the task was created, in RFC 3339 format. This is set by the system, not the client.")
 
 
   public String getCreationTime() {
@@ -364,7 +363,7 @@ public class TesTask   {
 
 
   @Override
-  public boolean equals(java.lang.Object o) {
+  public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
@@ -416,7 +415,7 @@ public class TesTask   {
    * Convert the given object to string with each line indented by 4 spaces
    * (except the first line).
    */
-  private String toIndentedString(java.lang.Object o) {
+  private String toIndentedString(Object o) {
     if (o == null) {
       return "null";
     }

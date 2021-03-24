@@ -18,25 +18,28 @@ import javax.validation.constraints.*;
  * TaskLog describes logging information related to a Task.
  */
 @ApiModel(description = "TaskLog describes logging information related to a Task.")
-@javax.annotation.Generated(value = "io.swagger.codegen.languages.SpringCodegen", date = "2017-11-16T12:59:29.706Z")
-
+@javax.annotation.Generated(value = "org.openapitools.codegen.languages.SpringCodegen", date = "2021-03-24T17:10:08.716Z[Europe/London]")
 public class TesTaskLog   {
   @JsonProperty("logs")
-  private List<TesExecutorLog> logs = null;
+  @Valid
+  private List<TesExecutorLog> logs = new ArrayList<>();
 
   @JsonProperty("metadata")
+  @Valid
   private Map<String, String> metadata = null;
 
   @JsonProperty("start_time")
-  private String startTime = null;
+  private String startTime;
 
   @JsonProperty("end_time")
-  private String endTime = null;
+  private String endTime;
 
   @JsonProperty("outputs")
-  private List<TesOutputFileLog> outputs = null;
+  @Valid
+  private List<TesOutputFileLog> outputs = new ArrayList<>();
 
   @JsonProperty("system_logs")
+  @Valid
   private List<String> systemLogs = null;
 
   public TesTaskLog logs(List<TesExecutorLog> logs) {
@@ -46,17 +49,18 @@ public class TesTaskLog   {
 
   public TesTaskLog addLogsItem(TesExecutorLog logsItem) {
     if (this.logs == null) {
-      this.logs = new ArrayList<TesExecutorLog>();
+      this.logs = new ArrayList<>();
     }
     this.logs.add(logsItem);
     return this;
   }
 
-   /**
+  /**
    * Logs for each executor
    * @return logs
-  **/
-  @ApiModelProperty(value = "Logs for each executor")
+  */
+  @ApiModelProperty(required = true, value = "Logs for each executor")
+  @NotNull
 
   @Valid
 
@@ -75,17 +79,17 @@ public class TesTaskLog   {
 
   public TesTaskLog putMetadataItem(String key, String metadataItem) {
     if (this.metadata == null) {
-      this.metadata = new HashMap<String, String>();
+      this.metadata = new HashMap<>();
     }
     this.metadata.put(key, metadataItem);
     return this;
   }
 
-   /**
+  /**
    * Arbitrary logging metadata included by the implementation.
    * @return metadata
-  **/
-  @ApiModelProperty(value = "Arbitrary logging metadata included by the implementation.")
+  */
+  @ApiModelProperty(example = "{\"host\":\"worker-001\",\"slurmm_id\":123456}", value = "Arbitrary logging metadata included by the implementation.")
 
 
   public Map<String, String> getMetadata() {
@@ -101,11 +105,11 @@ public class TesTaskLog   {
     return this;
   }
 
-   /**
+  /**
    * When the task started, in RFC 3339 format.
    * @return startTime
-  **/
-  @ApiModelProperty(value = "When the task started, in RFC 3339 format.")
+  */
+  @ApiModelProperty(example = "2020-10-02T10:00:00-05:00", value = "When the task started, in RFC 3339 format.")
 
 
   public String getStartTime() {
@@ -121,11 +125,11 @@ public class TesTaskLog   {
     return this;
   }
 
-   /**
+  /**
    * When the task ended, in RFC 3339 format.
    * @return endTime
-  **/
-  @ApiModelProperty(value = "When the task ended, in RFC 3339 format.")
+  */
+  @ApiModelProperty(example = "2020-10-02T11:00:00-05:00", value = "When the task ended, in RFC 3339 format.")
 
 
   public String getEndTime() {
@@ -143,17 +147,18 @@ public class TesTaskLog   {
 
   public TesTaskLog addOutputsItem(TesOutputFileLog outputsItem) {
     if (this.outputs == null) {
-      this.outputs = new ArrayList<TesOutputFileLog>();
+      this.outputs = new ArrayList<>();
     }
     this.outputs.add(outputsItem);
     return this;
   }
 
-   /**
+  /**
    * Information about all output files. Directory outputs are flattened into separate items.
    * @return outputs
-  **/
-  @ApiModelProperty(value = "Information about all output files. Directory outputs are flattened into separate items.")
+  */
+  @ApiModelProperty(required = true, value = "Information about all output files. Directory outputs are flattened into separate items.")
+  @NotNull
 
   @Valid
 
@@ -172,16 +177,16 @@ public class TesTaskLog   {
 
   public TesTaskLog addSystemLogsItem(String systemLogsItem) {
     if (this.systemLogs == null) {
-      this.systemLogs = new ArrayList<String>();
+      this.systemLogs = new ArrayList<>();
     }
     this.systemLogs.add(systemLogsItem);
     return this;
   }
 
-   /**
+  /**
    * System logs are any logs the system decides are relevant, which are not tied directly to an Executor process. Content is implementation specific: format, size, etc.  System logs may be collected here to provide convenient access.  For example, the system may include the name of the host where the task is executing, an error message that caused a SYSTEM_ERROR state (e.g. disk is full), etc.  System logs are only included in the FULL task view.
    * @return systemLogs
-  **/
+  */
   @ApiModelProperty(value = "System logs are any logs the system decides are relevant, which are not tied directly to an Executor process. Content is implementation specific: format, size, etc.  System logs may be collected here to provide convenient access.  For example, the system may include the name of the host where the task is executing, an error message that caused a SYSTEM_ERROR state (e.g. disk is full), etc.  System logs are only included in the FULL task view.")
 
 
@@ -195,7 +200,7 @@ public class TesTaskLog   {
 
 
   @Override
-  public boolean equals(java.lang.Object o) {
+  public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
@@ -235,7 +240,7 @@ public class TesTaskLog   {
    * Convert the given object to string with each line indented by 4 spaces
    * (except the first line).
    */
-  private String toIndentedString(java.lang.Object o) {
+  private String toIndentedString(Object o) {
     if (o == null) {
       return "null";
     }

@@ -7,7 +7,6 @@ package uk.ac.ebi.tsc.tesk.api;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.kubernetes.client.ApiException;
-import uk.ac.ebi.tsc.tesk.model.TesCancelTaskResponse;
 import uk.ac.ebi.tsc.tesk.model.TesCreateTaskResponse;
 import uk.ac.ebi.tsc.tesk.model.TesListTasksResponse;
 import uk.ac.ebi.tsc.tesk.model.TesServiceInfo;
@@ -32,14 +31,14 @@ import javax.validation.Valid;
 @Api(value = "v1", description = "the v1 API")
 public interface V1Api {
 
-    @ApiOperation(value = "Cancel a task.", notes = "", response = TesCancelTaskResponse.class, tags={ "TaskService", })
+    @ApiOperation(value = "Cancel a task.", notes = "", response = Object.class, tags={ "TaskService", })
     @ApiResponses(value = { 
-        @ApiResponse(code = 200, message = "", response = TesCancelTaskResponse.class) })
+        @ApiResponse(code = 200, message = "", response = Object.class) })
     
     @RequestMapping(value = "/v1/tasks/{id}:cancel",
         produces = { "application/json" },
         method = RequestMethod.POST)
-    ResponseEntity<TesCancelTaskResponse> cancelTask(@ApiParam(value = "",required=true ) @PathVariable("id") String id);
+    ResponseEntity<Object> cancelTask(@ApiParam(value = "",required=true ) @PathVariable("id") String id);
 
 
     @ApiOperation(value = "Create a new task.", notes = "", response = TesCreateTaskResponse.class, tags={ "TaskService", })

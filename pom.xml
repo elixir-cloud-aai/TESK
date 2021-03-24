@@ -110,9 +110,9 @@
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
             <plugin>
-                <groupId>io.swagger</groupId>
-                <artifactId>swagger-codegen-maven-plugin</artifactId>
-                <version>2.2.3</version>
+                <groupId>org.openapitools</groupId>
+                <artifactId>openapi-generator-maven-plugin</artifactId>
+                <version>5.1.0</version>
                 <executions>
                     <execution>
                         <id>generate</id>
@@ -120,18 +120,20 @@
                             <goal>generate</goal>
                         </goals>
                         <configuration>
-                            <inputSpec>src/main/resources/task_execution.swagger.json</inputSpec>
+                            <inputSpec>tes/openapi/task_execution_service.openapi.yaml</inputSpec>
                             <modelPackage>uk.ac.ebi.tsc.tesk.model</modelPackage>
                             <apiPackage>uk.ac.ebi.tsc.tesk.api</apiPackage>
-                            <language>spring</language>
+                            <generatorName>spring</generatorName>
                             <output>${project.build.sourceDirectory}</output>
                             <addCompileSourceRoot>false</addCompileSourceRoot>
                             <generateApiDocumentation>false</generateApiDocumentation>
                             <generateModelDocumentation>false</generateModelDocumentation>
-                            <generateSupportingFiles>false</generateSupportingFiles>
+                            <generateSupportingFiles>true</generateSupportingFiles>
+                            <supportingFilesToGenerate>ApiUtil.java</supportingFilesToGenerate>
                             <ignoreFileOverride>${project.basedir}/.swagger-codegen-ignore</ignoreFileOverride>
                             <configOptions>
                                 <sourceFolder>./</sourceFolder>
+                                <openApiNullable>false</openApiNullable>
                             </configOptions>
                             <skip>${skip.generate.swagger.sources}</skip>
                         </configuration>

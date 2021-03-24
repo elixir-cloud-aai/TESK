@@ -14,27 +14,22 @@ import javax.validation.constraints.*;
  * Resources describes the resources requested by a task.
  */
 @ApiModel(description = "Resources describes the resources requested by a task.")
-@javax.annotation.Generated(value = "io.swagger.codegen.languages.SpringCodegen", date = "2017-11-16T12:59:29.706Z")
-
+@javax.annotation.Generated(value = "org.openapitools.codegen.languages.SpringCodegen", date = "2021-03-24T17:10:08.716Z[Europe/London]")
 public class TesResources   {
-  @ApiModelProperty(example = "1")
   @JsonProperty("cpu_cores")
-  private Long cpuCores = null;
+  private Long cpuCores;
 
-  @ApiModelProperty(hidden = true)
   @JsonProperty("preemptible")
-  private Boolean preemptible = null;
+  private Boolean preemptible;
 
-  @ApiModelProperty(example = "2")
   @JsonProperty("ram_gb")
-  private Double ramGb = null;
+  private Double ramGb;
 
-  @ApiModelProperty(example = "0.1")
   @JsonProperty("disk_gb")
-  private Double diskGb = null;
+  private Double diskGb;
 
-  @ApiModelProperty(hidden = true)
   @JsonProperty("zones")
+  @Valid
   private List<String> zones = null;
 
   public TesResources cpuCores(Long cpuCores) {
@@ -42,11 +37,11 @@ public class TesResources   {
     return this;
   }
 
-   /**
+  /**
    * Requested number of CPUs
    * @return cpuCores
-  **/
-  @ApiModelProperty(value = "Requested number of CPUs")
+  */
+  @ApiModelProperty(example = "4", value = "Requested number of CPUs")
 
 
   public Long getCpuCores() {
@@ -62,11 +57,11 @@ public class TesResources   {
     return this;
   }
 
-   /**
-   * Is the task allowed to run on preemptible compute instances (e.g. AWS Spot)?
+  /**
+   * Define if the task is allowed to run on preemptible compute instances, for example, AWS Spot. This option may have no effect when utilized on some backends that don't have the concept of preemptible jobs.
    * @return preemptible
-  **/
-  @ApiModelProperty(value = "Is the task allowed to run on preemptible compute instances (e.g. AWS Spot)?")
+  */
+  @ApiModelProperty(example = "false", value = "Define if the task is allowed to run on preemptible compute instances, for example, AWS Spot. This option may have no effect when utilized on some backends that don't have the concept of preemptible jobs.")
 
 
   public Boolean getPreemptible() {
@@ -82,11 +77,11 @@ public class TesResources   {
     return this;
   }
 
-   /**
+  /**
    * Requested RAM required in gigabytes (GB)
    * @return ramGb
-  **/
-  @ApiModelProperty(value = "Requested RAM required in gigabytes (GB)")
+  */
+  @ApiModelProperty(example = "8", value = "Requested RAM required in gigabytes (GB)")
 
 
   public Double getRamGb() {
@@ -102,11 +97,11 @@ public class TesResources   {
     return this;
   }
 
-   /**
+  /**
    * Requested disk size in gigabytes (GB)
    * @return diskGb
-  **/
-  @ApiModelProperty(value = "Requested disk size in gigabytes (GB)")
+  */
+  @ApiModelProperty(example = "40", value = "Requested disk size in gigabytes (GB)")
 
 
   public Double getDiskGb() {
@@ -124,17 +119,17 @@ public class TesResources   {
 
   public TesResources addZonesItem(String zonesItem) {
     if (this.zones == null) {
-      this.zones = new ArrayList<String>();
+      this.zones = new ArrayList<>();
     }
     this.zones.add(zonesItem);
     return this;
   }
 
-   /**
-   * Request that the task be run in these compute zones.
+  /**
+   * Request that the task be run in these compute zones. How this string is utilized will be dependent on the backend system. For example, a system based on a cluster queueing system may use this string to define priorty queue to which the job is assigned.
    * @return zones
-  **/
-  @ApiModelProperty(value = "Request that the task be run in these compute zones.")
+  */
+  @ApiModelProperty(example = "us-west-1", value = "Request that the task be run in these compute zones. How this string is utilized will be dependent on the backend system. For example, a system based on a cluster queueing system may use this string to define priorty queue to which the job is assigned.")
 
 
   public List<String> getZones() {
@@ -147,7 +142,7 @@ public class TesResources   {
 
 
   @Override
-  public boolean equals(java.lang.Object o) {
+  public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
@@ -185,7 +180,7 @@ public class TesResources   {
    * Convert the given object to string with each line indented by 4 spaces
    * (except the first line).
    */
-  private String toIndentedString(java.lang.Object o) {
+  private String toIndentedString(Object o) {
     if (o == null) {
       return "null";
     }

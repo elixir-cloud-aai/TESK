@@ -29,11 +29,11 @@ public class V1ApiController implements V1Api {
     private final TesService tesService;
     private final ServiceInfoService serviceInfo;
 
-    public ResponseEntity<TesCancelTaskResponse> cancelTask(@ApiParam(value = "", required = true) @PathVariable("id") String id) {
+    public ResponseEntity<Object> cancelTask(@ApiParam(value = "", required = true) @PathVariable("id") String id) {
         //getTask - for authZ purposes (cancellation only possible for the same tasks, a user can actually see
         this.tesService.getTask(id, TaskView.MINIMAL, getUser());
         this.tesService.cancelTask(id);
-        return new ResponseEntity<TesCancelTaskResponse>(HttpStatus.OK);
+        return new ResponseEntity<Object>(HttpStatus.OK);
     }
 
     public ResponseEntity<TesCreateTaskResponse> createTask(@ApiParam(value = "", required = true) @Valid @RequestBody TesTask body) {

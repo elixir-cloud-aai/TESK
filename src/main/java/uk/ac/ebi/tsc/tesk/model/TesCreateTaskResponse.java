@@ -9,25 +9,25 @@ import javax.validation.Valid;
 import javax.validation.constraints.*;
 
 /**
- * CreateTaskResponse describes a response from the CreateTask endpoint.
+ * CreateTaskResponse describes a response from the CreateTask endpoint. It will include the task ID that can be used to look up the status of the job.
  */
-@ApiModel(description = "CreateTaskResponse describes a response from the CreateTask endpoint.")
-@javax.annotation.Generated(value = "io.swagger.codegen.languages.SpringCodegen", date = "2017-11-07T14:45:12.993Z")
-
+@ApiModel(description = "CreateTaskResponse describes a response from the CreateTask endpoint. It will include the task ID that can be used to look up the status of the job.")
+@javax.annotation.Generated(value = "org.openapitools.codegen.languages.SpringCodegen", date = "2021-03-24T17:10:08.716Z[Europe/London]")
 public class TesCreateTaskResponse   {
   @JsonProperty("id")
-  private String id = null;
+  private String id;
 
   public TesCreateTaskResponse id(String id) {
     this.id = id;
     return this;
   }
 
-   /**
+  /**
    * Task identifier assigned by the server.
    * @return id
-  **/
-  @ApiModelProperty(value = "Task identifier assigned by the server.")
+  */
+  @ApiModelProperty(required = true, value = "Task identifier assigned by the server.")
+  @NotNull
 
 
   public String getId() {
@@ -40,7 +40,7 @@ public class TesCreateTaskResponse   {
 
 
   @Override
-  public boolean equals(java.lang.Object o) {
+  public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
@@ -70,7 +70,7 @@ public class TesCreateTaskResponse   {
    * Convert the given object to string with each line indented by 4 spaces
    * (except the first line).
    */
-  private String toIndentedString(java.lang.Object o) {
+  private String toIndentedString(Object o) {
     if (o == null) {
       return "null";
     }

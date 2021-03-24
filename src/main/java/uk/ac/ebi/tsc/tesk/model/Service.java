@@ -7,20 +7,17 @@ import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import java.net.URI;
 import java.time.OffsetDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import uk.ac.ebi.tsc.tesk.model.Service;
 import uk.ac.ebi.tsc.tesk.model.ServiceOrganization;
-import uk.ac.ebi.tsc.tesk.model.TesServiceInfoAllOf;
-import uk.ac.ebi.tsc.tesk.model.TesServiceType;
+import uk.ac.ebi.tsc.tesk.model.ServiceType;
 import javax.validation.Valid;
 import javax.validation.constraints.*;
 
 /**
- * TesServiceInfo
+ * GA4GH service
  */
+@ApiModel(description = "GA4GH service")
 @javax.annotation.Generated(value = "org.openapitools.codegen.languages.SpringCodegen", date = "2021-03-24T17:10:08.716Z[Europe/London]")
-public class TesServiceInfo   {
+public class Service   {
   @JsonProperty("id")
   private String id;
 
@@ -28,7 +25,7 @@ public class TesServiceInfo   {
   private String name;
 
   @JsonProperty("type")
-  private TesServiceType type = null;
+  private ServiceType type;
 
   @JsonProperty("description")
   private String description;
@@ -56,11 +53,7 @@ public class TesServiceInfo   {
   @JsonProperty("version")
   private String version;
 
-  @JsonProperty("storage")
-  @Valid
-  private List<String> storage = null;
-
-  public TesServiceInfo id(String id) {
+  public Service id(String id) {
     this.id = id;
     return this;
   }
@@ -81,7 +74,7 @@ public class TesServiceInfo   {
     this.id = id;
   }
 
-  public TesServiceInfo name(String name) {
+  public Service name(String name) {
     this.name = name;
     return this;
   }
@@ -102,7 +95,7 @@ public class TesServiceInfo   {
     this.name = name;
   }
 
-  public TesServiceInfo type(TesServiceType type) {
+  public Service type(ServiceType type) {
     this.type = type;
     return this;
   }
@@ -116,15 +109,15 @@ public class TesServiceInfo   {
 
   @Valid
 
-  public TesServiceType getType() {
+  public ServiceType getType() {
     return type;
   }
 
-  public void setType(TesServiceType type) {
+  public void setType(ServiceType type) {
     this.type = type;
   }
 
-  public TesServiceInfo description(String description) {
+  public Service description(String description) {
     this.description = description;
     return this;
   }
@@ -144,7 +137,7 @@ public class TesServiceInfo   {
     this.description = description;
   }
 
-  public TesServiceInfo organization(ServiceOrganization organization) {
+  public Service organization(ServiceOrganization organization) {
     this.organization = organization;
     return this;
   }
@@ -166,7 +159,7 @@ public class TesServiceInfo   {
     this.organization = organization;
   }
 
-  public TesServiceInfo contactUrl(URI contactUrl) {
+  public Service contactUrl(URI contactUrl) {
     this.contactUrl = contactUrl;
     return this;
   }
@@ -187,7 +180,7 @@ public class TesServiceInfo   {
     this.contactUrl = contactUrl;
   }
 
-  public TesServiceInfo documentationUrl(URI documentationUrl) {
+  public Service documentationUrl(URI documentationUrl) {
     this.documentationUrl = documentationUrl;
     return this;
   }
@@ -208,7 +201,7 @@ public class TesServiceInfo   {
     this.documentationUrl = documentationUrl;
   }
 
-  public TesServiceInfo createdAt(OffsetDateTime createdAt) {
+  public Service createdAt(OffsetDateTime createdAt) {
     this.createdAt = createdAt;
     return this;
   }
@@ -229,7 +222,7 @@ public class TesServiceInfo   {
     this.createdAt = createdAt;
   }
 
-  public TesServiceInfo updatedAt(OffsetDateTime updatedAt) {
+  public Service updatedAt(OffsetDateTime updatedAt) {
     this.updatedAt = updatedAt;
     return this;
   }
@@ -250,7 +243,7 @@ public class TesServiceInfo   {
     this.updatedAt = updatedAt;
   }
 
-  public TesServiceInfo environment(String environment) {
+  public Service environment(String environment) {
     this.environment = environment;
     return this;
   }
@@ -270,7 +263,7 @@ public class TesServiceInfo   {
     this.environment = environment;
   }
 
-  public TesServiceInfo version(String version) {
+  public Service version(String version) {
     this.version = version;
     return this;
   }
@@ -291,34 +284,6 @@ public class TesServiceInfo   {
     this.version = version;
   }
 
-  public TesServiceInfo storage(List<String> storage) {
-    this.storage = storage;
-    return this;
-  }
-
-  public TesServiceInfo addStorageItem(String storageItem) {
-    if (this.storage == null) {
-      this.storage = new ArrayList<>();
-    }
-    this.storage.add(storageItem);
-    return this;
-  }
-
-  /**
-   * Lists some, but not necessarily all, storage locations supported by the service.
-   * @return storage
-  */
-  @ApiModelProperty(example = "[\"file:///path/to/local/funnel-storage\",\"s3://ohsu-compbio-funnel/storage\"]", value = "Lists some, but not necessarily all, storage locations supported by the service.")
-
-
-  public List<String> getStorage() {
-    return storage;
-  }
-
-  public void setStorage(List<String> storage) {
-    this.storage = storage;
-  }
-
 
   @Override
   public boolean equals(Object o) {
@@ -328,30 +293,29 @@ public class TesServiceInfo   {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    TesServiceInfo tesServiceInfo = (TesServiceInfo) o;
-    return Objects.equals(this.id, tesServiceInfo.id) &&
-        Objects.equals(this.name, tesServiceInfo.name) &&
-        Objects.equals(this.type, tesServiceInfo.type) &&
-        Objects.equals(this.description, tesServiceInfo.description) &&
-        Objects.equals(this.organization, tesServiceInfo.organization) &&
-        Objects.equals(this.contactUrl, tesServiceInfo.contactUrl) &&
-        Objects.equals(this.documentationUrl, tesServiceInfo.documentationUrl) &&
-        Objects.equals(this.createdAt, tesServiceInfo.createdAt) &&
-        Objects.equals(this.updatedAt, tesServiceInfo.updatedAt) &&
-        Objects.equals(this.environment, tesServiceInfo.environment) &&
-        Objects.equals(this.version, tesServiceInfo.version) &&
-        Objects.equals(this.storage, tesServiceInfo.storage);
+    Service service = (Service) o;
+    return Objects.equals(this.id, service.id) &&
+        Objects.equals(this.name, service.name) &&
+        Objects.equals(this.type, service.type) &&
+        Objects.equals(this.description, service.description) &&
+        Objects.equals(this.organization, service.organization) &&
+        Objects.equals(this.contactUrl, service.contactUrl) &&
+        Objects.equals(this.documentationUrl, service.documentationUrl) &&
+        Objects.equals(this.createdAt, service.createdAt) &&
+        Objects.equals(this.updatedAt, service.updatedAt) &&
+        Objects.equals(this.environment, service.environment) &&
+        Objects.equals(this.version, service.version);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(id, name, type, description, organization, contactUrl, documentationUrl, createdAt, updatedAt, environment, version, storage);
+    return Objects.hash(id, name, type, description, organization, contactUrl, documentationUrl, createdAt, updatedAt, environment, version);
   }
 
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
-    sb.append("class TesServiceInfo {\n");
+    sb.append("class Service {\n");
     
     sb.append("    id: ").append(toIndentedString(id)).append("\n");
     sb.append("    name: ").append(toIndentedString(name)).append("\n");
@@ -364,7 +328,6 @@ public class TesServiceInfo   {
     sb.append("    updatedAt: ").append(toIndentedString(updatedAt)).append("\n");
     sb.append("    environment: ").append(toIndentedString(environment)).append("\n");
     sb.append("    version: ").append(toIndentedString(version)).append("\n");
-    sb.append("    storage: ").append(toIndentedString(storage)).append("\n");
     sb.append("}");
     return sb.toString();
   }

@@ -16,6 +16,6 @@ public class ServiceInfoService {
     private final ServiceInfoProperties properties;
 
     public TesServiceInfo serviceInfo() {
-        return new TesServiceInfo().name(properties.getName()).doc(properties.getDocumentation());
+        return new TesServiceInfo().name(properties.getName());
     }
 }
