@@ -9,6 +9,9 @@ import uk.ac.ebi.tsc.tesk.model.TesFileType;
 import javax.validation.Valid;
 import javax.validation.constraints.*;
 
+import static uk.ac.ebi.tsc.tesk.util.constant.Constants.ABSOLUTE_PATH_MESSAGE;
+import static uk.ac.ebi.tsc.tesk.util.constant.Constants.ABSOLUTE_PATH_REGEXP;
+
 /**
  * Output describes Task output files.
  */
@@ -81,7 +84,7 @@ public class TesOutput   {
   */
   @ApiModelProperty(required = true, value = "URL for the file to be copied by the TES server after the task is complete. For Example:  - `s3://my-object-store/file1`  - `gs://my-bucket/file2`  - `file:///path/to/my/file`")
   @NotNull
-
+  @NotBlank
 
   public String getUrl() {
     return url;
@@ -102,8 +105,8 @@ public class TesOutput   {
   */
   @ApiModelProperty(required = true, value = "Path of the file inside the container. Must be an absolute path.")
   @NotNull
-
-
+  @Pattern(regexp = ABSOLUTE_PATH_REGEXP, message = ABSOLUTE_PATH_MESSAGE)
+  @NotBlank
   public String getPath() {
     return path;
   }

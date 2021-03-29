@@ -25,6 +25,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static uk.ac.ebi.tsc.tesk.TestUtils.getFileContentFromResources;
+import static uk.ac.ebi.tsc.tesk.UrlConstants.SERVICE_INFO_URL;
+import static uk.ac.ebi.tsc.tesk.UrlConstants.TASK_URL;
+
 
 /**
  * @author Ania Niewielska <aniewielska@ebi.ac.uk>
@@ -67,7 +70,7 @@ public class NoAuthIT {
                         .willReturn(okJson("{\"metadata\":{\"name\":\"task-fe99716a\"}}")));
 
         String path = "fromTesToK8s_minimal/task.json";
-        this.mvc.perform(post("/v1/tasks")
+        this.mvc.perform(post(TASK_URL)
                 .content(getFileContentFromResources(path))
                 .contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaType.APPLICATION_JSON)).andExpect(status().isOk());
@@ -78,11 +81,11 @@ public class NoAuthIT {
 
         MockUtil.mockGetTaskKubernetesResponses(this.mockKubernetes);
 
-        this.mvc.perform(get("/v1/tasks/{id}", "task-123"))
+        this.mvc.perform(get(TASK_URL + "/{id}", "task-123"))
                 .andExpect(status().isOk());
-        this.mvc.perform(get("/v1/tasks/{id}?view=BASIC", "task-123"))
+        this.mvc.perform(get(TASK_URL + "/{id}?view=BASIC", "task-123"))
                 .andExpect(status().isOk());
-        this.mvc.perform(get("/v1/tasks/{id}?view=FULL", "task-123"))
+        this.mvc.perform(get(TASK_URL + "/{id}?view=FULL", "task-123"))
                 .andExpect(status().isOk());
     }
 
@@ -91,7 +94,7 @@ public class NoAuthIT {
 
         MockUtil.mockGetTaskKubernetesResponses(this.mockKubernetes);
 
-        this.mvc.perform(post("/v1/tasks/{id}:cancel", "task-123")
+        this.mvc.perform(post(TASK_URL + "/{id}:cancel", "task-123")
                 .contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest())
@@ -107,23 +110,23 @@ public class NoAuthIT {
                         .willReturn(aResponse().withBodyFile("list/taskmasters.json")));
         MockUtil.mockListTaskKubernetesResponses(this.mockKubernetes);
 
-        this.mvc.perform(get("/v1/tasks")
+        this.mvc.perform(get(TASK_URL)
                 .header("Authorization", "Bearer BAR"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.tasks.length()").value(4));
-        this.mvc.perform(get("/v1/tasks?view=BASIC")
+        this.mvc.perform(get(TASK_URL + "?view=BASIC")
                 .header("Authorization", "Bearer BAR"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.tasks.length()").value(4));
-        this.mvc.perform(get("/v1/tasks?view=FULL")
+        this.mvc.perform(get(TASK_URL + "?view=FULL")
                 .header("Authorization", "Bearer BAR"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.tasks.length()").value(4));
     }
     @Test
     public void serviceInfo() throws Exception {
-        this.mvc.perform(get("/v1/tasks/service-info"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.name").value("TESK in EBI"))
-                .andExpect(jsonPath("$.doc").value("https://github.com/EMBL-EBI-TSI/TESK"));
+        this.mvc.perform(get(SERVICE_INFO_URL))
+                .andExpect(status().isOk());
+                //.andExpect(jsonPath("$.name").value("TESK in EBI"))
+                //.andExpect(jsonPath("$.doc").value("https://github.com/EMBL-EBI-TSI/TESK"));
     }
 
 

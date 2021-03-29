@@ -54,7 +54,10 @@ public enum TesState {
         return b;
       }
     }
-    throw new IllegalArgumentException("Unexpected value '" + value + "'");
+    //throw new IllegalArgumentException("Unexpected value '" + value + "'");
+    //Backwards compatibility: need to return null for illegal state
+    return null;
+
   }
 }
 

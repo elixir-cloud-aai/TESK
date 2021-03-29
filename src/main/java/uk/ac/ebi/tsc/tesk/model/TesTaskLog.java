@@ -36,7 +36,8 @@ public class TesTaskLog   {
 
   @JsonProperty("outputs")
   @Valid
-  private List<TesOutputFileLog> outputs = new ArrayList<>();
+  //non-standard. Outputs currently not supported in TESK.
+  private List<TesOutputFileLog> outputs = null;
 
   @JsonProperty("system_logs")
   @Valid

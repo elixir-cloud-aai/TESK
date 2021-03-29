@@ -11,7 +11,8 @@
   "outputs": [
     {
       "path": "/",
-      "url": "anything"
+      "url": "anything",
+      "type" : ""
     }
   ]
 }

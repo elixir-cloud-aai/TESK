@@ -24,7 +24,7 @@ import javax.validation.Valid;
 @Controller
 @RequiredArgsConstructor
 @RequestMapping("${openapi.taskExecutionService.base-path:/ga4gh/tes/v1}")
-public class V1ApiController implements TasksApi {
+public class TasksApiController implements TasksApi {
 
     private final TesService tesService;
 

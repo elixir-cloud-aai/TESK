@@ -32,9 +32,11 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static uk.ac.ebi.tsc.tesk.TestUtils.getFileContentFromResources;
+import static uk.ac.ebi.tsc.tesk.UrlConstants.TASK_URL;
+
 @RunWith(SpringRunner.class)
-@WebMvcTest(V1ApiController.class)
-public class V1ApiControllerTest {
+@WebMvcTest(TasksApiController.class)
+public class TasksApiControllerTest {
 
     @TestConfiguration
     @EnableResourceServer
@@ -79,7 +81,7 @@ public class V1ApiControllerTest {
     public void createTask_valid() throws Exception {
         String[] paths = new String[]{"fromTesToK8s/task.json", "fromTesToK8s_minimal/task.json"};
         for (String path : paths) {
-            this.mvc.perform(post("/v1/tasks")
+            this.mvc.perform(post(TASK_URL)
                     .content(getFileContentFromResources(path))
                     .header("Authorization", "Bearer BAR")
                     .contentType(MediaType.APPLICATION_JSON)
@@ -97,7 +99,7 @@ public class V1ApiControllerTest {
                 new String[]{"invalid_stdin.json", "stdin"},
         };
         for (String[] file : files) {
-            this.mvc.perform(post("/v1/tasks")
+            this.mvc.perform(post(TASK_URL)
                     .header("Authorization", "Bearer BAR")
                     .content(getFileContentFromResources("invalid_tasks/executors/" + file[0]))
                     .contentType(MediaType.APPLICATION_JSON)
@@ -116,7 +118,7 @@ public class V1ApiControllerTest {
                 new String[]{"wrong_type.json", "inputs[0].type"}
         };
         for (String[] file : files) {
-            this.mvc.perform(post("/v1/tasks")
+            this.mvc.perform(post(TASK_URL)
                     .header("Authorization", "Bearer BAR")
                     .content(getFileContentFromResources("invalid_tasks/inputs/" + file[0]))
                     .contentType(MediaType.APPLICATION_JSON)
@@ -132,10 +134,10 @@ public class V1ApiControllerTest {
         String[][] files = new String[][]{
                 new String[]{"no_path.json", "outputs[0].path"},
                 new String[]{"no_url.json", "outputs[0].url"},
-                new String[]{"no_type.json", "outputs[0].type"}
+                new String[]{"empty_type.json", "outputs[0].type"}
         };
         for (String[] file : files) {
-            this.mvc.perform(post("/v1/tasks")
+            this.mvc.perform(post(TASK_URL)
                     .header("Authorization", "Bearer BAR")
                     .content(getFileContentFromResources("invalid_tasks/outputs/" + file[0]))
                     .contentType(MediaType.APPLICATION_JSON)
@@ -152,7 +154,7 @@ public class V1ApiControllerTest {
                 new String[]{"wrong_volumes.json", "volumes[1]"}
         };
         for (String[] file : files) {
-            this.mvc.perform(post("/v1/tasks")
+            this.mvc.perform(post(TASK_URL)
                     .header("Authorization", "Bearer BAR")
                     .content(getFileContentFromResources("invalid_tasks/" + file[0]))
                     .contentType(MediaType.APPLICATION_JSON)
@@ -169,7 +171,7 @@ public class V1ApiControllerTest {
                 new String[]{"unrecognized_field.json", "Unrecognized field \"unknown\""}
         };
         for (String[] file : files) {
-            this.mvc.perform(post("/v1/tasks")
+            this.mvc.perform(post(TASK_URL)
                     .header("Authorization", "Bearer BAR")
                     .content(getFileContentFromResources("invalid_tasks/" + file[0]))
                     .contentType(MediaType.APPLICATION_JSON)
