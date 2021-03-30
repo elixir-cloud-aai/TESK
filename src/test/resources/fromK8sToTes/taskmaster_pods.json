@@ -4,7 +4,8 @@
       "metadata": {
         "labels": {
           "controller-uid": "34a36c28-64b4-11e8-a06f-fa163ecf0042"
-        }
+        },
+        "name": "task-9ef9856b-123455"
       },
       "status": {
         "phase": "Succeeded_but_not_checked"

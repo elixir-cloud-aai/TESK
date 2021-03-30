@@ -3,6 +3,8 @@ package uk.ac.ebi.tsc.tesk.util.component;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
 import io.kubernetes.client.models.V1Job;
+import io.kubernetes.client.models.V1JobStatus;
+import io.kubernetes.client.models.V1ObjectMeta;
 import io.kubernetes.client.models.V1PodList;
 import org.junit.Before;
 import org.junit.Test;
@@ -32,6 +34,7 @@ import uk.ac.ebi.tsc.tesk.util.constant.Constants;
 import uk.ac.ebi.tsc.tesk.util.data.TaskBuilder;
 
 import java.io.*;
+import java.util.HashMap;
 import java.util.function.Supplier;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -191,12 +194,19 @@ public class TesKubernetesConverterTest {
         assertEquals(expectedJob, outputJob);
     }
 
-    private TaskBuilder prepareBaseTaskBuider() throws IOException {
+    private TaskBuilder prepareBaseTaskBuider(boolean withExecutor) throws IOException {
         TaskBuilder taskBuilder = TaskBuilder.newSingleTask();
         taskBuilder.addJob(this.gson.fromJson(TestUtils.getFileContentFromResources("fromK8sToTes/taskmaster.json"), V1Job.class));
-        taskBuilder.addJob(this.gson.fromJson(TestUtils.getFileContentFromResources("fromK8sToTes/executor.json"), V1Job.class));
-        taskBuilder.addPodList(this.gson.fromJson(TestUtils.getFileContentFromResources("fromK8sToTes/executor_pods.json"), V1PodList.class).getItems());
+        taskBuilder.addPodList(this.gson.fromJson(TestUtils.getFileContentFromResources("fromK8sToTes/taskmaster_pods.json"), V1PodList.class).getItems());
+        if (withExecutor) {
+            taskBuilder.addJob(this.gson.fromJson(TestUtils.getFileContentFromResources("fromK8sToTes/executor.json"), V1Job.class));
+            taskBuilder.addPodList(this.gson.fromJson(TestUtils.getFileContentFromResources("fromK8sToTes/executor_pods.json"), V1PodList.class).getItems());
+        }
         return taskBuilder;
+    }
+
+    private TaskBuilder prepareBaseTaskBuider() throws IOException {
+        return prepareBaseTaskBuider(true);
     }
 
     private TesTask prepareBaseExpectedTask() throws IOException {
@@ -219,6 +229,127 @@ public class TesKubernetesConverterTest {
         expectedTask.setState(TesState.CANCELED);
         TesTask outputTask = this.converter.fromK8sJobsToTesTaskBasic(taskBuilder.getTask(), true);
         assertThat(outputTask, is(expectedTask));
+    }
+
+    @Test
+    public void test_status_complete() throws IOException {
+        //task with successful taskmaster and executor
+        TaskBuilder taskBuilder = this.prepareBaseTaskBuider();
+        taskBuilder.getTask().getTaskmaster().getJob().getStatus().succeeded(1);
+        TesState state = this.converter.extractStateFromK8sJobs(taskBuilder.getTask());
+        assertThat(state, is(TesState.COMPLETE));
+    }
+
+    @Test
+    public void cancelled() throws IOException {
+        TaskBuilder taskBuilder = this.prepareBaseTaskBuider();
+        taskBuilder.getTask().getTaskmaster().getJob().getMetadata().getLabels().putIfAbsent(LABEL_TASKSTATE_KEY, LABEL_TASKSTATE_VALUE_CANC);
+        taskBuilder.getTask().getTaskmaster().getJob().getStatus().succeeded(1);
+        TesState state = this.converter.extractStateFromK8sJobs(taskBuilder.getTask());
+        assertThat(state, is(TesState.CANCELED));
+    }
+
+    @Test
+    public void test_status_complete_with_failed_taskmaster() throws IOException {
+        TaskBuilder taskBuilder = this.prepareBaseTaskBuider();
+        taskBuilder.getTask().getTaskmaster().getJob().getStatus().succeeded(1);
+        taskBuilder.getTask().getTaskmaster().getJob().getStatus().failed(1);
+        TesState state = this.converter.extractStateFromK8sJobs(taskBuilder.getTask());
+        assertThat(state, is(TesState.COMPLETE));
+    }
+
+    @Test
+    public void test_status_running() throws IOException {
+        TaskBuilder taskBuilder = this.prepareBaseTaskBuider();
+        taskBuilder.getTask().getTaskmaster().getJob().getStatus().active(1);
+        taskBuilder.getTask().getTaskmaster().getJob().getStatus().succeeded(0);
+        TesState state = this.converter.extractStateFromK8sJobs(taskBuilder.getTask());
+        assertThat(state, is(TesState.RUNNING));
+    }
+
+    @Test
+    public void test_status_failed_taskmaster() throws IOException {
+        TaskBuilder taskBuilder = this.prepareBaseTaskBuider();
+        taskBuilder.getTask().getTaskmaster().getJob().getStatus().failed(1);
+        taskBuilder.getTask().getTaskmaster().getJob().getStatus().succeeded(0);
+        TesState state = this.converter.extractStateFromK8sJobs(taskBuilder.getTask());
+        assertThat(state, is(TesState.SYSTEM_ERROR));
+    }
+
+    @Test
+    public void test_status_failed_executor() throws IOException {
+        TaskBuilder taskBuilder = this.prepareBaseTaskBuider();
+        taskBuilder.getTask().getExecutors().get(0).getJob().getStatus().succeeded(0);
+        taskBuilder.getTask().getExecutors().get(0).getJob().getStatus().failed(1);
+        TesState state = this.converter.extractStateFromK8sJobs(taskBuilder.getTask());
+        assertThat(state, is(TesState.EXECUTOR_ERROR));
+    }
+
+    @Test
+    public void test_status_complete_with_failed_executor() throws IOException {
+        TaskBuilder taskBuilder = this.prepareBaseTaskBuider();
+        taskBuilder.getTask().getExecutors().get(0).getJob().getStatus().succeeded(1);
+        taskBuilder.getTask().getExecutors().get(0).getJob().getStatus().failed(1);
+        TesState state = this.converter.extractStateFromK8sJobs(taskBuilder.getTask());
+        assertThat(state, is(TesState.COMPLETE));
+    }
+
+    @Test
+    public void test_status_complete_with_output_filer() throws IOException {
+        TaskBuilder taskBuilder = this.prepareBaseTaskBuider();
+        taskBuilder.addJob(new V1Job().status(new V1JobStatus()).metadata(new V1ObjectMeta().name("sth").labels(new HashMap<>())));
+        TesState state = this.converter.extractStateFromK8sJobs(taskBuilder.getTask());
+        assertThat(state, is(TesState.COMPLETE));
+    }
+
+    @Test
+    public void test_status_complete_with_failed_output_filer() throws IOException {
+        TaskBuilder taskBuilder = this.prepareBaseTaskBuider();
+        taskBuilder.addJob(new V1Job().status(new V1JobStatus().failed(1).succeeded(1)).metadata(new V1ObjectMeta().name("sth").labels(new HashMap<>())));
+        TesState state = this.converter.extractStateFromK8sJobs(taskBuilder.getTask());
+        assertThat(state, is(TesState.COMPLETE));
+    }
+
+    @Test
+    public void test_status_failed_output_filer() throws IOException {
+        TaskBuilder taskBuilder = this.prepareBaseTaskBuider();
+        taskBuilder.addJob(new V1Job().status(new V1JobStatus().failed(1)).metadata(new V1ObjectMeta().name("sth").labels(new HashMap<>())));
+        TesState state = this.converter.extractStateFromK8sJobs(taskBuilder.getTask());
+        assertThat(state, is(TesState.SYSTEM_ERROR));
+    }
+
+    @Test
+    public void test_status_initializing() throws IOException {
+        TaskBuilder taskBuilder = this.prepareBaseTaskBuider(false);
+        taskBuilder.getTask().getTaskmaster().getJob().getStatus().active(1).succeeded(0);
+        TesState state = this.converter.extractStateFromK8sJobs(taskBuilder.getTask());
+        assertThat(state, is(TesState.INITIALIZING));
+    }
+
+    @Test
+    public void test_status_queued() throws IOException {
+        TaskBuilder taskBuilder = this.prepareBaseTaskBuider();
+        taskBuilder.getTask().getTaskmaster().getJob().getStatus().succeeded(0);
+        taskBuilder.getTask().getTaskmaster().getPods().get(0).getStatus().phase("Pending");
+        TesState state = this.converter.extractStateFromK8sJobs(taskBuilder.getTask());
+        assertThat(state, is(TesState.QUEUED));
+    }
+
+    @Test
+    public void test_status_executor_queued() throws IOException {
+        TaskBuilder taskBuilder = this.prepareBaseTaskBuider();
+        taskBuilder.getTask().getLastExecutor().get().getPods().get(0).getStatus().phase("Pending");
+        taskBuilder.getTask().getTaskmaster().getJob().getStatus().succeeded(0);
+        TesState state = this.converter.extractStateFromK8sJobs(taskBuilder.getTask());
+        assertThat(state, is(TesState.QUEUED));
+    }
+
+    @Test
+    public void test_status_system_error_unknown() throws IOException {
+        TaskBuilder taskBuilder = this.prepareBaseTaskBuider();
+        taskBuilder.getTask().getTaskmaster().getJob().getStatus().succeeded(0);
+        TesState state = this.converter.extractStateFromK8sJobs(taskBuilder.getTask());
+        assertThat(state, is(TesState.SYSTEM_ERROR));
     }
 
 }

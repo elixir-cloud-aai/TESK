@@ -180,6 +180,10 @@ public class TesKubernetesConverter {
                 noOfPodsInState = testedObject.getSucceeded();
                 break;
             case FAILED:
+                if (Optional.ofNullable(testedObject.getSucceeded()).map(no -> no > 0).orElse(false)) {
+                    //if there are any successful - the job has not FAILED
+                    return false;
+                }
                 noOfPodsInState = testedObject.getFailed();
                 break;
         }
