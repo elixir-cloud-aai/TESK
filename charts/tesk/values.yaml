@@ -14,6 +14,10 @@ clusterType: kubernetes
 storage: none
 
 tesk:
+    # if empty - default base path; currently /ga4gh/tes/v1
+    #tes_api_base_path:
+    # For backwards compatibility with TES 0.3 - old base bath
+    tes_api_base_path: /v1
     image: eu.gcr.io/tes-wes/tesk-api:v0.8.2
     port: 8080
     taskmaster_image_version: v0.10.0

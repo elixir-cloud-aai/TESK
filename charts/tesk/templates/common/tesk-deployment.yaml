@@ -31,6 +31,10 @@ spec:
           value: {{ .Values.tesk.filer_retries | quote }}
         - name: SERVER_SERVLET_CONTEXT_PATH
           value: {{ .Values.ingress.path }}
+        {{ if .Values.tesk.tes_api_base_path }}
+        - name: OPENAPI_TASKEXECUTIONSERVICE_BASE_PATH
+          value: {{ .Values.tesk.tes_api_base_path }}
+        {{ end }}
         {{ if .Values.ftp.classic_ftp_secret }}
         - name: TESK_API_TASKMASTER_FTP_SECRET_NAME
           value: {{ .Values.ftp.classic_ftp_secret }}
