@@ -87,8 +87,7 @@ public class TesKubernetesConverter {
                 mapToObj(i -> this.fromTesExecutorToK8sJob(taskMasterJob.getMetadata().getName(), task.getName(), task.getExecutors().get(i), i, task.getResources(), user)).
                 collect(Collectors.toList());
         Map<String, Object> taskMasterInput = new HashMap<>();
-        taskMasterInput.put(TASKMASTER_INPUT_EXEC_KEY, executorsAsJobs);
-        try {
+       try {
             //converting original inputs, outputs, volumes and disk size back again to JSON (will be part of taskMaster's input parameter)
             //Jackson - for TES objects
             List<TesInput> inputs = task.getInputs() == null ? new ArrayList<>() : task.getInputs();
@@ -103,6 +102,7 @@ public class TesKubernetesConverter {
             logger.info(String.format("Serializing copy of task %s to JSON failed", taskMasterJob.getMetadata().getName()), e);
             //TODO throw
         }
+        taskMasterInput.put(TASKMASTER_INPUT_EXEC_KEY, executorsAsJobs);
         String taskMasterInputAsJSON = this.gson.toJson(taskMasterInput);
         //placing taskmaster's parameter (JSONed map of: inputs, outputs, volumes, executors (as jobs) into ENV variable in taskmaster spec
         taskMasterJob.getSpec().getTemplate().getSpec().getContainers().get(0).getEnv().stream().filter(x -> x.getName().equals(TASKMASTER_INPUT)).forEach(x -> x.setValue(taskMasterInputAsJSON));

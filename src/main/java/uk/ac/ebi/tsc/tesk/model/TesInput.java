@@ -2,10 +2,11 @@ package uk.ac.ebi.tsc.tesk.model;
 
 import java.util.Objects;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonCreator;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import org.hibernate.validator.constraints.ScriptAssert;
-
+import uk.ac.ebi.tsc.tesk.model.TesFileType;
 import javax.validation.Valid;
 import javax.validation.constraints.*;
 
@@ -13,48 +14,39 @@ import static uk.ac.ebi.tsc.tesk.util.constant.Constants.ABSOLUTE_PATH_MESSAGE;
 import static uk.ac.ebi.tsc.tesk.util.constant.Constants.ABSOLUTE_PATH_REGEXP;
 
 /**
- * Input describes Task input.json files.
+ * Input describes Task input files.
  */
-@ApiModel(description = "Input describes Task input.json files.")
-@javax.annotation.Generated(value = "io.swagger.codegen.languages.SpringCodegen", date = "2017-11-16T12:59:29.706Z")
+@ApiModel(description = "Input describes Task input files.")
+@javax.annotation.Generated(value = "org.openapitools.codegen.languages.SpringCodegen", date = "2021-03-24T17:10:08.716Z[Europe/London]")
 @ScriptAssert(lang = "javascript", script = "(_this.url != null && (_this.url.trim().length) > 0) || (_this.content != null && _this.content.length > 0)", message = "URL or content required")
 public class TesInput   {
-  @ApiModelProperty(example = "File from HTTP")
   @JsonProperty("name")
-  private String name = null;
+  private String name;
 
-  @ApiModelProperty(example = "Downloading a single file from HTTP")
   @JsonProperty("description")
-  private String description = null;
+  private String description;
 
-  @ApiModelProperty(example = "https://raw.githubusercontent.com/EMBL-EBI-TSI/TESK/master/examples/success/hello.json")
   @JsonProperty("url")
-  private String url = null;
+  private String url;
 
-  @ApiModelProperty(example = "/tes/input")
-  @Pattern(regexp = ABSOLUTE_PATH_REGEXP, message = ABSOLUTE_PATH_MESSAGE)
-  @NotBlank
   @JsonProperty("path")
-  private String path = null;
+  private String path;
 
-  @ApiModelProperty(example = "FILE")
-  @NotNull
   @JsonProperty("type")
-  private TesFileType type = null;
+  private TesFileType type = TesFileType.FILE;
 
-  @ApiModelProperty(hidden = true)
   @JsonProperty("content")
-  private String content = null;
+  private String content;
 
   public TesInput name(String name) {
     this.name = name;
     return this;
   }
 
-   /**
+  /**
    * Get name
    * @return name
-  **/
+  */
   @ApiModelProperty(value = "")
 
 
@@ -71,10 +63,10 @@ public class TesInput   {
     return this;
   }
 
-   /**
+  /**
    * Get description
    * @return description
-  **/
+  */
   @ApiModelProperty(value = "")
 
 
@@ -91,11 +83,11 @@ public class TesInput   {
     return this;
   }
 
-   /**
-   * REQUIRED, unless \"content\" is set.  URL in long term storage, for example: s3://my-object-store/file1 gs://my-bucket/file2 file:///path/to/my/file /path/to/my/file etc...
+  /**
+   * REQUIRED, unless \"content\" is set.  URL in long term storage, for example:  - s3://my-object-store/file1  - gs://my-bucket/file2  - file:///path/to/my/file  - /path/to/my/file
    * @return url
-  **/
-  @ApiModelProperty(value = "REQUIRED, unless \"content\" is set.  URL in long term storage, for example: s3://my-object-store/file1 gs://my-bucket/file2 file:///path/to/my/file /path/to/my/file etc...")
+  */
+  @ApiModelProperty(example = "s3://my-object-store/file1", value = "REQUIRED, unless \"content\" is set.  URL in long term storage, for example:  - s3://my-object-store/file1  - gs://my-bucket/file2  - file:///path/to/my/file  - /path/to/my/file")
 
 
   public String getUrl() {
@@ -111,13 +103,14 @@ public class TesInput   {
     return this;
   }
 
-   /**
+  /**
    * Path of the file inside the container. Must be an absolute path.
    * @return path
-  **/
-  @ApiModelProperty(value = "Path of the file inside the container. Must be an absolute path.")
-
-
+  */
+  @ApiModelProperty(example = "/data/file1", required = true, value = "Path of the file inside the container. Must be an absolute path.")
+  @NotNull
+  @Pattern(regexp = ABSOLUTE_PATH_REGEXP, message = ABSOLUTE_PATH_MESSAGE)
+  @NotBlank
   public String getPath() {
     return path;
   }
@@ -131,11 +124,12 @@ public class TesInput   {
     return this;
   }
 
-   /**
-   * Type of the file, FILE or DIRECTORY
+  /**
+   * Get type
    * @return type
-  **/
-  @ApiModelProperty(value = "Type of the file, FILE or DIRECTORY")
+  */
+  @ApiModelProperty(required = true, value = "")
+  @NotNull
 
   @Valid
 
@@ -152,11 +146,11 @@ public class TesInput   {
     return this;
   }
 
-   /**
-   * File content literal.  Implementations should support a minimum of 128 KiB in this field and may define its own maximum. UTF-8 encoded  If content is not empty, \"url\" must be ignored.
+  /**
+   * File content literal.  Implementations should support a minimum of 128 KiB in this field and may define their own maximum.  UTF-8 encoded  If content is not empty, \"url\" must be ignored.
    * @return content
-  **/
-  @ApiModelProperty(value = "File content literal.  Implementations should support a minimum of 128 KiB in this field and may define its own maximum. UTF-8 encoded  If content is not empty, \"url\" must be ignored.")
+  */
+  @ApiModelProperty(value = "File content literal.  Implementations should support a minimum of 128 KiB in this field and may define their own maximum.  UTF-8 encoded  If content is not empty, \"url\" must be ignored.")
 
 
   public String getContent() {
@@ -169,7 +163,7 @@ public class TesInput   {
 
 
   @Override
-  public boolean equals(java.lang.Object o) {
+  public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
@@ -209,7 +203,7 @@ public class TesInput   {
    * Convert the given object to string with each line indented by 4 spaces
    * (except the first line).
    */
-  private String toIndentedString(java.lang.Object o) {
+  private String toIndentedString(Object o) {
     if (o == null) {
       return "null";
     }

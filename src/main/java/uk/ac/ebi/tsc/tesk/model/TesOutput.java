@@ -2,9 +2,10 @@ package uk.ac.ebi.tsc.tesk.model;
 
 import java.util.Objects;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonCreator;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
-
+import uk.ac.ebi.tsc.tesk.model.TesFileType;
 import javax.validation.Valid;
 import javax.validation.constraints.*;
 
@@ -15,43 +16,33 @@ import static uk.ac.ebi.tsc.tesk.util.constant.Constants.ABSOLUTE_PATH_REGEXP;
  * Output describes Task output files.
  */
 @ApiModel(description = "Output describes Task output files.")
-@javax.annotation.Generated(value = "io.swagger.codegen.languages.SpringCodegen", date = "2017-11-16T12:59:29.706Z")
-
+@javax.annotation.Generated(value = "org.openapitools.codegen.languages.SpringCodegen", date = "2021-03-24T17:10:08.716Z[Europe/London]")
 public class TesOutput   {
-  @ApiModelProperty(example = "Dir to FTP")
   @JsonProperty("name")
-  private String name = null;
+  private String name;
 
-  @ApiModelProperty(example = "Example of uploading a directory to FTP")
   @JsonProperty("description")
-  private String description = null;
+  private String description;
 
-  @ApiModelProperty(example = "ftp://ftp-private.ebi.ac.uk/upload/examples/tes")
-  @NotBlank
   @JsonProperty("url")
-  private String url = null;
+  private String url;
 
-  @ApiModelProperty(example = "/tes")
-  @Pattern(regexp = ABSOLUTE_PATH_REGEXP, message = ABSOLUTE_PATH_MESSAGE)
-  @NotBlank
   @JsonProperty("path")
-  private String path = null;
+  private String path;
 
-  @ApiModelProperty(example = "DIRECTORY")
-  @NotNull
   @JsonProperty("type")
-  private TesFileType type = null;
+  private TesFileType type = TesFileType.FILE;
 
   public TesOutput name(String name) {
     this.name = name;
     return this;
   }
 
-   /**
-   * Get name
+  /**
+   * User-provided name of output file
    * @return name
-  **/
-  @ApiModelProperty(value = "")
+  */
+  @ApiModelProperty(value = "User-provided name of output file")
 
 
   public String getName() {
@@ -67,11 +58,11 @@ public class TesOutput   {
     return this;
   }
 
-   /**
-   * Get description
+  /**
+   * Optional users provided description field, can be used for documentation.
    * @return description
-  **/
-  @ApiModelProperty(value = "")
+  */
+  @ApiModelProperty(value = "Optional users provided description field, can be used for documentation.")
 
 
   public String getDescription() {
@@ -87,12 +78,13 @@ public class TesOutput   {
     return this;
   }
 
-   /**
-   * URL in long term storage, for example: s3://my-object-store/file1 gs://my-bucket/file2 file:///path/to/my/file /path/to/my/file etc...
+  /**
+   * URL for the file to be copied by the TES server after the task is complete. For Example:  - `s3://my-object-store/file1`  - `gs://my-bucket/file2`  - `file:///path/to/my/file`
    * @return url
-  **/
-  @ApiModelProperty(value = "URL in long term storage, for example: s3://my-object-store/file1 gs://my-bucket/file2 file:///path/to/my/file /path/to/my/file etc...")
-
+  */
+  @ApiModelProperty(required = true, value = "URL for the file to be copied by the TES server after the task is complete. For Example:  - `s3://my-object-store/file1`  - `gs://my-bucket/file2`  - `file:///path/to/my/file`")
+  @NotNull
+  @NotBlank
 
   public String getUrl() {
     return url;
@@ -107,13 +99,14 @@ public class TesOutput   {
     return this;
   }
 
-   /**
+  /**
    * Path of the file inside the container. Must be an absolute path.
    * @return path
-  **/
-  @ApiModelProperty(value = "Path of the file inside the container. Must be an absolute path.")
-
-
+  */
+  @ApiModelProperty(required = true, value = "Path of the file inside the container. Must be an absolute path.")
+  @NotNull
+  @Pattern(regexp = ABSOLUTE_PATH_REGEXP, message = ABSOLUTE_PATH_MESSAGE)
+  @NotBlank
   public String getPath() {
     return path;
   }
@@ -127,11 +120,12 @@ public class TesOutput   {
     return this;
   }
 
-   /**
-   * Type of the file, FILE or DIRECTORY
+  /**
+   * Get type
    * @return type
-  **/
-  @ApiModelProperty(value = "Type of the file, FILE or DIRECTORY")
+  */
+  @ApiModelProperty(required = true, value = "")
+  @NotNull
 
   @Valid
 
@@ -145,7 +139,7 @@ public class TesOutput   {
 
 
   @Override
-  public boolean equals(java.lang.Object o) {
+  public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
@@ -183,7 +177,7 @@ public class TesOutput   {
    * Convert the given object to string with each line indented by 4 spaces
    * (except the first line).
    */
-  private String toIndentedString(java.lang.Object o) {
+  private String toIndentedString(Object o) {
     if (o == null) {
       return "null";
     }

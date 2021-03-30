@@ -1,6 +1,7 @@
 package uk.ac.ebi.tsc.tesk.config.security;
 
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.http.HttpMessageConverters;
 import org.springframework.boot.autoconfigure.security.oauth2.resource.AuthoritiesExtractor;
 import org.springframework.boot.autoconfigure.security.oauth2.resource.PrincipalExtractor;
@@ -16,6 +17,10 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.oauth2.config.annotation.web.configuration.EnableResourceServer;
 import org.springframework.security.oauth2.config.annotation.web.configuration.ResourceServerConfigurerAdapter;
 import org.springframework.security.oauth2.config.annotation.web.configurers.ResourceServerSecurityConfigurer;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * @author Ania Niewielska <aniewielska@ebi.ac.uk>
@@ -35,13 +40,17 @@ public class ResourceServerConfiguration extends ResourceServerConfigurerAdapter
     private final ErrorAttributes errorAttributes;
     private final HttpMessageConverters messageConverters;
     private final AuthorisationProperties authorisationProperties;
-    private final String[] ALLOWED_URLS = {"/", "/v2/api-docs", "/configuration/ui", "/swagger-resources/**", "/configuration/**", "/swagger-ui.html", "/webjars/**", "/v1/tasks/service-info"};
+    private final String[] ALLOWED_URLS = {"/", "/v2/api-docs", "/configuration/ui", "/swagger-resources/**", "/configuration/**", "/swagger-ui.html", "/webjars/**"};
+    private final String baseUrl;
 
     public ResourceServerConfiguration(ErrorAttributes errorAttributes, HttpMessageConverters messageConverters,
-                                       AuthorisationProperties authorisationProperties) {
+                                       AuthorisationProperties authorisationProperties,
+                                       @Value("${openapi.taskExecutionService.base-path:/ga4gh/tes/v1}") String baseUrl) {
+
         this.errorAttributes = errorAttributes;
         this.messageConverters = messageConverters;
         this.authorisationProperties = authorisationProperties;
+        this.baseUrl = baseUrl;
     }
 
 
@@ -50,10 +59,14 @@ public class ResourceServerConfiguration extends ResourceServerConfigurerAdapter
      */
     @Override
     public void configure(HttpSecurity http) throws Exception {
+        List<String> allowedUrls = new ArrayList<>();
+        allowedUrls.addAll(Arrays.asList(ALLOWED_URLS));
+        allowedUrls.add(baseUrl + "/service-info");
+        String[] allowedUrlsArray = allowedUrls.toArray(new String[0]);
         http
                 .authorizeRequests()
-                .antMatchers(HttpMethod.GET, ALLOWED_URLS).permitAll()
-                .antMatchers(HttpMethod.HEAD, ALLOWED_URLS).permitAll()
+                .antMatchers(HttpMethod.GET, allowedUrlsArray).permitAll()
+                .antMatchers(HttpMethod.HEAD, allowedUrlsArray).permitAll()
                 .anyRequest().authenticated();
     }
 

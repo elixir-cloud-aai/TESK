@@ -22,19 +22,25 @@ public enum TesFileType {
     this.value = value;
   }
 
-  @Override
   @JsonValue
+  public String getValue() {
+    return value;
+  }
+
+  @Override
   public String toString() {
     return String.valueOf(value);
   }
 
   @JsonCreator
-  public static TesFileType fromValue(String text) {
+  public static TesFileType fromValue(String value) {
     for (TesFileType b : TesFileType.values()) {
-      if (String.valueOf(b.value).equals(text)) {
+      if (b.value.equals(value)) {
         return b;
       }
     }
+    //throw new IllegalArgumentException("Unexpected value '" + value + "'");
+    //Backwards compatibility: need to return null for illegal state
     return null;
   }
 }

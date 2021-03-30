@@ -15,14 +15,14 @@ import javax.validation.constraints.*;
  * ListTasksResponse describes a response from the ListTasks endpoint.
  */
 @ApiModel(description = "ListTasksResponse describes a response from the ListTasks endpoint.")
-@javax.annotation.Generated(value = "io.swagger.codegen.languages.SpringCodegen", date = "2017-11-07T14:45:12.993Z")
-
+@javax.annotation.Generated(value = "org.openapitools.codegen.languages.SpringCodegen", date = "2021-03-24T17:10:08.716Z[Europe/London]")
 public class TesListTasksResponse   {
   @JsonProperty("tasks")
-  private List<TesTask> tasks = null;
+  @Valid
+  private List<TesTask> tasks = new ArrayList<>();
 
   @JsonProperty("next_page_token")
-  private String nextPageToken = null;
+  private String nextPageToken;
 
   public TesListTasksResponse tasks(List<TesTask> tasks) {
     this.tasks = tasks;
@@ -31,17 +31,18 @@ public class TesListTasksResponse   {
 
   public TesListTasksResponse addTasksItem(TesTask tasksItem) {
     if (this.tasks == null) {
-      this.tasks = new ArrayList<TesTask>();
+      this.tasks = new ArrayList<>();
     }
     this.tasks.add(tasksItem);
     return this;
   }
 
-   /**
-   * List of tasks.
+  /**
+   * List of tasks. These tasks will be based on the original submitted task document, but with other fields, such as the job state and logging info, added/changed as the job progresses.
    * @return tasks
-  **/
-  @ApiModelProperty(value = "List of tasks.")
+  */
+  @ApiModelProperty(required = true, value = "List of tasks. These tasks will be based on the original submitted task document, but with other fields, such as the job state and logging info, added/changed as the job progresses.")
+  @NotNull
 
   @Valid
 
@@ -58,11 +59,11 @@ public class TesListTasksResponse   {
     return this;
   }
 
-   /**
-   * Token used to return the next page of results. See TaskListRequest.next_page_token
+  /**
+   * Token used to return the next page of results. This value can be used in the `page_token` field of the next ListTasks request.
    * @return nextPageToken
-  **/
-  @ApiModelProperty(value = "Token used to return the next page of results. See TaskListRequest.next_page_token")
+  */
+  @ApiModelProperty(value = "Token used to return the next page of results. This value can be used in the `page_token` field of the next ListTasks request.")
 
 
   public String getNextPageToken() {
@@ -75,7 +76,7 @@ public class TesListTasksResponse   {
 
 
   @Override
-  public boolean equals(java.lang.Object o) {
+  public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
@@ -107,7 +108,7 @@ public class TesListTasksResponse   {
    * Convert the given object to string with each line indented by 4 spaces
    * (except the first line).
    */
-  private String toIndentedString(java.lang.Object o) {
+  private String toIndentedString(Object o) {
     if (o == null) {
       return "null";
     }

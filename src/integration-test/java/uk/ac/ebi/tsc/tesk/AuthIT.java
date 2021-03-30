@@ -4,7 +4,6 @@ import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import io.kubernetes.client.ApiClient;
 import io.kubernetes.client.util.Config;
-import org.apache.http.HttpStatus;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -26,6 +25,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static uk.ac.ebi.tsc.tesk.TestUtils.getFileContentFromResources;
+import static uk.ac.ebi.tsc.tesk.UrlConstants.SERVICE_INFO_URL;
+import static uk.ac.ebi.tsc.tesk.UrlConstants.TASK_URL;
+
 
 /**
  * @author Ania Niewielska <aniewielska@ebi.ac.uk>
@@ -75,7 +77,7 @@ public class AuthIT {
                         .willReturn(okJson("{\"metadata\":{\"name\":\"task-fe99716a\"}}")));
 
         String path = "fromTesToK8s_minimal/task.json";
-        this.mvc.perform(post("/v1/tasks")
+        this.mvc.perform(post(TASK_URL)
                 .content(getFileContentFromResources(path))
                 .header("Authorization", "Bearer BAR")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -96,7 +98,7 @@ public class AuthIT {
                         .willReturn(okJson("{\"metadata\":{\"name\":\"task-fe99716a\"}}")));
 
         String path = "fromTesToK8s_minimal/task.json";
-        this.mvc.perform(post("/v1/tasks")
+        this.mvc.perform(post(TASK_URL)
                 .content(getFileContentFromResources(path))
                 .header("Authorization", "Bearer BAR")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -111,7 +113,7 @@ public class AuthIT {
                         .willReturn(okJson("{\"sub\" : \"123\",  \"eduperson_entitlement\" : [\"urn:geant:elixir-europe.org:group:elixir:GA4GH:GA4GH-CAP:EBI#perun.elixir-czech.cz\", \"urn:geant:elixir-europe.org:group:elixir:GA4GH:GA4GH-CAP:EBI:ADMIN#perun.elixir-czech.cz\"]}")));
 
         String path = "fromTesToK8s/task.json";
-        this.mvc.perform(post("/v1/tasks")
+        this.mvc.perform(post(TASK_URL)
                 .content(getFileContentFromResources(path))
                 .header("Authorization", "Bearer BAR")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -132,7 +134,7 @@ public class AuthIT {
                         .willReturn(okJson("{\"metadata\":{\"name\":\"task-fe99716a\"}}")));
 
         String path = "fromTesToK8s_minimal/task.json";
-        this.mvc.perform(post("/v1/tasks")
+        this.mvc.perform(post(TASK_URL)
                 .content(getFileContentFromResources(path))
                 .header("Authorization", "Bearer BAR")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -152,7 +154,7 @@ public class AuthIT {
                         .willReturn(okJson("{\"metadata\":{\"name\":\"task-fe99716a\"}}")));
 
         String path = "fromTesToK8s_minimal/task.json";
-        this.mvc.perform(post("/v1/tasks")
+        this.mvc.perform(post(TASK_URL)
                 .content(getFileContentFromResources(path))
                 .header("Authorization", "Bearer BAR")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -173,7 +175,7 @@ public class AuthIT {
                         .willReturn(okJson("{\"metadata\":{\"name\":\"task-fe99716a\"}}")));
 
         String path = "fromTesToK8s/task.json";
-        this.mvc.perform(post("/v1/tasks")
+        this.mvc.perform(post(TASK_URL)
                 .content(getFileContentFromResources(path))
                 .header("Authorization", "Bearer BAR")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -188,7 +190,7 @@ public class AuthIT {
                         .willReturn(okJson("{\"sub\" : \"123\",  \"eduperson_entitlement\" : [\"urn:geant:elixir-europe.org:group:elixir:GA4GH:GA4GH-CAP:EBI#perun.elixir-czech.cz\", \"urn:geant:elixir-europe.org:group:elixir:GA4GH:GA4GH-CAP:EBI:TEST#perun.elixir-czech.cz\", \"urn:geant:elixir-europe.org:group:elixir:GA4GH:GA4GH-CAP:EBI:XYZ#perun.elixir-czech.cz\"]}")));
 
         String path = "fromTesToK8s/task.json";
-        this.mvc.perform(post("/v1/tasks")
+        this.mvc.perform(post(TASK_URL)
                 .content(getFileContentFromResources(path))
                 .header("Authorization", "Bearer BAR")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -199,7 +201,7 @@ public class AuthIT {
     public void unauthenicated_createTask() throws Exception {
 
         String path = "fromTesToK8s_minimal/task.json";
-        this.mvc.perform(post("/v1/tasks")
+        this.mvc.perform(post(TASK_URL)
                 .content(getFileContentFromResources(path))
                 .contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaType.APPLICATION_JSON)).andExpect(status().isUnauthorized());
@@ -213,7 +215,7 @@ public class AuthIT {
                         .willReturn(okJson("{\"sub\":\"123\",\"eduperson_entitlement\":[\"urn:geant:elixir-europe.org:group:elixir:different#perun.elixir-czech.cz\"]}")));
 
         String path = "fromTesToK8s_minimal/task.json";
-        this.mvc.perform(post("/v1/tasks")
+        this.mvc.perform(post(TASK_URL)
                 .content(getFileContentFromResources(path))
                 .contentType(MediaType.APPLICATION_JSON)
                 .header("Authorization", "Bearer BAR")
@@ -228,7 +230,7 @@ public class AuthIT {
                         .willReturn(okJson("{\"sub\":\"123\",\"eduperson_entitlement\":[]}")));
 
         String path = "fromTesToK8s_minimal/task.json";
-        this.mvc.perform(post("/v1/tasks")
+        this.mvc.perform(post(TASK_URL)
                 .content(getFileContentFromResources(path))
                 .header("Authorization", "Bearer BAR")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -243,7 +245,7 @@ public class AuthIT {
                         .willReturn(okJson("{\"sub\":\"123\"}")));
 
         String path = "fromTesToK8s_minimal/task.json";
-        this.mvc.perform(post("/v1/tasks")
+        this.mvc.perform(post(TASK_URL)
                 .content(getFileContentFromResources(path))
                 .header("Authorization", "Bearer BAR")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -258,7 +260,7 @@ public class AuthIT {
                         .willReturn(okJson("{\"sub\":\"123\",\"eduperson_entitlement\":[\"GA4GH:GA4GH-CAP:EBI#perun.elixir-czech.cz\"]}")));
 
         String path = "fromTesToK8s_minimal/task.json";
-        this.mvc.perform(post("/v1/tasks")
+        this.mvc.perform(post(TASK_URL)
                 .content(getFileContentFromResources(path))
                 .header("Authorization", "Bearer BAR")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -267,13 +269,13 @@ public class AuthIT {
 
     @Test
     public void unauthenticated_getTask() throws Exception {
-        this.mvc.perform(get("/v1/tasks/{id}", 123))
+        this.mvc.perform(get(TASK_URL + "/{id}", 123))
                 .andExpect(status().isUnauthorized());
     }
 
     @Test
     public void unauthenticated_cancelTask() throws Exception {
-        this.mvc.perform(post("/v1/tasks/{id}:cancel", 123))
+        this.mvc.perform(post(TASK_URL + "/{id}:cancel", 123))
                 .andExpect(status().isUnauthorized());
     }
 
@@ -287,14 +289,14 @@ public class AuthIT {
         MockUtil.mockGetTaskKubernetesResponses(this.mockKubernetes);
 
 
-        this.mvc.perform(get("/v1/tasks/{id}", "task-123")
+        this.mvc.perform(get(TASK_URL + "/{id}", "task-123")
                 .header("Authorization", "Bearer BAR"))
                 .andExpect(status().isOk());
 
-        this.mvc.perform(get("/v1/tasks/{id}?view=BASIC", "task-123")
+        this.mvc.perform(get(TASK_URL + "/{id}?view=BASIC", "task-123")
                 .header("Authorization", "Bearer BAR"))
                 .andExpect(status().isOk());
-        this.mvc.perform(get("/v1/tasks/{id}?view=FULL", "task-123")
+        this.mvc.perform(get(TASK_URL + "/{id}?view=FULL", "task-123")
                 .header("Authorization", "Bearer BAR"))
                 .andExpect(status().isOk());
     }
@@ -308,7 +310,7 @@ public class AuthIT {
 
         MockUtil.mockGetTaskKubernetesResponses(this.mockKubernetes);
 
-        this.mvc.perform(post("/v1/tasks/{id}:cancel", "task-123")
+        this.mvc.perform(post(TASK_URL + "/{id}:cancel", "task-123")
                 .contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaType.APPLICATION_JSON)
                 .header("Authorization", "Bearer BAR"))
@@ -325,7 +327,7 @@ public class AuthIT {
 
         MockUtil.mockGetTaskKubernetesResponses(this.mockKubernetes);
 
-        this.mvc.perform(post("/v1/tasks/{id}:cancel", "task-123")
+        this.mvc.perform(post(TASK_URL + "/{id}:cancel", "task-123")
                 .contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaType.APPLICATION_JSON)
                 .header("Authorization", "Bearer BAR"))
@@ -342,13 +344,13 @@ public class AuthIT {
 
         MockUtil.mockGetTaskKubernetesResponses(this.mockKubernetes);
 
-        this.mvc.perform(get("/v1/tasks/{id}", "task-123")
+        this.mvc.perform(get(TASK_URL + "/{id}", "task-123")
                 .header("Authorization", "Bearer BAR"))
                 .andExpect(status().isForbidden());
-        this.mvc.perform(get("/v1/tasks/{id}?view=BASIC", "task-123")
+        this.mvc.perform(get(TASK_URL + "/{id}?view=BASIC", "task-123")
                 .header("Authorization", "Bearer BAR"))
                 .andExpect(status().isForbidden());
-        this.mvc.perform(get("/v1/tasks/{id}?view=FULL", "task-123")
+        this.mvc.perform(get(TASK_URL + "/{id}?view=FULL", "task-123")
                 .header("Authorization", "Bearer BAR"))
                 .andExpect(status().isForbidden());
     }
@@ -362,13 +364,13 @@ public class AuthIT {
 
         MockUtil.mockGetTaskKubernetesResponses(this.mockKubernetes);
 
-        this.mvc.perform(get("/v1/tasks/{id}", "task-123")
+        this.mvc.perform(get(TASK_URL + "/{id}", "task-123")
                 .header("Authorization", "Bearer BAR"))
                 .andExpect(status().isOk());
-        this.mvc.perform(get("/v1/tasks/{id}?view=BASIC", "task-123")
+        this.mvc.perform(get(TASK_URL + "/{id}?view=BASIC", "task-123")
                 .header("Authorization", "Bearer BAR"))
                 .andExpect(status().isOk());
-        this.mvc.perform(get("/v1/tasks/{id}?view=FULL", "task-123")
+        this.mvc.perform(get(TASK_URL + "/{id}?view=FULL", "task-123")
                 .header("Authorization", "Bearer BAR"))
                 .andExpect(status().isOk());
     }
@@ -382,13 +384,13 @@ public class AuthIT {
 
         MockUtil.mockGetTaskKubernetesResponses(this.mockKubernetes);
 
-        this.mvc.perform(get("/v1/tasks/{id}", "task-123")
+        this.mvc.perform(get(TASK_URL + "/{id}", "task-123")
                 .header("Authorization", "Bearer BAR"))
                 .andExpect(status().isForbidden());
-        this.mvc.perform(get("/v1/tasks/{id}?view=BASIC", "task-123")
+        this.mvc.perform(get(TASK_URL + "/{id}?view=BASIC", "task-123")
                 .header("Authorization", "Bearer BAR"))
                 .andExpect(status().isForbidden());
-        this.mvc.perform(get("/v1/tasks/{id}?view=FULL", "task-123")
+        this.mvc.perform(get(TASK_URL + "/{id}?view=FULL", "task-123")
                 .header("Authorization", "Bearer BAR"))
                 .andExpect(status().isForbidden());
     }
@@ -402,13 +404,13 @@ public class AuthIT {
 
         MockUtil.mockGetTaskKubernetesResponses(this.mockKubernetes);
 
-        this.mvc.perform(get("/v1/tasks/{id}", "task-123")
+        this.mvc.perform(get(TASK_URL + "/{id}", "task-123")
                 .header("Authorization", "Bearer BAR"))
                 .andExpect(status().isOk());
-        this.mvc.perform(get("/v1/tasks/{id}?view=BASIC", "task-123")
+        this.mvc.perform(get(TASK_URL + "/{id}?view=BASIC", "task-123")
                 .header("Authorization", "Bearer BAR"))
                 .andExpect(status().isOk());
-        this.mvc.perform(get("/v1/tasks/{id}?view=FULL", "task-123")
+        this.mvc.perform(get(TASK_URL + "/{id}?view=FULL", "task-123")
                 .header("Authorization", "Bearer BAR"))
                 .andExpect(status().isOk());
     }
@@ -483,13 +485,13 @@ public class AuthIT {
     @Test
     public void unauthenticated_getList() throws Exception {
 
-        this.mvc.perform(get("/v1/tasks")
+        this.mvc.perform(get(TASK_URL)
                 .header("Authorization", "different BAR"))
                 .andExpect(status().isUnauthorized());
-        this.mvc.perform(get("/v1/tasks?view=BASIC")
+        this.mvc.perform(get(TASK_URL + "?view=BASIC")
                 .header("Different", "Bearer BAR"))
                 .andExpect(status().isUnauthorized());
-        this.mvc.perform(get("/v1/tasks?view=FULL"))
+        this.mvc.perform(get(TASK_URL + "?view=FULL"))
                 .andExpect(status().isUnauthorized());
 
     }
@@ -501,33 +503,33 @@ public class AuthIT {
                 WireMock.get("/")
                         .willReturn(okJson("{\"sub\" : \"123\",  \"eduperson_entitlement\" : [\"sth\",\"urn:geant:elixir-europe.org:group:elixir:GA4GH:GA4GH-CAP#perun.elixir-czech.cz\"]}")));
 
-        this.mvc.perform(get("/v1/tasks")
+        this.mvc.perform(get(TASK_URL)
                 .header("Authorization", "Bearer BAR"))
                 .andExpect(status().isForbidden());
-        this.mvc.perform(get("/v1/tasks?view=BASIC")
+        this.mvc.perform(get(TASK_URL + "?view=BASIC")
                 .header("Authorization", "Bearer BAR"))
                 .andExpect(status().isForbidden());
-        this.mvc.perform(get("/v1/tasks?view=FULL")
+        this.mvc.perform(get(TASK_URL + "?view=FULL")
                 .header("Authorization", "Bearer BAR"))
                 .andExpect(status().isForbidden());
     }
     @Test
     public void anybody_can_see_serviceInfo() throws Exception {
-        this.mvc.perform(get("/v1/tasks/service-info"))
+        this.mvc.perform(get(SERVICE_INFO_URL))
                 .andExpect(status().isOk());
     }
 
 
 
     private void performListTask(int expectedLength) throws Exception {
-        this.mvc.perform(get("/v1/tasks")
+        this.mvc.perform(get(TASK_URL)
                 .header("Authorization", "Bearer BAR"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.tasks.length()").value(expectedLength));
-        this.mvc.perform(get("/v1/tasks?view=BASIC")
+        this.mvc.perform(get(TASK_URL + "?view=BASIC")
                 .header("Authorization", "Bearer BAR"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.tasks.length()").value(expectedLength));
-        this.mvc.perform(get("/v1/tasks?view=FULL")
+        this.mvc.perform(get(TASK_URL + "?view=FULL")
                 .header("Authorization", "Bearer BAR"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.tasks.length()").value(expectedLength));
     }

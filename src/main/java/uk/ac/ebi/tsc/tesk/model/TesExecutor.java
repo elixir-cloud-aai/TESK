@@ -2,13 +2,14 @@ package uk.ac.ebi.tsc.tesk.model;
 
 import java.util.Objects;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonCreator;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import javax.validation.Valid;
 import javax.validation.constraints.*;
 
 import static uk.ac.ebi.tsc.tesk.util.constant.Constants.ABSOLUTE_PATH_MESSAGE;
@@ -18,41 +19,29 @@ import static uk.ac.ebi.tsc.tesk.util.constant.Constants.ABSOLUTE_PATH_REGEXP;
  * Executor describes a command to be executed, and its environment.
  */
 @ApiModel(description = "Executor describes a command to be executed, and its environment.")
-@javax.annotation.Generated(value = "io.swagger.codegen.languages.SpringCodegen", date = "2017-11-16T12:59:29.706Z")
-
+@javax.annotation.Generated(value = "org.openapitools.codegen.languages.SpringCodegen", date = "2021-03-24T17:10:08.716Z[Europe/London]")
 public class TesExecutor   {
-  @ApiModelProperty(example = "alpine")
-  @NotBlank
   @JsonProperty("image")
-  private String image = null;
+  private String image;
 
-  @NotEmpty
-  @ApiModelProperty(example = "[\"sh\", \"-c\",\"cat ./input ; echo Hello $SECRET_PROJECT_NAME\"]")
   @JsonProperty("command")
-  private List<String> command = null;
+  @Valid
+  private List<String> command = new ArrayList<>();
 
-  @ApiModelProperty(example = "/tes")
-  @Pattern(regexp = ABSOLUTE_PATH_REGEXP, message = ABSOLUTE_PATH_MESSAGE)
   @JsonProperty("workdir")
-  private String workdir = null;
+  private String workdir;
 
-  @ApiModelProperty(hidden = true)
-  @Pattern(regexp = ABSOLUTE_PATH_REGEXP, message = ABSOLUTE_PATH_MESSAGE)
   @JsonProperty("stdin")
-  private String stdin = null;
+  private String stdin;
 
-  @ApiModelProperty(example = "/tes/output")
-  @Pattern(regexp = ABSOLUTE_PATH_REGEXP, message = ABSOLUTE_PATH_MESSAGE)
   @JsonProperty("stdout")
-  private String stdout = null;
+  private String stdout;
 
-  @ApiModelProperty(example = "/tes/err")
-  @Pattern(regexp = ABSOLUTE_PATH_REGEXP, message = ABSOLUTE_PATH_MESSAGE)
   @JsonProperty("stderr")
-  private String stderr = null;
+  private String stderr;
 
-  @ApiModelProperty(example = "{\"SECRET_PROJECT_NAME\": \"TESK\"}")
   @JsonProperty("env")
+  @Valid
   private Map<String, String> env = null;
 
   public TesExecutor image(String image) {
@@ -60,12 +49,13 @@ public class TesExecutor   {
     return this;
   }
 
-   /**
-   * Name of the container image, for example: ubuntu quay.io/aptible/ubuntu gcr.io/my-org/my-image etc...
+  /**
+   * Name of the container image. The string will be passed as the image argument to the containerization run command. Examples:    - `ubuntu`    - `quay.io/aptible/ubuntu`    - `gcr.io/my-org/my-image`    - `myregistryhost:5000/fedora/httpd:version1.0`
    * @return image
-  **/
-  @ApiModelProperty(value = "Name of the container image, for example: ubuntu quay.io/aptible/ubuntu gcr.io/my-org/my-image etc...")
-
+  */
+  @ApiModelProperty(example = "ubuntu:20.04", required = true, value = "Name of the container image. The string will be passed as the image argument to the containerization run command. Examples:    - `ubuntu`    - `quay.io/aptible/ubuntu`    - `gcr.io/my-org/my-image`    - `myregistryhost:5000/fedora/httpd:version1.0`")
+  @NotNull
+  @NotBlank
 
   public String getImage() {
     return image;
@@ -82,18 +72,19 @@ public class TesExecutor   {
 
   public TesExecutor addCommandItem(String commandItem) {
     if (this.command == null) {
-      this.command = new ArrayList<String>();
+      this.command = new ArrayList<>();
     }
     this.command.add(commandItem);
     return this;
   }
 
-   /**
-   * A sequence of program arguments to execute, where the first argument is the program to execute (i.e. argv).
+  /**
+   * A sequence of program arguments to execute, where the first argument is the program to execute (i.e. argv). Example: ``` {   \"command\" : [\"/bin/md5\", \"/data/file1\"] } ```
    * @return command
-  **/
-  @ApiModelProperty(value = "A sequence of program arguments to execute, where the first argument is the program to execute (i.e. argv).")
-
+  */
+  @ApiModelProperty(example = "[\"/bin/md5\",\"/data/file1\"]", required = true, value = "A sequence of program arguments to execute, where the first argument is the program to execute (i.e. argv). Example: ``` {   \"command\" : [\"/bin/md5\", \"/data/file1\"] } ```")
+  @NotNull
+  @NotEmpty
 
   public List<String> getCommand() {
     return command;
@@ -108,12 +99,12 @@ public class TesExecutor   {
     return this;
   }
 
-   /**
-   * The working directory that the command will be executed in. Defaults to the directory set by the container image.
+  /**
+   * The working directory that the command will be executed in. If not defined, the system will default to the directory set by the container image.
    * @return workdir
-  **/
-  @ApiModelProperty(value = "The working directory that the command will be executed in. Defaults to the directory set by the container image.")
-
+  */
+  @ApiModelProperty(example = "/data/", value = "The working directory that the command will be executed in. If not defined, the system will default to the directory set by the container image.")
+  @Pattern(regexp = ABSOLUTE_PATH_REGEXP, message = ABSOLUTE_PATH_MESSAGE)
 
   public String getWorkdir() {
     return workdir;
@@ -128,12 +119,12 @@ public class TesExecutor   {
     return this;
   }
 
-   /**
-   * Path inside the container to a file which will be piped to the executor's stdin. Must be an absolute path.
+  /**
+   * Path inside the container to a file which will be piped to the executor's stdin. This must be an absolute path. This mechanism could be used in conjunction with the input declaration to process a data file using a tool that expects STDIN.  For example, to get the MD5 sum of a file by reading it into the STDIN ``` {   \"command\" : [\"/bin/md5\"],   \"stdin\" : \"/data/file1\" } ```
    * @return stdin
-  **/
-  @ApiModelProperty(value = "Path inside the container to a file which will be piped to the executor's stdin. Must be an absolute path.")
-
+  */
+  @ApiModelProperty(example = "/data/file1", value = "Path inside the container to a file which will be piped to the executor's stdin. This must be an absolute path. This mechanism could be used in conjunction with the input declaration to process a data file using a tool that expects STDIN.  For example, to get the MD5 sum of a file by reading it into the STDIN ``` {   \"command\" : [\"/bin/md5\"],   \"stdin\" : \"/data/file1\" } ```")
+  @Pattern(regexp = ABSOLUTE_PATH_REGEXP, message = ABSOLUTE_PATH_MESSAGE)
 
   public String getStdin() {
     return stdin;
@@ -148,12 +139,12 @@ public class TesExecutor   {
     return this;
   }
 
-   /**
-   * Path inside the container to a file where the executor's stdout will be written to. Must be an absolute path.
+  /**
+   * Path inside the container to a file where the executor's stdout will be written to. Must be an absolute path. Example: ``` {   \"stdout\" : \"/tmp/stdout.log\" } ```
    * @return stdout
-  **/
-  @ApiModelProperty(value = "Path inside the container to a file where the executor's stdout will be written to. Must be an absolute path.")
-
+  */
+  @ApiModelProperty(example = "/tmp/stdout.log", value = "Path inside the container to a file where the executor's stdout will be written to. Must be an absolute path. Example: ``` {   \"stdout\" : \"/tmp/stdout.log\" } ```")
+  @Pattern(regexp = ABSOLUTE_PATH_REGEXP, message = ABSOLUTE_PATH_MESSAGE)
 
   public String getStdout() {
     return stdout;
@@ -168,12 +159,12 @@ public class TesExecutor   {
     return this;
   }
 
-   /**
-   * Path inside the container to a file where the executor's stderr will be written to. Must be an absolute path.
+  /**
+   * Path inside the container to a file where the executor's stderr will be written to. Must be an absolute path. Example: ``` {   \"stderr\" : \"/tmp/stderr.log\" } ```
    * @return stderr
-  **/
-  @ApiModelProperty(value = "Path inside the container to a file where the executor's stderr will be written to. Must be an absolute path.")
-
+  */
+  @ApiModelProperty(example = "/tmp/stderr.log", value = "Path inside the container to a file where the executor's stderr will be written to. Must be an absolute path. Example: ``` {   \"stderr\" : \"/tmp/stderr.log\" } ```")
+  @Pattern(regexp = ABSOLUTE_PATH_REGEXP, message = ABSOLUTE_PATH_MESSAGE)
 
   public String getStderr() {
     return stderr;
@@ -190,17 +181,17 @@ public class TesExecutor   {
 
   public TesExecutor putEnvItem(String key, String envItem) {
     if (this.env == null) {
-      this.env = new HashMap<String, String>();
+      this.env = new HashMap<>();
     }
     this.env.put(key, envItem);
     return this;
   }
 
-   /**
-   * Enviromental variables to set within the container.
+  /**
+   * Enviromental variables to set within the container. Example: ``` {   \"env\" : {     \"ENV_CONFIG_PATH\" : \"/data/config.file\",     \"BLASTDB\" : \"/data/GRC38\",     \"HMMERDB\" : \"/data/hmmer\"   } } ```
    * @return env
-  **/
-  @ApiModelProperty(value = "Enviromental variables to set within the container.")
+  */
+  @ApiModelProperty(example = "{\"BLASTDB\":\"/data/GRC38\",\"HMMERDB\":\"/data/hmmer\"}", value = "Enviromental variables to set within the container. Example: ``` {   \"env\" : {     \"ENV_CONFIG_PATH\" : \"/data/config.file\",     \"BLASTDB\" : \"/data/GRC38\",     \"HMMERDB\" : \"/data/hmmer\"   } } ```")
 
 
   public Map<String, String> getEnv() {
@@ -213,7 +204,7 @@ public class TesExecutor   {
 
 
   @Override
-  public boolean equals(java.lang.Object o) {
+  public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
@@ -255,7 +246,7 @@ public class TesExecutor   {
    * Convert the given object to string with each line indented by 4 spaces
    * (except the first line).
    */
-  private String toIndentedString(java.lang.Object o) {
+  private String toIndentedString(Object o) {
     if (o == null) {
       return "null";
     }

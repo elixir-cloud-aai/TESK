@@ -2,7 +2,6 @@ package uk.ac.ebi.tsc.tesk.api;
 
 import io.swagger.annotations.ApiParam;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -11,10 +10,10 @@ import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import uk.ac.ebi.tsc.tesk.config.security.User;
 import uk.ac.ebi.tsc.tesk.model.*;
-import uk.ac.ebi.tsc.tesk.service.ServiceInfoService;
 import uk.ac.ebi.tsc.tesk.service.TesService;
 import uk.ac.ebi.tsc.tesk.util.constant.TaskView;
 
@@ -24,25 +23,20 @@ import javax.validation.Valid;
 
 @Controller
 @RequiredArgsConstructor
-public class V1ApiController implements V1Api {
+@RequestMapping("${openapi.taskExecutionService.base-path:/ga4gh/tes/v1}")
+public class TasksApiController implements TasksApi {
 
     private final TesService tesService;
-    private final ServiceInfoService serviceInfo;
 
-    public ResponseEntity<TesCancelTaskResponse> cancelTask(@ApiParam(value = "", required = true) @PathVariable("id") String id) {
+    public ResponseEntity<Object> cancelTask(@ApiParam(value = "", required = true) @PathVariable("id") String id) {
         //getTask - for authZ purposes (cancellation only possible for the same tasks, a user can actually see
         this.tesService.getTask(id, TaskView.MINIMAL, getUser());
         this.tesService.cancelTask(id);
-        return new ResponseEntity<TesCancelTaskResponse>(HttpStatus.OK);
+        return new ResponseEntity<Object>(HttpStatus.OK);
     }
 
     public ResponseEntity<TesCreateTaskResponse> createTask(@ApiParam(value = "", required = true) @Valid @RequestBody TesTask body) {
         TesCreateTaskResponse response = this.tesService.createTask(body, this.getUser());
-        return new ResponseEntity<>(response, HttpStatus.OK);
-    }
-
-    public ResponseEntity<TesServiceInfo> getServiceInfo() {
-        TesServiceInfo response = this.serviceInfo.serviceInfo();
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 

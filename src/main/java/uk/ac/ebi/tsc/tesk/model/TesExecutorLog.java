@@ -12,34 +12,33 @@ import javax.validation.constraints.*;
  * ExecutorLog describes logging information related to an Executor.
  */
 @ApiModel(description = "ExecutorLog describes logging information related to an Executor.")
-@javax.annotation.Generated(value = "io.swagger.codegen.languages.SpringCodegen", date = "2017-11-16T12:59:29.706Z")
-
+@javax.annotation.Generated(value = "org.openapitools.codegen.languages.SpringCodegen", date = "2021-03-24T17:10:08.716Z[Europe/London]")
 public class TesExecutorLog   {
   @JsonProperty("start_time")
-  private String startTime = null;
+  private String startTime;
 
   @JsonProperty("end_time")
-  private String endTime = null;
+  private String endTime;
 
   @JsonProperty("stdout")
-  private String stdout = null;
+  private String stdout;
 
   @JsonProperty("stderr")
-  private String stderr = null;
+  private String stderr;
 
   @JsonProperty("exit_code")
-  private Integer exitCode = null;
+  private Integer exitCode;
 
   public TesExecutorLog startTime(String startTime) {
     this.startTime = startTime;
     return this;
   }
 
-   /**
+  /**
    * Time the executor started, in RFC 3339 format.
    * @return startTime
-  **/
-  @ApiModelProperty(value = "Time the executor started, in RFC 3339 format.")
+  */
+  @ApiModelProperty(example = "2020-10-02T10:00:00-05:00", value = "Time the executor started, in RFC 3339 format.")
 
 
   public String getStartTime() {
@@ -55,11 +54,11 @@ public class TesExecutorLog   {
     return this;
   }
 
-   /**
+  /**
    * Time the executor ended, in RFC 3339 format.
    * @return endTime
-  **/
-  @ApiModelProperty(value = "Time the executor ended, in RFC 3339 format.")
+  */
+  @ApiModelProperty(example = "2020-10-02T11:00:00-05:00", value = "Time the executor ended, in RFC 3339 format.")
 
 
   public String getEndTime() {
@@ -75,11 +74,11 @@ public class TesExecutorLog   {
     return this;
   }
 
-   /**
-   * Stdout content.  This is meant for convenience. No guarantees are made about the content. Implementations may chose different approaches: only the head, only the tail, a URL reference only, etc.  In order to capture the full stdout users should set Executor.stdout to a container file path, and use Task.outputs to upload that file to permanent storage.
+  /**
+   * Stdout content.  This is meant for convenience. No guarantees are made about the content. Implementations may chose different approaches: only the head, only the tail, a URL reference only, etc.  In order to capture the full stdout client should set Executor.stdout to a container file path, and use Task.outputs to upload that file to permanent storage.
    * @return stdout
-  **/
-  @ApiModelProperty(value = "Stdout content.  This is meant for convenience. No guarantees are made about the content. Implementations may chose different approaches: only the head, only the tail, a URL reference only, etc.  In order to capture the full stdout users should set Executor.stdout to a container file path, and use Task.outputs to upload that file to permanent storage.")
+  */
+  @ApiModelProperty(value = "Stdout content.  This is meant for convenience. No guarantees are made about the content. Implementations may chose different approaches: only the head, only the tail, a URL reference only, etc.  In order to capture the full stdout client should set Executor.stdout to a container file path, and use Task.outputs to upload that file to permanent storage.")
 
 
   public String getStdout() {
@@ -95,11 +94,11 @@ public class TesExecutorLog   {
     return this;
   }
 
-   /**
-   * Stderr content.  This is meant for convenience. No guarantees are made about the content. Implementations may chose different approaches: only the head, only the tail, a URL reference only, etc.  In order to capture the full stderr users should set Executor.stderr to a container file path, and use Task.outputs to upload that file to permanent storage.
+  /**
+   * Stderr content.  This is meant for convenience. No guarantees are made about the content. Implementations may chose different approaches: only the head, only the tail, a URL reference only, etc.  In order to capture the full stderr client should set Executor.stderr to a container file path, and use Task.outputs to upload that file to permanent storage.
    * @return stderr
-  **/
-  @ApiModelProperty(value = "Stderr content.  This is meant for convenience. No guarantees are made about the content. Implementations may chose different approaches: only the head, only the tail, a URL reference only, etc.  In order to capture the full stderr users should set Executor.stderr to a container file path, and use Task.outputs to upload that file to permanent storage.")
+  */
+  @ApiModelProperty(value = "Stderr content.  This is meant for convenience. No guarantees are made about the content. Implementations may chose different approaches: only the head, only the tail, a URL reference only, etc.  In order to capture the full stderr client should set Executor.stderr to a container file path, and use Task.outputs to upload that file to permanent storage.")
 
 
   public String getStderr() {
@@ -115,11 +114,12 @@ public class TesExecutorLog   {
     return this;
   }
 
-   /**
+  /**
    * Exit code.
    * @return exitCode
-  **/
-  @ApiModelProperty(value = "Exit code.")
+  */
+  @ApiModelProperty(required = true, value = "Exit code.")
+  @NotNull
 
 
   public Integer getExitCode() {
@@ -132,7 +132,7 @@ public class TesExecutorLog   {
 
 
   @Override
-  public boolean equals(java.lang.Object o) {
+  public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
@@ -170,7 +170,7 @@ public class TesExecutorLog   {
    * Convert the given object to string with each line indented by 4 spaces
    * (except the first line).
    */
-  private String toIndentedString(java.lang.Object o) {
+  private String toIndentedString(Object o) {
     if (o == null) {
       return "null";
     }
