@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import uk.ac.ebi.tsc.tesk.config.security.User;
 import uk.ac.ebi.tsc.tesk.model.*;
+import uk.ac.ebi.tsc.tesk.trs.TrsToolClient;
 import uk.ac.ebi.tsc.tesk.util.ExecutorCommandWrapper;
 import uk.ac.ebi.tsc.tesk.util.constant.K8sConstants;
 import uk.ac.ebi.tsc.tesk.util.data.Job;
@@ -44,16 +45,19 @@ public class TesKubernetesConverter {
 
     private final Gson gson;
 
+    private final TrsToolClient trsClient;
+
     private enum JOB_STATUS {ACTIVE, SUCCEEDED, FAILED}
 
     private static final DateTimeFormatter DATE_FORMATTER = ISODateTimeFormat.dateTime().withZoneUTC();
 
     public TesKubernetesConverter(@Qualifier("executor") Supplier<V1Job> executorTemplateSupplier, @Qualifier("taskmaster")
-            Supplier<V1Job> taskmasterTemplateSupplier, ObjectMapper objectMapper, Gson gson) {
+            Supplier<V1Job> taskmasterTemplateSupplier, ObjectMapper objectMapper, Gson gson, TrsToolClient trsClient) {
         this.executorTemplateSupplier = executorTemplateSupplier;
         this.taskmasterTemplateSupplier = taskmasterTemplateSupplier;
         this.objectMapper = objectMapper;
         this.gson = gson;
+        this.trsClient = trsClient;
     }
 
     /**
@@ -134,7 +138,8 @@ public class TesKubernetesConverter {
         job.getMetadata().putAnnotationsItem(ANN_TESTASK_NAME_KEY, tesTaskName);
         job.getMetadata().putLabelsItem(LABEL_USERID_KEY, user.getUsername());
         V1Container container = job.getSpec().getTemplate().getSpec().getContainers().get(0);
-        container.image(executor.getImage());
+        //Tries to convert potential TRS URI into docker image. If conversion unsuccessful -> leaves the original image value.
+        container.image(this.trsClient.getDockerImageForToolVersionURI(executor.getImage()));
         //Should we map executor's command to job container's command (==ENTRYPOINT) or job container's args (==CMD)?
         //It will be command == ENTRYPOINT, because of shell requirement and no custom entrypoints in bio tools.
         new ExecutorCommandWrapper(executor).getCommandsWithStreamRedirects().forEach(container::addCommandItem);
