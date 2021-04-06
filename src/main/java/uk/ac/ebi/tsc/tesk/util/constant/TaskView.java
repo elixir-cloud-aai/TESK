@@ -4,8 +4,8 @@ package uk.ac.ebi.tsc.tesk.util.constant;
  * @author Ania Niewielska <aniewielska@ebi.ac.uk>
  *
  * All values of view parameter in
- * {@link uk.ac.ebi.tsc.tesk.api.V1Api#getTask(String, String)}
- * and {@link uk.ac.ebi.tsc.tesk.api.V1Api#listTasks(String, Long, String, String)}
+ * {@link uk.ac.ebi.tsc.tesk.tes.api.V1Api#getTask(String, String)}
+ * and {@link uk.ac.ebi.tsc.tesk.tes.api.V1Api#listTasks(String, Long, String, String)}
  */
 public enum TaskView {
     MINIMAL("MINIMAL"), BASIC("BASIC"), FULL("FULL");

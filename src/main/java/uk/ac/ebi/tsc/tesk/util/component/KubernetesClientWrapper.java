@@ -13,8 +13,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import uk.ac.ebi.tsc.tesk.config.security.User;
-import uk.ac.ebi.tsc.tesk.exception.KubernetesException;
-import uk.ac.ebi.tsc.tesk.exception.TaskNotFoundException;
+import uk.ac.ebi.tsc.tesk.k8s.exception.KubernetesException;
+import uk.ac.ebi.tsc.tesk.tes.exception.TaskNotFoundException;
 
 import java.util.List;
 import java.util.Optional;

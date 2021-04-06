@@ -22,7 +22,7 @@ public class SwaggerConfigNoAuth {
     public Docket api() {
         return new Docket(DocumentationType.SWAGGER_2)
                 .select()
-                .apis(RequestHandlerSelectors.basePackage("uk.ac.ebi.tsc.tesk.api"))
+                .apis(RequestHandlerSelectors.basePackage("uk.ac.ebi.tsc.tesk.tes.api"))
                 .paths(PathSelectors.any())
                 .build();
 

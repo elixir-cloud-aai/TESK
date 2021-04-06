@@ -3,7 +3,7 @@ package uk.ac.ebi.tsc.tesk.util.constant;
 import io.kubernetes.client.models.V1Job;
 import io.kubernetes.client.models.V1ObjectMeta;
 import io.kubernetes.client.models.V1Pod;
-import uk.ac.ebi.tsc.tesk.model.TesState;
+import uk.ac.ebi.tsc.tesk.tes.model.TesState;
 
 import java.util.EnumSet;
 

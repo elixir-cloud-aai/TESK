@@ -11,7 +11,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import uk.ac.ebi.tsc.tesk.config.security.User;
-import uk.ac.ebi.tsc.tesk.model.*;
+import uk.ac.ebi.tsc.tesk.tes.model.*;
 import uk.ac.ebi.tsc.tesk.trs.TrsToolClient;
 import uk.ac.ebi.tsc.tesk.util.ExecutorCommandWrapper;
 import uk.ac.ebi.tsc.tesk.util.constant.K8sConstants;

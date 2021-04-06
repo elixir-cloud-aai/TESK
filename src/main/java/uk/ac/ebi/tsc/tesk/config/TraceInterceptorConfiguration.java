@@ -10,7 +10,7 @@ import org.springframework.aop.support.DefaultPointcutAdvisor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.EnableAspectJAutoProxy;
-import uk.ac.ebi.tsc.tesk.exception.KubernetesException;
+import uk.ac.ebi.tsc.tesk.k8s.exception.KubernetesException;
 
 /**
  * @author Ania Niewielska <aniewielska@ebi.ac.uk>
