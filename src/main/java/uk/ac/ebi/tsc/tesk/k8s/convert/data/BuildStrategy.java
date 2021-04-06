@@ -1,4 +1,4 @@
-package uk.ac.ebi.tsc.tesk.util.data;
+package uk.ac.ebi.tsc.tesk.k8s.convert.data;
 
 import java.util.List;
 

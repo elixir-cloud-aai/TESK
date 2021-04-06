@@ -1,4 +1,4 @@
-package uk.ac.ebi.tsc.tesk.config;
+package uk.ac.ebi.tsc.tesk.k8s.config;
 
 import io.kubernetes.client.ApiClient;
 import io.kubernetes.client.apis.BatchV1Api;

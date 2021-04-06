@@ -1,12 +1,12 @@
-package uk.ac.ebi.tsc.tesk.util.data;
+package uk.ac.ebi.tsc.tesk.k8s.convert.data;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import static uk.ac.ebi.tsc.tesk.util.constant.Constants.JOB_NAME_FILER_SUF;
-import static uk.ac.ebi.tsc.tesk.util.constant.Constants.LABEL_TESTASK_ID_KEY;
+import static uk.ac.ebi.tsc.tesk.k8s.constant.Constants.JOB_NAME_FILER_SUF;
+import static uk.ac.ebi.tsc.tesk.k8s.constant.Constants.LABEL_TESTASK_ID_KEY;
 
 /**
  * @author Ania Niewielska <aniewielska@ebi.ac.uk>

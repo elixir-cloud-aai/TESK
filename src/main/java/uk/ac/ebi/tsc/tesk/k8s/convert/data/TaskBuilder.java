@@ -1,4 +1,4 @@
-package uk.ac.ebi.tsc.tesk.util.data;
+package uk.ac.ebi.tsc.tesk.k8s.convert.data;
 
 import com.google.common.collect.MapDifference;
 import com.google.common.collect.Maps;
@@ -9,7 +9,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static uk.ac.ebi.tsc.tesk.util.constant.Constants.*;
+import static uk.ac.ebi.tsc.tesk.k8s.constant.Constants.*;
 
 /**
  * @author Ania Niewielska <aniewielska@ebi.ac.uk>

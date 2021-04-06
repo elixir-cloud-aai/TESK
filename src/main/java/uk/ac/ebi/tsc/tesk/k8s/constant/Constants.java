@@ -1,4 +1,4 @@
-package uk.ac.ebi.tsc.tesk.util.constant;
+package uk.ac.ebi.tsc.tesk.k8s.constant;
 
 import io.kubernetes.client.models.V1Job;
 import io.kubernetes.client.models.V1ObjectMeta;

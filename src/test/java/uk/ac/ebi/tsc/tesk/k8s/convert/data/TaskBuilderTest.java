@@ -1,4 +1,4 @@
-package uk.ac.ebi.tsc.tesk.util.data;
+package uk.ac.ebi.tsc.tesk.k8s.convert.data;
 
 import com.google.common.collect.Lists;
 import io.kubernetes.client.models.*;
@@ -18,7 +18,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static uk.ac.ebi.tsc.tesk.util.constant.Constants.*;
+import static uk.ac.ebi.tsc.tesk.k8s.constant.Constants.*;
 
 @RunWith(MockitoJUnitRunner.class)
 public class TaskBuilderTest {

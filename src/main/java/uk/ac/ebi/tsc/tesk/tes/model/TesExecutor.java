@@ -11,8 +11,8 @@ import java.util.Map;
 import javax.validation.Valid;
 import javax.validation.constraints.*;
 
-import static uk.ac.ebi.tsc.tesk.util.constant.Constants.ABSOLUTE_PATH_MESSAGE;
-import static uk.ac.ebi.tsc.tesk.util.constant.Constants.ABSOLUTE_PATH_REGEXP;
+import static uk.ac.ebi.tsc.tesk.k8s.constant.Constants.ABSOLUTE_PATH_MESSAGE;
+import static uk.ac.ebi.tsc.tesk.k8s.constant.Constants.ABSOLUTE_PATH_REGEXP;
 
 /**
  * Executor describes a command to be executed, and its environment.

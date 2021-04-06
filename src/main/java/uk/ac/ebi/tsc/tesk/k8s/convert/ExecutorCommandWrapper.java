@@ -1,4 +1,4 @@
-package uk.ac.ebi.tsc.tesk.util;
+package uk.ac.ebi.tsc.tesk.k8s.convert;
 
 import org.apache.commons.lang.StringUtils;
 import uk.ac.ebi.tsc.tesk.tes.model.TesExecutor;

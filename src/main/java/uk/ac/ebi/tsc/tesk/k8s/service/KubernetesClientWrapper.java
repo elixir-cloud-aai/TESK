@@ -1,4 +1,4 @@
-package uk.ac.ebi.tsc.tesk.util.component;
+package uk.ac.ebi.tsc.tesk.k8s.service;
 
 import io.kubernetes.client.ApiException;
 import io.kubernetes.client.apis.BatchV1Api;
@@ -21,7 +21,7 @@ import java.util.Optional;
 import java.util.StringJoiner;
 import java.util.stream.Collectors;
 
-import static uk.ac.ebi.tsc.tesk.util.constant.Constants.*;
+import static uk.ac.ebi.tsc.tesk.k8s.constant.Constants.*;
 
 /**
  * @author Ania Niewielska <aniewielska@ebi.ac.uk>

@@ -1,4 +1,4 @@
-package uk.ac.ebi.tsc.tesk.util.component;
+package uk.ac.ebi.tsc.tesk.k8s.convert;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -13,10 +13,9 @@ import org.springframework.stereotype.Component;
 import uk.ac.ebi.tsc.tesk.config.security.User;
 import uk.ac.ebi.tsc.tesk.tes.model.*;
 import uk.ac.ebi.tsc.tesk.trs.TrsToolClient;
-import uk.ac.ebi.tsc.tesk.util.ExecutorCommandWrapper;
-import uk.ac.ebi.tsc.tesk.util.constant.K8sConstants;
-import uk.ac.ebi.tsc.tesk.util.data.Job;
-import uk.ac.ebi.tsc.tesk.util.data.Task;
+import uk.ac.ebi.tsc.tesk.k8s.constant.K8sConstants;
+import uk.ac.ebi.tsc.tesk.k8s.convert.data.Job;
+import uk.ac.ebi.tsc.tesk.k8s.convert.data.Task;
 
 import java.io.IOException;
 import java.util.*;
@@ -24,8 +23,8 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import static uk.ac.ebi.tsc.tesk.util.constant.Constants.*;
-import static uk.ac.ebi.tsc.tesk.util.constant.K8sConstants.*;
+import static uk.ac.ebi.tsc.tesk.k8s.constant.Constants.*;
+import static uk.ac.ebi.tsc.tesk.k8s.constant.K8sConstants.*;
 
 /**
  * @author Ania Niewielska <aniewielska@ebi.ac.uk>

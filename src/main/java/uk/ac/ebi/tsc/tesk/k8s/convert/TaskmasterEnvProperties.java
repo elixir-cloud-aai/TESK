@@ -1,4 +1,4 @@
-package uk.ac.ebi.tsc.tesk.config;
+package uk.ac.ebi.tsc.tesk.k8s.convert;
 
 import org.apache.commons.lang.StringUtils;
 import org.springframework.boot.context.properties.ConfigurationProperties;

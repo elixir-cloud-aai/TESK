@@ -8,17 +8,17 @@ import uk.ac.ebi.tsc.tesk.config.security.User;
 import uk.ac.ebi.tsc.tesk.tes.exception.CancelNotRunningTask;
 import uk.ac.ebi.tsc.tesk.k8s.exception.KubernetesException;
 import uk.ac.ebi.tsc.tesk.tes.model.*;
-import uk.ac.ebi.tsc.tesk.util.component.KubernetesClientWrapper;
-import uk.ac.ebi.tsc.tesk.util.component.TesKubernetesConverter;
-import uk.ac.ebi.tsc.tesk.util.constant.TaskView;
-import uk.ac.ebi.tsc.tesk.util.data.*;
+import uk.ac.ebi.tsc.tesk.k8s.service.KubernetesClientWrapper;
+import uk.ac.ebi.tsc.tesk.k8s.convert.TesKubernetesConverter;
+import uk.ac.ebi.tsc.tesk.tes.model.TaskView;
+import uk.ac.ebi.tsc.tesk.k8s.convert.data.*;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import static uk.ac.ebi.tsc.tesk.util.constant.Constants.COMPLETED_STATES;
-import static uk.ac.ebi.tsc.tesk.util.constant.Constants.JOB_CREATE_ATTEMPTS_NO;
+import static uk.ac.ebi.tsc.tesk.k8s.constant.Constants.COMPLETED_STATES;
+import static uk.ac.ebi.tsc.tesk.k8s.constant.Constants.JOB_CREATE_ATTEMPTS_NO;
 
 /**
  * @author Ania Niewielska <aniewielska@ebi.ac.uk>

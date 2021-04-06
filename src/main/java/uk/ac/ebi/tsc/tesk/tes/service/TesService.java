@@ -6,8 +6,8 @@ import uk.ac.ebi.tsc.tesk.config.security.User;
 import uk.ac.ebi.tsc.tesk.tes.model.TesCreateTaskResponse;
 import uk.ac.ebi.tsc.tesk.tes.model.TesListTasksResponse;
 import uk.ac.ebi.tsc.tesk.tes.model.TesTask;
-import uk.ac.ebi.tsc.tesk.util.constant.TaskView;
-import uk.ac.ebi.tsc.tesk.util.data.Task;
+import uk.ac.ebi.tsc.tesk.tes.model.TaskView;
+import uk.ac.ebi.tsc.tesk.k8s.convert.data.Task;
 
 /**
  * @author Ania Niewielska <aniewielska@ebi.ac.uk>

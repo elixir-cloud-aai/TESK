@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import uk.ac.ebi.tsc.tesk.config.security.User;
 import uk.ac.ebi.tsc.tesk.tes.model.*;
 import uk.ac.ebi.tsc.tesk.tes.service.TesService;
-import uk.ac.ebi.tsc.tesk.util.constant.TaskView;
+import uk.ac.ebi.tsc.tesk.tes.model.TaskView;
 
 import javax.validation.Valid;
 

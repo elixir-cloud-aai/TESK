@@ -1,4 +1,4 @@
-package uk.ac.ebi.tsc.tesk.util.component;
+package uk.ac.ebi.tsc.tesk.k8s.convert;
 
 import org.springframework.stereotype.Component;
 
@@ -6,8 +6,8 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import static uk.ac.ebi.tsc.tesk.util.constant.Constants.JOB_NAME_TASKM_PREFIX;
-import static uk.ac.ebi.tsc.tesk.util.constant.Constants.JOB_NAME_TASKM_RAND_PART_LENGTH;
+import static uk.ac.ebi.tsc.tesk.k8s.constant.Constants.JOB_NAME_TASKM_PREFIX;
+import static uk.ac.ebi.tsc.tesk.k8s.constant.Constants.JOB_NAME_TASKM_RAND_PART_LENGTH;
 
 /**
  * @author Ania Niewielska <aniewielska@ebi.ac.uk>

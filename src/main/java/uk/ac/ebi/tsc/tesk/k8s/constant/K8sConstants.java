@@ -1,4 +1,4 @@
-package uk.ac.ebi.tsc.tesk.util.constant;
+package uk.ac.ebi.tsc.tesk.k8s.constant;
 
 /**
  * @author Ania Niewielska <aniewielska@ebi.ac.uk>

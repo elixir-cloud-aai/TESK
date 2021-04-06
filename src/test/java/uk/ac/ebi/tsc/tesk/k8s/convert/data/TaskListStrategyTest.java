@@ -1,4 +1,4 @@
-package uk.ac.ebi.tsc.tesk.util.data;
+package uk.ac.ebi.tsc.tesk.k8s.convert.data;
 
 import io.kubernetes.client.models.V1Job;
 import io.kubernetes.client.models.V1ObjectMeta;
@@ -6,7 +6,7 @@ import org.junit.Test;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.*;
-import static uk.ac.ebi.tsc.tesk.util.constant.Constants.LABEL_TESTASK_ID_KEY;
+import static uk.ac.ebi.tsc.tesk.k8s.constant.Constants.LABEL_TESTASK_ID_KEY;
 
 public class TaskListStrategyTest {
 

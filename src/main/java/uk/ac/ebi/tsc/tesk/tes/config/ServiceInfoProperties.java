@@ -1,4 +1,4 @@
-package uk.ac.ebi.tsc.tesk.config;
+package uk.ac.ebi.tsc.tesk.tes.config;
 
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;

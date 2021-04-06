@@ -2,7 +2,7 @@ package uk.ac.ebi.tsc.tesk.tes.service;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import uk.ac.ebi.tsc.tesk.config.ServiceInfoProperties;
+import uk.ac.ebi.tsc.tesk.tes.config.ServiceInfoProperties;
 import uk.ac.ebi.tsc.tesk.tes.model.TesServiceInfo;
 
 /**
