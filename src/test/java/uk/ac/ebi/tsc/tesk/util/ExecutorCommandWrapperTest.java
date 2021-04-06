@@ -1,7 +1,8 @@
 package uk.ac.ebi.tsc.tesk.util;
 
 import org.junit.Test;
-import uk.ac.ebi.tsc.tesk.model.TesExecutor;
+import uk.ac.ebi.tsc.tesk.k8s.convert.ExecutorCommandWrapper;
+import uk.ac.ebi.tsc.tesk.tes.model.TesExecutor;
 
 import java.util.Arrays;
 import java.util.List;

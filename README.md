@@ -82,6 +82,6 @@ The current version of TES specification (v1.0) is linked as a [submodule](/tes)
 
 ```mvn clean generate-sources -P generate-swagger```
 
-That will generate new versions of [model](/src/main/java/uk/ac/ebi/tsc/tesk/model) and [API](/src/main/java/uk/ac/ebi/tsc/tesk/api) stub files.
+That will generate new versions of [model](/src/main/java/uk/ac/ebi/tsc/tesk/tes/model) and [API](/src/main/java/uk/ac/ebi/tsc/tesk/tes/api) stub files.
 The project model objects contains additional [Bean Validation](http://beanvalidation.org) annotations than those derived from the spec, and those need to be manually restored in auto-generated code. Currently, the manual reconciliation of changes is always necessary after model regeneration.
     

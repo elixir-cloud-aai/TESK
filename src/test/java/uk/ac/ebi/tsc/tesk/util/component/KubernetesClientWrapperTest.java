@@ -17,7 +17,8 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.util.StringUtils;
 import uk.ac.ebi.tsc.tesk.config.security.User;
-import uk.ac.ebi.tsc.tesk.exception.TaskNotFoundException;
+import uk.ac.ebi.tsc.tesk.k8s.service.KubernetesClientWrapper;
+import uk.ac.ebi.tsc.tesk.tes.exception.TaskNotFoundException;
 
 import java.util.Arrays;
 import java.util.Optional;
@@ -26,8 +27,8 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
-import static uk.ac.ebi.tsc.tesk.util.constant.Constants.LABEL_GROUPNAME_KEY;
-import static uk.ac.ebi.tsc.tesk.util.constant.Constants.LABEL_USERID_KEY;
+import static uk.ac.ebi.tsc.tesk.k8s.constant.Constants.LABEL_GROUPNAME_KEY;
+import static uk.ac.ebi.tsc.tesk.k8s.constant.Constants.LABEL_USERID_KEY;
 
 @RunWith(SpringRunner.class)
 @TestPropertySource(

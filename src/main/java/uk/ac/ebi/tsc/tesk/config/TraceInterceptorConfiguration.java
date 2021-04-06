@@ -10,7 +10,7 @@ import org.springframework.aop.support.DefaultPointcutAdvisor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.EnableAspectJAutoProxy;
-import uk.ac.ebi.tsc.tesk.exception.KubernetesException;
+import uk.ac.ebi.tsc.tesk.k8s.exception.KubernetesException;
 
 /**
  * @author Ania Niewielska <aniewielska@ebi.ac.uk>
@@ -31,19 +31,19 @@ public class TraceInterceptorConfiguration {
         }
     }
 
-    @Pointcut("execution(public * uk.ac.ebi.tsc.tesk.util.component.KubernetesClientWrapper+.create*(..))")
+    @Pointcut("execution(public * uk.ac.ebi.tsc.tesk.k8s.service.KubernetesClientWrapper+.create*(..))")
     public void createMethods() {
     }
 
-    @Pointcut("execution(public * uk.ac.ebi.tsc.tesk.util.component.KubernetesClientWrapper+.label*(..))")
+    @Pointcut("execution(public * uk.ac.ebi.tsc.tesk.k8s.service.KubernetesClientWrapper+.label*(..))")
     public void labelMethods() {
     }
 
-    @Pointcut("execution(public * uk.ac.ebi.tsc.tesk.util.component.KubernetesClientWrapper+.list*(..))")
+    @Pointcut("execution(public * uk.ac.ebi.tsc.tesk.k8s.service.KubernetesClientWrapper+.list*(..))")
     public void listMethods() {
     }
 
-    @Pointcut("execution(public * uk.ac.ebi.tsc.tesk.util.component.KubernetesClientWrapper+.read*(..))")
+    @Pointcut("execution(public * uk.ac.ebi.tsc.tesk.k8s.service.KubernetesClientWrapper+.read*(..))")
     public void readMethods() {
     }
 

@@ -4,7 +4,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.util.StringUtils;
-import uk.ac.ebi.tsc.tesk.util.constant.Constants;
+import uk.ac.ebi.tsc.tesk.k8s.constant.Constants;
 
 import java.io.Serializable;
 import java.security.Principal;

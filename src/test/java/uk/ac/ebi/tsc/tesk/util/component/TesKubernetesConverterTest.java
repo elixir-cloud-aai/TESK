@@ -25,14 +25,16 @@ import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.util.StringUtils;
 import uk.ac.ebi.tsc.tesk.TestUtils;
 import uk.ac.ebi.tsc.tesk.config.GsonConfig;
-import uk.ac.ebi.tsc.tesk.config.KubernetesObjectsSupplier;
-import uk.ac.ebi.tsc.tesk.config.TaskmasterEnvProperties;
+import uk.ac.ebi.tsc.tesk.k8s.convert.KubernetesObjectsSupplier;
+import uk.ac.ebi.tsc.tesk.k8s.convert.TaskmasterEnvProperties;
 import uk.ac.ebi.tsc.tesk.config.security.User;
-import uk.ac.ebi.tsc.tesk.model.TesState;
-import uk.ac.ebi.tsc.tesk.model.TesTask;
+import uk.ac.ebi.tsc.tesk.k8s.convert.JobNameGenerator;
+import uk.ac.ebi.tsc.tesk.k8s.convert.TesKubernetesConverter;
+import uk.ac.ebi.tsc.tesk.tes.model.TesState;
+import uk.ac.ebi.tsc.tesk.tes.model.TesTask;
 import uk.ac.ebi.tsc.tesk.trs.TrsToolClient;
-import uk.ac.ebi.tsc.tesk.util.constant.Constants;
-import uk.ac.ebi.tsc.tesk.util.data.TaskBuilder;
+import uk.ac.ebi.tsc.tesk.k8s.constant.Constants;
+import uk.ac.ebi.tsc.tesk.k8s.convert.data.TaskBuilder;
 
 import java.io.*;
 import java.util.HashMap;
@@ -48,8 +50,8 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import static uk.ac.ebi.tsc.tesk.util.constant.Constants.LABEL_TASKSTATE_KEY;
-import static uk.ac.ebi.tsc.tesk.util.constant.Constants.LABEL_TASKSTATE_VALUE_CANC;
+import static uk.ac.ebi.tsc.tesk.k8s.constant.Constants.LABEL_TASKSTATE_KEY;
+import static uk.ac.ebi.tsc.tesk.k8s.constant.Constants.LABEL_TASKSTATE_VALUE_CANC;
 
 
 /**
