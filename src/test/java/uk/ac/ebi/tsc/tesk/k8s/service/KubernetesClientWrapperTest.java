@@ -1,4 +1,4 @@
-package uk.ac.ebi.tsc.tesk.util.component;
+package uk.ac.ebi.tsc.tesk.k8s.service;
 
 import io.kubernetes.client.ApiException;
 import io.kubernetes.client.apis.BatchV1Api;
@@ -17,7 +17,6 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.util.StringUtils;
 import uk.ac.ebi.tsc.tesk.config.security.User;
-import uk.ac.ebi.tsc.tesk.k8s.service.KubernetesClientWrapper;
 import uk.ac.ebi.tsc.tesk.tes.exception.TaskNotFoundException;
 
 import java.util.Arrays;

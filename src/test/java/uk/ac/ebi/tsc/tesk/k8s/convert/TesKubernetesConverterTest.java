@@ -1,4 +1,4 @@
-package uk.ac.ebi.tsc.tesk.util.component;
+package uk.ac.ebi.tsc.tesk.k8s.convert;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
@@ -25,16 +25,12 @@ import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.util.StringUtils;
 import uk.ac.ebi.tsc.tesk.TestUtils;
 import uk.ac.ebi.tsc.tesk.config.GsonConfig;
-import uk.ac.ebi.tsc.tesk.k8s.convert.KubernetesObjectsSupplier;
-import uk.ac.ebi.tsc.tesk.k8s.convert.TaskmasterEnvProperties;
 import uk.ac.ebi.tsc.tesk.config.security.User;
-import uk.ac.ebi.tsc.tesk.k8s.convert.JobNameGenerator;
-import uk.ac.ebi.tsc.tesk.k8s.convert.TesKubernetesConverter;
+import uk.ac.ebi.tsc.tesk.k8s.constant.Constants;
+import uk.ac.ebi.tsc.tesk.k8s.convert.data.TaskBuilder;
 import uk.ac.ebi.tsc.tesk.tes.model.TesState;
 import uk.ac.ebi.tsc.tesk.tes.model.TesTask;
 import uk.ac.ebi.tsc.tesk.trs.TrsToolClient;
-import uk.ac.ebi.tsc.tesk.k8s.constant.Constants;
-import uk.ac.ebi.tsc.tesk.k8s.convert.data.TaskBuilder;
 
 import java.io.*;
 import java.util.HashMap;
