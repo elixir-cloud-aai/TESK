@@ -8,6 +8,5 @@ install:
   - wget -q ${HELM_URL}/${HELM_TGZ}
   - tar xzf ${HELM_TGZ}
   - PATH=`pwd`/linux-amd64/:$PATH
-  - helm init --client-only
 script:
   - helm lint ./charts/tesk
