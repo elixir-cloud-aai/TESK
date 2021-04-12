@@ -1,0 +1,6 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: service-info-config
+data:
+{{ (.Files.Glob "service-info/*").AsConfig | indent 2 }}

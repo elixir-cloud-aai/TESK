@@ -35,6 +35,8 @@ spec:
         - name: OPENAPI_TASKEXECUTIONSERVICE_BASE_PATH
           value: {{ .Values.tesk.tes_api_base_path }}
         {{ end }}
+        - name: TESK_API_SERVICE_INFO_LOCATION
+          value: file:///etc/tesk/service-info/service-info.yaml
         {{ if .Values.ftp.classic_ftp_secret }}
         - name: TESK_API_TASKMASTER_FTP_SECRET_NAME
           value: {{ .Values.ftp.classic_ftp_secret }}
@@ -76,6 +78,13 @@ spec:
               name: oauth-client-secret
               key: secret
               optional: true
+        volumeMounts:
+          - name: service-info-config
+            mountPath: /etc/tesk/service-info
 
         ports:
         - containerPort: {{ .Values.tesk.port }}
+      volumes:
+        - name: service-info-config
+          configMap:
+            name: service-info-config
