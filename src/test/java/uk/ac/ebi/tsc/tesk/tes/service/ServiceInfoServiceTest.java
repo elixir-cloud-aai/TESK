@@ -30,7 +30,7 @@ public class ServiceInfoServiceTest {
         TesServiceInfo expected = new TesServiceInfo()
                 .name("example application")
                 .createdAt(LocalDateTime.parse("2001-12-14T21:59:00").atOffset(ZoneOffset.UTC))
-                .organization(new ServiceOrganization().name("EBI").url(new URI("http://example.com")));
+                .organization(new ServiceOrganization().name("EBI").url("http://example.com"));
         assertThat(result, is(expected));
         subject.loadYaml();
         assertThat(result, is(expected));

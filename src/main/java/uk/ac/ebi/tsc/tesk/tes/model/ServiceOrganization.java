@@ -2,9 +2,9 @@ package uk.ac.ebi.tsc.tesk.tes.model;
 
 import java.util.Objects;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonCreator;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
-import java.net.URI;
 import javax.validation.Valid;
 import javax.validation.constraints.*;
 
@@ -12,13 +12,13 @@ import javax.validation.constraints.*;
  * Organization providing the service
  */
 @ApiModel(description = "Organization providing the service")
-@javax.annotation.Generated(value = "org.openapitools.codegen.languages.SpringCodegen", date = "2021-03-24T17:10:08.716Z[Europe/London]")
+@javax.annotation.Generated(value = "org.openapitools.codegen.languages.SpringCodegen", date = "2021-04-12T17:49:13.631+01:00[Europe/London]")
 public class ServiceOrganization   {
   @JsonProperty("name")
   private String name;
 
   @JsonProperty("url")
-  private URI url;
+  private String url;
 
   public ServiceOrganization name(String name) {
     this.name = name;
@@ -41,7 +41,7 @@ public class ServiceOrganization   {
     this.name = name;
   }
 
-  public ServiceOrganization url(URI url) {
+  public ServiceOrganization url(String url) {
     this.url = url;
     return this;
   }
@@ -53,13 +53,12 @@ public class ServiceOrganization   {
   @ApiModelProperty(example = "https://example.com", required = true, value = "URL of the website of the organization (RFC 3986 format)")
   @NotNull
 
-  @Valid
 
-  public URI getUrl() {
+  public String getUrl() {
     return url;
   }
 
-  public void setUrl(URI url) {
+  public void setUrl(String url) {
     this.url = url;
   }
 

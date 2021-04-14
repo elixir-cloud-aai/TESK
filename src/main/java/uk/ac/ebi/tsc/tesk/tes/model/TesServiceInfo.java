@@ -2,18 +2,23 @@ package uk.ac.ebi.tsc.tesk.tes.model;
 
 import java.util.Objects;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
-import java.net.URI;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import uk.ac.ebi.tsc.tesk.tes.model.Service;
+import uk.ac.ebi.tsc.tesk.tes.model.ServiceOrganization;
+import uk.ac.ebi.tsc.tesk.tes.model.TesServiceInfoAllOf;
+import uk.ac.ebi.tsc.tesk.tes.model.TesServiceType;
 import javax.validation.Valid;
 import javax.validation.constraints.*;
 
 /**
  * TesServiceInfo
  */
-@javax.annotation.Generated(value = "org.openapitools.codegen.languages.SpringCodegen", date = "2021-03-24T17:10:08.716Z[Europe/London]")
+@javax.annotation.Generated(value = "org.openapitools.codegen.languages.SpringCodegen", date = "2021-04-12T17:49:13.631+01:00[Europe/London]")
 public class TesServiceInfo   {
   @JsonProperty("id")
   private String id;
@@ -31,10 +36,10 @@ public class TesServiceInfo   {
   private ServiceOrganization organization;
 
   @JsonProperty("contactUrl")
-  private URI contactUrl;
+  private String contactUrl;
 
   @JsonProperty("documentationUrl")
-  private URI documentationUrl;
+  private String documentationUrl;
 
   @JsonProperty("createdAt")
   @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME)
@@ -160,7 +165,7 @@ public class TesServiceInfo   {
     this.organization = organization;
   }
 
-  public TesServiceInfo contactUrl(URI contactUrl) {
+  public TesServiceInfo contactUrl(String contactUrl) {
     this.contactUrl = contactUrl;
     return this;
   }
@@ -171,17 +176,16 @@ public class TesServiceInfo   {
   */
   @ApiModelProperty(example = "mailto:support@example.com", value = "URL of the contact for the provider of this service, e.g. a link to a contact form (RFC 3986 format), or an email (RFC 2368 format).")
 
-  @Valid
 
-  public URI getContactUrl() {
+  public String getContactUrl() {
     return contactUrl;
   }
 
-  public void setContactUrl(URI contactUrl) {
+  public void setContactUrl(String contactUrl) {
     this.contactUrl = contactUrl;
   }
 
-  public TesServiceInfo documentationUrl(URI documentationUrl) {
+  public TesServiceInfo documentationUrl(String documentationUrl) {
     this.documentationUrl = documentationUrl;
     return this;
   }
@@ -192,13 +196,12 @@ public class TesServiceInfo   {
   */
   @ApiModelProperty(example = "https://docs.myservice.example.com", value = "URL of the documentation of this service (RFC 3986 format). This should help someone learn how to use your service, including any specifics required to access data, e.g. authentication.")
 
-  @Valid
 
-  public URI getDocumentationUrl() {
+  public String getDocumentationUrl() {
     return documentationUrl;
   }
 
-  public void setDocumentationUrl(URI documentationUrl) {
+  public void setDocumentationUrl(String documentationUrl) {
     this.documentationUrl = documentationUrl;
   }
 

@@ -131,6 +131,7 @@
                             <generateSupportingFiles>true</generateSupportingFiles>
                             <supportingFilesToGenerate>ApiUtil.java</supportingFilesToGenerate>
                             <ignoreFileOverride>${project.basedir}/.swagger-codegen-ignore</ignoreFileOverride>
+                            <typeMappings>URI=String</typeMappings>
                             <configOptions>
                                 <sourceFolder>./</sourceFolder>
                                 <openApiNullable>false</openApiNullable>
