@@ -17,8 +17,12 @@ spec:
       - name: tesk-api
         image: {{ .Values.tesk.image }}
         env:
+        - name: TESK_API_TASKMASTER_IMAGE_NAME
+          value: {{ .Values.tesk.taskmaster_image_name }}
         - name: TESK_API_TASKMASTER_IMAGE_VERSION
           value: {{ .Values.tesk.taskmaster_image_version }}
+        - name: TESK_API_TASKMASTER_FILER_IMAGE_NAME
+          value: {{ .Values.tesk.taskmaster_filer_image_name }}
         - name: TESK_API_TASKMASTER_FILER_IMAGE_VERSION
           value: {{ .Values.tesk.taskmaster_filer_image_version }}
         - name: TESK_API_K8S_NAMESPACE
