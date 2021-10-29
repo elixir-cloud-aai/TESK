@@ -91,6 +91,44 @@ public class KubernetesClientWrapper {
 
 
     /**
+     * Wrapper to call Kubernetes API and retrieve all available LimitRange objects in the namespace
+     * @return The V1LimitRangeList object with all the LimitRanges
+     */
+    private V1LimitRangeList listLimits(String _continue, String labelSelector, Integer limit) {
+        try {
+            return this.coreApi.listNamespacedLimitRange(namespace, null, null, _continue, null,
+                labelSelector, limit, null, null, null);
+        } catch (ApiException e) {
+            throw KubernetesException.fromApiException(e);
+        }
+    }
+
+    /**
+     * Queries the API to get the minimum memory requirements to launch a Pod (and a Container). Returns the highest
+     * @return Memory in Gigabytes (Double)
+     */
+    public Double minimumRamGb() {
+        BigDecimal returnValue = BigDecimal.ZERO;
+        for (V1LimitRange limit : listLimits(null, null, null).getItems())
+            for (V1LimitRangeItem item : limit.getSpec().getLimits()) {
+                if(item.getMin() != null && item.getMin().get(RESOURCE_MEM_KEY) != null) {
+                    Quantity quantity = new QuantityFormatter().parse(item.getMin().get(RESOURCE_MEM_KEY));
+                    if(returnValue.compareTo(quantity.getNumber()) == -1) returnValue = quantity.getNumber();
+                }
+            }
+        return toGB(returnValue);
+    }
+
+    /**
+     * Converts bytes in BigDecimal to GigaBytes in Double. K8s's API reports values in BigDecimal
+     * @param bytes - The memory in bytes
+     * @return Memory in Gigabytes
+     */
+    private Double toGB(BigDecimal bytes) {
+        return bytes.doubleValue()/RESOURCE_MEM_ONE_GB;
+    }
+
+    /**
      * Gets all Taskmaster job objects, a User is allowed to see
      * @param pageToken - pageToken supplied by user (from previous result; points to next page of results)
      * @param itemsPerPage - value submitted by user, limiting number of results

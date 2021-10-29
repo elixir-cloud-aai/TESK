@@ -53,6 +53,17 @@ public class TesServiceImpl implements TesService {
         int attemptsNo = 0;
         while (true) {
             try {
+
+                TesResources resources = task.getResources();
+
+                if (resources.getRamGb()!= null) {
+                    Double minimumRamGb = this.kubernetesClientWrapper.minimumRamGb();
+                    if (resources.getRamGb() < minimumRamGb) {
+                        resources.setRamGb(minimumRamGb);
+                        task.setResources(resources);
+                    }
+                }
+
                 V1Job taskMasterJob = this.converter.fromTesTaskToK8sJob(task, user);
                 V1Job createdJob = this.kubernetesClientWrapper.createJob(taskMasterJob);
                 return this.converter.fromK8sJobToTesCreateTaskResponse(createdJob);
