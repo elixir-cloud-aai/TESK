@@ -2,6 +2,7 @@
 <configuration>
     <include resource="org/springframework/boot/logging/logback/base.xml"/>
     <logger name="org.springframework.web" level="INFO"/>
+    <logger name="uk.ac.ebi.tsc.tesk.tes.service" level="INFO"/>
     <logger name="uk.ac.ebi.tsc.tesk.k8s.service.KubernetesClientWrapper" level="TRACE"/>
     <logger name="uk.ac.ebi.tsc.tesk" level="INFO"/>
 </configuration>

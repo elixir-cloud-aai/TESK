@@ -32,6 +32,8 @@ import static uk.ac.ebi.tsc.tesk.k8s.constant.Constants.JOB_CREATE_ATTEMPTS_NO;
 @Service
 public class TesServiceImpl implements TesService {
 
+    private static Logger logger = LoggerFactory.getLogger(TesServiceImpl.class);
+
     private final KubernetesClientWrapper kubernetesClientWrapper;
 
     private final TesKubernetesConverter converter;
@@ -59,6 +61,10 @@ public class TesServiceImpl implements TesService {
                 if (!e.isObjectNameDuplicated() || ++attemptsNo >= JOB_CREATE_ATTEMPTS_NO) {
                     throw e;
                 }
+            } catch (Exception exc) {
+                logger.error("ERROR: In createTask", exc);
+                logger.error(exc.getMessage());
+                throw exc;
             }
         }
     }
