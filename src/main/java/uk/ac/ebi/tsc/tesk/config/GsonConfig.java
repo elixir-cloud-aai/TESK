@@ -1,7 +1,7 @@
 package uk.ac.ebi.tsc.tesk.config;
 
 import com.google.gson.Gson;
-import io.kubernetes.client.JSON;
+import io.kubernetes.client.openapi.JSON;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 

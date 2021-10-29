@@ -1,7 +1,7 @@
 package uk.ac.ebi.tsc.tesk.k8s.convert.data;
 
-import io.kubernetes.client.models.V1Job;
-import io.kubernetes.client.models.V1ObjectMeta;
+import io.kubernetes.client.openapi.models.V1Job;
+import io.kubernetes.client.openapi.models.V1ObjectMeta;
 import org.junit.Test;
 
 import java.util.ArrayList;

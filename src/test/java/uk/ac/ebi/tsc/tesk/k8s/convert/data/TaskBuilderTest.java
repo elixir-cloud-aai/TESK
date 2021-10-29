@@ -1,7 +1,7 @@
 package uk.ac.ebi.tsc.tesk.k8s.convert.data;
 
 import com.google.common.collect.Lists;
-import io.kubernetes.client.models.*;
+import io.kubernetes.client.openapi.models.*;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;

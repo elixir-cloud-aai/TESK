@@ -3,7 +3,11 @@ package uk.ac.ebi.tsc.tesk.k8s.convert;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
-import io.kubernetes.client.models.*;
+
+import io.kubernetes.client.custom.Quantity;
+import io.kubernetes.client.custom.QuantityFormatter;
+import io.kubernetes.client.openapi.models.*;
+
 import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.ISODateTimeFormat;
 import org.slf4j.Logger;
@@ -146,12 +150,13 @@ public class TesKubernetesConverter {
             executor.getEnv().forEach((key, value) -> container.addEnvItem(new V1EnvVar().name(key).value(value)));
         }
         container.setWorkingDir(executor.getWorkdir());
-        Optional.ofNullable(resources).map(TesResources::getCpuCores).ifPresent(cpuCores -> container.getResources().putRequestsItem(RESOURCE_CPU_KEY, cpuCores.toString()));
-        Optional.ofNullable(resources).map(TesResources::getRamGb).ifPresent(ramGb -> container.getResources().putRequestsItem(RESOURCE_MEM_KEY, (ramGb>0.004 ? String.format("%.3f", ramGb) : "0.004" ) + RESOURCE_MEM_UNIT));
+        Optional.ofNullable(resources).map(TesResources::getCpuCores).ifPresent(cpuCores -> container.getResources().putRequestsItem(RESOURCE_CPU_KEY, new QuantityFormatter().parse(cpuCores.toString())));
+        Optional.ofNullable(resources).map(TesResources::getRamGb).ifPresent(ramGb -> container.getResources().putRequestsItem(RESOURCE_MEM_KEY, new QuantityFormatter().parse((ramGb>0.004 ? String.format("%.3f", ramGb) : "0.004") + RESOURCE_MEM_UNIT)));
         //
         // The minimum memory is set arbitrarly to ~4MB, TODO improve this, so it fails
         // instead back to the user user or something like this
         //
+
         return job;
     }
 

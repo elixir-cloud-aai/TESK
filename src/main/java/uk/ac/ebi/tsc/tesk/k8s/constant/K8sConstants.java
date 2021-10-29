@@ -41,7 +41,10 @@ public class K8sConstants {
     /**
      * Executor memory resource unit
      */
-    public static final String RESOURCE_MEM_UNIT = "G";
+    public static final String RESOURCE_MEM_UNIT = "Gi";
 
-
+    /**
+     * One Gibibyte (Gi) in bytes
+     */
+    public static final int RESOURCE_MEM_ONE_GB = 1073741824;
 }

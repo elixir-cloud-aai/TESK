@@ -1,11 +1,15 @@
 package uk.ac.ebi.tsc.tesk.k8s.service;
 
-import io.kubernetes.client.ApiException;
-import io.kubernetes.client.apis.BatchV1Api;
-import io.kubernetes.client.apis.CoreV1Api;
-import io.kubernetes.client.models.V1Job;
-import io.kubernetes.client.models.V1JobList;
-import io.kubernetes.client.models.V1PodList;
+import io.kubernetes.client.openapi.ApiException;
+import io.kubernetes.client.openapi.apis.BatchV1Api;
+import io.kubernetes.client.openapi.apis.CoreV1Api;
+
+import io.kubernetes.client.openapi.models.V1Job;
+import io.kubernetes.client.openapi.models.V1JobList;
+import io.kubernetes.client.openapi.models.V1PodList;
+import io.kubernetes.client.openapi.models.V1LimitRangeList;
+import io.kubernetes.client.openapi.models.V1LimitRange;
+import io.kubernetes.client.openapi.models.V1LimitRangeItem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -16,12 +20,17 @@ import uk.ac.ebi.tsc.tesk.config.security.User;
 import uk.ac.ebi.tsc.tesk.k8s.exception.KubernetesException;
 import uk.ac.ebi.tsc.tesk.tes.exception.TaskNotFoundException;
 
+import java.math.BigDecimal;
+import io.kubernetes.client.custom.Quantity;
+import io.kubernetes.client.custom.QuantityFormatter;
+
 import java.util.List;
 import java.util.Optional;
 import java.util.StringJoiner;
 import java.util.stream.Collectors;
 
 import static uk.ac.ebi.tsc.tesk.k8s.constant.Constants.*;
+import static uk.ac.ebi.tsc.tesk.k8s.constant.K8sConstants.*;
 
 /**
  * @author Ania Niewielska <aniewielska@ebi.ac.uk>
@@ -53,7 +62,7 @@ public class KubernetesClientWrapper {
 
     public V1Job createJob(V1Job job) {
         try {
-            return this.batchApi.createNamespacedJob(namespace, job, null);
+            return this.batchApi.createNamespacedJob(namespace, job, null, null, null);
         } catch (ApiException e) {
             throw KubernetesException.fromApiException(e);
         }
@@ -73,11 +82,13 @@ public class KubernetesClientWrapper {
 
     private V1JobList listJobs(String _continue, String labelSelector, Integer limit) {
         try {
-            return this.batchApi.listNamespacedJob(namespace, null, _continue, null, null, labelSelector, limit, null, null, null);
+            return this.batchApi.listNamespacedJob(namespace, null, null, _continue, null, labelSelector,
+            limit, null, null, null, null);
         } catch (ApiException e) {
             throw KubernetesException.fromApiException(e);
         }
     }
+
 
     /**
      * Gets all Taskmaster job objects, a User is allowed to see
@@ -137,7 +148,7 @@ public class KubernetesClientWrapper {
     public V1PodList listSingleJobPods(V1Job job) {
         String labelSelector = job.getSpec().getSelector().getMatchLabels().entrySet().stream().map(entry -> entry.getKey() + "=" + entry.getValue()).collect(Collectors.joining(","));
         try {
-            return this.coreApi.listNamespacedPod(namespace, null, null, null, null, labelSelector, null, null, null, null);
+            return this.coreApi.listNamespacedPod(namespace, null, null, null, null, labelSelector, null, null, null, null, null);
         } catch (ApiException e) {
             throw KubernetesException.fromApiException(e);
         }
@@ -146,7 +157,7 @@ public class KubernetesClientWrapper {
     public V1PodList listAllJobPods() {
         String labelSelector = "job-name";
         try {
-            return this.coreApi.listNamespacedPod(namespace, null, null, null, null, labelSelector, null, null, null, null);
+            return this.coreApi.listNamespacedPod(namespace, null, null, null, null, labelSelector, null, null, null, null, null);
         } catch (ApiException e) {
             throw KubernetesException.fromApiException(e);
         }
@@ -154,7 +165,7 @@ public class KubernetesClientWrapper {
 
     public String readPodLog(String podName) {
         try {
-            return this.coreApi.readNamespacedPodLog(podName, namespace, null, null, null, null, null, null, null, null);
+            return this.coreApi.readNamespacedPodLog(podName, namespace, null, null, null, null, null, null, null, null, null);
         } catch (ApiException e) {
             logger.info("Getting logs for pod " + podName + " failed.", e);
         }
@@ -164,7 +175,7 @@ public class KubernetesClientWrapper {
 
     public void labelJobAsCancelled(String taskId) {
         try {
-            this.patchBatchApi.patchNamespacedJob(taskId, namespace, JOB_CANCEL_PATCH, null);
+            this.patchBatchApi.patchNamespacedJob(taskId, namespace, CANCEL_PATCH, null, null, null, null);
         } catch (ApiException e) {
             throw KubernetesException.fromApiException(e);
         }
@@ -172,7 +183,7 @@ public class KubernetesClientWrapper {
 
     public void labelPodAsCancelled(String podName) {
         try {
-            this.patchCoreApi.patchNamespacedPod(podName, namespace, POD_CANCEL_PATCH, null);
+            this.patchCoreApi.patchNamespacedPod(podName, namespace, CANCEL_PATCH, null, null, null, null);
         } catch (ApiException e) {
             throw KubernetesException.fromApiException(e);
         }

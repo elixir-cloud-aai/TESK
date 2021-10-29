@@ -1,7 +1,7 @@
 package uk.ac.ebi.tsc.tesk.k8s.convert;
 
 import com.google.gson.Gson;
-import io.kubernetes.client.models.*;
+import io.kubernetes.client.openapi.models.*;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

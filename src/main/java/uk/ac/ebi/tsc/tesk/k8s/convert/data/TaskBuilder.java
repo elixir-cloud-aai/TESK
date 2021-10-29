@@ -2,8 +2,8 @@ package uk.ac.ebi.tsc.tesk.k8s.convert.data;
 
 import com.google.common.collect.MapDifference;
 import com.google.common.collect.Maps;
-import io.kubernetes.client.models.V1Job;
-import io.kubernetes.client.models.V1Pod;
+import io.kubernetes.client.openapi.models.V1Job;
+import io.kubernetes.client.openapi.models.V1Pod;
 
 import java.util.HashMap;
 import java.util.List;
