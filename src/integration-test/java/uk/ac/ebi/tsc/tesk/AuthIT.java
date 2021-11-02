@@ -174,6 +174,10 @@ public class AuthIT {
                         .withRequestBody(matchingJsonPath("$.metadata.labels[?(@.creator-group-name == 'ABC')]"))
                         .willReturn(okJson("{\"metadata\":{\"name\":\"task-fe99716a\"}}")));
 
+        mockKubernetes.givenThat(
+                WireMock.get("/api/v1/namespaces/default/limitranges")
+                        .willReturn(okJson("{\"metadata\":{\"name\":\"core-resource-limits\"}}")));
+
         String path = "fromTesToK8s/task.json";
         this.mvc.perform(post(TASK_URL)
                 .content(getFileContentFromResources(path))
