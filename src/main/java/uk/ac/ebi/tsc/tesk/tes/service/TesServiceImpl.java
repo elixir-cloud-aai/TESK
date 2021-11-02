@@ -56,7 +56,7 @@ public class TesServiceImpl implements TesService {
 
                 TesResources resources = task.getResources();
 
-                if (resources.getRamGb()!= null) {
+                if (resources != null && resources.getRamGb()!= null) {
                     Double minimumRamGb = this.kubernetesClientWrapper.minimumRamGb();
                     if (resources.getRamGb() < minimumRamGb) {
                         resources.setRamGb(minimumRamGb);
