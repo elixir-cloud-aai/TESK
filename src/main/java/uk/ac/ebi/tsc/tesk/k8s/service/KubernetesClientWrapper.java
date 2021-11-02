@@ -108,6 +108,7 @@ public class KubernetesClientWrapper {
      * @return Memory in Gigabytes (Double)
      */
     public Double minimumRamGb() {
+        try {
         BigDecimal returnValue = BigDecimal.ZERO;
         for (V1LimitRange limit : listLimits(null, null, null).getItems())
             for (V1LimitRangeItem item : limit.getSpec().getLimits()) {
@@ -117,6 +118,10 @@ public class KubernetesClientWrapper {
                 }
             }
         return toGB(returnValue);
+        } catch (Exception exc) {
+            logger.error("ERROR in minimumRamGb: ", exc);
+        }
+        return 0.0;
     }
 
     /**
