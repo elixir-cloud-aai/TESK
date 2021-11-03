@@ -5,8 +5,8 @@ An implementation of a task execution engine based on the [TES standard](https:/
 
 For organisational reasons, this project is split into 3 repositories:
 - This one, which contains documentation and deployment files
-- [tesk-api](https://github.com/EMBL-EBI-TSI/tesk-api): Contains the service that implements the TES API and translates tasks into kubernetes batch calls
-- [tesk-core](https://github.com/EMBL-EBI-TSI/tesk-core):  Contains the code that is launched as images into the kubernetes cluster by tesk-api.
+- [tesk-api](https://github.com/elixir-cloud-aai/tesk-api): Contains the service that implements the TES API and translates tasks into kubernetes batch calls
+- [tesk-core](https://github.com/elixir-cloud-aai/tesk-core):  Contains the code that is launched as images into the kubernetes cluster by tesk-api.
 
 If the API is running on your cluster it will pull the images from our `gcr.io` repository automatically.
 
