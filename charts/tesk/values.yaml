@@ -20,7 +20,9 @@ tesk:
     tes_api_base_path: /v1
     image: eu.gcr.io/tes-wes/tesk-api:v1.1
     port: 8080
+    taskmaster_image_name: eu.gcr.io/tes-wes/taskmaster
     taskmaster_image_version: v0.10.0
+    taskmaster_filer_image_name: eu.gcr.io/tes-wes/filer
     taskmaster_filer_image_version: v0.10.0
     debug: false
     executor_retries: 2
