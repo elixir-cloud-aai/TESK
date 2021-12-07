@@ -123,7 +123,7 @@ and additionally place a `.netrc` file in the folder `ftp` in the chart (the tem
 Keeping both secret names empty switches off FTP support altogether.
 
 #### S3
-WiP
+TESK can also utilize S3 object storage for exchanging Inputs & Outputs. If you have an S3 endpoint (AWS, minio, etc) that you want to use, simply add the necessary `config` and `credentials` files (see [here](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html)) under a folder named **s3-config**. You can use the templates provided in *charts/tesk/s3-config* as a point of reference.
 
 ### Authentication and Authorisation
 TESK supports OAuth2/OIDC to authorise API requests. Authentication and authorisation are optional and can be turned off completely. When turned on, TESK API expects an OIDC access token in Authorization Bearer header. TESK can be integrated with any standard OIDC provider, but the solution has been designed to support Elixir AAI in the first place and the authorisation part relies on Elixir's group model. For details, please see [Authentication and Authorisation document](https://github.com/EMBL-EBI-TSI/tesk-api/blob/master/auth.md).

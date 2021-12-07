@@ -16,7 +16,7 @@ spec: {{ if .Values.ingress.tls_secret_name }}
   - host: {{ .Values.host_name }}
     http:
       paths:
-      - path: /
+      - path: {{ .Values.ingress.path }}
         backend:
           serviceName: tesk-api
           servicePort: {{ .Values.tesk.port }}

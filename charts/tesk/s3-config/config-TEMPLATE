@@ -1,0 +1,3 @@
+[default]
+# Non-standard entry, parsed by TESK, not boto3
+endpoint_url=http://localhost:9000

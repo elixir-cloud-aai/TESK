@@ -44,6 +44,9 @@ spec:
         - name: TESK_API_TASKMASTER_DEBUG
           value: "{{ tesk.debug }}"
 
+        - name: TESK_API_SWAGGER-OAUTH_SCOPES
+          value: openid:Standard openid,eduperson_entitlement:Access to groups membership,profile:Identity info about user,email:Email
+
         - name: TESK_API_SWAGGER_OAUTH_CLIENT_ID
           valueFrom:
             secretKeyRef:

@@ -17,8 +17,12 @@ spec:
       - name: tesk-api
         image: {{ .Values.tesk.image }}
         env:
+        - name: TESK_API_TASKMASTER_IMAGE_NAME
+          value: {{ .Values.tesk.taskmaster_image_name }}
         - name: TESK_API_TASKMASTER_IMAGE_VERSION
           value: {{ .Values.tesk.taskmaster_image_version }}
+        - name: TESK_API_TASKMASTER_FILER_IMAGE_NAME
+          value: {{ .Values.tesk.taskmaster_filer_image_name }}
         - name: TESK_API_TASKMASTER_FILER_IMAGE_VERSION
           value: {{ .Values.tesk.taskmaster_filer_image_version }}
         - name: TESK_API_K8S_NAMESPACE
@@ -29,6 +33,14 @@ spec:
           value: {{ .Values.tesk.executor_retries | quote }}
         - name: TESK_API_TASKMASTER_ENVIRONMENT_FILER_BACKOFF_LIMIT
           value: {{ .Values.tesk.filer_retries | quote }}
+        - name: SERVER_SERVLET_CONTEXT_PATH
+          value: {{ .Values.ingress.path }}
+        {{ if .Values.tesk.tes_api_base_path }}
+        - name: OPENAPI_TASKEXECUTIONSERVICE_BASE_PATH
+          value: {{ .Values.tesk.tes_api_base_path }}
+        {{ end }}
+        - name: TESK_API_SERVICE_INFO_LOCATION
+          value: file:///etc/tesk/service-info/service-info.yaml
         {{ if .Values.ftp.classic_ftp_secret }}
         - name: TESK_API_TASKMASTER_FTP_SECRET_NAME
           value: {{ .Values.ftp.classic_ftp_secret }}
@@ -75,6 +87,13 @@ spec:
               name: oauth-client-secret
               key: secret
               optional: true
+        volumeMounts:
+          - name: service-info-config
+            mountPath: /etc/tesk/service-info
 
         ports:
         - containerPort: {{ .Values.tesk.port }}
+      volumes:
+        - name: service-info-config
+          configMap:
+            name: service-info-config
