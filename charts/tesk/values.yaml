@@ -13,6 +13,9 @@ clusterType: kubernetes
 # 'openstack' or 's3'
 storage: none
 
+# Configurable storage class. 
+storageClass: 
+
 tesk:
     # if empty - default base path; currently /ga4gh/tes/v1
     #tes_api_base_path:
@@ -52,8 +55,8 @@ service:
     # use:
     # - NodePort, if you want to expose API directly
     # - LoadBalancer for cloud provider (gcloud) or empty otherwise
-    #type: NodePort
-    #node_port: 31567
+    # type: NodePort
+    # node_port: 31567
     type: ""
     node_port: ""
 
