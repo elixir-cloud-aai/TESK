@@ -43,7 +43,7 @@ jobs:
         with:
           context: .
           push: true
-          file: ./containers/filer.Dockerfile
+          file: ./containers/taskmaster.Dockerfile
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
