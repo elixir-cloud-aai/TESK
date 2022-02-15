@@ -1,9 +1,11 @@
 package uk.ac.ebi.tsc.tesk.k8s.constant;
 
-import io.kubernetes.client.models.V1Job;
-import io.kubernetes.client.models.V1ObjectMeta;
-import io.kubernetes.client.models.V1Pod;
+import io.kubernetes.client.openapi.models.V1Job;
+import io.kubernetes.client.openapi.models.V1ObjectMeta;
+import io.kubernetes.client.openapi.models.V1Pod;
 import uk.ac.ebi.tsc.tesk.tes.model.TesState;
+
+import io.kubernetes.client.custom.V1Patch;
 
 import java.util.EnumSet;
 
@@ -142,10 +144,10 @@ public class Constants {
     /**
      * Patch object passed to job API, when cancelling task
      */
-    public static final V1Job JOB_CANCEL_PATCH = new V1Job().metadata(new V1ObjectMeta().putLabelsItem(LABEL_TASKSTATE_KEY, LABEL_TASKSTATE_VALUE_CANC));
+    public static final V1Patch CANCEL_PATCH = new V1Patch("{\"metadata\":{\"labels\":{"+LABEL_TASKSTATE_KEY+":"+LABEL_TASKSTATE_VALUE_CANC+"}}}");
     /**
      * Patch object passed to pod API, when cancelling task
      */
-    public static final V1Pod POD_CANCEL_PATCH = new V1Pod().metadata(new V1ObjectMeta().putLabelsItem(LABEL_TASKSTATE_KEY, LABEL_TASKSTATE_VALUE_CANC));
+    //public static final V1Pod POD_CANCEL_PATCH = new V1Pod().metadata(new V1ObjectMeta().putLabelsItem(LABEL_TASKSTATE_KEY, LABEL_TASKSTATE_VALUE_CANC));
 
 }

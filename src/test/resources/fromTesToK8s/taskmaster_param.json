@@ -68,7 +68,7 @@
                 "resources": {
                   "requests": {
                     "cpu": "4",
-                    "memory": "15.000G"
+                    "memory": "16106127360"
                   }
                 },
                 "volumeMounts": [
@@ -136,7 +136,7 @@
                 "resources": {
                   "requests": {
                     "cpu": "4",
-                    "memory": "15.000G"
+                    "memory": "16106127360"
                   }
                 },
                 "workingDir": "/starthere",

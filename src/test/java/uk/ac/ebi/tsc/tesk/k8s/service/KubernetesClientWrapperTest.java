@@ -1,9 +1,9 @@
 package uk.ac.ebi.tsc.tesk.k8s.service;
 
-import io.kubernetes.client.ApiException;
-import io.kubernetes.client.apis.BatchV1Api;
-import io.kubernetes.client.apis.CoreV1Api;
-import io.kubernetes.client.models.*;
+import io.kubernetes.client.openapi.ApiException;
+import io.kubernetes.client.openapi.apis.BatchV1Api;
+import io.kubernetes.client.openapi.apis.CoreV1Api;
+import io.kubernetes.client.openapi.models.*;
 import org.joda.time.DateTime;
 import org.junit.Before;
 import org.junit.Test;
@@ -56,7 +56,7 @@ public class KubernetesClientWrapperTest {
     public void createJob() throws ApiException {
         V1Job inJob = new V1Job().metadata(new V1ObjectMeta().name("test job"));
         V1Job outJob = new V1Job().metadata(new V1ObjectMeta().name("test job").creationTimestamp(new DateTime()));
-        given(batchApi.createNamespacedJob("test-namespace", inJob, null)).willReturn(outJob);
+        given(batchApi.createNamespacedJob("test-namespace", inJob, null, null, null)).willReturn(outJob);
         V1Job result = wrapper.createJob(inJob);
         assertThat(result, is(outJob));
     }
@@ -95,9 +95,9 @@ public class KubernetesClientWrapperTest {
 
         User user = User.builder("123").build();
         ArgumentCaptor<String> argument = ArgumentCaptor.forClass(String.class);
-        given(batchApi.listNamespacedJob(any(), isNull(), isNull(), isNull(), isNull(), any(), isNull(), isNull(), isNull(), isNull())).willReturn(this.resultList());
+        given(batchApi.listNamespacedJob(any(), isNull(), isNull(), isNull(), isNull(), any(), isNull(), isNull(), isNull(), isNull(), isNull())).willReturn(this.resultList());
         V1JobList result = wrapper.listAllTaskmasterJobsForUser(null, null, user);
-        Mockito.verify(batchApi).listNamespacedJob(eq("test-namespace"), isNull(), isNull(), isNull(), isNull(), argument.capture(), isNull(), isNull(), isNull(), isNull());
+        Mockito.verify(batchApi).listNamespacedJob(eq("test-namespace"), isNull(), isNull(), isNull(), isNull(), argument.capture(), isNull(), isNull(), isNull(), isNull(), isNull());
         assertThat(argument.getValue(), is("job-type=taskmaster"));
         assertThat(result, is(this.resultList()));
     }
@@ -107,9 +107,9 @@ public class KubernetesClientWrapperTest {
 
         User user = User.builder("123").teskAdmin(true).build();
         ArgumentCaptor<String> argument = ArgumentCaptor.forClass(String.class);
-        given(batchApi.listNamespacedJob(any(), isNull(), isNull(), isNull(), isNull(), any(), isNull(), isNull(), isNull(), isNull())).willReturn(this.resultList());
+        given(batchApi.listNamespacedJob(any(), isNull(), isNull(), isNull(), isNull(), any(), isNull(), isNull(), isNull(), isNull(), isNull())).willReturn(this.resultList());
         V1JobList result = wrapper.listAllTaskmasterJobsForUser(null, null, user);
-        Mockito.verify(batchApi).listNamespacedJob(eq(namespace), isNull(), isNull(), isNull(), isNull(), argument.capture(), isNull(), isNull(), isNull(), isNull());
+        Mockito.verify(batchApi).listNamespacedJob(eq(namespace), isNull(), isNull(), isNull(), isNull(), argument.capture(), isNull(), isNull(), isNull(), isNull(), isNull());
         assertThat(argument.getValue(), is("job-type=taskmaster"));
         assertThat(result, is(this.resultList()));
     }
@@ -119,9 +119,9 @@ public class KubernetesClientWrapperTest {
 
         User user = User.builder("123").teskMemberedGroups(StringUtils.commaDelimitedListToSet("TEST")).build();
         ArgumentCaptor<String> argument = ArgumentCaptor.forClass(String.class);
-        given(batchApi.listNamespacedJob(any(), isNull(), isNull(), isNull(), isNull(), any(), isNull(), isNull(), isNull(), isNull())).willReturn(this.resultList());
+        given(batchApi.listNamespacedJob(any(), isNull(), isNull(), isNull(), isNull(), any(), isNull(), isNull(), isNull(), isNull(), isNull())).willReturn(this.resultList());
         V1JobList result = wrapper.listAllTaskmasterJobsForUser(null, null, user);
-        Mockito.verify(batchApi).listNamespacedJob(eq(namespace), isNull(), isNull(), isNull(), isNull(), argument.capture(), isNull(), isNull(), isNull(), isNull());
+        Mockito.verify(batchApi).listNamespacedJob(eq(namespace), isNull(), isNull(), isNull(), isNull(), argument.capture(), isNull(), isNull(), isNull(), isNull(), isNull());
         assertThat(argument.getValue(), is("job-type=taskmaster,creator-group-name in (TEST),creator-user-id=123"));
         assertThat(result, is(this.resultList()));
     }
@@ -131,9 +131,9 @@ public class KubernetesClientWrapperTest {
 
         User user = User.builder("123").teskManagedGroups(StringUtils.commaDelimitedListToSet("TEST,XYZ")).build();
         ArgumentCaptor<String> argument = ArgumentCaptor.forClass(String.class);
-        given(batchApi.listNamespacedJob(any(), isNull(), isNull(), isNull(), isNull(), any(), isNull(), isNull(), isNull(), isNull())).willReturn(this.resultList());
+        given(batchApi.listNamespacedJob(any(), isNull(), isNull(), isNull(), isNull(), any(), isNull(), isNull(), isNull(), isNull(), isNull())).willReturn(this.resultList());
         V1JobList result = wrapper.listAllTaskmasterJobsForUser(null, null, user);
-        Mockito.verify(batchApi).listNamespacedJob(eq(namespace), isNull(), isNull(), isNull(), isNull(), argument.capture(), isNull(), isNull(), isNull(), isNull());
+        Mockito.verify(batchApi).listNamespacedJob(eq(namespace), isNull(), isNull(), isNull(), isNull(), argument.capture(), isNull(), isNull(), isNull(), isNull(), isNull());
         assertThat(argument.getValue(), is("job-type=taskmaster,creator-group-name in (TEST,XYZ)"));
         assertThat(result, is(this.resultList()));
     }
@@ -143,9 +143,9 @@ public class KubernetesClientWrapperTest {
 
         User user = User.builder("123").teskManagedGroups(StringUtils.commaDelimitedListToSet("TEST")).teskMemberedGroups(StringUtils.commaDelimitedListToSet("XYZ")).build();
         ArgumentCaptor<String> argument = ArgumentCaptor.forClass(String.class);
-        given(batchApi.listNamespacedJob(any(), isNull(), isNull(), isNull(), isNull(), any(), isNull(), isNull(), isNull(), isNull())).willReturn(this.resultList());
+        given(batchApi.listNamespacedJob(any(), isNull(), isNull(), isNull(), isNull(), any(), isNull(), isNull(), isNull(), isNull(), isNull())).willReturn(this.resultList());
         V1JobList result = wrapper.listAllTaskmasterJobsForUser(null, null, user);
-        Mockito.verify(batchApi).listNamespacedJob(eq(namespace), isNull(), isNull(), isNull(), isNull(), argument.capture(), isNull(), isNull(), isNull(), isNull());
+        Mockito.verify(batchApi).listNamespacedJob(eq(namespace), isNull(), isNull(), isNull(), isNull(), argument.capture(), isNull(), isNull(), isNull(), isNull(), isNull());
         assertThat(argument.getValue(), is("job-type=taskmaster,creator-group-name in (XYZ,TEST)"));
         assertThat(result, is(filteredResultList()));
     }
@@ -154,7 +154,7 @@ public class KubernetesClientWrapperTest {
     public void listSingleTaskExecutorJobs() throws ApiException {
         ArgumentCaptor<String> argument = ArgumentCaptor.forClass(String.class);
         wrapper.listSingleTaskExecutorJobs("123");
-        Mockito.verify(batchApi).listNamespacedJob(eq("test-namespace"), isNull(), isNull(), isNull(), isNull(), argument.capture(), isNull(), isNull(), isNull(), isNull());
+        Mockito.verify(batchApi).listNamespacedJob(eq("test-namespace"), isNull(), isNull(), isNull(), isNull(), argument.capture(), isNull(), isNull(), isNull(), isNull(), isNull());
         assertThat(argument.getValue(), is("taskmaster-name=123"));
     }
 
@@ -177,7 +177,7 @@ public class KubernetesClientWrapperTest {
     public void listAllTaskExecutorJobs() throws ApiException {
         ArgumentCaptor<String> argument = ArgumentCaptor.forClass(String.class);
         wrapper.listAllTaskExecutorJobs();
-        Mockito.verify(batchApi).listNamespacedJob(eq("test-namespace"), isNull(), isNull(), isNull(), isNull(), argument.capture(), isNull(), isNull(), isNull(), isNull());
+        Mockito.verify(batchApi).listNamespacedJob(eq("test-namespace"), isNull(), isNull(), isNull(), isNull(), argument.capture(), isNull(), isNull(), isNull(), isNull(), isNull());
         assertThat(argument.getValue(), is("job-type=executor"));
     }
 
@@ -185,7 +185,7 @@ public class KubernetesClientWrapperTest {
     public void listAllFilerJobs() throws ApiException {
         ArgumentCaptor<String> argument = ArgumentCaptor.forClass(String.class);
         wrapper.listAllFilerJobs();
-        Mockito.verify(batchApi).listNamespacedJob(eq("test-namespace"), isNull(), isNull(), isNull(), isNull(), argument.capture(), isNull(), isNull(), isNull(), isNull());
+        Mockito.verify(batchApi).listNamespacedJob(eq("test-namespace"), isNull(), isNull(), isNull(), isNull(), argument.capture(), isNull(), isNull(), isNull(), isNull(), isNull());
         assertThat(argument.getValue(), is("!job-type"));
     }
 
@@ -195,14 +195,14 @@ public class KubernetesClientWrapperTest {
                 putMatchLabelsItem("label1", "value1").putMatchLabelsItem("labelA", "valueB")));
         ArgumentCaptor<String> argument = ArgumentCaptor.forClass(String.class);
         wrapper.listSingleJobPods(job);
-        Mockito.verify(coreApi).listNamespacedPod(eq("test-namespace"), isNull(), isNull(), isNull(), isNull(), argument.capture(), isNull(), isNull(), isNull(), isNull());
+        Mockito.verify(coreApi).listNamespacedPod(eq("test-namespace"), isNull(), isNull(), isNull(), isNull(), argument.capture(), isNull(), isNull(), isNull(), isNull(), isNull());
         assertThat(argument.getValue(), is("label1=value1,labelA=valueB"));
     }
 
     @Test
     public void listAllJobPods() throws ApiException {
         wrapper.listAllJobPods();
-        Mockito.verify(coreApi).listNamespacedPod(eq("test-namespace"), isNull(), isNull(), isNull(), isNull(), eq("job-name"), isNull(), isNull(), isNull(), isNull());
+        Mockito.verify(coreApi).listNamespacedPod(eq("test-namespace"), isNull(), isNull(), isNull(), isNull(), eq("job-name"), isNull(), isNull(), isNull(), isNull(), isNull());
     }
 
     private V1JobList resultList() {

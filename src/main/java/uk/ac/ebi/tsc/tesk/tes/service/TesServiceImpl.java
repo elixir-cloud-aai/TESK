@@ -1,9 +1,11 @@
 package uk.ac.ebi.tsc.tesk.tes.service;
 
-import io.kubernetes.client.models.V1Job;
-import io.kubernetes.client.models.V1JobList;
-import io.kubernetes.client.models.V1PodList;
+import io.kubernetes.client.openapi.models.V1Job;
+import io.kubernetes.client.openapi.models.V1JobList;
+import io.kubernetes.client.openapi.models.V1PodList;
 import org.springframework.stereotype.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import uk.ac.ebi.tsc.tesk.config.security.User;
 import uk.ac.ebi.tsc.tesk.tes.exception.CancelNotRunningTask;
 import uk.ac.ebi.tsc.tesk.k8s.exception.KubernetesException;

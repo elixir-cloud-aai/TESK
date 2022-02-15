@@ -1,6 +1,6 @@
 package uk.ac.ebi.tsc.tesk.k8s.exception;
 
-import io.kubernetes.client.ApiException;
+import io.kubernetes.client.openapi.ApiException;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ResponseStatus;
 

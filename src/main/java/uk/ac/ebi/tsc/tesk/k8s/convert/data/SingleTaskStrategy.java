@@ -1,7 +1,7 @@
 package uk.ac.ebi.tsc.tesk.k8s.convert.data;
 
 import com.google.common.collect.Lists;
-import io.kubernetes.client.models.V1Job;
+import io.kubernetes.client.openapi.models.V1Job;
 
 import java.util.List;
 

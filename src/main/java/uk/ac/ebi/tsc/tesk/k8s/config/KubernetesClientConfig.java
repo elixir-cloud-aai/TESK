@@ -1,9 +1,9 @@
 package uk.ac.ebi.tsc.tesk.k8s.config;
 
-import io.kubernetes.client.ApiClient;
-import io.kubernetes.client.apis.BatchV1Api;
-import io.kubernetes.client.apis.CoreV1Api;
-import io.kubernetes.client.auth.ApiKeyAuth;
+import io.kubernetes.client.openapi.ApiClient;
+import io.kubernetes.client.openapi.apis.BatchV1Api;
+import io.kubernetes.client.openapi.apis.CoreV1Api;
+import io.kubernetes.client.openapi.auth.ApiKeyAuth;
 import io.kubernetes.client.util.Config;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;

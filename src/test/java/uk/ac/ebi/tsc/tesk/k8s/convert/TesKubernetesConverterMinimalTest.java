@@ -2,10 +2,10 @@ package uk.ac.ebi.tsc.tesk.k8s.convert;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
-import io.kubernetes.client.models.V1Job;
-import io.kubernetes.client.models.V1JobStatus;
-import io.kubernetes.client.models.V1ObjectMeta;
-import io.kubernetes.client.models.V1PodList;
+import io.kubernetes.client.openapi.models.V1Job;
+import io.kubernetes.client.openapi.models.V1JobStatus;
+import io.kubernetes.client.openapi.models.V1ObjectMeta;
+import io.kubernetes.client.openapi.models.V1PodList;
 import org.hamcrest.CoreMatchers;
 import org.junit.Before;
 import org.junit.Test;
