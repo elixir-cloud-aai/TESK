@@ -24,10 +24,13 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <java.version>1.8</java.version>
         <!-- Dependency versions -->
-        <springfox-swagger.version>3.0.0</springfox-swagger.version>
-        <kubernetes.client-java.version>1.0.0-beta1</kubernetes.client-java.version>
+        <springfox-swagger.version>2.8.0</springfox-swagger.version>
+        <kubernetes.client-java.version>11.0.1</kubernetes.client-java.version>
+
         <guava.version>30.0-jre</guava.version>
         <maven-surefire-plugin.version>2.22.1</maven-surefire-plugin.version>
+        <apache.commons.lang3.version>3.12.0</apache.commons.lang3.version>
+        <apache.commons.collections4.version>4.4</apache.commons.collections4.version>
     </properties>
 
     <dependencies>
@@ -120,6 +123,16 @@
                     <artifactId>hamcrest-core</artifactId>
                 </exclusion>
             </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>${apache.commons.lang3.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-collections4</artifactId>
+            <version>${apache.commons.collections4.version}</version>
         </dependency>
     </dependencies>
 
