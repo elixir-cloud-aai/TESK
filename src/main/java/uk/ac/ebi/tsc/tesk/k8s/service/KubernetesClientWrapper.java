@@ -96,8 +96,8 @@ public class KubernetesClientWrapper {
      */
     private V1LimitRangeList listLimits(String _continue, String labelSelector, Integer limit) {
         try {
-            return this.coreApi.listNamespacedLimitRange(namespace, null, null, _continue, null,
-                labelSelector, limit, null, null, null);
+            return this.coreApi.listNamespacedLimitRange(namespace, (String)null, (Boolean)null, _continue, (String)null,
+                labelSelector, limit, (String)null, (String)null, (Integer)null, (Boolean)null);
         } catch (ApiException e) {
             throw KubernetesException.fromApiException(e);
         }
@@ -113,7 +113,7 @@ public class KubernetesClientWrapper {
         for (V1LimitRange limit : listLimits(null, null, null).getItems())
             for (V1LimitRangeItem item : limit.getSpec().getLimits()) {
                 if(item.getMin() != null && item.getMin().get(RESOURCE_MEM_KEY) != null) {
-                    Quantity quantity = new QuantityFormatter().parse(item.getMin().get(RESOURCE_MEM_KEY));
+                    Quantity quantity = item.getMin().get(RESOURCE_MEM_KEY);
                     if(returnValue.compareTo(quantity.getNumber()) == -1) returnValue = quantity.getNumber();
                 }
             }
