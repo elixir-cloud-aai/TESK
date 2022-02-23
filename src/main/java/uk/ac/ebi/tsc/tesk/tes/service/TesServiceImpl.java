@@ -32,6 +32,8 @@ import static uk.ac.ebi.tsc.tesk.k8s.constant.Constants.JOB_CREATE_ATTEMPTS_NO;
 @Service
 public class TesServiceImpl implements TesService {
 
+    private static Logger logger = LoggerFactory.getLogger(TesServiceImpl.class);
+
     private final KubernetesClientWrapper kubernetesClientWrapper;
 
     private final TesKubernetesConverter converter;
@@ -51,6 +53,17 @@ public class TesServiceImpl implements TesService {
         int attemptsNo = 0;
         while (true) {
             try {
+
+                TesResources resources = task.getResources();
+
+                if (resources != null && resources.getRamGb()!= null) {
+                    Double minimumRamGb = this.kubernetesClientWrapper.minimumRamGb();
+                    if (resources.getRamGb() < minimumRamGb) {
+                        resources.setRamGb(minimumRamGb);
+                        task.setResources(resources);
+                    }
+                }
+
                 V1Job taskMasterJob = this.converter.fromTesTaskToK8sJob(task, user);
                 V1Job createdJob = this.kubernetesClientWrapper.createJob(taskMasterJob);
                 return this.converter.fromK8sJobToTesCreateTaskResponse(createdJob);
@@ -59,6 +72,10 @@ public class TesServiceImpl implements TesService {
                 if (!e.isObjectNameDuplicated() || ++attemptsNo >= JOB_CREATE_ATTEMPTS_NO) {
                     throw e;
                 }
+            } catch (Exception exc) {
+                logger.error("ERROR: In createTask", exc);
+                logger.error(exc.getMessage());
+                throw exc;
             }
         }
     }
