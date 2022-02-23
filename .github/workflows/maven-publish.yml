@@ -1,0 +1,54 @@
+name: Publish on tag push
+
+on:
+  push:
+    branches:
+      - master
+    tags: 
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+
+jobs:
+  build:
+    name: code-publish
+    # There is a bug on GitHub that triggers the workflow even when 
+    # one pushes with an empty tag. So I added the if to cancel the 
+    # workflow when a push is performed.  
+    if: ${{ startsWith(github.ref, 'refs/tags/v') }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    
+    steps:
+    - uses: actions/checkout@v2
+    
+    - name: Get tags
+      id: get_tag
+      run: echo ::set-output name=tag::${GITHUB_REF#refs/tags/}
+    
+    - name: Set up JDK 8
+      uses: actions/setup-java@v2
+      with:
+        java-version: '8'
+        distribution: 'temurin'
+        
+    - name: Build with Maven
+      run: ./mvnw clean verify
+
+    - name: Code coverage
+      run: bash <(curl -s https://codecov.io/bash)
+
+    - name: Log into registry
+      uses: docker/login-action@28218f9b04b4f3f62068d7b6ce6ca5b26e35336c
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+    - name: Build and push Docker image
+      uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
+      with:
+        context: .
+        push: true
+        tags: ${{ secrets.DOCKERHUB_REPO }}/tesk-api:latest, ${{ secrets.DOCKERHUB_REPO }}/tesk-api:${{ steps.get_tag.outputs.tag }}
+    
+    
