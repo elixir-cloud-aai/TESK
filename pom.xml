@@ -19,12 +19,12 @@
     </parent>
 
     <properties>
-        <log4j2.version>2.17.0</log4j2.version>
+        <log4j2.version>2.17.1</log4j2.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <java.version>1.8</java.version>
         <!-- Dependency versions -->
-        <springfox-swagger.version>2.8.0</springfox-swagger.version>
+        <springfox-swagger.version>3.0.0</springfox-swagger.version>
         <kubernetes.client-java.version>11.0.1</kubernetes.client-java.version>
 
         <guava.version>30.0-jre</guava.version>
