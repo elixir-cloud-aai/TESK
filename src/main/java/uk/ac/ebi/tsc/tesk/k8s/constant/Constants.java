@@ -144,7 +144,7 @@ public class Constants {
     /**
      * Patch object passed to job API, when cancelling task
      */
-    public static final V1Patch CANCEL_PATCH = new V1Patch("{\"metadata\":{\"labels\":{"+LABEL_TASKSTATE_KEY+":"+LABEL_TASKSTATE_VALUE_CANC+"}}}");
+    public static final V1Patch CANCEL_PATCH = new V1Patch("{\"metadata\":{\"labels\":{\""+LABEL_TASKSTATE_KEY+"\":\""+LABEL_TASKSTATE_VALUE_CANC+"\"}}}");
     /**
      * Patch object passed to pod API, when cancelling task
      */
