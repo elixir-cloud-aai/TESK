@@ -94,7 +94,7 @@ public class TesKubernetesConverter {
                 mapToObj(i -> this.fromTesExecutorToK8sJob(taskMasterJob.getMetadata().getName(), task.getName(), task.getExecutors().get(i), i, task.getResources(), user)).
                 collect(Collectors.toList());
         Map<String, Object> taskMasterInput = new HashMap<>();
-       try {
+        try {
             //converting original inputs, outputs, volumes and disk size back again to JSON (will be part of taskMaster's input parameter)
             //Jackson - for TES objects
             List<TesInput> inputs = task.getInputs() == null ? new ArrayList<>() : task.getInputs();
@@ -151,7 +151,8 @@ public class TesKubernetesConverter {
         }
         container.setWorkingDir(executor.getWorkdir());
         Optional.ofNullable(resources).map(TesResources::getCpuCores).ifPresent(cpuCores -> container.getResources().putRequestsItem(RESOURCE_CPU_KEY, new QuantityFormatter().parse(cpuCores.toString())));
-        Optional.ofNullable(resources).map(TesResources::getRamGb).ifPresent(ramGb -> container.getResources().putRequestsItem(RESOURCE_MEM_KEY, new QuantityFormatter().parse(ramGb.toString() + RESOURCE_MEM_UNIT)));
+	// Limit number of decimals to 6
+	Optional.ofNullable(resources).map(TesResources::getRamGb).ifPresent(ramGb -> container.getResources().putRequestsItem(RESOURCE_MEM_KEY, new QuantityFormatter().parse(String.format("%.6f",ramGb)+RESOURCE_MEM_UNIT)));
 
         return job;
     }
