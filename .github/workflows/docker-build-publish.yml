@@ -1,0 +1,63 @@
+name: tesk-api
+
+on:
+  push:
+    branches: [ 'master' ]
+    tags: [ '*' ]
+
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: Profile name
+        required: false
+        default: tesk-api
+
+
+jobs:
+  build-from-source:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout elixir-cloud-aai/tesk-api
+        uses: actions/checkout@v3
+
+      - name: Set up JDK 8
+        uses: actions/setup-java@v3
+        with:
+          java-version: '8'
+          distribution: 'adopt'
+      
+      - name: Build with Maven
+        run: bash -c './mvnw clean verify'
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Login to DockerHub
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: elixircloud/tesk-api #${{ github.GITHUB_REF_TYPE }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{version}},value=v1.1.0
+      
+      - name: Build and push Docker images
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          push: ${{ github.event_name != 'pull_request' }}
+            #push: true
+          file: ./Dockerfile
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
