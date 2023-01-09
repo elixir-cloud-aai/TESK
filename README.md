@@ -8,7 +8,7 @@ For organisational reasons, this project is split into 3 repositories:
 - [tesk-api](https://github.com/elixir-cloud-aai/tesk-api): Contains the service that implements the TES API and translates tasks into kubernetes batch calls
 - [tesk-core](https://github.com/elixir-cloud-aai/tesk-core):  Contains the code that is launched as images into the kubernetes cluster by tesk-api.
 
-If the API is running on your cluster it will pull the images from our `gcr.io` repository automatically.
+If the API is running on your cluster it will pull the images from our `docker.io` repository automatically.
 
 `TESK` is designed with the goal to support any `Kubernetes` cluster, for its deployment please refer to the [deployment](documentation/deployment_new.md) page.
 
