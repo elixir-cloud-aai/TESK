@@ -6,6 +6,7 @@ import os
 import re
 import sys
 import logging
+import gzip
 from kubernetes import client, config
 from tesk_core.job import Job
 from tesk_core.pvc import PVC
@@ -132,13 +133,18 @@ def init_pvc(data, filer):
     return pvc
 
 
-def run_task(data, filer_name, filer_version):
+def run_task(data, filer_name, filer_version, have_json_pvc):
     task_name = data['executors'][0]['metadata']['labels']['taskmaster-name']
     pvc = None
 
+    if have_json_pvc:
+        json_pvc = task_name
+    else:
+        json_pvc = None
+
     if data['volumes'] or data['inputs'] or data['outputs']:
 
-        filer = Filer(task_name + '-filer', data, filer_name, filer_version, args.pull_policy_always)
+        filer = Filer(task_name + '-filer', data, filer_name, filer_version, args.pull_policy_always, json_pvc)
 
         if os.environ.get('TESK_FTP_USERNAME') is not None:
             filer.set_ftp(
@@ -249,6 +255,7 @@ def newLogger(loglevel):
 
 
 def main():
+    have_json_pvc = False
 
     parser = newParser()
     global args
@@ -271,8 +278,13 @@ def main():
     elif args.file == '-':
         data = json.load(sys.stdin)
     else:
-        with open(args.file) as fh:
-            data = json.load(fh)
+        if args.file.endswith('.gz'):
+            with gzip.open(args.file, 'rb') as fh:
+                data = json.loads(fh.read())
+            have_json_pvc = True
+        else:
+            with open(args.file) as fh:
+                data = json.load(fh)
 
     # Load kubernetes config file
     if args.localKubeConfig:
@@ -287,7 +299,7 @@ def main():
     if check_cancelled():
         exit_cancelled('Cancelled during init')
 
-    run_task(data, args.filer_name, args.filer_version)
+    run_task(data, args.filer_name, args.filer_version, have_json_pvc)
 
 
 def clean_on_interrupt():

@@ -11,6 +11,7 @@ import distutils.dir_util
 import logging
 import netrc
 import requests
+import gzip
 from tesk_core.exception import UnknownProtocol, FileProtocolDisabled
 import shutil
 from glob import glob
@@ -481,7 +482,11 @@ def main():
 
     logging.info('Starting %s filer...', args.transputtype)
 
-    data = json.loads(args.data)
+    if args.data.endswith('.gz'):
+        with gzip.open(args.data, 'rb') as fh:
+            data = json.loads(fh.read())
+    else:
+        data = json.loads(args.data)
 
     for afile in data[args.transputtype]:
         logging.debug('Processing file: %s', afile['path'])

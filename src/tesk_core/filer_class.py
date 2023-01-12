@@ -14,8 +14,9 @@ class Filer:
     def getImagePullPolicy(self):   return self.getContainer(0)['imagePullPolicy']
 
 
-    def __init__(self, name, data, filer_name='eu.gcr.io/tes-wes/filer', filer_version='v0.5', pullPolicyAlways = False):
+    def __init__(self, name, data, filer_name='eu.gcr.io/tes-wes/filer', filer_version='v0.5', pullPolicyAlways = False, json_pvc=None):
         self.name = name
+        self.json_pvc = json_pvc
         self.spec = {
             "kind": "Job",
             "apiVersion": "batch/v1",
@@ -41,10 +42,21 @@ class Filer:
         }
 
         env = self.getEnv()
-        env.append({"name": "JSON_INPUT", "value": json.dumps(data)})
+        if json_pvc is None:
+            env.append({"name": "JSON_INPUT", "value": json.dumps(data)})
         env.append({"name": "HOST_BASE_PATH", "value": path.HOST_BASE_PATH})
         env.append(
             {"name": "CONTAINER_BASE_PATH", "value": path.CONTAINER_BASE_PATH})
+
+        if json_pvc:
+            self.getVolumeMounts().append({
+                "name"        : 'jsoninput'
+              , 'mountPath'   : '/jsoninput'
+            })
+            self.getVolumes().append({
+                "name"        : 'jsoninput'
+              , "configMap"   : { 'name' : json_pvc }
+            })
 
         if fileEnabled():
             self.getVolumeMounts().append({
@@ -152,8 +164,12 @@ class Filer:
 
 
     def get_spec(self, mode, debug=False):
-        self.spec['spec']['template']['spec']['containers'][0]['args'] = [
-            mode, "$(JSON_INPUT)"]
+        if self.json_pvc is None:
+            self.spec['spec']['template']['spec']['containers'][0]['args'] = [
+                mode, "$(JSON_INPUT)"]
+        else:
+            self.spec['spec']['template']['spec']['containers'][0]['args'] = [
+                mode, "/jsoninput/JSON_INPUT.gz"]
 
         if debug:
             self.spec['spec']['template']['spec']['containers'][0][
