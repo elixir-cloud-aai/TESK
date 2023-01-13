@@ -2,6 +2,7 @@ package uk.ac.ebi.tsc.tesk.config;
 
 
 import org.springframework.boot.autoconfigure.web.servlet.error.BasicErrorController;
+import org.springframework.boot.web.error.ErrorAttributeOptions;
 import org.springframework.boot.web.servlet.error.ErrorAttributes;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.http.HttpHeaders;
@@ -124,7 +125,7 @@ public class CustomErrorHandler extends ResponseEntityExceptionHandler {
         requestAttributes.setAttribute("javax.servlet.error.status_code", status.value(), RequestAttributes.SCOPE_REQUEST);
         requestAttributes.setAttribute("javax.servlet.error.request_uri", request.getRequestURI(), RequestAttributes.SCOPE_REQUEST);
         return new ResponseEntity<>(this.errorAttributes.getErrorAttributes(requestAttributes,
-                false), status);
+                ErrorAttributeOptions.defaults().including(ErrorAttributeOptions.Include.MESSAGE)), status);
     }
 
 

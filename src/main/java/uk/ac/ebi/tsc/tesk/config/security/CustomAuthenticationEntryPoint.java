@@ -2,6 +2,7 @@ package uk.ac.ebi.tsc.tesk.config.security;
 
 import org.springframework.boot.autoconfigure.http.HttpMessageConverters;
 import org.springframework.boot.web.servlet.error.ErrorAttributes;
+import org.springframework.boot.web.error.ErrorAttributeOptions;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.security.core.AuthenticationException;
@@ -53,7 +54,8 @@ public class CustomAuthenticationEntryPoint extends OAuth2AuthenticationEntryPoi
             result = enhanceResponse(result, authException);
             WebUtils.exposeErrorRequestAttributes(request, authException, null);
             request.setAttribute(WebUtils.ERROR_STATUS_CODE_ATTRIBUTE, result.getStatusCode().value());
-            Map<String, Object> errorBody = errorAttributes.getErrorAttributes(new ServletWebRequest(request), false);
+            Map<String, Object> errorBody = errorAttributes.getErrorAttributes(new ServletWebRequest(request),
+                ErrorAttributeOptions.defaults().including(ErrorAttributeOptions.Include.MESSAGE));
             errorBody.put(OAuth2Exception.ERROR, result.getBody().getOAuth2ErrorCode());
             errorBody.put(OAuth2Exception.DESCRIPTION, result.getBody().getMessage());
             ResponseEntity<Map<String, Object>> newResult = new ResponseEntity<>(errorBody, result.getHeaders(), result.getStatusCode());
