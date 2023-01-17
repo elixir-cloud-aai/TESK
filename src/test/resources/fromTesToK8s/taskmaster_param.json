@@ -81,6 +81,12 @@
               }
             ],
             "restartPolicy": "Never",
+            "securityContext": {
+               "fsGroup": 1000,
+               "runAsGroup": 1002,
+               "runAsNonRoot": true,
+               "runAsUser": 1001
+           },
             "volumes": [
               {
                 "name": "mysecret",
@@ -150,6 +156,12 @@
               }
             ],
             "restartPolicy": "Never",
+            "securityContext": {
+              "fsGroup": 1000,
+              "runAsGroup": 1002,
+              "runAsNonRoot": true,
+              "runAsUser": 1001
+           },
             "volumes": [
               {
                 "name": "mysecret",

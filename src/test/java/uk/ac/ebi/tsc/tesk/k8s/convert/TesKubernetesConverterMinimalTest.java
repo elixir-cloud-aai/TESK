@@ -21,9 +21,11 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
+import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.util.StringUtils;
+import io.kubernetes.client.openapi.apis.CoreV1Api;
 import uk.ac.ebi.tsc.tesk.TestUtils;
 import uk.ac.ebi.tsc.tesk.config.GsonConfig;
 import uk.ac.ebi.tsc.tesk.config.security.User;
@@ -59,6 +61,8 @@ import static uk.ac.ebi.tsc.tesk.k8s.constant.Constants.LABEL_TASKSTATE_VALUE_CA
 @TestPropertySource(locations = {"classpath:application.properties"})
 @EnableConfigurationProperties(TaskmasterEnvProperties.class)
 public class TesKubernetesConverterMinimalTest {
+    @MockBean
+    private CoreV1Api coreApi;
 
     @MockBean
     private JobNameGenerator jobNameGenerator;

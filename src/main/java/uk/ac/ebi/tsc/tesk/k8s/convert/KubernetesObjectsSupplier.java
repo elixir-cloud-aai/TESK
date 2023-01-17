@@ -2,17 +2,17 @@ package uk.ac.ebi.tsc.tesk.k8s.convert;
 
 import com.google.gson.Gson;
 import io.kubernetes.client.openapi.models.*;
+import io.kubernetes.client.openapi.ApiException;
+import io.kubernetes.client.openapi.apis.CoreV1Api;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
+import org.yaml.snakeyaml.Yaml;
 import uk.ac.ebi.tsc.tesk.k8s.convert.data.Job;
 
 import java.io.*;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.StringJoiner;
+import java.util.*;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -36,12 +36,57 @@ public class KubernetesObjectsSupplier {
 
     private final String namespace;
 
+    private final V1PodSecurityContext securityContext;
+
+    private static final String envConfigMap = "CONFIGMAP";
+    private static final String envConfigMapNamespace = "CONFIGMAPNAMESPACE";
+    private static final String envConfigMapKey = "CONFIGMAPKEY";
+
     public KubernetesObjectsSupplier(Gson gson, JobNameGenerator jobNameGenerator,
-                                     TaskmasterEnvProperties taskmasterEnvProperties, @Value("${tesk.api.k8s.namespace}") String namespace) {
+                                     TaskmasterEnvProperties taskmasterEnvProperties, @Value("${tesk.api.k8s.namespace}") String namespace,
+                                     CoreV1Api coreApi) throws IOException, ApiException {
         this.gson = gson;
         this.jobNameGenerator = jobNameGenerator;
         this.taskmasterEnvProperties = taskmasterEnvProperties;
         this.namespace = namespace;
+        this.securityContext = createSecurityContext(coreApi, namespace);
+    }
+
+    private static V1PodSecurityContext createSecurityContext(CoreV1Api coreApi, String default_namespace) throws ApiException {
+        if(System.getenv(envConfigMap) == null) {
+            return null;
+        }
+
+        String confmap_namespace = default_namespace;
+        if(System.getenv(envConfigMapNamespace) != null) {
+            confmap_namespace = System.getenv(envConfigMapNamespace);
+        }
+        V1ConfigMap config = coreApi.readNamespacedConfigMap(System.getenv(envConfigMap), confmap_namespace, null, false, false);
+
+        String config_key = "securityContext";
+        if(System.getenv(envConfigMapKey) != null) {
+            config_key = System.getenv(envConfigMapKey);
+        }
+
+        V1PodSecurityContext security_context = new V1PodSecurityContext();
+        if(config.getData().containsKey(config_key)) {
+            String security_context_yaml = config.getData().get(config_key);
+            Yaml yaml = new Yaml();
+            Map<String, Object> security_context_obj = yaml.load(security_context_yaml);
+            if(security_context_obj.containsKey("fsGroup")) {
+                security_context.fsGroup(Long.parseLong(security_context_obj.get("fsGroup").toString()));
+            }
+            if(security_context_obj.containsKey("runAsUser")) {
+                security_context.runAsUser(Long.parseLong(security_context_obj.get("runAsUser").toString()));
+            }
+            if(security_context_obj.containsKey("runAsGroup")) {
+                security_context.runAsGroup(Long.parseLong(security_context_obj.get("runAsGroup").toString()));
+            }
+            if(security_context_obj.containsKey("nonRoot")) {
+                security_context.runAsNonRoot(security_context_obj.get("nonRoot").toString().toLowerCase(Locale.ROOT).equals("true"));
+            }
+        }
+        return security_context;
     }
 
     /**
@@ -112,6 +157,14 @@ public class KubernetesObjectsSupplier {
                     mountPath(this.taskmasterEnvProperties.getExecutorSecret().getMountPath()));
         }
 
+        V1PodSpec podSpec = new V1PodSpec().
+                addContainersItem(container).
+                restartPolicy(JOB_RESTART_POLICY);
+
+        if(securityContext != null) {
+                podSpec.securityContext(securityContext);
+        }
+
         V1Job job = new V1Job().
                 apiVersion(K8S_BATCH_API_VERSION).kind(K8S_BATCH_API_JOB_TYPE).
                 metadata(new V1ObjectMeta().
@@ -119,9 +172,7 @@ public class KubernetesObjectsSupplier {
                 spec(new V1JobSpec().
                         template(new V1PodTemplateSpec().
                                 metadata(new V1ObjectMeta()).
-                                spec(new V1PodSpec().
-                                        addContainersItem(container).
-                                        restartPolicy(JOB_RESTART_POLICY))));
+                                spec(podSpec)));
         if (this.taskmasterEnvProperties.isExecutorSecretEnabled()) {
             job.getSpec().getTemplate().getSpec().
                     addVolumesItem(new V1Volume().

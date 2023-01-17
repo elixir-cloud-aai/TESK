@@ -2,12 +2,13 @@ package uk.ac.ebi.tsc.tesk.k8s.convert;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
-import io.kubernetes.client.openapi.models.V1Job;
-import io.kubernetes.client.openapi.models.V1JobStatus;
-import io.kubernetes.client.openapi.models.V1ObjectMeta;
-import io.kubernetes.client.openapi.models.V1PodList;
+import io.kubernetes.client.openapi.ApiException;
+import io.kubernetes.client.openapi.apis.CoreV1Api;
+import io.kubernetes.client.openapi.models.*;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.contrib.java.lang.system.EnvironmentVariables;
 import org.junit.runner.RunWith;
 import org.skyscreamer.jsonassert.JSONCompareMode;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +21,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
+import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.util.StringUtils;
@@ -34,18 +36,17 @@ import uk.ac.ebi.tsc.tesk.trs.TrsToolClient;
 
 import java.io.*;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.function.Supplier;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.Matchers.isEmptyOrNullString;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
+import static org.junit.Assert.*;
 import static org.mockito.AdditionalAnswers.returnsFirstArg;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static uk.ac.ebi.tsc.tesk.k8s.constant.Constants.LABEL_TASKSTATE_KEY;
 import static uk.ac.ebi.tsc.tesk.k8s.constant.Constants.LABEL_TASKSTATE_VALUE_CANC;
 
@@ -71,6 +72,8 @@ import static uk.ac.ebi.tsc.tesk.k8s.constant.Constants.LABEL_TASKSTATE_VALUE_CA
         })
 @EnableConfigurationProperties(TaskmasterEnvProperties.class)
 public class TesKubernetesConverterTest {
+    @MockBean
+    private CoreV1Api coreApi;
 
     @MockBean
     private JobNameGenerator jobNameGenerator;
@@ -96,8 +99,31 @@ public class TesKubernetesConverterTest {
     @Autowired
     private Gson gson;
 
-
+    @Autowired
+    private TaskmasterEnvProperties taskmasterEnvProperties;
+ 
     private TesKubernetesConverter converter;
+
+    @Rule
+   public final EnvironmentVariables environmentVariables = new EnvironmentVariables();
+
+   @Before
+   public void setUpKubernetes() throws ApiException, IOException {
+       String configMapName = "testconf";
+       String configMapNamespace = "test-namespace";
+       String configMapKey = "testkey";
+       environmentVariables.set("CONFIGMAP", configMapName);
+       environmentVariables.set("CONFIGMAPNAMESPACE", configMapNamespace);
+       environmentVariables.set("CONFIGMAPKEY", configMapKey);
+       Map<String, String> testConfigMapData = new HashMap<>();
+       testConfigMapData.put(configMapKey, "fsGroup: 1000\nrunAsUser: 1001\nnonRoot: true\nrunAsGroup: 1002");
+       V1ConfigMap testConfigMap = new V1ConfigMap();
+       testConfigMap.setData(testConfigMapData);
+       when(coreApi.readNamespacedConfigMap(configMapName, configMapNamespace, null, false, false)).thenReturn(testConfigMap);
+       KubernetesObjectsSupplier objectsSupplier = new KubernetesObjectsSupplier(gson, jobNameGenerator, taskmasterEnvProperties, "test-namespace", coreApi);
+       this.executorTemplateSupplier = objectsSupplier.executorSupplier();
+       this.taskmasterTemplateSupplier = objectsSupplier.taskMasterSupplier();
+   }
 
     @Before
     public void setUpConverter() {
@@ -106,6 +132,15 @@ public class TesKubernetesConverterTest {
         this.converter = new TesKubernetesConverter(executorTemplateSupplier, taskmasterTemplateSupplier,
                 objectMapper, gson, trsToolClient);
     }
+
+    @Test
+   public void hasCorrectSecurityContext() {
+       assertNotNull(executorTemplateSupplier.get().getSpec().getTemplate().getSpec().getSecurityContext());
+       assertEquals(1000L, executorTemplateSupplier.get().getSpec().getTemplate().getSpec().getSecurityContext().getFsGroup().longValue());
+       assertEquals(1001L, executorTemplateSupplier.get().getSpec().getTemplate().getSpec().getSecurityContext().getRunAsUser().longValue());
+       assertEquals(1002L, executorTemplateSupplier.get().getSpec().getTemplate().getSpec().getSecurityContext().getRunAsGroup().longValue());
+       assertTrue(executorTemplateSupplier.get().getSpec().getTemplate().getSpec().getSecurityContext().getRunAsNonRoot());
+   }
 
     @Test
     public void fromTesTaskToK8sJob() throws IOException {
