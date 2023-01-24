@@ -69,6 +69,10 @@ public class NoAuthIT {
                         .withRequestBody(matchingJsonPath("$.metadata.labels[?(@.creator-user-id == 'anonymousUser')]"))
                         .willReturn(okJson("{\"metadata\":{\"name\":\"task-fe99716a\"}}")));
 
+	mockKubernetes.givenThat(
+                WireMock.post("/api/v1/namespaces/default/configmaps")
+                        .willReturn(okJson("{\"metadata\":{\"name\":\"task-fe99716a\"}}")));
+
         String path = "fromTesToK8s_minimal/task.json";
         this.mvc.perform(post(TASK_URL)
                 .content(getFileContentFromResources(path))

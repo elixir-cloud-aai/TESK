@@ -1,6 +1,7 @@
 package uk.ac.ebi.tsc.tesk.tes.service;
 
 import io.kubernetes.client.openapi.models.V1Job;
+import io.kubernetes.client.openapi.models.V1ConfigMap;
 import io.kubernetes.client.openapi.models.V1JobList;
 import io.kubernetes.client.openapi.models.V1PodList;
 import org.springframework.stereotype.Service;
@@ -65,6 +66,8 @@ public class TesServiceImpl implements TesService {
                 }
 
                 V1Job taskMasterJob = this.converter.fromTesTaskToK8sJob(task, user);
+		V1ConfigMap taskMasterConfigMap = this.converter.fromTesTaskToK8sConfigMap(task, user, taskMasterJob);
+		V1ConfigMap createdConfigMap = this.kubernetesClientWrapper.createConfigMap(taskMasterConfigMap);
                 V1Job createdJob = this.kubernetesClientWrapper.createJob(taskMasterJob);
                 return this.converter.fromK8sJobToTesCreateTaskResponse(createdJob);
             } catch (KubernetesException e) {

@@ -27,6 +27,9 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import java.io.ByteArrayOutputStream;
+import java.util.zip.GZIPOutputStream;
+
 import static uk.ac.ebi.tsc.tesk.k8s.constant.Constants.*;
 import static uk.ac.ebi.tsc.tesk.k8s.constant.K8sConstants.*;
 
@@ -89,31 +92,67 @@ public class TesKubernetesConverter {
         } catch (JsonProcessingException ex) {
             logger.info(String.format("Serializing task %s to JSON failed", taskMasterJob.getMetadata().getName()), ex);
         }
-        //Converting executors to Kubernetes Job Objects
+
+	V1Volume volume = new V1Volume();
+	volume.setName("jsoninput");
+	V1ConfigMapVolumeSource src = new V1ConfigMapVolumeSource();
+	src.setName(taskMasterJob.getMetadata().getName());
+	volume.setConfigMap(src);
+        taskMasterJob.getSpec().getTemplate().getSpec().addVolumesItem(volume);
+
+        return taskMasterJob;
+    }
+
+
+    /**
+     * Converts TES task to new K8s ConfigMap object with random generated name
+     *
+     * @param task - TES Task input object
+     * @return K8s Job Object
+     */
+    @SuppressWarnings("unchecked")
+    public V1ConfigMap fromTesTaskToK8sConfigMap(TesTask task, User user, V1Job job) {
+        //get new Job template with random generated name;
+        V1ConfigMap taskMasterConfigMap = new V1ConfigMap();
+	taskMasterConfigMap.setMetadata(new V1ObjectMeta());
+	taskMasterConfigMap.getMetadata().setName(job.getMetadata().getName());
+        //put input task name as annotation
+        taskMasterConfigMap.getMetadata().putAnnotationsItem(ANN_TESTASK_NAME_KEY, task.getName());
+        //creating user and owning group
+        taskMasterConfigMap.getMetadata().putLabelsItem(LABEL_USERID_KEY, user.getUsername());
+        if (task.getTags() != null && task.getTags().containsKey("GROUP_NAME")) {
+            taskMasterConfigMap.getMetadata().putLabelsItem(LABEL_GROUPNAME_KEY, task.getTags().get("GROUP_NAME"));
+        } else if (user.isMember()) {
+            taskMasterConfigMap.getMetadata().putLabelsItem(LABEL_GROUPNAME_KEY, user.getAnyGroup());
+        }
         List<V1Job> executorsAsJobs = IntStream.range(0, task.getExecutors().size()).
-                mapToObj(i -> this.fromTesExecutorToK8sJob(taskMasterJob.getMetadata().getName(), task.getName(), task.getExecutors().get(i), i, task.getResources(), user)).
+                mapToObj(i -> this.fromTesExecutorToK8sJob(taskMasterConfigMap.getMetadata().getName(), task.getName(), task.getExecutors().get(i), i, task.getResources(), user)).
                 collect(Collectors.toList());
         Map<String, Object> taskMasterInput = new HashMap<>();
         try {
-            //converting original inputs, outputs, volumes and disk size back again to JSON (will be part of taskMaster's input parameter)
-            //Jackson - for TES objects
             List<TesInput> inputs = task.getInputs() == null ? new ArrayList<>() : task.getInputs();
             List<TesOutput> outputs = task.getOutputs() == null ? new ArrayList<>() : task.getOutputs();
             List<String> volumes = task.getVolumes() == null ? new ArrayList<>() : task.getVolumes();
             String jobAsJson = this.objectMapper.writeValueAsString(new TesTask().inputs(inputs).outputs(outputs).volumes(volumes).
                     resources(new TesResources().diskGb(Optional.ofNullable(task.getResources()).map(TesResources::getDiskGb).orElse(RESOURCE_DISK_DEFAULT))));
-            //merging 2 JSONs together into one map
             Map<String, Object> jobAsMap = gson.fromJson(jobAsJson, Map.class);
             taskMasterInput.putAll(jobAsMap);
         } catch (JsonProcessingException e) {
-            logger.info(String.format("Serializing copy of task %s to JSON failed", taskMasterJob.getMetadata().getName()), e);
-            //TODO throw
+            logger.info(String.format("Serializing copy of task %s to JSON failed", taskMasterConfigMap.getMetadata().getName()), e);
         }
         taskMasterInput.put(TASKMASTER_INPUT_EXEC_KEY, executorsAsJobs);
         String taskMasterInputAsJSON = this.gson.toJson(taskMasterInput);
-        //placing taskmaster's parameter (JSONed map of: inputs, outputs, volumes, executors (as jobs) into ENV variable in taskmaster spec
-        taskMasterJob.getSpec().getTemplate().getSpec().getContainers().get(0).getEnv().stream().filter(x -> x.getName().equals(TASKMASTER_INPUT)).forEach(x -> x.setValue(taskMasterInputAsJSON));
-        return taskMasterJob;
+
+	try {
+ 	    ByteArrayOutputStream obj=new ByteArrayOutputStream();
+	    GZIPOutputStream gzip = new GZIPOutputStream(obj);
+	    gzip.write(taskMasterInputAsJSON.getBytes("UTF-8"));
+	    gzip.close();
+	    taskMasterConfigMap.putBinaryDataItem(TASKMASTER_INPUT+".gz", obj.toByteArray());
+        } catch (Exception e) {
+	    logger.info(String.format("Compression of task %s JSON configmap failed", taskMasterConfigMap.getMetadata().getName()), e);
+	}
+        return taskMasterConfigMap;
     }
 
     /**

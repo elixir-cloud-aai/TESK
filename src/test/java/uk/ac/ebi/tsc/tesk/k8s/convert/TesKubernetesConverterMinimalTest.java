@@ -6,6 +6,7 @@ import io.kubernetes.client.openapi.models.V1Job;
 import io.kubernetes.client.openapi.models.V1JobStatus;
 import io.kubernetes.client.openapi.models.V1ObjectMeta;
 import io.kubernetes.client.openapi.models.V1PodList;
+import io.kubernetes.client.openapi.models.V1ConfigMap;
 import org.hamcrest.CoreMatchers;
 import org.junit.Before;
 import org.junit.Test;
@@ -38,6 +39,7 @@ import uk.ac.ebi.tsc.tesk.trs.TrsToolClient;
 
 import java.io.*;
 import java.util.function.Supplier;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -52,6 +54,8 @@ import static org.mockito.Mockito.when;
 import static uk.ac.ebi.tsc.tesk.k8s.constant.Constants.LABEL_TASKSTATE_KEY;
 import static uk.ac.ebi.tsc.tesk.k8s.constant.Constants.LABEL_TASKSTATE_VALUE_CANC;
 
+import java.io.ByteArrayInputStream;
+import java.util.zip.GZIPInputStream;
 
 /**
  * @author Ania Niewielska <aniewielska@ebi.ac.uk>
@@ -125,10 +129,43 @@ public class TesKubernetesConverterMinimalTest {
         assertThat(outputJob.getMetadata().getLabels().get("creator-user-id"), is("test-user-id"));
         assertThat(outputJob.getMetadata().getLabels().get("creator-group-name"), is("ABC"));
 
-        assertThat(outputJob.getSpec().getTemplate().getSpec().getContainers().get(0).getArgs().get(0), is("$(JSON_INPUT)"));
+        Resource outputJobFile = new ClassPathResource("fromTesToK8s_minimal/job.json");
+        V1Job expectedJob;
+        try (InputStream inputStream = outputJobFile.getInputStream();
+             Reader reader = new BufferedReader(new InputStreamReader(inputStream))) {
+            expectedJob = this.gson.fromJson(reader, V1Job.class);
+        }
+        expectedJob.getMetadata().setAnnotations(null);
+        outputJob.getMetadata().setAnnotations(null);
+        expectedJob.getSpec().getTemplate().getSpec().getContainers().get(0).getEnv().stream().filter(env -> env.getName().equals(Constants.TASKMASTER_INPUT)).forEach(env -> env.setValue(""));
+        outputJob.getSpec().getTemplate().getSpec().getContainers().get(0).getEnv().stream().filter(env -> env.getName().equals(Constants.TASKMASTER_INPUT)).forEach(env -> env.setValue(""));
+        //comparing fields of resulting Job object and pattern Job objects other those with JSON values, which were cleared in previous lines (JSON strings do not have to be exactly equal to pattern).
+        assertEquals(expectedJob, outputJob);
+    }
 
-        JsonContentAssert taskMasterInputJson = new JsonContentAssert(this.getClass(), outputJob.getSpec().getTemplate().getSpec().
-                getContainers().get(0).getEnv().stream().filter(env -> env.getName().equals("JSON_INPUT")).findAny().get().getValue());
+    @Test
+    public void fromTesTaskToK8sConfigMap() throws IOException {
+
+        given(this.jobNameGenerator.getTaskMasterName()).willReturn("task-98605447");
+        Resource inputTaskFile = new ClassPathResource("fromTesToK8s_minimal/task.json");
+        TesTask inputTask;
+        try (InputStream inputStream = inputTaskFile.getInputStream();
+             Reader reader = new BufferedReader(new InputStreamReader(inputStream))) {
+            inputTask = this.objectMapper.readValue(reader, TesTask.class);
+        }
+        V1Job outputJob = this.converter.fromTesTaskToK8sJob(inputTask, User.builder("test-user-id").teskMemberedGroups(StringUtils.commaDelimitedListToSet("ABC,CDE")).build());
+
+        V1ConfigMap outputConfigMap = this.converter.fromTesTaskToK8sConfigMap(inputTask, User.builder("test-user-id").teskMemberedGroups(StringUtils.commaDelimitedListToSet("ABC,CDE")).build(), outputJob);
+        Map<String, byte[]> binaryDataMap = outputConfigMap.getBinaryData();
+        GZIPInputStream gis = new GZIPInputStream(new ByteArrayInputStream(binaryDataMap.get("JSON_INPUT.gz")));
+        BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(gis, "UTF-8"));
+        String line;
+        String jsonString="";
+        while ((line = bufferedReader.readLine()) != null) {
+           jsonString = jsonString + line;
+        }
+
+        JsonContentAssert taskMasterInputJson = new JsonContentAssert(this.getClass(), jsonString);
         taskMasterInputJson.hasJsonPathValue("outputs");
         taskMasterInputJson.extractingJsonPathNumberValue("outputs.size()").isEqualTo(0);
         taskMasterInputJson.extractingJsonPathNumberValue("inputs.size()").isEqualTo(0);
@@ -149,18 +186,6 @@ public class TesKubernetesConverterMinimalTest {
 
         taskMasterInputJson.isEqualToJson(new ClassPathResource("fromTesToK8s_minimal/taskmaster_param.json"), JSONCompareMode.NON_EXTENSIBLE);
 
-        Resource outputJobFile = new ClassPathResource("fromTesToK8s_minimal/job.json");
-        V1Job expectedJob;
-        try (InputStream inputStream = outputJobFile.getInputStream();
-             Reader reader = new BufferedReader(new InputStreamReader(inputStream))) {
-            expectedJob = this.gson.fromJson(reader, V1Job.class);
-        }
-        expectedJob.getMetadata().setAnnotations(null);
-        outputJob.getMetadata().setAnnotations(null);
-        expectedJob.getSpec().getTemplate().getSpec().getContainers().get(0).getEnv().stream().filter(env -> env.getName().equals(Constants.TASKMASTER_INPUT)).forEach(env -> env.setValue(""));
-        outputJob.getSpec().getTemplate().getSpec().getContainers().get(0).getEnv().stream().filter(env -> env.getName().equals(Constants.TASKMASTER_INPUT)).forEach(env -> env.setValue(""));
-        //comparing fields of resulting Job object and pattern Job objects other those with JSON values, which were cleared in previous lines (JSON strings do not have to be exactly equal to pattern).
-        assertEquals(expectedJob, outputJob);
     }
 
     private TaskBuilder prepareBaseTaskBuider(boolean withExecutors, boolean withPods) throws IOException {

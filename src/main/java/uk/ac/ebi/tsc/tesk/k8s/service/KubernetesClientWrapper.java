@@ -5,6 +5,7 @@ import io.kubernetes.client.openapi.apis.BatchV1Api;
 import io.kubernetes.client.openapi.apis.CoreV1Api;
 
 import io.kubernetes.client.openapi.models.V1Job;
+import io.kubernetes.client.openapi.models.V1ConfigMap;
 import io.kubernetes.client.openapi.models.V1JobList;
 import io.kubernetes.client.openapi.models.V1PodList;
 import io.kubernetes.client.openapi.models.V1LimitRangeList;
@@ -63,6 +64,14 @@ public class KubernetesClientWrapper {
     public V1Job createJob(V1Job job) {
         try {
             return this.batchApi.createNamespacedJob(namespace, job, null, null, null);
+        } catch (ApiException e) {
+            throw KubernetesException.fromApiException(e);
+        }
+    }
+
+    public V1ConfigMap createConfigMap(V1ConfigMap map) {
+        try {
+            return this.coreApi.createNamespacedConfigMap(namespace, map, null, null, null);
         } catch (ApiException e) {
             throw KubernetesException.fromApiException(e);
         }

@@ -16,13 +16,10 @@
             "name": "taskmaster",
             "image": "eu.gcr.io/tes-wes/taskmaster:v0.0.5.2",
             "args": [
-              "$(JSON_INPUT)"
+	      "-f",	    
+              "/jsoninput/JSON_INPUT.gz"
             ],
             "env": [
-              {
-                "name": "JSON_INPUT",
-                "value": ""
-              },
               {
                 "name": "TESK_FTP_USERNAME",
                 "valueFrom": {
@@ -49,7 +46,12 @@
                 "name": "podinfo",
                 "mountPath": "/podinfo",
                 "readOnly": true
-              }
+              },
+	      {
+		"name": "jsoninput",
+		"mountPath": "/jsoninput",
+		"readOnly": true
+	      }
             ]
           }
         ],

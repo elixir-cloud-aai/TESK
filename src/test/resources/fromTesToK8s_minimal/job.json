@@ -22,20 +22,20 @@
         "containers": [
           {
             "args": [
-              "$(JSON_INPUT)", "-n", "default", "-fn", "eu.gcr.io/tes-wes/filer", "-fv", "v0.10.0"
-            ],
-            "env": [
-              {
-                "name": "JSON_INPUT",
-                "value": "{\"outputs\":[{\"url\":\"/path/to/output_file.txt\",\"path\":\"/tes/output.txt\",\"type\":\"FILE\"},{\"url\":\"/path/to/output\",\"path\":\"/outputs/output\",\"type\":\"DIRECTORY\"}],\"inputs\":[{\"name\":\"infile1\",\"description\":\"aa bbb\",\"url\":\"/path1/to/input_file.json\",\"path\":\"/tes/volumes/input.json\",\"type\":\"FILE\"},{\"url\":\"/path2/to/input\",\"path\":\"/tes/volumes/input\",\"type\":\"DIRECTORY\"},{\"path\":\"/container/input/other.txt\",\"type\":\"FILE\",\"content\":\"aaabbbcccddd\"}],\"volumes\":[\"/tmp/tmp1\",\"/tmp/tmp2\"],\"executors\":[{\"apiVersion\":\"batch/v1\",\"kind\":\"Job\",\"metadata\":{\"annotations\":{\"tes-task-name\":\"taskFull\"},\"labels\":{\"job-type\":\"executor\",\"taskmaster-name\":\"task-35605447\",\"executor-no\":\"0\"},\"name\":\"task-35605447-ex-00\"},\"spec\":{\"template\":{\"metadata\":{\"name\":\"task-35605447-ex-00\"},\"spec\":{\"containers\":[{\"args\":[\"echo\",\"hello world\"],\"command\":[],\"image\":\"alpine\",\"name\":\"task-35605447-ex-00\",\"resources\":{\"requests\":{\"cpu\":\"4\"}}}],\"restartPolicy\":\"Never\"}}}},{\"apiVersion\":\"batch/v1\",\"kind\":\"Job\",\"metadata\":{\"annotations\":{\"tes-task-name\":\"taskFull\"},\"labels\":{\"job-type\":\"executor\",\"taskmaster-name\":\"task-35605447\",\"executor-no\":\"1\"},\"name\":\"task-35605447-ex-01\"},\"spec\":{\"template\":{\"metadata\":{\"name\":\"task-35605447-ex-01\"},\"spec\":{\"containers\":[{\"args\":[\"sh\",\"-c\",\"md5sum $src\"],\"command\":[],\"env\":[{\"name\":\"src\",\"value\":\"/container/input/other.txt\"},{\"name\":\"sth\",\"value\":\"sthElse\"}],\"image\":\"alpine\",\"name\":\"task-35605447-ex-01\",\"resources\":{\"requests\":{\"cpu\":\"4\"}},\"workingDir\":\"/starthere\"}],\"restartPolicy\":\"Never\"}}}}],\"resources\":{}}"
-              }
+              "-f", "/jsoninput/JSON_INPUT.gz", "-n", "default", "-fn", "eu.gcr.io/tes-wes/filer", "-fv", "v0.10.0"
             ],
             "image": "eu.gcr.io/tes-wes/taskmaster:v0.10.0",
             "name": "task-98605447",
+	    "env": [],
             "volumeMounts": [
               {
                 "name": "podinfo",
                 "mountPath": "/podinfo",
+                "readOnly": true
+              },
+              {
+                "name": "jsoninput",
+                "mountPath": "/jsoninput",
                 "readOnly": true
               }
             ]
@@ -53,6 +53,12 @@
                   }
                 }
               ]
+            }
+          },
+          {
+            "name": "jsoninput",
+            "configMap": {
+              "name": "task-98605447"
             }
           }
         ],
