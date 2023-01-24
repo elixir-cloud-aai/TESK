@@ -117,7 +117,7 @@ public class TesExecutorLog   {
    * Exit code.
    * @return exitCode
   */
-  @ApiModelProperty(required = true, value = "Exit code.")
+  @ApiModelProperty(example="0", required = true, value = "Exit code.")
   @NotNull
 
 

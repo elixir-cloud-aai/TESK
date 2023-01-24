@@ -31,7 +31,7 @@ public class TesOutputFileLog   {
    * URL of the file in storage, e.g. s3://bucket/file.txt
    * @return url
   */
-  @ApiModelProperty(required = true, value = "URL of the file in storage, e.g. s3://bucket/file.txt")
+  @ApiModelProperty(example="s3://bucket/file.txt", required = true, value = "URL of the file in storage, e.g. s3://bucket/file.txt")
   @NotNull
 
 
@@ -52,7 +52,7 @@ public class TesOutputFileLog   {
    * Path of the file inside the container. Must be an absolute path.
    * @return path
   */
-  @ApiModelProperty(required = true, value = "Path of the file inside the container. Must be an absolute path.")
+  @ApiModelProperty(example="/data/file1", required = true, value = "Path of the file inside the container. Must be an absolute path.")
   @NotNull
 
 

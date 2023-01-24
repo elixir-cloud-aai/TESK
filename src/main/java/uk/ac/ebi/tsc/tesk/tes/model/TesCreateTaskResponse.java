@@ -25,7 +25,7 @@ public class TesCreateTaskResponse   {
    * Task identifier assigned by the server.
    * @return id
   */
-  @ApiModelProperty(required = true, value = "Task identifier assigned by the server.")
+  @ApiModelProperty(required = true, value = "Task identifier assigned by the server.", example="task-e69c5b95")
   @NotNull
 
 

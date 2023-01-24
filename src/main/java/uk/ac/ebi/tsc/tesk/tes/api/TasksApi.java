@@ -78,14 +78,14 @@ public interface TasksApi {
 
 
     /**
-     * GET /tasks/{id} : GetTask
+     * GET /tasks/{id} : GetTaskInfo
      * Get a single task, based on providing the exact task ID string.
      *
      * @param id ID of task to retrieve. (required)
      * @param view OPTIONAL. Affects the fields included in the returned Task messages.  &#x60;MINIMAL&#x60;: Task message will include ONLY the fields: - &#x60;tesTask.Id&#x60; - &#x60;tesTask.State&#x60;  &#x60;BASIC&#x60;: Task message will include all fields EXCEPT: - &#x60;tesTask.ExecutorLog.stdout&#x60; - &#x60;tesTask.ExecutorLog.stderr&#x60; - &#x60;tesInput.content&#x60; - &#x60;tesTaskLog.system_logs&#x60;  &#x60;FULL&#x60;: Task message includes all fields. (optional, default to MINIMAL)
      * @return  (status code 200)
      */
-    @ApiOperation(value = "GetTask", nickname = "getTask", notes = "Get a single task, based on providing the exact task ID string.", response = TesTask.class, tags={ "TaskService", })
+    @ApiOperation(value = "GetTask", nickname = "GetTaskInfo", notes = "Get a single task, based on providing the exact task ID string.", response = TesTask.class, tags={ "TaskService", })
     @ApiResponses(value = { 
         @ApiResponse(code = 200, message = "", response = TesTask.class) })
     @GetMapping(
@@ -124,7 +124,7 @@ public interface TasksApi {
         value = "/tasks",
         produces = { "application/json" }
     )
-    default ResponseEntity<TesListTasksResponse> listTasks(@ApiParam(value = "OPTIONAL. Filter the list to include tasks where the name matches this prefix. If unspecified, no task name filtering is done.") @Valid @RequestParam(value = "name_prefix", required = false) String namePrefix,@ApiParam(value = "Optional number of tasks to return in one page. Must be less than 2048. Defaults to 256.") @Valid @RequestParam(value = "page_size", required = false) Long pageSize,@ApiParam(value = "OPTIONAL. Page token is used to retrieve the next page of results. If unspecified, returns the first page of results. The value can be found in the `next_page_token` field of the last returned result of ListTasks") @Valid @RequestParam(value = "page_token", required = false) String pageToken,@ApiParam(value = "OPTIONAL. Affects the fields included in the returned Task messages.  `MINIMAL`: Task message will include ONLY the fields: - `tesTask.Id` - `tesTask.State`  `BASIC`: Task message will include all fields EXCEPT: - `tesTask.ExecutorLog.stdout` - `tesTask.ExecutorLog.stderr` - `tesInput.content` - `tesTaskLog.system_logs`  `FULL`: Task message includes all fields.", allowableValues = "MINIMAL, BASIC, FULL", defaultValue = "MINIMAL") @Valid @RequestParam(value = "view", required = false, defaultValue="MINIMAL") String view) {
+    default ResponseEntity<TesListTasksResponse> listTasks(@ApiParam(value = "OPTIONAL. Filter the list to include tasks where the name matches this prefix. If unspecified, no task name filtering is done.") @Valid @RequestParam(value = "name_prefix", required = false) String namePrefix,@ApiParam(example="256",value = "Optional number of tasks to return in one page. Must be less than 2048. Defaults to 256.") @Valid @RequestParam(value = "page_size", required = false) Long pageSize,@ApiParam(value = "OPTIONAL. Page token is used to retrieve the next page of results. If unspecified, returns the first page of results. The value can be found in the `next_page_token` field of the last returned result of ListTasks") @Valid @RequestParam(value = "page_token", required = false) String pageToken,@ApiParam(value = "OPTIONAL. Affects the fields included in the returned Task messages.  `MINIMAL`: Task message will include ONLY the fields: - `tesTask.Id` - `tesTask.State`  `BASIC`: Task message will include all fields EXCEPT: - `tesTask.ExecutorLog.stdout` - `tesTask.ExecutorLog.stderr` - `tesInput.content` - `tesTaskLog.system_logs`  `FULL`: Task message includes all fields.", allowableValues = "MINIMAL, BASIC, FULL", defaultValue = "MINIMAL") @Valid @RequestParam(value = "view", required = false, defaultValue="MINIMAL") String view) {
         getRequest().ifPresent(request -> {
             for (MediaType mediaType: MediaType.parseMediaTypes(request.getHeader("Accept"))) {
                 if (mediaType.isCompatibleWith(MediaType.valueOf("application/json"))) {
