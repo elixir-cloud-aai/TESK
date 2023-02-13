@@ -20,7 +20,7 @@ tesk:
     # if empty - default base path; currently /ga4gh/tes/v1
     #tes_api_base_path:
     # For backwards compatibility with TES 0.3 - old base bath
-    tes_api_base_path: /v1
+    tes_api_base_path: /ga4gh/tes/v1
     image: docker.io/elixircloud/tesk-api:1.1.0
     port: 8080
     taskmaster_image_name:  docker.io/elixircloud/tesk-core-taskmaster
