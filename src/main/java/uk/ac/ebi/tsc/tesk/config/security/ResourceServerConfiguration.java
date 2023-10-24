@@ -40,7 +40,7 @@ public class ResourceServerConfiguration extends ResourceServerConfigurerAdapter
     private final ErrorAttributes errorAttributes;
     private final HttpMessageConverters messageConverters;
     private final AuthorisationProperties authorisationProperties;
-    private final String[] ALLOWED_URLS = {"/", "/v2/api-docs", "/configuration/ui", "/swagger-resources/**", "/configuration/**", "/swagger-ui.html", "/webjars/**"};
+    private final String[] ALLOWED_URLS = {"/", "/v2/api-docs", "/configuration/ui", "/swagger-resources/**", "/configuration/**", "/swagger-ui/**", "/webjars/**"};
     private final String baseUrl;
 
     public ResourceServerConfiguration(ErrorAttributes errorAttributes, HttpMessageConverters messageConverters,
