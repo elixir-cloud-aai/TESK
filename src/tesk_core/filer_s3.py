@@ -1,23 +1,26 @@
-import re
-import botocore
-import boto3
 import sys
 import os
 import logging
+import re
+import botocore
+import boto3
 from tesk_core.transput import Transput, Type
-from tesk_core.extract_endpoint import extract_endpoint
 
 class S3Transput(Transput):
     def __init__(self, path, url, ftype):
         Transput.__init__(self, path, url, ftype)
         self.bucket, self.file_path = self.get_bucket_name_and_file_path()
+        self.bucket_obj = None
 
     def __enter__(self):
-        client = boto3.resource('s3', endpoint_url=extract_endpoint())
+        client = boto3.resource('s3', endpoint_url=self.extract_endpoint())
         if self.check_if_bucket_exists(client):
             sys.exit(1)
         self.bucket_obj = client.Bucket(self.bucket)
         return self
+
+    def extract_endpoint(self):
+        return boto3.client('s3').meta.endpoint_url
 
     def check_if_bucket_exists(self, client):
         try:
@@ -95,9 +98,7 @@ class S3Transput(Transput):
                 elif os.path.isfile(path):
                     file_type = Type.File
                 else:
-                    """
-                    An exception is raised, if the object type is neither file or directory
-                    """
+                    # An exception is raised, if the object type is neither file or directory
                     logging.error("Object is neither file or directory : '%s' ",path)
                     raise IOError
                 file_path = os.path.join(self.url, item)
@@ -112,7 +113,7 @@ class S3Transput(Transput):
 
     def download_dir(self):
         logging.debug('Downloading s3 object: "%s" Target: %s', self.bucket + "/" + self.file_path, self.path)
-        client = boto3.client('s3', endpoint_url=extract_endpoint())
+        client = boto3.client('s3', endpoint_url=self.extract_endpoint())
         if not self.file_path.endswith('/'):
             self.file_path += '/'
         objects = client.list_objects_v2(Bucket=self.bucket, Prefix=self.file_path)
@@ -142,3 +143,4 @@ class S3Transput(Transput):
             logging.error(err.response['Error']['Message'])
             return 1
         return 0
+    
