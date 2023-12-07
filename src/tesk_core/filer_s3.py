@@ -36,40 +36,12 @@ class S3Transput(Transput):
 
     def get_bucket_name_and_file_path(self):
         """
-        if the S3 url is similar to s3://idr-bucket-1/README.txt format
-        """
-        if self.url.startswith("s3"):
-            self.url_path = re.sub(r's3:\/', "", self.url)
-
-        """
-        If the s3 url are of following formats
-        1. File type = FILE
-            * http://mybucket.s3.amazonaws.com/file.txt
-            * http://mybucket.s3-aws-region.amazonaws.com/file.txt
-            * http://s3.amazonaws.com/mybucket/file.txt
-            * http://s3-aws-region.amazonaws.com/mybucket/file.txt
-            * s3://mybucket/file.txt
-
-            return values will be
-            bucket name = mybucket , file path = file.txt
-
-        2. File type = DIRECTORY
-            * http://mybucket.s3.amazonaws.com/dir1/dir2/
-            * http://mybucket.s3-aws-region.amazonaws.com/dir1/dir2/
-            * http://s3.amazonaws.com/mybucket/dir1/dir2/
-            * http://s3-aws-region.amazonaws.com/mybucket/dir1/dir2/
-            * s3://mybucket/dir1/dir2/
-
-            return values will be
-            bucket name = mybucket , file path = dir1/dir2/
+            If the S3 url is similar to s3://idr-bucket-1/README.txt format
         """
 
-        match = re.search('^([^.]+).s3', self.netloc)
-        if match:
-            bucket = match.group(1)
-        else:
-            bucket = self.url_path.split("/")[1]
-        file_path = re.sub(r'^\/' + bucket + '\/', "", self.url_path).lstrip("/")
+        bucket = self.netloc
+        file_path = self.url_path[1:]
+
         return bucket, file_path
 
     def download_file(self):
@@ -143,4 +115,3 @@ class S3Transput(Transput):
             logging.error(err.response['Error']['Message'])
             return 1
         return 0
-    

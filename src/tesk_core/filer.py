@@ -413,8 +413,6 @@ def newTransput(scheme, netloc):
     elif scheme == 'file':
         return fileTransputIfEnabled()
     elif scheme in ['http', 'https']:
-        if 's3' in netloc:
-            return S3Transput
         return HTTPTransput
     elif scheme == 's3':
         return S3Transput
