@@ -45,6 +45,7 @@ def test_check_if_bucket_exists(moto_boto, path, url, ftype, expected):
 # @patch('tesk_core.filer.os.makedirs')
 # @patch('builtins.open')
 # @patch('s3transfer.utils.OSUtils.rename_file')
+@patch("tesk_core.filer_s3.S3Transput.extract_endpoint", return_value="http://s3.amazonaws.com")
 @pytest.mark.parametrize("path, url, ftype,expected", [
         ("/home/user/filer_test/file.txt", "s3://tesk/folder/file.txt","FILE",0),
         ("/home/user/filer_test/file.txt", "s3://tesk/folder/file_new.txt","FILE",1),
