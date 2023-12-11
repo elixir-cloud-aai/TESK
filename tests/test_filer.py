@@ -214,7 +214,7 @@ class FilerTest(unittest.TestCase, AssertThrowsMixin):
         self.assertEqual(newTransput('https', 'test.com'), HTTPTransput)
         self.assertEqual(newTransput('file', '/home/tfga/workspace/'), FileTransput)
         self.assertEqual(newTransput('s3', '/home/tfga/workspace/'), S3Transput)
-        self.assertEqual(newTransput('http', 's3.aws.com'), S3Transput)
+        self.assertEqual(newTransput('http', 's3.aws.com'), HTTPTransput)
 
         self.assertThrows(lambda: newTransput('svn', 'example.com')
                           , UnknownProtocol
