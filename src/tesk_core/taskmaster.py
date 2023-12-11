@@ -133,7 +133,7 @@ def init_pvc(data, filer):
     return pvc
 
 
-def run_task(data, filer_name, filer_version, have_json_pvc):
+def run_task(data, filer_name, filer_version, have_json_pvc=False):
     task_name = data['executors'][0]['metadata']['labels']['taskmaster-name']
     pvc = None
 

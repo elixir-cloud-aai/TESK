@@ -1,23 +1,26 @@
-import re
-import botocore
-import boto3
 import sys
 import os
 import logging
+import re
+import botocore
+import boto3
 from tesk_core.transput import Transput, Type
-from tesk_core.extract_endpoint import extract_endpoint
 
 class S3Transput(Transput):
     def __init__(self, path, url, ftype):
         Transput.__init__(self, path, url, ftype)
         self.bucket, self.file_path = self.get_bucket_name_and_file_path()
+        self.bucket_obj = None
 
     def __enter__(self):
-        client = boto3.resource('s3', endpoint_url=extract_endpoint())
+        client = boto3.resource('s3', endpoint_url=self.extract_endpoint())
         if self.check_if_bucket_exists(client):
             sys.exit(1)
         self.bucket_obj = client.Bucket(self.bucket)
         return self
+
+    def extract_endpoint(self):
+        return boto3.client('s3').meta.endpoint_url
 
     def check_if_bucket_exists(self, client):
         try:
@@ -33,40 +36,12 @@ class S3Transput(Transput):
 
     def get_bucket_name_and_file_path(self):
         """
-        if the S3 url is similar to s3://idr-bucket-1/README.txt format
-        """
-        if self.url.startswith("s3"):
-            self.url_path = re.sub(r's3:\/', "", self.url)
-
-        """
-        If the s3 url are of following formats
-        1. File type = FILE
-            * http://mybucket.s3.amazonaws.com/file.txt
-            * http://mybucket.s3-aws-region.amazonaws.com/file.txt
-            * http://s3.amazonaws.com/mybucket/file.txt
-            * http://s3-aws-region.amazonaws.com/mybucket/file.txt
-            * s3://mybucket/file.txt
-
-            return values will be
-            bucket name = mybucket , file path = file.txt
-
-        2. File type = DIRECTORY
-            * http://mybucket.s3.amazonaws.com/dir1/dir2/
-            * http://mybucket.s3-aws-region.amazonaws.com/dir1/dir2/
-            * http://s3.amazonaws.com/mybucket/dir1/dir2/
-            * http://s3-aws-region.amazonaws.com/mybucket/dir1/dir2/
-            * s3://mybucket/dir1/dir2/
-
-            return values will be
-            bucket name = mybucket , file path = dir1/dir2/
+            If the S3 url is similar to s3://idr-bucket-1/README.txt format
         """
 
-        match = re.search('^([^.]+).s3', self.netloc)
-        if match:
-            bucket = match.group(1)
-        else:
-            bucket = self.url_path.split("/")[1]
-        file_path = re.sub(r'^\/' + bucket + '\/', "", self.url_path).lstrip("/")
+        bucket = self.netloc
+        file_path = self.url_path[1:]
+
         return bucket, file_path
 
     def download_file(self):
@@ -95,9 +70,7 @@ class S3Transput(Transput):
                 elif os.path.isfile(path):
                     file_type = Type.File
                 else:
-                    """
-                    An exception is raised, if the object type is neither file or directory
-                    """
+                    # An exception is raised, if the object type is neither file or directory
                     logging.error("Object is neither file or directory : '%s' ",path)
                     raise IOError
                 file_path = os.path.join(self.url, item)
@@ -112,7 +85,7 @@ class S3Transput(Transput):
 
     def download_dir(self):
         logging.debug('Downloading s3 object: "%s" Target: %s', self.bucket + "/" + self.file_path, self.path)
-        client = boto3.client('s3', endpoint_url=extract_endpoint())
+        client = boto3.client('s3', endpoint_url=self.extract_endpoint())
         if not self.file_path.endswith('/'):
             self.file_path += '/'
         objects = client.list_objects_v2(Bucket=self.bucket, Prefix=self.file_path)
