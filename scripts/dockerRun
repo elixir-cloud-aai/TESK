@@ -1,13 +1,12 @@
-
-# 
+#!/bin/bash
+#
 # Usage:
-# 
+#
 #     buildRun filer          or
 #     buildRun taskmaster
-# 
+#
 
 imageName="$1"
 shift
 
-docker run "eu.gcr.io/tes-wes/$imageName:testing" "$@"
-
+docker run "docker.io/elixircloud/tesk-core-$imageName:testing" "$@"
