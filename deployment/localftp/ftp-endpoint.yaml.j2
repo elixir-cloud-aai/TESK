@@ -1,9 +1,0 @@
-kind: Endpoints
-apiVersion: v1
-metadata:
-    name: ftp
-subsets:
-    - addresses:
-        - ip: {{ ftp.virtualboxip }}  # ipv4 address from vboxnet0
-      ports:
-        - port: 21
