@@ -24,9 +24,9 @@ tesk:
     image: docker.io/elixircloud/tesk-api:1.1.0
     port: 8080
     taskmaster_image_name:  docker.io/elixircloud/tesk-core-taskmaster
-    taskmaster_image_version: v0.10.0
+    taskmaster_image_version: v0.10.2
     taskmaster_filer_image_name: docker.io/elixircloud/tesk-core-filer
-    taskmaster_filer_image_version: v0.10.0
+    taskmaster_filer_image_version: v0.10.2
     debug: false
     executor_retries: 2
     filer_retries: 2
