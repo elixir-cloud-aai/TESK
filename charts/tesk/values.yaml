@@ -4,8 +4,6 @@
 
 # host_name: tes.tsi.ebi.ac.uk
 host_name: ""
-# There are two options here: "openshift" or "kubernetes"
-clusterType: kubernetes
 #
 #
 #
