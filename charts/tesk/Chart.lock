@@ -1,0 +1,6 @@
+dependencies:
+- name: nginx-ingress
+  repository: oci://registry-1.docker.io/nginxcharts
+  version: 1.1.2
+digest: sha256:ba4849c000bf8fcefd1c23038c2ce5c5ef1879da5ddf9a253e1b68458480c35c
+generated: "2024-02-07T15:07:23.216829+02:00"
