@@ -1,0 +1,58 @@
+{
+  "outputs": [
+  ],
+  "inputs": [
+
+     {
+        "name": "input1",
+        "description": "Example",
+        "url":  "file:///home/tfga/workspace/cwl-tes/README.md",
+        "path": "/some/volume/input.txt",
+        "type": "FILE"
+      }
+  ],
+  "volumes": [
+  ],
+  "executors": [
+    {
+      "apiVersion": "batch/v1",
+      "kind": "Job",
+      "metadata": {
+        "annotations": {
+        },
+        "labels": {
+          "job-type": "executor",
+          "taskmaster-name": "task-1000",
+          "executor-no": "0",
+          "creator-user-id": "test-user-id"
+        },
+        "name": "task-1000-ex-00"
+      },
+      "spec": {
+        "template": {
+          "metadata": {
+            "name": "task-1000-ex-00"
+          },
+          "spec": {
+            "containers": [
+              {
+                "command": [
+                  "cat",
+                  "/some/volume/input.txt"
+                ],
+                "image": "ubuntu",
+                "name": "task-1000-ex-00",
+                "resources": {
+                }
+              }
+            ],
+            "restartPolicy": "Never"
+          }
+        }
+      }
+    }
+  ],
+  "resources": {
+    "disk_gb": 0.1
+  }
+}

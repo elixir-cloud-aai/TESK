@@ -1,0 +1,5 @@
+[default]
+endpoint_url=http://foo.bar
+
+[other_profile]
+endpoint_url=http://other.endpoint
