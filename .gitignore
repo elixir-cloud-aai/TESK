@@ -2,3 +2,5 @@
 *.pyc
 #*.yaml
 !/deployment/wes-tes/**
+charts/
+Chart.lock
