@@ -1,0 +1,50 @@
+
+# 
+# Usage:
+# 
+#     ./run examples/inputFile.json
+# 
+
+jsonFile="$1"
+
+
+require map
+
+export HOST_BASE_PATH='/home/tfga/workspace/cwl-tes/'
+export CONTAINER_BASE_PATH='/transfer'
+
+echo "HOST_BASE_PATH='$HOST_BASE_PATH'"
+echo "CONTAINER_BASE_PATH='$CONTAINER_BASE_PATH'"
+echo
+
+
+deleteAll() {
+
+    objType="$1"
+    
+    echo "-- Deleting all $objType -----------------------------------"
+    kubectl delete "$objType" --all
+    echo
+}
+
+deleteAll pods
+deleteAll jobs
+deleteAll pvc
+deleteAll pv
+
+echo "-- Creating transfer PV and PVC --------------------------------"
+echo
+
+map kuCreate examples/transferPvc/pv.yaml   \
+             examples/transferPvc/pvc.yaml
+
+echo "-- Running -----------------------------------------------------"
+echo
+
+./taskmaster -f "$jsonFile" -fv 'testing' -d --localKubeConfig
+
+echo "-- Result ------------------------------------------------------"
+echo
+
+kubectl get pods 
+
