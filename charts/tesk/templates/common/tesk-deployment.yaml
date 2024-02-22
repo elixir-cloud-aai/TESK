@@ -87,6 +87,13 @@ spec:
               name: oauth-client-secret
               key: secret
               optional: true
+        {{- if .Values.tesk.securityContext.enabled }}
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+        {{- end }}
         volumeMounts:
           - name: service-info-config
             mountPath: /etc/tesk/service-info
@@ -97,3 +104,10 @@ spec:
         - name: service-info-config
           configMap:
             name: service-info-config
+      {{- if .Values.tesk.securityContext.enabled }}
+      securityContext:
+        runAsUser: 1000
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      {{- end }}   
