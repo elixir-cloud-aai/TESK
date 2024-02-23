@@ -75,7 +75,7 @@ ftp:
     hostip:
 
 ingress:
-  rules: false
+  rules: true
   ingressClassName: ""
   path: /
   # If no TLS secret name configured, TLS will be switched off
