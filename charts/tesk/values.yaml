@@ -29,6 +29,11 @@ tesk:
     executor_retries: 2
     filer_retries: 2
 
+    limitsCpu: 1
+    limitsMemory: 2048Mi
+    requestsCpu: 1
+    requestsMemory: 2048Mi
+
     securityContext:
       enabled: true
 
