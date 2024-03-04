@@ -1,156 +1,140 @@
-# Deployment instructions for TESK using Jinja templates [Deprecated]
-*This is the previous version of instructions how to install TESK using Jinja templates. You can still use it, if you have done so previously, but we recommend that you switch to the current instructions of installing TESK using Helm. This installation method might not contain the recent changes/options and we plan to remove it in the future.*
+# Deployment instructions for TESK
+## Requirements
+* **A Kubernetes cluster version 1.9 and later**. TESK works well in multi-tenancy clusters such as OpenShift and requires access to only one namespace.
+* **A default storage class.** To handle tasks with I/O TESK always requires a default storage class (regardless of the chosen storage backend). TESK uses the class to create temporary PVCs. It should be enough that the storage supports the RWO mode.
+* **A storage backend** to exchange I/O with the external world. At the moment TESK supports:
+  * FTP. R/W access to a single FTP account.
+  * Shared file system. This usually comes in the form of a RWX PVC.
+  * S3 (WiP). R/W access to one bucket in S3-like storage
 
-The deployment of `TESK` can be executed in any Kubernetes environment, with a minimal configuration required for setting up the API access point.
+## Installing TESK
+### Helm
+TESK can be installed using Helm 3 (tested with v3.0.0) using [this chart](../charts/tesk). It is best to create a dedicated namespace for TESK, although for test or development clusters it is fine to use the `default` namespace.
+The documentation of the chart gives a desciption of all configuration options and below the most common installation scenarios have been described.
+TESK installation consists of a single API installed as a K8s deployment and exposed as a K8s service. Additionally, TESK API requires access to the K8s API in order to create K8s Jobs and PVCs. That is why the installation additionally creates objects such as service accounts, roles and role bindings.
+The chart does not provide a way to install the default storage class and that needs to be done independently by the cluster administrator.
 
-We provide templates - that can easily produce static `yaml` files - for three deployment scenarios:
+### Exposing TESK API
+After executing the chart with the default values, TESK API will be installed, but will be accessible only inside the cluster. There is a number of options of exposing TESK externally and they depend on the type of the cluster.
 
--   exposing Tesk service directly; should work on each environment, tested for GCP (LoadBalancer) and Local-machine with Minikube (NodePort)
--   exposing Tesk via Ingress; should work on each environment, tested for On-Premises VMs in `OpenStack`
--   exposing Tesk via OpenShift Route; will work only on `OpenShift`, recommended scenario for Hosted solution with `OpenShift`
-
-The templates are written using the "Jinja2" syntax and are available in `deployment` folder. For each of the scenarios you will need files from `common` subfolder. Additionally:
-
--   exposing Tesk API service directly - only files from `common`
--   exposing Tesk via Ingress - files from `common` and `ingress`
--   exposing Tesk via OpenShift Route - files from `common` and `openshift`
-
-## Compiling template
-
-To compile the template use a Jinja2 Command Line Tool, we suggest
-[shinto-cli](https://github.com/istrategylabs/shinto-cli).
-Go to `deployment/common` directory:
-
+#### NodePort and LoadBalancer
+The most basic way of exposing TESK on self-managed clusters and a good option for development clusters such as Minikube is to use a NodePort type of service.
+In the chart set the values:
 ```
-cd deployment/common
+service.type="NodePort"
+## Any values in the range 30000-32767 is fine. 31567 is used as an example
+service.node_port: 31567
 ```
-Edit the `config.ini` file, setting up the few variables specific to your deployment.  
-In general, the only variables that have to be edited are just the fields that follow the comment:  
-
-`# the following variables are specific to each deployment`.
-
-Make sure that the variable `auth.mode` is set to `noauth` as in the snippet below or absent from the `config.ini` file.
-This will switch off authentication via `OAuth2` and make testing `TESK` deployment easier.
-You can switch on authentication later on.
-
+After installing the chart TESK API should be accessible under the external IP of any of your cluster nodes and the node port. For minikube you can obtain the IP by running:
 ```
-[auth]
-# the following variables are specific to each deployment
-mode=noauth
+minikube ip
 ```
-
-For more on the topic, see
-[Authentication and Authorisation](https://github.com/EMBL-EBI-TSI/tesk-api/blob/master/auth.md).  
-
-
-Compile the `yaml` file using the following command (Jinja2 Command Line Tool):
-
+or open Swagger UI of TESK directly in the browser with:
 ```
-j2 -g "*.j2" config.ini
+minikube service tesk-api
 ```
-
-This will produce a set of `.yaml` files, one for each `.j2` file, present in the local folder, customized using the values present in the `config.ini` file.
-
-If you chose Ingress or OpenShift scenario, then change directory to `deployment/ingress` or `deployment/openshift` accordingly and repeat all the above steps to obtain additional `.yaml` files.
-
-## Deploy TESK
-
-Once you have all needed `yaml` files, deploying **TESK** is just a single command:
-
+You should be able to see an empty list of tasks by calling
 ```
-kubectl create -f .
-```
+http://external_IP_of_a_node:31567/v1/tasks
 
-or in the case of `OpenShift`:
-
-```
-oc create -f .
-```
-
-If you chose Ingress or OpenShift scenario, then change directory once again to `deployment/ingress` or `deployment/openshift` accordingly and run the same command once again:
-
-```
-kubectl create -f .
-```
-
-or for `OpenShift`
-
-```
-oc create -f .
-```
-
-## Testing TESK
-
-### Submit a demo task
-
-Run a `curl` console command with a `POST` message:
-
-```
- curl \
- -X POST \
- -s \
- --header 'Content-Type: application/json' \
- --header 'Accept: application/json' \
- -d @../../examples/success/stdout.json \
- '[tesk-end-point]/v1/tasks'
-```
-
-where:
-
--   [`stdout.json`](https://github.com/EMBL-EBI-TSI/TESK/blob/master/examples/success/stdout.json) is a file from the `examples` folder, set its path according to the local working directory.
--   `[tesk-end-point]` has to be replaced with an appropriate value, which can be an `hostname` or a `IP` depending on your installation (i.e. `http://193.62.55.44` or `https://tesk-api.c01.k8s-popup.csc.fi`).
-
-This should respond with the body containing the task `id`:
-
-```
 {
-  "id" : "task-123a4b56"
+  "tasks" : [ ]
 }
-```
-
-**Note**: In Minikube the `tesk-end-point` can be obtained with the command:
 
 ```
-minikube service tesk-api --url
+If your cluster is provided by a Cloud Provider, you may be able to use a LoadBalancer type of service. In the chart set the value:
+```
+service.type="LoadBalancer"
+```
+and consult [K8s documentation](https://kubernetes.io/docs/tasks/access-application-cluster/create-external-load-balancer/) on how to find out the IP of your TESK service.
+
+#### OpenShift
+The chart handles exposing TESK API as OpenShift Route.
+
+TESK API should be accessible under (Swagger UI):
+`https://project-name.openshift-host-name`
+and
+`https://project-name.openshift-host-name/v1/tasks`
+should return an empty list of tasks.
+
+#### Ingress
+Recommended way of exposing any public facing API from K8s cluster such as TESK API is to use Ingress.
+You need:
+* an **Ingress Controller**.
+* a **Hostname** - a DNS entry, where you will expose TESK. TESK can be installed at a subpath as well.
+* an **Ingress Resource**, which will instruct the Controller where to expose TESK.
+* A **TLS certificate** to serve TESK over https. You can obtain one from a certificate authority or automatically obtain one from [Let's Encrypt](https://letsencrypt.org/). The K8s way to do it is by installing [cert-manager](https://cert-manager.io/) and creating an ACME Issuer.
+The example values for TESK Helm chart to create Ingress Resource with annotations for cert-manager, but not to install the controller:
+```yaml
+host_name: tes.ebi.ac.uk
+ingress:
+  rules: true
+  ingressClassName: ""
+  path: /
+  # If no TLS secret name configured, TLS will be switched off
+  tls_secret_name:
+  # Annotations for Ingress Resource.
+  annotations:
+      kubernetes.io/tls-acme: "true"
+      # Choose one of the following depending on your setup
+      # cert-manager.io/issuer: letsencrypt-production
+      cert-manager.io/cluster-issuer: letsencrypt-production
+```
+List of tasks should be reachable under this URL:
+```
+https://tes.ebi.ac.uk/v1/tasks
 ```
 
-### Check if the task is successful
+### Storage backends
 
-The second part of the test is to see, if task completed successfully.  
-This can be achieved using a web-browser pointing to:
+#### Shared file system
+TESK can exchange Inputs and Outputs with the external world using the local/shared storage. You need to create a PVC that will be reachable for your workflow manager and for TESK at the same time.
+If the workflow manager (or anything else that produces paths to your inputs and outputs) is installed inside the same K8s cluster, you may use a PVC of a storage class providing RWX access and mount it to the pod where the workflow manager is installed in the directory where the manager will be creating/orchestrating inputs/outputs. Depending on the workflow manager, it may be a working directory of your workflow manager process.
+If the workflow manager is installed outside of the cluster, you may be able to use a volume mounting storage visible outside of the cluster (hostPath, NFS, etc) and a PVC bound to that volume. We used Minikube with the hostPath type of storage in this secenario successfuly.
+Creating the shared PVC is not handled by TESK Helm chart.
+Finally you have to setup following values in the chart:
+```yaml
+transfer:
+    # If you want local file systems support (i.e. 'file:' urls in inputs and outputs),
+    # you have to define these 2 properties.
+    active: false
 
-`[tesk-end-point]/v1/tasks`
+    # wes_base_path: '/data'      # WesElixir via docker-compose
+    wes_base_path: '/tmp'         # WesElixir locally
+                                  # Change the value of $wesBasePath in minikubeStart accordingly
+    tes_base_path: '/transfer'
+    pvc_name: 'transfer-pvc'  
+```    
 
-This address offers a monitoring page for all the submitted tasks.  
-When a task is successfully completed, the output will contain the task id from previous step together with the string: `"state": "COMPLETE"`
-
+#### FTP
+TESK can exchange Inputs and Outputs with the external world using an FTP account. Currently TLS is not supported in TESK, but if you plan to use TESK with cwl-tes and FTP, cwl-tes requires TLS for FTP. The solution is to enable TLS on your FTP server, but not enforce it.
+In the Helm chart provide your credentials in one of 2 ways. The old way has been in TESK for a long time, but will be finally superseded by `.netrc`. Provide a name for a secret, which will store credentials (you can keep the default). An empty name switches off the creation of the old-style credentials secret.
+```yaml
+ftp:
+    classic_ftp_secret: ftp-secret
 ```
-{
-  "tasks" : [ {
-    "id" : "task-123a4b56",
-    "state" : "COMPLETE"
-  }, {
-  ...
-  } ]
-}
+and additionally provide your username and password in the `secrets.yaml`, as describe [here](../charts/tesk/README.md).
+
+Alternatively, you can use a `.netrc` file, which will allow storing credentials for more than one FTP server.
+Provide a name for a secret, which will store .netrc file:
+```yaml
+ftp:
+    netrc_secret: ftp-secret
 ```
+and additionally place a `.netrc` file in the folder `ftp` in the chart (the template of the file is already there).
+Keeping both secret names empty switches off FTP support altogether.
 
-It can take a couple of minutes: just refresh the browser if the state is `"INITIALIZING"` or `"QUEUED"`.
+#### S3
+TESK can also utilize S3 object storage for exchanging Inputs & Outputs. If you have an S3 endpoint (AWS, minio, etc) that you want to use, simply add the necessary `config` and `credentials` files (see [here](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html)) under a folder named **s3-config**. You can use the templates provided in *charts/tesk/s3-config* as a point of reference.
 
-## Soft Requirements:
-
-### OpenShift client
-This is a requirement only if you use [OpenShift](https://github.com/openshift/origin/releases).
-
-Form Mac users:
-
+### Authentication and Authorisation
+TESK supports OAuth2/OIDC to authorise API requests. Authentication and authorisation are optional and can be turned off completely. When turned on, TESK API expects an OIDC access token in Authorization Bearer header. TESK can be integrated with any standard OIDC provider, but the solution has been designed to support Elixir AAI in the first place and the authorisation part relies on Elixir's group model. For details, please see [Authentication and Authorisation document](https://github.com/EMBL-EBI-TSI/tesk-api/blob/master/auth.md).
+To enable authentication set the following value in the chart:
 ```
-brew install openshift-cli
+auth:
+    mode: auth
 ```
-
-### Jinja2 Command Line Tool
-A Jinja2 Command Line Tools, i.e. [shinto-cli](https://github.com/istrategylabs/shinto-cli), which provides file globbing. Unfortunately, it works only with Python 2.
-
-```
-pip install shinto-cli
-```
+At the moment enabling authentication also enables authorisation. Consult [this document](https://github.com/EMBL-EBI-TSI/tesk-api/blob/master/auth.md) for details of authorisation.  
+The support for authorisation configuration in the chart and its documentation is in progress.
+### Additional configuration
+The Helm chart has been a fairly recent addition to TESK and TESK owes its to its fantastic contributors. There might be more options that are available for configuration in TESK that have not been reflected in the chart, yet. Have a look [here](https://github.com/EMBL-EBI-TSI/tesk-api) for more configuration options.
