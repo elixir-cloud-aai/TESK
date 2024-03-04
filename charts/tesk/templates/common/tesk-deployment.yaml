@@ -16,6 +16,13 @@ spec:
       containers:
       - name: tesk-api
         image: {{ .Values.tesk.image }}
+        resources:
+          limits:
+            cpu: {{ .Values.tesk.limitsCpu }}
+            memory: {{ .Values.tesk.limitsMemory }}
+          requests:
+             cpu: {{ .Values.tesk.requestsCpu }}
+             memory: {{ .Values.tesk.requestsMemory }}
         env:
         - name: TESK_API_TASKMASTER_IMAGE_NAME
           value: {{ .Values.tesk.taskmaster_image_name }}
@@ -87,6 +94,13 @@ spec:
               name: oauth-client-secret
               key: secret
               optional: true
+        {{- if .Values.tesk.securityContext.enabled }}
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+        {{- end }}
         volumeMounts:
           - name: service-info-config
             mountPath: /etc/tesk/service-info
@@ -97,3 +111,10 @@ spec:
         - name: service-info-config
           configMap:
             name: service-info-config
+      {{- if .Values.tesk.securityContext.enabled }}
+      securityContext:
+        runAsUser: 1000
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      {{- end }}   

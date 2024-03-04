@@ -59,7 +59,6 @@ See [`values.yaml`](values.yaml) for default values.
 | Key | Type | Description |
 | --- | --- | --- |
 | host_name | string | FQDN to expose the application |
-| clusterType | string |type of Kubernetes cluster; either 'kubernetes' or 'openshift'|
 | storageClass | string | Name of a user preferred storage class (default is empty) |
 | storage | string | Can be either 'openstack' or 's3' |
 | tesk.image | string | container image (including the version) to be used to run TESK API |
@@ -69,6 +68,7 @@ See [`values.yaml`](values.yaml) for default values.
 | tesk.executor_retries| int | The number of retries on error - actual task compute (executor)|
 | tesk.filer_retries| int | The number of retries on error while handling I/O (filer)|
 | tesk.debug | boolean | Activates the debugging mode |
+| tesk.securityContext.enabled | boolean | Enable securityContext |
 | transfer.wes_base_path | string | |
 | transfer.tes_base_path | string | |
 | transfer.pvc_name | string | |
@@ -79,10 +79,8 @@ See [`values.yaml`](values.yaml) for default values.
 | ftp.classic_ftp_secret | String | The name of a secret to store FTP credentials as keys. If empty, the old-style FTP secret is not created |
 | ftp.netrc_secret | String | The name of a secret to store FTP credentials as a netrc file. If empty, the netrc FTP secret is not created |
 | ftp.hostip | string | IP of the endpoint of the ftp as seen by containers in K8s (only needed, if in need of a DNS entry for locally installed FTP server) |
-| ingress.active| boolean | Decides if an ingress resource for tesk-api is created
+| ingress.rules| boolean | Apply or not the ingress rule |
+| ingress.ingressClassName | string | Name of the Ingress Class |
+| ingress.path | string |  |
 | ingress.tls_secret_name | string |  If no TLS secret name configured, TLS will be switched off. A template can be found at [deployment/tls_secret_name.yml-TEMPLATE](deployment/tls_secret_name.yml-TEMPLATE). If you are using cert-manager the secret will be created automatically.|
-| ingress.deploy_ingress.active | boolean | Activates deployment of an ingress controller
-| ingress.deploy_ingress.nginx_image | string | Image to use for the nginx ingress |
-| ingress.deploy_ingress.external_ip | string | We used externalIP to expose Ingress on 80/443 port. On OpenStack internal IP of masternode (10.x.x.x) worked for us. Could be any node, but calls to the service have to be using it. In our case DNS entry is assigned to master's external IP. Use NodePort as an alternative.|
-| ingress.deploy_ingress.node_port | integer | |
-| ingress.deploy_ingress.scope | string | The following variables are specific to each deployment. Use "Cluster" if you want Ingress to listen to all namespaces (requires ClusterAdmin). Leave it blank if you want Ingress to listen only to its own namespace. |
+| ingress.annotations | string | Annotations for the ingress rules |
