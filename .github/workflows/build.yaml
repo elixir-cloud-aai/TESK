@@ -10,23 +10,51 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3.3.0
-        
-      - name: Create Kind Cluster
-        uses: helm/kind-action@v1.5.0
-        
+        with:
+          fetch-depth: 0
+            
+      - name: Create k3s Cluster
+        uses: debianmaster/actions-k3s@v1.0.5
+        with:
+          version: 'latest'
+            
       - name: Create namespace
         run: kubectl create ns tesk
         
-      - name: Lint chart
-        run: helm lint
-        working-directory: charts/tesk
+      - name: Helm Deps
+        run: |
+          for dir in $(ls -d charts/*); do
+            helm dependency update $dir;
+          done
+    
+      - name: Helm Lint
+        run: |
+          for dir in $(ls -d charts/*); do
+            helm lint $dir
+          done
         
       - name: Apply Helm file
         run: helm install -n tesk tesk . -f values.yaml
         working-directory: charts/tesk
         
-      - name: Sleep for 10 seconds
-        run: sleep 10
-        
+      - name: Sleep for 30 seconds
+        run: sleep 30
+           
       - name: Get Helm and k8s
         run: helm list -n tesk && kubectl get all -n tesk
+    
+      - name: curl URL
+        run: curl localhost -vL
+            
+      - name: Configure Git
+        run: |
+          git config user.name "$GITHUB_ACTOR"
+          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+    
+      - name: Run chart-releaser
+        uses: helm/chart-releaser-action@v1.6.0
+        with:
+          skip_existing: true
+        env:
+          CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+    
