@@ -1,0 +1,8 @@
+
+# Creating virtualenv
+virtualenv --clear -p python2.7 .venv
+
+# Activating virtualenv
+. .venv/bin/activate
+
+./install
