@@ -1,0 +1,44 @@
+[tool.poetry]
+name = "tesk"
+version = "0.1.0"
+description = "An implementation of a task execution engine based on the TES standard running on Kubernetes."
+authors = ["TBA <you@example.com>"]
+maintainers = ["TBA <you@example.com>", "TBA <you@example.com>"]
+license = "Apache-2.0"
+readme = "README.md"
+repository = "https://github.com/elixir-cloud-aai/TESK"
+keywords = ["TES", "Kubernetes", "Task Execution", "ebi", "TESK"]
+classifiers = [
+    "Development Status :: 4 - Alpha",
+    "Intended Audience :: System Administrators",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+]
+
+[tool.poetry.scripts]
+filer = 'service.filer.py:main'
+taskmaster = 'service.taskmaster.py:main'
+
+[tool.poetry.dependencies]
+python = "^3.11"
+kubernetes = "9.0.0"
+requests = ">=2.20.0"
+urllib3 = "1.26.18"
+boto3 = "1.16.18"
+
+[tool.poetry.dev-dependencies]
+pytest = "*"
+pyfakefs = "*"
+pytest-mock = "*"
+fs = "*"
+moto = "*"
+pytest-localftpserver = "*"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
