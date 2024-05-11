@@ -60,8 +60,8 @@ setup(
     # What does your project relate to?
     keywords='tes kubernetes ebi',
 
-    packages = find_packages('src'),
-    package_dir = {'': 'src'},
+    packages = find_packages('tesk'),
+    package_dir = {'': 'tesk'},
 
     entry_points={
         'console_scripts' : [
