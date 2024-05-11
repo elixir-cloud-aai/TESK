@@ -1,7 +1,7 @@
-<img src="deployment/documentation/img/TESKlogowfont.png" height="200">
+<img src="images/TESKlogowfont.png" height="200">
 
 
-An implementation of a task execution engine based on the [TES standard](https://github.com/ga4gh/task-execution-schemas) running on `Kubernetes`. For more details on `TES`, see the (very) brief [introduction to TES](deployment/documentation/tesintro.md).
+An implementation of a task execution engine based on the [TES standard](https://github.com/ga4gh/task-execution-schemas) running on `Kubernetes`. For more details on `TES`, see the (very) brief [introduction to TES](docs/tesintro.md).
 
 For organisational reasons, this project is split into 3 repositories:
 - This one, which contains documentation and deployment files
@@ -19,7 +19,7 @@ The technical documentation is available in the [documentation](deployment/docum
 As a diagram:
 
 <!-- TODO: Change the image remove tomcat, change naming etc -->
-![TESK architecture](deployment/documentation/img/architecture.png)
+![TESK architecture](images/architecture.png)
 
 **Description**: The first pod in the task lifecycle is the API pod, a pod which runs a web server (`Tomcat`) and exposes the `TES` specified endpoints. It consumes `TES` requests, validates them and translates them to `Kubernetes` jobs. The API pod then creates a `task controller` pod, or `taskmaster`. 
 

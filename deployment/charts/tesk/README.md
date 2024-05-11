@@ -82,5 +82,5 @@ See [`values.yaml`](values.yaml) for default values.
 | ingress.rules| boolean | Apply or not the ingress rule |
 | ingress.ingressClassName | string | Name of the Ingress Class |
 | ingress.path | string |  |
-| ingress.tls_secret_name | string |  If no TLS secret name configured, TLS will be switched off. A template can be found at [deployment/tls_secret_name.yml-TEMPLATE](deployment/tls_secret_name.yml-TEMPLATE). If you are using cert-manager the secret will be created automatically.|
+| ingress.tls_secret_name | string |  If no TLS secret name configured, TLS will be switched off. A template can be found at [tls_secret_name.yml-TEMPLATE](tls_secret_name.yml-TEMPLATE). If you are using cert-manager the secret will be created automatically.|
 | ingress.annotations | string | Annotations for the ingress rules |
