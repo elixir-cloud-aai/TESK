@@ -36,7 +36,6 @@ clean-venv:
 .PHONY: install
 install:
 	@if [ -f .venv/bin/activate ]; then \
-		echo "Activating virtual environment..."; \
 		pip install .; \
 	else \
 		echo "Virtual environment not found. Please create it first using 'make venv'."; \
