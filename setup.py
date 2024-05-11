@@ -1,3 +1,4 @@
+# TODO: Remove and add in `pyproject.toml`
 import codecs
 from os import path
 from setuptools import setup, find_packages

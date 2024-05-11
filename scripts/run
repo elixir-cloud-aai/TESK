@@ -1,3 +1,5 @@
+# TODO: Remove once API is stable and tested on cluster.
+#       This script can also be added to Makefile
 
 # 
 # Usage:
