@@ -18,7 +18,7 @@ The technical documentation is available in the [documentation](deployment/docum
 ## Architecture
 As a diagram:
 
-# TODO: Change the image remove tomcat, change naming etc
+<!-- TODO: Change the image remove tomcat, change naming etc -->
 ![TESK architecture](deployment/documentation/img/architecture.png)
 
 **Description**: The first pod in the task lifecycle is the API pod, a pod which runs a web server (`Tomcat`) and exposes the `TES` specified endpoints. It consumes `TES` requests, validates them and translates them to `Kubernetes` jobs. The API pod then creates a `task controller` pod, or `taskmaster`. 
