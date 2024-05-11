@@ -6,7 +6,7 @@ PYTHON_CMD := $(shell command -v python3 2> /dev/null)
 BUILDAH_CMD := $(shell command -v buildah 2> /dev/null)
 DOCKER_CMD := $(shell command -v docker 2> /dev/null)
 ELIXIR_CLOUD_REGISTRY := docker.io/elixircloud
-DOCKER_FILE_PATH := containers
+DOCKER_FILE_PATH := deployment/containers
 
 # Define arguments
 IMAGE ?= filer
