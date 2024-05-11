@@ -4,7 +4,7 @@ from unittest import mock
 import ftplib
 import os
 
-from tesk_core.filer import (
+from service.filer import (
     FTPTransput,
     Type,
     ftp_login,

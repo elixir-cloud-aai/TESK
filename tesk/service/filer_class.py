@@ -1,6 +1,6 @@
 import json
-from tesk_core import path
-from tesk_core.path import fileEnabled
+from service import path
+from service.path import fileEnabled
 
 
 class Filer:

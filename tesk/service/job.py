@@ -3,7 +3,7 @@ import time
 from datetime import datetime, timezone
 from kubernetes import client, config
 from kubernetes.client.rest import ApiException
-from tesk_core.Util import pprint
+from service.Util import pprint
 
 
 logging.basicConfig(format='%(message)s', level=logging.INFO)

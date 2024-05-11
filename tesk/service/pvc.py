@@ -1,6 +1,6 @@
 from kubernetes import client, config
 from kubernetes.client.rest import ApiException
-from tesk_core.Util import pprint
+from service.Util import pprint
 import os
 import logging
 

@@ -2,9 +2,9 @@
 
 import unittest
 import os
-from tesk_core.filer_class import Filer
-from tesk_core import path
-from tesk_core.Util import pprint
+from service.filer_class import Filer
+from service import path
+from service.Util import pprint
 
 try:
     from unittest.mock import patch  # Python 3 @UnresolvedImport
@@ -14,9 +14,9 @@ except:
 
 
 
-@patch('tesk_core.path.HOST_BASE_PATH'          , '/home/tfga/workspace/cwl-tes')
-@patch('tesk_core.path.CONTAINER_BASE_PATH'     , '/transfer')
-@patch('tesk_core.path.TRANSFER_PVC_NAME'       , 'transfer-pvc')
+@patch('service.path.HOST_BASE_PATH'          , '/home/tfga/workspace/cwl-tes')
+@patch('service.path.CONTAINER_BASE_PATH'     , '/transfer')
+@patch('service.path.TRANSFER_PVC_NAME'       , 'transfer-pvc')
 @patch.dict(os.environ,
             {
                 "AWS_SHARED_CREDENTIALS_FILE": "/aws/credentials",

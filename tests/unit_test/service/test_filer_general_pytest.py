@@ -7,7 +7,7 @@
 
 import pytest
 
-from tesk_core.filer import (
+from service.filer import (
     process_file,
     copyContent,
     FileProtocolDisabled
@@ -35,7 +35,7 @@ def test_process_file_with_scheme(mocker):
         'path': '.',
         'type': 'FILE',
     }
-    mock_new_Trans = mocker.patch('tesk_core.filer.newTransput')
+    mock_new_Trans = mocker.patch('service.filer.newTransput')
     process_file('inputs', filedata)
 
     mock_new_Trans.assert_called_once_with('http','www.foo.bar')

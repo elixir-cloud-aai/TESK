@@ -4,7 +4,7 @@ from requests import Response, put
 import os
 from unittest import mock
 
-from tesk_core.filer import (
+from service.filer import (
     HTTPTransput,
     Type
 )

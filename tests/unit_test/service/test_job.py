@@ -4,8 +4,8 @@ import os
 import datetime
 from unittest.mock import patch
 from dateutil.tz import tzutc
-from tesk_core import taskmaster
-from tesk_core.job import Job
+from service import taskmaster
+from service.job import Job
 from argparse import Namespace
 from datetime import timezone
 from kubernetes.client.rest import ApiException
@@ -139,7 +139,7 @@ class JobTestCase(unittest.TestCase):
         self.assertEqual(job.namespace, 'default')
 
     @patch("kubernetes.client.BatchV1Api.create_namespaced_job")
-    @patch("tesk_core.job.Job.get_status", side_effect=[("Running", True),("Running", True),("Running", True),
+    @patch("service.job.Job.get_status", side_effect=[("Running", True),("Running", True),("Running", True),
                                                         ("Running", True),("Running", True),("Complete", True)])
     def test_run_to_completion_success(self, mock_get_status, mock_create_namespaced_job):
         """
@@ -152,10 +152,10 @@ class JobTestCase(unittest.TestCase):
                                            taskmaster.args.pod_timeout)
             self.assertEqual(status, "Complete")
 
-    @patch("tesk_core.job.Job.delete")
-    @patch("tesk_core.taskmaster.check_cancelled", return_value=True)
+    @patch("service.job.Job.delete")
+    @patch("service.taskmaster.check_cancelled", return_value=True)
     @patch("kubernetes.client.BatchV1Api.create_namespaced_job")
-    @patch("tesk_core.job.Job.get_status", side_effect=[("Running", True)])
+    @patch("service.job.Job.get_status", side_effect=[("Running", True)])
     def test_run_to_completion_cancelled(self, mock_get_status, mock_create_namespaced_job, mock_check_cancelled,
                                mock_job_delete):
         """
@@ -168,9 +168,9 @@ class JobTestCase(unittest.TestCase):
                                            taskmaster.args.pod_timeout)
             self.assertEqual(status, "Cancelled")
 
-    @patch("tesk_core.taskmaster.check_cancelled", return_value=False)
+    @patch("service.taskmaster.check_cancelled", return_value=False)
     @patch("kubernetes.client.BatchV1Api.create_namespaced_job", side_effect=ApiException(status=409,reason="conflict"))
-    @patch("tesk_core.job.Job.get_status", side_effect=[("Complete", True)])
+    @patch("service.job.Job.get_status", side_effect=[("Complete", True)])
     @patch("kubernetes.client.BatchV1Api.read_namespaced_job", side_effect=read_namespaced_job_running)
     def test_run_to_completion_check_conflict_exception(self, mock_get_status, mock_read_namespaced_job,
                                                         mock_check_cancelled,mock_create_namespaced_job):
@@ -199,8 +199,8 @@ class JobTestCase(unittest.TestCase):
 
     @patch("kubernetes.client.CoreV1Api.list_namespaced_pod")
     @patch("kubernetes.client.BatchV1Api.read_namespaced_job", side_effect=read_namespaced_job_error)
-    @patch("tesk_core.job.Job.delete")
-    @patch("tesk_core.taskmaster.check_cancelled", return_value=False)
+    @patch("service.job.Job.delete")
+    @patch("service.taskmaster.check_cancelled", return_value=False)
     @patch("kubernetes.client.BatchV1Api.create_namespaced_job")
     def test_run_to_completion_error(self, mock_create_namespaced_job, mock_check_cancelled,
                                          mock_job_delete,mock_read_namespaced_job,mock_list_namespaced_pod  ):

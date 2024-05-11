@@ -8,9 +8,9 @@ import sys
 import logging
 import gzip
 from kubernetes import client, config
-from tesk_core.job import Job
-from tesk_core.pvc import PVC
-from tesk_core.filer_class import Filer
+from service.job import Job
+from service.pvc import PVC
+from service.filer_class import Filer
 
 created_jobs = []
 poll_interval = 5

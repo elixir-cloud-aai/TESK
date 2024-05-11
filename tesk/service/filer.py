@@ -12,12 +12,12 @@ import logging
 import netrc
 import requests
 import gzip
-from tesk_core.exception import UnknownProtocol, FileProtocolDisabled
+from service.exception import UnknownProtocol, FileProtocolDisabled
 import shutil
 from glob import glob
-from tesk_core.path import containerPath, getPath, fileEnabled
-from tesk_core.transput import Type, Transput, urlparse
-from tesk_core.filer_s3 import S3Transput
+from service.path import containerPath, getPath, fileEnabled
+from service.transput import Type, Transput, urlparse
+from service.filer_s3 import S3Transput
 
 
 

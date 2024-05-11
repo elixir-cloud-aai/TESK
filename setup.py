@@ -65,8 +65,8 @@ setup(
 
     entry_points={
         'console_scripts' : [
-            'filer = tesk_core.filer:main',
-            'taskmaster = tesk_core.taskmaster:main'
+            'filer = service.filer:main',
+            'taskmaster = service.taskmaster:main'
         ]
     },
     test_suite='tests',

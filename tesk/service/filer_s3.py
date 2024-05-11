@@ -4,7 +4,7 @@ import logging
 import re
 import botocore
 import boto3
-from tesk_core.transput import Transput, Type
+from service.transput import Transput, Type
 
 class S3Transput(Transput):
     def __init__(self, path, url, ftype):

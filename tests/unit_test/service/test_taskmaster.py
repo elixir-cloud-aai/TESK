@@ -3,10 +3,10 @@ import os
 import unittest
 from unittest.mock import patch
 from argparse import Namespace
-from tesk_core import taskmaster
-from tesk_core.filer_class import Filer
+from service import taskmaster
+from service.filer_class import Filer
 from kubernetes.client.rest import ApiException
-from tesk_core.taskmaster import init_pvc, PVC, run_executor,\
+from service.taskmaster import init_pvc, PVC, run_executor,\
     generate_mounts, append_mount, dirname, run_task,newParser
 
 
@@ -26,9 +26,9 @@ class TaskmasterTest(unittest.TestCase):
 
         taskmaster.created_jobs = []
 
-    @patch("tesk_core.taskmaster.PVC.create")
-    @patch("tesk_core.taskmaster.Job.run_to_completion", return_value="Complete")
-    @patch("tesk_core.taskmaster.logger")
+    @patch("service.taskmaster.PVC.create")
+    @patch("service.taskmaster.Job.run_to_completion", return_value="Complete")
+    @patch("service.taskmaster.logger")
     def test_pvc_creation(self, mock_logger, mock_run_to_compl, mock_pvc_create):
         """
         Testing to check if the PVC volume was created successfully
@@ -50,10 +50,10 @@ class TaskmasterTest(unittest.TestCase):
             self.pvc.create()
 
 
-    @patch("tesk_core.taskmaster.PVC.delete")
-    @patch("tesk_core.taskmaster.PVC.create")
-    @patch("tesk_core.taskmaster.Job.run_to_completion", return_value="error")
-    @patch("tesk_core.taskmaster.logger")
+    @patch("service.taskmaster.PVC.delete")
+    @patch("service.taskmaster.PVC.create")
+    @patch("service.taskmaster.Job.run_to_completion", return_value="error")
+    @patch("service.taskmaster.logger")
     def test_pvc_failure(self, mock_logger, run_to_compl, mock_pvc_create, mock_pvc_delete):
         """
         Testcase for finding if the PVC creation failed with exit 0
@@ -61,19 +61,19 @@ class TaskmasterTest(unittest.TestCase):
 
         self.assertRaises(SystemExit, init_pvc, self.data, self.filer)
 
-    @patch("tesk_core.taskmaster.PVC.delete")
-    @patch("tesk_core.taskmaster.Job.delete")
-    @patch("tesk_core.taskmaster.Job.run_to_completion", return_value="Error")
-    @patch("tesk_core.taskmaster.logger")
+    @patch("service.taskmaster.PVC.delete")
+    @patch("service.taskmaster.Job.delete")
+    @patch("service.taskmaster.Job.run_to_completion", return_value="Error")
+    @patch("service.taskmaster.logger")
     def test_run_executor_failure(self, mock_logger, mock_run_to_compl, mock_job_delete,  mock_pvc_delete):
         """
 
         """
         self.assertRaises(SystemExit, run_executor, self.data['executors'][0],taskmaster.args.namespace)
 
-    @patch("tesk_core.taskmaster.PVC")
-    @patch("tesk_core.taskmaster.Job.run_to_completion", return_value="Complete")
-    @patch("tesk_core.taskmaster.logger")
+    @patch("service.taskmaster.PVC")
+    @patch("service.taskmaster.Job.run_to_completion", return_value="Complete")
+    @patch("service.taskmaster.logger")
     def test_run_executor_complete(self, mock_logger, mock_run_to_compl, mock_pvc):
         """
 
@@ -82,14 +82,14 @@ class TaskmasterTest(unittest.TestCase):
 
 
 
-    @patch("tesk_core.taskmaster.logger")
+    @patch("service.taskmaster.logger")
     def test_generate_mount(self, mock_logger):
         """
 
         """
         self.assertIsInstance(generate_mounts(self.data, self.pvc),list)
 
-    @patch("tesk_core.taskmaster.logger")
+    @patch("service.taskmaster.logger")
     def test_append_mount(self, mock_logger):
         """
 
@@ -102,10 +102,10 @@ class TaskmasterTest(unittest.TestCase):
         self.assertEqual(volume_mounts,[{'name': task_volume_name, 'mountPath': '/some/volume', 'subPath': 'dir0'}])
 
 
-    @patch('tesk_core.taskmaster.logger')
-    @patch('tesk_core.taskmaster.PVC.create')
-    @patch('tesk_core.taskmaster.PVC.delete')
-    @patch('tesk_core.taskmaster.Job.run_to_completion', return_value='Complete' )
+    @patch('service.taskmaster.logger')
+    @patch('service.taskmaster.PVC.create')
+    @patch('service.taskmaster.PVC.delete')
+    @patch('service.taskmaster.Job.run_to_completion', return_value='Complete' )
     def test_run_task(self, mock_job, mock_pvc_create, mock_pvc_delete, mock_logger):
         """
 
