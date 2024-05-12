@@ -30,6 +30,7 @@ kubernetes = "9.0.0"
 requests = ">=2.20.0"
 urllib3 = "1.26.18"
 boto3 = "1.16.18"
+ruff = "^0.4.4"
 
 [tool.poetry.dev-dependencies]
 pytest = "*"
@@ -38,6 +39,29 @@ pytest-mock = "*"
 fs = "*"
 moto = "*"
 pytest-localftpserver = "*"
+
+[tool.ruff.lint]
+select = [
+    # pycodestyle
+    "E",
+    # Pyflakes
+    "F",
+    # pyupgrade
+    "UP",
+    # flake8-bugbear
+    "B",
+    # flake8-simplify
+    "SIM",
+    # isort
+    "I",
+    # pylint
+    "PL"
+]
+
+[tool.ruff.format]
+quote-style = "single"
+indent-style = "tab"
+docstring-code-format = true
 
 [build-system]
 requires = ["poetry-core"]

@@ -5,6 +5,7 @@
 PYTHON_CMD := $(shell command -v python3 2> /dev/null)
 BUILDAH_CMD := $(shell command -v buildah 2> /dev/null)
 DOCKER_CMD := $(shell command -v docker 2> /dev/null)
+POETRY_CMD := $(shell command -v poetry 2> /dev/null)
 ELIXIR_CLOUD_REGISTRY := docker.io/elixircloud
 DOCKER_FILE_PATH := deployment/containers
 
@@ -25,6 +26,8 @@ help:
 	@echo "		\033[36mRemove virtual environment\033[0m"
 	@echo "	\033[1minstall \033[37m(i\033[0m)"
 	@echo "		\033[36mInstall dependencies\033[0m"
+	@echo "	\033[1mformat-lint \033[37m(fl\033[0m)"
+	@echo "		\033[36mFormats and lints python files\033[0m"
 	@echo "	\033[1mbuild-service-image \033[37m(bsi\033[0m)"
 	@echo "		\033[36mBuild image for service (tesk_core)\033[0m"
 	@echo "		\033[36mEg: make bsi IMAGE=filer TAG=1.1.0\033[0m"
@@ -65,14 +68,26 @@ cv: clean-venv
 
 .PHONY: install
 install:
-	@if [ -f .venv/bin/activate ]; then \
-		pip install .; \
+	@if [ -x "$(POETRY_CMD)" ]; then \
+		poetry install; \
 	else \
-		echo "🐍 Virtual environment not found. Please create it first using 'make venv'."; \
+		echo "🔏 Install poetry."; \
 	fi
 
 .PHONY: i
 i: install
+
+.PHONY: format-lint
+format-lint:
+	@if [ -f .venv/bin/ruff ]; then \
+		ruff format; \
+		ruff check; \
+	else \
+		echo "⬇️ Install deps, create venv using 'make v' and install using `make i`."; \
+	fi
+
+.PHONY: fl
+fl: format-lint
 
 .PHONY: build-service-image
 build-service-image:
