@@ -30,6 +30,8 @@ help:
 	@echo "		\033[36mInstall dependencies\033[0m"
 	@echo "	\033[1mformat-lint \033[37m(fl\033[0m)"
 	@echo "		\033[36mFormats and lints python files\033[0m"
+	@echo "	\033[1mtest \033[37m(t\033[0m)"
+	@echo "		\033[36mRun tests\033[0m"
 	@echo "	\033[1mbuild-service-image \033[37m(bsi\033[0m)"
 	@echo "		\033[36mBuild image for service (tesk_core)\033[0m"
 	@echo "		\033[36mEg: make bsi IMAGE=filer TAG=1.1.0\033[0m"
@@ -167,3 +169,16 @@ clean-service-image-all:
 
 .PHONY: csia
 csia: clean-service-image-all
+
+.PHONY: test
+test:
+	@if [ -x "$(POETRY_CMD)" ]; then \
+		$(POETRY_CMD) run pytest tests; \
+	elif [ -f .venv/bin/pytest ]; then \
+		.venv/bin/pytest tests; \
+	else \
+		echo "⬇️ Install dependencies, create virtual environment using 'make v', and install using 'make i'."; \
+	fi
+
+.PHONY: t
+t: test
