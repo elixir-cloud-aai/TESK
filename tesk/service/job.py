@@ -4,8 +4,9 @@ from datetime import datetime, timezone
 
 from kubernetes import client
 from kubernetes.client.rest import ApiException
-from service.exceptions import STATUS_CODE
-from service.Util import pprint
+
+from tesk.service.exceptions import ServiceStatusCodes
+from tesk.service.Util import pprint
 
 logging.basicConfig(format='%(message)s', level=logging.INFO)
 
@@ -28,7 +29,7 @@ class Job:
 		try:
 			self.bv1.create_namespaced_job(self.namespace, self.body)
 		except ApiException as ex:
-			if ex.status == STATUS_CODE['conflict']:
+			if ex.status == ServiceStatusCodes.CONFLICT:
 				logging.debug(f'Reading existing job: {self.name} ')
 				self.bv1.read_namespaced_job(self.name, self.namespace)
 			else:

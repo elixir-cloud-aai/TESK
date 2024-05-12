@@ -9,9 +9,10 @@ import re
 import sys
 
 from kubernetes import config
-from service.filer_class import Filer
-from service.job import Job
-from service.pvc import PVC
+
+from tesk.service.filer_class import Filer
+from tesk.service.job import Job
+from tesk.service.pvc import PVC
 
 created_jobs = []
 poll_interval = 5

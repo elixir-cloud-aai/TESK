@@ -3,8 +3,9 @@ import os
 
 from kubernetes import client
 from kubernetes.client.rest import ApiException
-from service.exceptions import STATUS_CODE
-from service.Util import pprint
+
+from tesk.service.exceptions import ServiceStatusCodes
+from tesk.service.Util import pprint
 
 
 class PVC:
@@ -47,7 +48,7 @@ class PVC:
 				self.namespace, self.spec
 			)
 		except ApiException as ex:
-			if ex.status == STATUS_CODE['Conflict']:
+			if ex.status == ServiceStatusCodes.CONFLICT:
 				logging.debug(f'Reading existing PVC: {self.name}')
 				return self.cv1.read_namespaced_persistent_volume_claim(
 					self.name, self.namespace

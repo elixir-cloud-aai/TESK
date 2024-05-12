@@ -14,10 +14,15 @@ from ftplib import FTP
 from glob import glob
 
 import requests
-from service.exception import FileProtocolDisabled, ServiceStatusCodes, UnknownProtocol
-from service.filer_s3 import S3Transput
-from service.path import containerPath, fileEnabled, getPath
-from service.transput import Transput, Type, urlparse
+
+from tesk.service.exceptions import (
+	FileProtocolDisabled,
+	ServiceStatusCodes,
+	UnknownProtocol,
+)
+from tesk.service.filer_s3 import S3Transput
+from tesk.service.path import containerPath, fileEnabled, getPath
+from tesk.service.transput import Transput, Type, urlparse
 
 
 class HTTPTransput(Transput):

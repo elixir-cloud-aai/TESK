@@ -5,14 +5,14 @@ import boto3
 import pytest
 
 # from service.extract_endpoint import extract_endpoint
-from moto import mock_s3
+from moto import mock_aws
 
 from tesk.service.filer_s3 import S3Transput
 
 
 @pytest.fixture()
 def moto_boto():
-	with mock_s3():
+	with mock_aws():
 		boto3.client('s3', endpoint_url='http://s3.amazonaws.com')
 
 		client = boto3.resource('s3', endpoint_url='http://s3.amazonaws.com')

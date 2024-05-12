@@ -1,7 +1,7 @@
 import os
 from os.path import relpath
 
-from service.exception import InvalidHostPath
+from tesk.service.exceptions import InvalidHostPath
 
 try:
 	from urllib.parse import urlparse
