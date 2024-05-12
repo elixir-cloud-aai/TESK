@@ -1,4 +1,4 @@
-name: tesk-core-filer
+name: tesk-core-taskmaster
 
 on:
   push:
@@ -10,7 +10,7 @@ on:
       profile:
         description: Profile name
         required: false
-        default: tesk-core-filler
+        default: tesk-core-taskmaster
 
 jobs:
   build-from-source:
@@ -43,7 +43,7 @@ jobs:
         with:
           context: .
           push: true
-          file: ./containers/filer.Dockerfile
+          file: ./deployment/containers/taskmaster.Dockerfile
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 

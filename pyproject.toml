@@ -30,15 +30,16 @@ kubernetes = "9.0.0"
 requests = ">=2.20.0"
 urllib3 = "1.26.18"
 boto3 = "1.16.18"
-ruff = "^0.4.4"
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.dev.dependencies]
 pytest = "*"
 pyfakefs = "*"
 pytest-mock = "*"
 fs = "*"
 moto = "*"
 pytest-localftpserver = "*"
+ruff = "^0.4.4"
+mypy = "^1.10.0"
 
 [tool.ruff.lint]
 select = [

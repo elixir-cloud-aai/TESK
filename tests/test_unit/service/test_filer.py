@@ -6,8 +6,13 @@ from unittest.mock import patch
 
 from assertThrows import AssertThrowsMixin
 from fs.opener import open_fs
-from service.exception import FileProtocolDisabled, InvalidHostPath, UnknownProtocol
-from service.filer import (
+
+from tesk.service.exception import (
+	FileProtocolDisabled,
+	InvalidHostPath,
+	UnknownProtocol,
+)
+from tesk.service.filer import (
 	FileTransput,
 	FTPTransput,
 	HTTPTransput,
@@ -19,8 +24,8 @@ from service.filer import (
 	process_file,
 	subfolders_in,
 )
-from service.filer_s3 import S3Transput
-from service.path import containerPath
+from tesk.service.filer_s3 import S3Transput
+from tesk.service.path import containerPath
 
 
 def getTree(rootDir):

@@ -24,6 +24,8 @@ help:
 	@echo "		\033[36mCreate virtual environment\033[0m"
 	@echo "	\033[1mclean-venv \033[37m(cv\033[0m)"
 	@echo "		\033[36mRemove virtual environment\033[0m"
+	@echo "	\033[1mclean-dot \033[37m(cd\033[0m)"
+	@echo "		\033[36mRemove dot generated cache dirs\033[0m"
 	@echo "	\033[1minstall \033[37m(i\033[0m)"
 	@echo "		\033[36mInstall dependencies\033[0m"
 	@echo "	\033[1mformat-lint \033[37m(fl\033[0m)"
@@ -65,6 +67,15 @@ clean-venv:
 
 .PHONY: cv
 cv: clean-venv
+
+.PHONY: clean-dot
+clean-dot:
+	rm -rf .venv .mypy_cache .pytest_cache .coverage .ruff .ruff_cache .eggs __pycache__/
+	find . -type d -name "*.egg-info" -exec rm -rf {} +
+	find . -type d -name "__pycache__" -exec rm -rf {} +
+
+.PHONY: cd
+cd: clean-dot
 
 .PHONY: install
 install:

@@ -1,5 +1,9 @@
-.coverage
-.pytest_cache/
-.tox/
 .eggs/
-tesk-core/containers/
+./deployment/containers/
+.venv/
+.mypy_cache/
+.pytest_cache/
+.coverage/
+.ruff/
+.ruff_cache/
+.eggs/

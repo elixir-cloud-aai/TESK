@@ -6,7 +6,8 @@
 # there's a way to bypass that issue and test deeper down the call tree.
 
 import pytest
-from service.filer import FileProtocolDisabled, copyContent, process_file
+
+from tesk.service.filer import FileProtocolDisabled, copyContent, process_file
 
 
 def test_process_file_no_scheme(caplog):

@@ -2,10 +2,10 @@ name: Helm Chart Testing
 
 on:
   pull_request: 
-    branches: [master]
+    branches: [main]
 
 jobs:
-  helm:
+  helm-test:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -23,19 +23,19 @@ jobs:
         
       - name: Helm Deps
         run: |
-          for dir in $(ls -d charts/*); do
+          for dir in $(ls -d deployment/charts/*); do
             helm dependency update $dir;
           done
     
       - name: Helm Lint
         run: |
-          for dir in $(ls -d charts/*); do
+          for dir in $(ls -d deployment/charts/*); do
             helm lint $dir
           done
         
       - name: Apply Helm file
         run: helm install -n tesk tesk . -f values.yaml
-        working-directory: charts/tesk
+        working-directory: deployment/charts/tesk
         
       - name: Sleep for 30 seconds
         run: sleep 30

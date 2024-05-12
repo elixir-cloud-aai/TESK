@@ -1,9 +1,9 @@
 import os
 import unittest
 
-from service import path
-from service.filer_class import Filer
-from service.Util import pprint
+from tesk.service import path
+from tesk.service.filer_class import Filer
+from tesk.service.Util import pprint
 
 try:
 	from unittest.mock import patch  # Python 3 @UnresolvedImport

@@ -8,8 +8,9 @@ from unittest.mock import patch
 
 from dateutil.tz import tzutc
 from kubernetes.client.rest import ApiException
-from service import taskmaster
-from service.job import Job
+
+from tesk.service import taskmaster
+from tesk.service.job import Job
 
 START_TIME = datetime.datetime.now(timezone.utc)
 

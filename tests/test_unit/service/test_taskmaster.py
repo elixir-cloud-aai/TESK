@@ -5,9 +5,10 @@ from argparse import Namespace
 from unittest.mock import patch
 
 from kubernetes.client.rest import ApiException
-from service import taskmaster
-from service.filer_class import Filer
-from service.taskmaster import (
+
+from tesk.service import taskmaster
+from tesk.service.filer_class import Filer
+from tesk.service.taskmaster import (
 	PVC,
 	append_mount,
 	dirname,

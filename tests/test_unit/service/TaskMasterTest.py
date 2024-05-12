@@ -4,7 +4,7 @@ import unittest
 from argparse import Namespace
 from unittest.mock import patch
 
-from service.taskmaster import newLogger, newParser, run_task
+from tesk.service.taskmaster import newLogger, newParser, run_task
 
 
 def pvcCreateMock(self):

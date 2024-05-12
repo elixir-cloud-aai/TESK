@@ -3,7 +3,8 @@
 from unittest import mock
 
 from requests import Response
-from service.filer import HTTPTransput, Type
+
+from tesk.service.filer import HTTPTransput, Type
 
 PATH_DOWN = 'test_download_file.txt'
 PATH_UP = 'tests/test_filer_http_pytest.py'
