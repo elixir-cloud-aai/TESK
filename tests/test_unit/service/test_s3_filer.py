@@ -14,9 +14,13 @@ from tesk.service.filer_s3 import S3Transput
 def moto_boto():
 	with mock_aws():
 		boto3.client('s3', endpoint_url='http://s3.amazonaws.com')
-
 		client = boto3.resource('s3', endpoint_url='http://s3.amazonaws.com')
-		client.create_bucket(Bucket='tesk')
+		client.create_bucket(
+                    Bucket='tesk',
+                    CreateBucketConfiguration={
+                        'LocationConstraint': str(boto3.session.Session().region_name),
+                    },
+                )
 		client.Bucket('tesk').put_object(Bucket='tesk', Key='folder/file.txt', Body='')
 		client.Bucket('tesk').put_object(
 			Bucket='tesk', Key='folder1/folder2/file.txt', Body=''
