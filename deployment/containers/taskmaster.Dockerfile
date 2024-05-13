@@ -1,26 +1,39 @@
-# Builder: produce wheels
+###################################################
+#   Stage 1: Build wheel                           #
+###################################################
+FROM python:3.11-alpine AS builder
 
-FROM alpine:3.10 as builder
+# Set work directory
+WORKDIR /app
 
-RUN apk add --no-cache python3
-RUN apk add --no-cache git
-RUN python3 -m pip install --upgrade setuptools pip wheel
+# Install poetry
+RUN pip install poetry
 
-WORKDIR /app/
+# Copy source code
 COPY . .
 
-RUN python3 setup.py bdist_wheel
+# Build wheel
+RUN poetry build -f wheel
 
-# Install: copy tesk-core*.whl and install it with dependencies
+###################################################
+#   Stage 2: Install wheel and create user        #
+###################################################
+FROM python:3.11-alpine AS runner
 
-FROM alpine:3.10
+# Copy built wheel from the builder stage
+COPY --from=builder /app/dist/*.whl /dist/
 
-RUN apk add --no-cache python3
+# Install the application with dependencies
+RUN pip install /dist/*.whl
 
-COPY --from=builder /app/dist/tesk*.whl /root/
-RUN python3 -m pip install --disable-pip-version-check --no-cache-dir /root/tesk*.whl
+# Create a non-root user
+RUN adduser -D -u 1000 taskmasterUser
 
-RUN adduser --uid 100 -S taskmaster
-USER 100
+# Switch to the non-root user
+USER taskmasterUser
 
+# Set the working directory
+WORKDIR /app
+
+# Entrypoint command
 ENTRYPOINT ["taskmaster"]

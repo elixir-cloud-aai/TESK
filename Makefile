@@ -84,11 +84,28 @@ install:
 	@if [ -x "$(POETRY_CMD)" ]; then \
 		poetry install; \
 	else \
-		echo "🔏 Install poetry."; \
+		echo "🔏 Consider installing poetry to leverage poetry.lock."; \
+		echo "⬇️ Typing to installing with pip."; \
+		if [ -f .venv/bin/pip ]; then \
+			.venv/bin/pip install .; \
+		else \
+			echo "⬇️ Install dependencies, create virtual environment using 'make v'."; \
+		fi; \
 	fi
 
 .PHONY: i
 i: install
+
+.PHONY: wheel
+wheel:
+	@if [ -x "$(POETRY_CMD)" ]; then \
+		poetry build -f wheel; \
+	else \
+		echo "🔏 Poetry needed to build wheel."; \
+	fi
+
+.PHONY: w
+w: wheel
 
 .PHONY: format-lint
 format-lint:

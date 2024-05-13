@@ -43,20 +43,13 @@ mypy = "^1.10.0"
 
 [tool.ruff.lint]
 select = [
-    # pycodestyle
-    "E",
-    # Pyflakes
-    "F",
-    # pyupgrade
-    "UP",
-    # flake8-bugbear
-    "B",
-    # flake8-simplify
-    "SIM",
-    # isort
-    "I",
-    # pylint
-    "PL"
+    "E",        # pycodestyle
+    "F",        # Pyflakes
+    "UP",       # pyupgrade
+    "B",        # flake8-bugbear
+    "SIM",      # flake8-simplify
+    "I",        # isort
+    "PL"        # pylint
 ]
 
 [tool.ruff.format]

@@ -1,5 +1,5 @@
+# cache and dot files
 .eggs/
-./deployment/containers/
 .venv/
 .mypy_cache/
 .pytest_cache/
@@ -7,3 +7,16 @@
 .ruff/
 .ruff_cache/
 .eggs/
+.github/
+.gitignore
+# Docs and atifacts
+./deployment
+./docs
+/images
+# build
+./build
+./dist
+# Scripts and tools
+./scripts
+Makefile
+PULL_REQUEST_TEMPLATE.md
