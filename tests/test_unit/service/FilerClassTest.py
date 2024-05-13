@@ -11,9 +11,9 @@ except ImportError:
 	from unittest.mock import patch
 
 
-@patch('service.path.HOST_BASE_PATH', '/home/tfga/workspace/cwl-tes')
-@patch('service.path.CONTAINER_BASE_PATH', '/transfer')
-@patch('service.path.TRANSFER_PVC_NAME', 'transfer-pvc')
+@patch('tesk.service.path.HOST_BASE_PATH', '/home/tfga/workspace/cwl-tes')
+@patch('tesk.service.path.CONTAINER_BASE_PATH', '/transfer')
+@patch('tesk.service.path.TRANSFER_PVC_NAME', 'transfer-pvc')
 @patch.dict(
 	os.environ,
 	{

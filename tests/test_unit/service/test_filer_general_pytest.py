@@ -31,7 +31,7 @@ def test_process_file_with_scheme(mocker):
 		'path': '.',
 		'type': 'FILE',
 	}
-	mock_new_Trans = mocker.patch('service.filer.newTransput')
+	mock_new_Trans = mocker.patch('tesk.service.filer.newTransput')
 	process_file('inputs', filedata)
 
 	mock_new_Trans.assert_called_once_with('http', 'www.foo.bar')

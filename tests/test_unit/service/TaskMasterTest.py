@@ -74,13 +74,13 @@ class ParserTest(unittest.TestCase):
 		)
 
 	@patch(
-		'service.taskmaster.args',
+		'tesk.service.taskmaster.args',
 		Namespace(debug=True, namespace='default', pull_policy_always=True),
 	)
-	@patch('service.taskmaster.logger', newLogger(logging.DEBUG))
-	@patch('service.taskmaster.PVC.create', pvcCreateMock)
-	@patch('service.taskmaster.PVC.delete', pvcDeleteMock)
-	@patch('service.taskmaster.Job.run_to_completion', jobRunToCompletionMock)
+	@patch('tesk.service.taskmaster.logger', newLogger(logging.DEBUG))
+	@patch('tesk.service.taskmaster.PVC.create', pvcCreateMock)
+	@patch('tesk.service.taskmaster.PVC.delete', pvcDeleteMock)
+	@patch('tesk.service.taskmaster.Job.run_to_completion', jobRunToCompletionMock)
 	def test_run_task(self):
 		with open('tests/resources/inputFile.json') as fh:
 			data = json.load(fh)

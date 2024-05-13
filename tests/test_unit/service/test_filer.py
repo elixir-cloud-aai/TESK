@@ -41,15 +41,15 @@ def stripLines(txt):
 	return '\n'.join([line.strip() for line in txt.splitlines()[1:]])
 
 
-@patch('service.path.HOST_BASE_PATH', '/home/tfga/workspace/cwl-tes')
-@patch('service.path.CONTAINER_BASE_PATH', '/transfer')
+@patch('tesk.service.path.HOST_BASE_PATH', '/home/tfga/workspace/cwl-tes')
+@patch('tesk.service.path.CONTAINER_BASE_PATH', '/transfer')
 class FilerTest(unittest.TestCase, AssertThrowsMixin):
 	@classmethod
 	def setUpClass(cls):
 		logConfig(logging.DEBUG)  # Doesn't work...
 
-	@patch('service.filer.copyDir')
-	@patch('service.filer.shutil.copy')
+	@patch('tesk.service.filer.copyDir')
+	@patch('tesk.service.filer.shutil.copy')
 	def test_download_file(self, copyMock, copyDirMock):
 		filedata = {
 			'url': 'file:///home/tfga/workspace/cwl-tes/tmphrtip1o8/md5',
@@ -69,8 +69,8 @@ class FilerTest(unittest.TestCase, AssertThrowsMixin):
 			'/var/lib/cwl/stgda974802-fa81-4f0b-' '8fe4-341d5655af4b/md5',
 		)
 
-	@patch('service.filer.copyDir')
-	@patch('service.filer.shutil.copy')
+	@patch('tesk.service.filer.copyDir')
+	@patch('tesk.service.filer.shutil.copy')
 	def test_download_dir(self, copyMock, copyDirMock):
 		filedata = {
 			'url': 'file:///home/tfga/workspace/cwl-tes/tmphrtip1o8/',
@@ -85,8 +85,8 @@ class FilerTest(unittest.TestCase, AssertThrowsMixin):
 
 		copyDirMock.assert_called_once_with('/transfer/tmphrtip1o8', '/TclSZU')
 
-	@patch('service.filer.copyDir')
-	@patch('service.filer.shutil.copy')
+	@patch('tesk.service.filer.copyDir')
+	@patch('tesk.service.filer.shutil.copy')
 	def test_upload_dir(self, copyMock, copyDirMock):
 		filedata = {
 			'url': 'file:///home/tfga/workspace/cwl-tes/tmphrtip1o8/',
@@ -101,8 +101,8 @@ class FilerTest(unittest.TestCase, AssertThrowsMixin):
 
 		copyDirMock.assert_called_once_with('/TclSZU', '/transfer/tmphrtip1o8')
 
-	@patch('service.filer.copyDir')
-	@patch('service.filer.copyFile')
+	@patch('tesk.service.filer.copyDir')
+	@patch('tesk.service.filer.copyFile')
 	def test_upload_file(self, copyFileMock, copyDirMock):
 		filedata = {
 			'url': 'file:///home/tfga/workspace/cwl-tes/tmphrtip1o8/md5',
@@ -117,8 +117,8 @@ class FilerTest(unittest.TestCase, AssertThrowsMixin):
 
 		copyFileMock.assert_called_once_with('/TclSZU/md5', '/transfer/tmphrtip1o8/md5')
 
-	@patch('service.filer.copyDir')
-	@patch('service.filer.copyFile')
+	@patch('tesk.service.filer.copyDir')
+	@patch('tesk.service.filer.copyFile')
 	def test_upload_file_glob(self, copyFileMock, copyDirMock):
 		filedata = {
 			'url': 'file:///home/tfga/workspace/cwl-tes/tmphrtip1o8/md5*',

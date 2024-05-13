@@ -4,7 +4,7 @@ from unittest.mock import mock_open, patch
 import boto3
 import pytest
 
-# from service.extract_endpoint import extract_endpoint
+# from tesk.service.extract_endpoint import extract_endpoint
 from moto import mock_aws
 
 from tesk.service.filer_s3 import S3Transput
@@ -67,7 +67,7 @@ def test_check_if_bucket_exists(moto_boto, path, url, ftype, expected):
 	assert trans.check_if_bucket_exists(client) == expected
 
 
-# @patch('service.filer.os.makedirs')
+# @patch('tesk.service.filer.os.makedirs')
 # @patch('builtins.open')
 # @patch('s3transfer.utils.OSUtils.rename_file')
 @pytest.mark.parametrize(
@@ -89,10 +89,10 @@ def test_s3_download_file(moto_boto, path, url, ftype, expected, fs, caplog):  #
 			assert os.path.exists(path) is True
 
 
-@patch('service.filer.os.makedirs')
+@patch('tesk.service.filer.os.makedirs')
 @patch('builtins.open')
 @patch('s3transfer.utils.OSUtils.rename_file')
-# @patch("service.filer_s3.extract_endpoint", return_value="http://s3.amazonaws.com")
+# @patch("tesk.service.filer_s3.extract_endpoint", return_value="http://s3.amazonaws.com")
 @pytest.mark.parametrize(
 	'path, url, ftype,expected',
 	[
@@ -186,7 +186,7 @@ def test_upload_directory_for_unknown_file_type(moto_boto, fs, monkeypatch, capl
 	assert 'Object is neither file or directory' in caplog.text
 
 
-@patch('service.filer.os.path.exists', return_value=1)
+@patch('tesk.service.filer.os.path.exists', return_value=1)
 def test_extract_url_from_config_file(mock_path_exists):
 	"""
 	Testing extraction of endpoint url from default file location
