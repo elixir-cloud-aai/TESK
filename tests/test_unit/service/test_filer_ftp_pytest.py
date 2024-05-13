@@ -37,7 +37,7 @@ def test_ftp_upload_file_error(mocker, caplog):
 
 	conn = mocker.patch('ftplib.FTP')
 	mocker.patch('ftplib.FTP.storbinary', side_effect=ftplib.error_reply)
-	assert ftp_upload_file(conn, 'tests/test_filer.py', '/home/tesk/test_copy.py') == 1
+	assert ftp_upload_file(conn, __file__, '/home/tesk/test_copy.py') == 1
 	assert 'Unable to upload file' in caplog.text
 
 
