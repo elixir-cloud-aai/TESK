@@ -21,8 +21,8 @@ classifiers = [
 ]
 
 [tool.poetry.scripts]
-filer = 'service.filer.py:main'
-taskmaster = 'service.taskmaster.py:main'
+filer = 'tesk.service.filer:main'
+taskmaster = 'tesk.service.taskmaster:main'
 
 [tool.poetry.dependencies]
 python = "^3.11"
@@ -63,6 +63,15 @@ select = [
 quote-style = "single"
 indent-style = "tab"
 docstring-code-format = true
+
+[tool.pytest_env]
+FTP_USER="user"
+FTP_PASS="pass"
+TESK_FTP_USERNAME="user"
+TESK_FTP_PASSWORD="pass"
+FTP_HOME ="/tmp"
+FTP_FIXTURE_SCOPE="function"
+FTP_PORT = 2111
 
 [build-system]
 requires = ["poetry-core"]
