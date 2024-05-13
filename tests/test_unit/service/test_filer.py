@@ -139,7 +139,7 @@ class FilerTest(unittest.TestCase, AssertThrowsMixin):
 		def rmDir(d):
 			os.system(f'rm -r {d}')
 
-		baseDir = 'tests/resources/copyDirTest/'
+		baseDir = 'tests/unit_test/service/resources/copyDirTest/'
 		src = os.path.join(baseDir, 'src')
 		dst1 = os.path.join(baseDir, 'dst1')
 		dst2 = os.path.join(baseDir, 'dst2')
@@ -162,11 +162,11 @@ class FilerTest(unittest.TestCase, AssertThrowsMixin):
 		self.assertEqual(
 			getTree(dst1),
 			stripLines("""
-														|-- a
-														|   |-- 1.txt
-														|   `-- 2.txt
-														`-- 3.txt
-														"""),
+						|-- a
+						|   |-- 1.txt
+						|   `-- 2.txt
+						`-- 3.txt
+				"""),
 		)
 
 		# Copying to non-existing dst -----------------------------------------
@@ -176,13 +176,13 @@ class FilerTest(unittest.TestCase, AssertThrowsMixin):
 		copyDir(src, dst2)
 
 		self.assertEqual(
-			getTree(dst2),
+			getTree(dst1),
 			stripLines("""
-														|-- a
-														|   |-- 1.txt
-														|   `-- 2.txt
-														`-- 3.txt
-														"""),
+						|-- a
+						|   |-- 1.txt
+						|   `-- 2.txt
+						`-- 3.txt
+				"""),
 		)
 
 	def test_getPath(self):
@@ -250,8 +250,8 @@ class FilerTest_no_env(unittest.TestCase, AssertThrowsMixin):
 			lambda: newTransput('file', '/home/user/test'),
 			FileProtocolDisabled,
 			"'file:' protocol disabled\n"
-			"To enable it, both 'HOST_BASE_PATH' and 'CONTAINER_BASE_PATH'",
-			'environment variables must be defined.',
+			'To enable it, both HOST_BASE_PATH and CONTAINER_BASE_PATH'
+			' environment variables must be defined.',
 		)
 
 

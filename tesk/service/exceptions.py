@@ -1,5 +1,6 @@
 class ServiceStatusCodes:
 	OK = 200
+	REDIRECT = 300
 	CREATED = 201
 	CONFLICT = 409
 	NOT_FOUND = 404
