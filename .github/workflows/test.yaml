@@ -12,53 +12,21 @@ jobs:
         python-version: ['3.11', '3.12']
 
     steps:
-    # Check out repository
     - name: Check out repository
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
+
+    - name: Install poetry
+      run: pipx install poetry
 
     # Set up python versions with matrix to test on multiple versions
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
 
-    # Install Poetry
-    - name: Install Poetry
-      uses: snok/install-poetry@v1
-      with:
-        virtualenvs-create: true
-        virtualenvs-in-project: true
-        installer-parallel: true
-
-    # Load cached if it exists
-    - name: Load cached venv
-      id: cached-poetry-dependencies
-      uses: actions/cache@v2
-      with:
-        path: .venv
-        key: venv-${{ runner.os }}-${{ hashFiles('**/poetry.lock') }}
-
     # Install dependencies if cache does not exist
     - name: Install dependencies
-      if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
-      run: poetry install --no-interaction
-
-    # botocore dependency gymnastics
-    # ref: https://github.com/aws/aws-cli/issues/3092#issuecomment-942195831
-    - name: Remove python3-botocore
-      run: sudo apt remove python3-botocore
-
-    - name: Uninstall botocore
-      run: pip3 uninstall -y botocore
-
-    - name: Install python3-botocore
-      run: sudo apt install -y python3-botocore
-
-    - name: Install awscli
-      run: sudo apt install -y awscli
-
-    - name: Upgrade boto3 and awscli
-      run: pip install --upgrade boto3 awscli botocore
+      run: poetry install
 
     # Run tests
     - name: Run tests
