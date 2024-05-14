@@ -1,0 +1,58 @@
+name: Code Quality
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install poetry
+        run: pipx install poetry
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        id: cql
+        with:
+          python-version: '3.11'
+          cache: 'poetry'
+
+      # Install lint deps only
+      - name: Install dependencies
+        if: steps.cql.outputs.cache-hit != 'true'
+        run: poetry install --only=lint --no-interaction --no-root
+
+      - name: Check code quality
+        run: poetry run ruff check .
+
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install poetry
+        run: pipx install poetry
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        id: cqf
+        with:
+          python-version: '3.11'
+          cache: 'poetry'
+
+      # Install lint deps only
+      - name: Install dependencies
+        if: steps.cqf.outputs.cache-hit != 'true'
+        run: poetry install --only=lint --no-interaction --no-root
+
+      - name: Check code style
+        run: poetry run ruff format --check

@@ -1,0 +1,37 @@
+# # This workflow should work but will fail
+# # as the code has no types, will add types to the
+# # code and then uncomment it 👍
+# name: Type Check
+
+# on:
+#   push:
+#     branches:
+#       - main
+#   pull_request:
+#     branches:
+#       - main
+
+# jobs:
+#   check-type:
+#     runs-on: ubuntu-latest
+#     steps:
+#       - name: Check out repository
+#         uses: actions/checkout@v4
+
+#       - name: Install poetry
+#         run: pipx install poetry
+
+#       - name: Set up python
+#         id: tcct
+#         uses: actions/setup-python@v5
+#         with:
+#           python-version: '3.11'
+#           cache: 'poetry'
+
+#       # Install only type check dependency
+#       - name: Install dependencies
+#         if: steps.tcct.outputs.cache-hit != 'true'
+#         run: poetry install --only=type --no-root
+
+#       - name: Check types
+#         run: poetry run mypy tesk/

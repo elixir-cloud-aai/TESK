@@ -13,11 +13,9 @@ classifiers = [
     "Intended Audience :: System Administrators",
     "License :: OSI Approved :: Apache Software License",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.7",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
 ]
 
 [tool.poetry.scripts]
@@ -40,6 +38,24 @@ moto = "*"
 pytest-localftpserver = "*"
 ruff = "^0.4.4"
 mypy = "^1.10.0"
+
+# dependency groups for CI, helps isolate
+# dependencies that are only needed for specifc
+# CI jobs
+[tool.poetry.group.lint.dependencies]
+ruff = "^0.4.4"
+
+[tool.poetry.group.type.dependencies]
+mypy = "^1.10.0"
+
+[tool.poetry.group.test.dependencies]
+pytest = "*"
+pyfakefs = "*"
+pytest-mock = "*"
+fs = "*"
+moto = "*"
+pytest-localftpserver = "*"
+kubernetes = "9.0.0"
 
 [tool.ruff.lint]
 select = [
