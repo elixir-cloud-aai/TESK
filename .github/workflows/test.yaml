@@ -41,7 +41,24 @@ jobs:
     # Install dependencies if cache does not exist
     - name: Install dependencies
       if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
-      run: poetry install --no-interaction --no-root
+      run: poetry install --no-interaction
+
+    # botocore dependency gymnastics
+    # ref: https://github.com/aws/aws-cli/issues/3092#issuecomment-942195831
+    - name: Remove python3-botocore
+      run: sudo apt remove python3-botocore
+
+    - name: Uninstall botocore
+      run: pip3 uninstall -y botocore
+
+    - name: Install python3-botocore
+      run: sudo apt install -y python3-botocore
+
+    - name: Install awscli
+      run: sudo apt install -y awscli
+
+    - name: Upgrade boto3 and awscli
+      run: pip install --upgrade boto3 awscli botocore
 
     # Run tests
     - name: Run tests

@@ -139,7 +139,7 @@ class FilerTest(unittest.TestCase, AssertThrowsMixin):
 		def rmDir(d):
 			os.system(f'rm -r {d}')
 
-		baseDir = 'tests/unit_test/service/resources/copyDirTest/'
+		baseDir = 'tests/test_unit/service/resources/copyDirTest/'
 		src = os.path.join(baseDir, 'src')
 		dst1 = os.path.join(baseDir, 'dst1')
 		dst2 = os.path.join(baseDir, 'dst2')
