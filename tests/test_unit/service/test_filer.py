@@ -25,6 +25,8 @@ from tesk.service.filer import (
 )
 from tesk.service.filer_s3 import S3Transput
 from tesk.service.path import containerPath
+
+# sourcery skip: dont-import-test-modules
 from tests.test_unit.service.assertThrows import AssertThrowsMixin
 
 
