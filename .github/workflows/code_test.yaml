@@ -38,8 +38,12 @@ jobs:
       - name: Run tests
         run: poetry run pytest tests/test_unit
 
-    # # Upload coverage reports to Codecov once the tests start running 😭
-    # - name: Upload coverage reports to Codecov
-    #   uses: codecov/codecov-action@v3
-    #   env:
-    #     CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+      # # TODO: Add `pytest-cov`` or `coverage`` and generate coverage reports to upload to codecov
+      # - name: Upload coverage reports to Codecov
+      #   uses: codecov/codecov-action@v4
+      #   with:
+      #     fail_ci_if_error: true
+      #     files:
+      #     flags: test_unit
+      #     token: ${{ secrets.CODECOV_TOKEN }}
+      #     verbose: true

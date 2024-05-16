@@ -85,7 +85,6 @@ install:
 		poetry install; \
 	else \
 		echo "🔏 Consider installing poetry to leverage poetry.lock."; \
-		echo "⬇️ Typing to installing with pip."; \
 		if [ -f .venv/bin/pip ]; then \
 			.venv/bin/pip install .; \
 		else \
@@ -124,7 +123,7 @@ build-service-image:
 	@if [ -x "$(BUILDAH_CMD)" ]; then \
 		$(BUILDAH_CMD) bud \
 			-t $(ELIXIR_CLOUD_REGISTRY)/tesk-core-$(IMAGE):$(TAG) \
-			--format=docker \
+			--format=oci \
 			--no-cache \
 			-f $(DOCKER_FILE_PATH)/$(IMAGE).Dockerfile; \
 	elif [ -x "$(DOCKER_CMD)" ]; then \

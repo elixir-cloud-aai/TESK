@@ -74,7 +74,7 @@ ftp:
     #netrc_secret: netrc-secret
     # If you install FTP locally, but outside of k8s and need a DNS entry for it (because your workflow manager might not like the IP address)
     # one way of getting a DNS entry for your FTP service is to use a k8s "service without a selector"
-    # Put the IP under which your pods see see services running on your host (differs depending on the way you installes K8s)
+    # Put the IP under which your pods see see services running on your host (differs depending on the way you installs K8s)
     # For virtualBox, it is 192.168.99.1 and your ftp service will be visible under ftp name
     # You will be able to use it like this: ftp://ftp/file
     hostip:

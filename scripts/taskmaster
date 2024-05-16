@@ -1,3 +1,3 @@
-# TODO: Add to makefile after undertanding what its doing 😕
+# TODO: Add to makefile after understanding what its doing 😕
 
 PYTHONPATH="tesk" python tesk/service/taskmaster.py "$@"

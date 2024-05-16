@@ -32,13 +32,13 @@ crt = ["botocore[crt] (>=1.21.0,<2.0a0)"]
 
 [[package]]
 name = "botocore"
-version = "1.34.104"
+version = "1.34.106"
 description = "Low-level, data-driven core of boto 3."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "botocore-1.34.104-py3-none-any.whl", hash = "sha256:b68ed482e9b4c313129c9948af5a91d0e84840558e6d232a1a27ab0b9733e5b9"},
-    {file = "botocore-1.34.104.tar.gz", hash = "sha256:fe36dd3cea4160fbbe27dc1cf89cb7018234350555a26933b2977947052a346a"},
+    {file = "botocore-1.34.106-py3-none-any.whl", hash = "sha256:4baf0e27c2dfc4f4d0dee7c217c716e0782f9b30e8e1fff983fce237d88f73ae"},
+    {file = "botocore-1.34.106.tar.gz", hash = "sha256:921fa5202f88c3e58fdcb4b3acffd56d65b24bca47092ee4b27aa988556c0be6"},
 ]
 
 [package.dependencies]
@@ -988,6 +988,25 @@ files = [
 ]
 
 [[package]]
+name = "typos"
+version = "1.21.0"
+description = "Source Code Spelling Correction"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "typos-1.21.0-py3-none-macosx_10_12_x86_64.whl", hash = "sha256:9b592145137a113cf5b631ddca55944405441a43fedb0fb3332ddfdba5d0040c"},
+    {file = "typos-1.21.0-py3-none-macosx_11_0_arm64.whl", hash = "sha256:e159df29a5af13cb42e2f0d0c61356c9ed68999a15682447d183ee0a5c1faa24"},
+    {file = "typos-1.21.0-py3-none-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:5e7ef2dde5ae496f145bc1d0c2b4380dbc5410d0be083ff5cd7136d00eeb9a69"},
+    {file = "typos-1.21.0-py3-none-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:3806c3e8f11b0e9734491ce656597cd06ad11847c4cecada2a1781a71319a753"},
+    {file = "typos-1.21.0-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:56859b6938c970cdbf9f168189665a1459ab9813c40bbba7a9183b5d0643f949"},
+    {file = "typos-1.21.0-py3-none-musllinux_1_2_aarch64.whl", hash = "sha256:ebeac8b75e226354920567026cd45c4926dcf01d6d6def2b88fba5d3e4ae838a"},
+    {file = "typos-1.21.0-py3-none-musllinux_1_2_x86_64.whl", hash = "sha256:326eeaf541d5dc9097e3550a52c1bc814ea2b0315f1b83a96ff5665b941742fc"},
+    {file = "typos-1.21.0-py3-none-win32.whl", hash = "sha256:9e05ac854507b121921e242db0b8b80eb7d2968fa5f1ad1be507941627a95c71"},
+    {file = "typos-1.21.0-py3-none-win_amd64.whl", hash = "sha256:f576f250e6e8dc8d4c65e74502fdaa3dff0877ae3e1713b45d0f96a141d1d906"},
+    {file = "typos-1.21.0.tar.gz", hash = "sha256:8955e93edf9b901a8821840c19c17adc77611eeb9623ab6158126b193f5452b8"},
+]
+
+[[package]]
 name = "urllib3"
 version = "1.26.18"
 description = "HTTP library with thread-safe connection pooling, file post, and more."
@@ -1050,4 +1069,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "0f4988c136e2346ca35f185bdc5627103edab923ea65ea560037df88bafe6a21"
+content-hash = "1cc81125821b59f3e89fd1dcb7f8f0f4b345e8e54ed7f4566c7a673391ee543e"

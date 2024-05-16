@@ -20,14 +20,14 @@ jobs:
 
       - name: Set up Python
         uses: actions/setup-python@v5
-        id: cql
+        id: cq
         with:
           python-version: '3.11'
           cache: 'poetry'
 
       # Install lint deps only
       - name: Install dependencies
-        if: steps.cql.outputs.cache-hit != 'true'
+        if: steps.cq.outputs.cache-hit != 'true'
         run: poetry install --only=lint --no-interaction --no-root
 
       - name: Check code quality
@@ -44,15 +44,44 @@ jobs:
 
       - name: Set up Python
         uses: actions/setup-python@v5
-        id: cqf
+        id: cq
         with:
           python-version: '3.11'
           cache: 'poetry'
 
       # Install lint deps only
       - name: Install dependencies
-        if: steps.cqf.outputs.cache-hit != 'true'
+        if: steps.cq.outputs.cache-hit != 'true'
         run: poetry install --only=lint --no-interaction --no-root
 
       - name: Check code style
         run: poetry run ruff format --check
+
+  spell-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install poetry
+        run: pipx install poetry
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        id: cq
+        with:
+          python-version: '3.11'
+          cache: 'poetry'
+
+      # Install lint deps only
+      - name: Install dependencies
+        if: steps.cq.outputs.cache-hit != 'true'
+        run: poetry install --only=lint --no-interaction --no-root
+
+      - name: Spell Check
+        run: poetry run typos
+
+  # TODO: Add more code quality checks using bandit
+  # code-security:
+  # TODO: Add more dependency security checks using safety
+  # dependency-security:

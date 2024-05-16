@@ -84,7 +84,7 @@ def test_upload_dir(mocker, fs):
 
 	assert http_obj.upload_dir() == 0
 
-	# We emply the 'list.sorted' trick to ignore calls order because the
+	# We empoly the 'list.sorted' trick to ignore calls order because the
 	# 'assert_has_calls' method would not work in this setting
 	assert sorted(mock_put.mock_calls) == sorted(
 		[

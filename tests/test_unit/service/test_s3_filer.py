@@ -216,7 +216,7 @@ def test_extract_url_from_config_file(mock_path_exists):
 def test_extract_url_from_environ_variable():
 	"""
 	Testing successful extraction of endpoint url read from file path saved
-	on enviornment variable
+	on environment variable
 	"""
 	read_data = '\n'.join(
 		['[default]', 'endpoint_url = http://s3-aws-region.amazonaws.com']

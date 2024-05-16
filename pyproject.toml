@@ -7,7 +7,7 @@ maintainers = ["TBA <you@example.com>", "TBA <you@example.com>"]
 license = "Apache-2.0"
 readme = "README.md"
 repository = "https://github.com/elixir-cloud-aai/TESK"
-keywords = ["TES", "Kubernetes", "Task Execution", "ebi", "TESK"]
+keywords = ["TES", "Kubernetes", "Task Execution", "ebi", "TESK", "workflow", "automation"]
 classifiers = [
     "Development Status :: 4 - Alpha",
     "Intended Audience :: System Administrators",
@@ -38,12 +38,14 @@ moto = "*"
 pytest-localftpserver = "*"
 ruff = "^0.4.4"
 mypy = "^1.10.0"
+typos = "^1.21.0"
 
 # dependency groups for CI, helps isolate
 # dependencies that are only needed for specifc
 # CI jobs
 [tool.poetry.group.lint.dependencies]
 ruff = "^0.4.4"
+typos = "^1.21.0"
 
 [tool.poetry.group.type.dependencies]
 mypy = "^1.10.0"
@@ -72,6 +74,9 @@ select = [
 quote-style = "single"
 indent-style = "tab"
 docstring-code-format = true
+
+[tool.typos.default.extend-words]
+mke = 'mke'
 
 [tool.pytest_env]
 FTP_USER="user"

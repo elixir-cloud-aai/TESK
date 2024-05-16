@@ -45,7 +45,7 @@ class Job:
 			status, is_all_pods_running = self.get_status(is_all_pods_running)
 		return status
 
-	def get_status(self, is_all_pods_runnning):
+	def get_status(self, is_all_pods_running):
 		job = self.bv1.read_namespaced_job(self.name, self.namespace)
 		try:
 			if (
@@ -69,16 +69,16 @@ class Job:
 				job_duration = (
 					datetime.now(timezone.utc) - job.status.start_time
 				).total_seconds()
-			if job_duration > self.timeout and not is_all_pods_runnning:
+			if job_duration > self.timeout and not is_all_pods_running:
 				pods = (
 					self.cv1.list_namespaced_pod(
 						self.namespace, label_selector=f'job-name={self.name}'
 					)
 				).items
-				is_all_pods_runnning = True
+				is_all_pods_running = True
 				for pod in pods:
 					if pod.status.phase == 'Pending' and pod.status.start_time:
-						is_all_pods_runnning = False
+						is_all_pods_running = False
 						delta = (
 							datetime.now(timezone.utc) - pod.status.start_time
 						).total_seconds()
@@ -88,9 +88,9 @@ class Job:
 							== 'ImagePullBackOff'
 						):
 							logging.info(pod.status.container_statuses[0].state.waiting)
-							return 'Error', is_all_pods_runnning
+							return 'Error', is_all_pods_running
 
-		return self.status, is_all_pods_runnning
+		return self.status, is_all_pods_running
 
 	def delete(self):
 		logging.info('Removing failed jobs')

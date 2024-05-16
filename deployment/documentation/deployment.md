@@ -10,7 +10,7 @@
 ## Installing TESK
 ### Helm
 TESK can be installed using Helm 3 (tested with v3.0.0) using [this chart](../charts/tesk). It is best to create a dedicated namespace for TESK, although for test or development clusters it is fine to use the `default` namespace.
-The documentation of the chart gives a desciption of all configuration options and below the most common installation scenarios have been described.
+The documentation of the chart gives a description of all configuration options and below the most common installation scenarios have been described.
 TESK installation consists of a single API installed as a K8s deployment and exposed as a K8s service. Additionally, TESK API requires access to the K8s API in order to create K8s Jobs and PVCs. That is why the installation additionally creates objects such as service accounts, roles and role bindings.
 The chart does not provide a way to install the default storage class and that needs to be done independently by the cluster administrator.
 
@@ -90,7 +90,7 @@ https://tes.ebi.ac.uk/v1/tasks
 #### Shared file system
 TESK can exchange Inputs and Outputs with the external world using the local/shared storage. You need to create a PVC that will be reachable for your workflow manager and for TESK at the same time.
 If the workflow manager (or anything else that produces paths to your inputs and outputs) is installed inside the same K8s cluster, you may use a PVC of a storage class providing RWX access and mount it to the pod where the workflow manager is installed in the directory where the manager will be creating/orchestrating inputs/outputs. Depending on the workflow manager, it may be a working directory of your workflow manager process.
-If the workflow manager is installed outside of the cluster, you may be able to use a volume mounting storage visible outside of the cluster (hostPath, NFS, etc) and a PVC bound to that volume. We used Minikube with the hostPath type of storage in this secenario successfuly.
+If the workflow manager is installed outside of the cluster, you may be able to use a volume mounting storage visible outside of the cluster (hostPath, NFS, etc) and a PVC bound to that volume. We used Minikube with the hostPath type of storage in this secenario successfully.
 Creating the shared PVC is not handled by TESK Helm chart.
 Finally you have to setup following values in the chart:
 ```yaml
