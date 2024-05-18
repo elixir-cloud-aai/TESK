@@ -6,7 +6,7 @@ from kubernetes import client
 from kubernetes.client.rest import ApiException
 
 from tesk.service.exceptions import ServiceStatusCodes
-from tesk.service.Util import pprint
+from tesk.service.utils import pprint
 
 logging.basicConfig(format='%(message)s', level=logging.INFO)
 

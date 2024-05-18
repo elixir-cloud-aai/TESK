@@ -3,7 +3,7 @@ import unittest
 
 from tesk.service import path
 from tesk.service.filer_class import Filer
-from tesk.service.Util import pprint
+from tesk.service.utils import pprint
 
 try:
 	from unittest.mock import patch  # Python 3 @UnresolvedImport

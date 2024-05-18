@@ -227,7 +227,7 @@ def newParser():
 		'-s',
 		'--state-file',
 		help='State file for state.py script',
-		default='/tmp/.teskstate',
+		default='/tmp/.teskstate',  # nosec: B108, false positive
 	)
 	parser.add_argument('-d', '--debug', help='Set debug mode', action='store_true')
 	parser.add_argument(

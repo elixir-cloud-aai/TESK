@@ -15,6 +15,7 @@ from glob import glob
 
 import requests
 
+from tesk.service.constants import TIMEOUT
 from tesk.service.exceptions import (
 	FileProtocolDisabled,
 	ServiceStatusCodes,
@@ -30,7 +31,7 @@ class HTTPTransput(Transput):
 		Transput.__init__(self, path, url, ftype)
 
 	def download_file(self):
-		req = requests.get(self.url)
+		req = requests.get(self.url, timeout=TIMEOUT)
 
 		if (
 			req.status_code < ServiceStatusCodes.OK
@@ -48,7 +49,7 @@ class HTTPTransput(Transput):
 	def upload_file(self):
 		with open(self.path) as file:
 			file_contents = file.read()
-		req = requests.put(self.url, data=file_contents)
+		req = requests.put(self.url, data=file_contents, timeout=TIMEOUT)
 
 		if (
 			req.status_code < ServiceStatusCodes.OK

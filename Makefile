@@ -46,8 +46,6 @@ help:
 	@echo "	\033[1mclean-service-image-all \033[37m(csia\033[0m)"
 	@echo "		\033[36mClean images for all services of the given tag\033[0m"
 	@echo "		\033[36mEg: make csia TAG=testing\033[0m"
-	@echo "	\033[1mci \033[37m(ci\033[0m)"
-	@echo "		\033[36mSimulate some CI tests.\033[0m"
 	@echo "	\033[1mhelp\033[0m"
 	@echo "		\033[36mDisplay this help message\033[0m"
 
@@ -200,26 +198,3 @@ test:
 
 .PHONY: t
 t: test
-
-ci:
-	@if [ -x "$(POETRY_CMD)" ]; then \
-		$(POETRY_CMD) install || { echo "❌ Poetry install failed"; exit 1; }; \
-		$(POETRY_CMD) run pytest tests || { echo "❌ Pytest tests failed"; exit 1; }; \
-		$(POETRY_CMD) run typos . || { echo "❌ Typos check failed"; exit 1; }; \
-		$(POETRY_CMD) run ruff format --check || { echo "❌ Ruff format check failed"; exit 1; }; \
-		$(POETRY_CMD) run ruff check . || { echo "❌ Ruff check failed"; exit 1; }; \
-		$(POETRY_CMD) run bandit -r tesk || { echo "❌ Bandit check failed"; exit 1; }; \
-		$(POETRY_CMD) run safety check || { echo "❌ Bandit check failed"; exit 1; }; \
-		exit 0; \
-	elif [ -x "$(PYTHON_CMD)" ]; then \
-		.venv/bin/pip install . || { echo "❌ Pip install failed"; exit 1; }; \
-		.venv/bin/pytest tests || { echo "❌ Pytest tests failed"; exit 1; }; \
-		.venv/bin/typos . || { echo "❌ Typos check failed"; exit 1; }; \
-		.venv/bin/mypy tesk/ || { echo "❌ Mypy checks failed"; exit 1; }; \
-		.venv/bin/ruff format --check || { echo "❌ Ruff format check failed"; exit 1; }; \
-		.venv/bin/ruff check . || { echo "❌ Ruff check failed"; exit 1; }; \
-		exit 0; \
-	else \
-		echo "⬇️ Install dependencies and me run again."; \
-		exit 1; \
-	fi
