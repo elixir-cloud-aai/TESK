@@ -4,10 +4,10 @@ from unittest import mock
 
 from requests import Response
 
-from tesk.service.filer import HTTPTransput, Type
+from tesk.services.filer import HTTPTransput, Type
 
 PATH_DOWN = 'test_download_file.txt'
-PATH_UP = 'tests/test_unit/test_service/test_filer_http_pytest.py'
+PATH_UP = 'tests/test_unit/test_services/test_filer_http_pytest.py'
 SUCCESS = 200
 FAIL = 300
 URL = 'http://www.foo.bar'

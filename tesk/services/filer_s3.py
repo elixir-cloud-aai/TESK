@@ -6,7 +6,7 @@ import sys
 import boto3
 import botocore
 
-from tesk.service.transput import Transput, Type
+from tesk.services.transput import Transput, Type
 
 
 class S3Transput(Transput):

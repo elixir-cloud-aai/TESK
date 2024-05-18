@@ -5,8 +5,8 @@ from datetime import datetime, timezone
 from kubernetes import client
 from kubernetes.client.exceptions import ApiException
 
-from tesk.service.exceptions import ServiceStatusCodes
-from tesk.service.utils import pprint
+from tesk.services.exceptions import ServiceStatusCodes
+from tesk.services.utils import pprint
 
 logging.basicConfig(format='%(message)s', level=logging.INFO)
 

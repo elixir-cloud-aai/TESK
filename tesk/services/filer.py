@@ -15,15 +15,15 @@ from glob import glob
 
 import requests
 
-from tesk.service.constants import TIMEOUT
-from tesk.service.exceptions import (
+from tesk.services.constants import TIMEOUT
+from tesk.services.exceptions import (
 	FileProtocolDisabled,
 	ServiceStatusCodes,
 	UnknownProtocol,
 )
-from tesk.service.filer_s3 import S3Transput
-from tesk.service.path import containerPath, fileEnabled, getPath
-from tesk.service.transput import Transput, Type, urlparse
+from tesk.services.filer_s3 import S3Transput
+from tesk.services.path import containerPath, fileEnabled, getPath
+from tesk.services.transput import Transput, Type, urlparse
 
 
 class HTTPTransput(Transput):

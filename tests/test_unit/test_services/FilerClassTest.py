@@ -1,9 +1,9 @@
 import os
 import unittest
 
-from tesk.service import path
-from tesk.service.filer_class import Filer
-from tesk.service.utils import pprint
+from tesk.services import path
+from tesk.services.filer_class import Filer
+from tesk.services.utils import pprint
 
 try:
 	from unittest.mock import patch  # Python 3 @UnresolvedImport
@@ -11,9 +11,9 @@ except ImportError:
 	from unittest.mock import patch
 
 
-@patch('tesk.service.path.HOST_BASE_PATH', '/home/tfga/workspace/cwl-tes')
-@patch('tesk.service.path.CONTAINER_BASE_PATH', '/transfer')
-@patch('tesk.service.path.TRANSFER_PVC_NAME', 'transfer-pvc')
+@patch('tesk.services.path.HOST_BASE_PATH', '/home/tfga/workspace/cwl-tes')
+@patch('tesk.services.path.CONTAINER_BASE_PATH', '/transfer')
+@patch('tesk.services.path.TRANSFER_PVC_NAME', 'transfer-pvc')
 @patch.dict(
 	os.environ,
 	{

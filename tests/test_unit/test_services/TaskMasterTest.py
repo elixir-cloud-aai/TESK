@@ -4,7 +4,7 @@ import unittest
 from argparse import Namespace
 from unittest.mock import patch
 
-from tesk.service.taskmaster import newLogger, newParser, run_task
+from tesk.services.taskmaster import newLogger, newParser, run_task
 
 
 def pvcCreateMock(self):
@@ -74,13 +74,13 @@ class ParserTest(unittest.TestCase):
 		)
 
 	@patch(
-		'tesk.service.taskmaster.args',
+		'tesk.services.taskmaster.args',
 		Namespace(debug=True, namespace='default', pull_policy_always=True),
 	)
-	@patch('tesk.service.taskmaster.logger', newLogger(logging.DEBUG))
-	@patch('tesk.service.taskmaster.PVC.create', pvcCreateMock)
-	@patch('tesk.service.taskmaster.PVC.delete', pvcDeleteMock)
-	@patch('tesk.service.taskmaster.Job.run_to_completion', jobRunToCompletionMock)
+	@patch('tesk.services.taskmaster.logger', newLogger(logging.DEBUG))
+	@patch('tesk.services.taskmaster.PVC.create', pvcCreateMock)
+	@patch('tesk.services.taskmaster.PVC.delete', pvcDeleteMock)
+	@patch('tesk.services.taskmaster.Job.run_to_completion', jobRunToCompletionMock)
 	def test_run_task(self):
 		with open('tests/resources/inputFile.json') as fh:
 			data = json.load(fh)

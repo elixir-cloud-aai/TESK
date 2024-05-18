@@ -17,8 +17,8 @@ classifiers = [
 ]
 
 [tool.poetry.scripts]
-filer = 'tesk.service.filer:main'
-taskmaster = 'tesk.service.taskmaster:main'
+filer = 'tesk.services.filer:main'
+taskmaster = 'tesk.services.taskmaster:main'
 
 [tool.poetry.dependencies]
 python = "^3.11"
