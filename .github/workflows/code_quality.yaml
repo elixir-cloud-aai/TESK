@@ -10,6 +10,7 @@ on:
 
 jobs:
   lint:
+    name: Lint
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -25,15 +26,14 @@ jobs:
           python-version: '3.11'
           cache: 'poetry'
 
-      # Install lint deps only
-      - name: Install dependencies
-        # if: steps.cq.outputs.cache-hit != 'true'
+      - name: Install lint dependencies
         run: poetry install --only=lint --no-interaction --no-root
 
       - name: Check code quality
         run: poetry run ruff check .
 
   format:
+    name: Format
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -49,15 +49,14 @@ jobs:
           python-version: '3.11'
           cache: 'poetry'
 
-      # Install lint deps only
-      - name: Install dependencies
-        # if: steps.cq.outputs.cache-hit != 'true'
+      - name: Install lint dependencies
         run: poetry install --only=lint --no-interaction --no-root
 
       - name: Check code style
         run: poetry run ruff format --check
 
   type-check:
+    name: Type Check
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -73,15 +72,14 @@ jobs:
           python-version: '3.11'
           cache: 'poetry'
 
-      # Install only type check dependency
-      - name: Install dependencies
-        # if: steps.cqtc.outputs.cache-hit != 'true'
+      - name: Install types and mypy dependencies
         run: poetry install --only=types --no-interaction --no-root
 
       - name: Check types
         run: poetry run mypy tesk/
 
   spell-check:
+    name: Spell Check
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -97,9 +95,7 @@ jobs:
           python-version: '3.11'
           cache: 'poetry'
 
-      # Install lint deps only
-      - name: Install dependencies
-        # if: steps.cq.outputs.cache-hit != 'true'
+      - name: Install lint dependencies
         run: poetry install --only=lint --no-interaction --no-root
 
       - name: Check spellings

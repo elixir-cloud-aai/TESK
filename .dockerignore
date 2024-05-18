@@ -1,19 +1,18 @@
-# cache and dot files
-.eggs/
-.venv/
-.mypy_cache/
-.pytest_cache/
+# Cache and dot files
 .coverage/
-.ruff/
-.ruff_cache/
 .eggs/
 .github/
 .gitignore
-# Docs and atifacts
+.mypy_cache/
+.pytest_cache/
+.ruff/
+.ruff_cache/
+.venv/
+# Docs and artifacts
 ./deployment
 ./docs
-/images
-# build
+./images
+# Build
 ./build
 ./dist
 # Scripts and tools

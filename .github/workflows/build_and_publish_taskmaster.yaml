@@ -1,4 +1,4 @@
-name: tesk-core-taskmaster
+name: Build and Publish Taskmaster
 
 on:
   push:

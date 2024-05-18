@@ -25,7 +25,7 @@ from tesk.service.filer import (
 )
 from tesk.service.filer_s3 import S3Transput
 from tesk.service.path import containerPath
-from tests.test_unit.service.assertThrows import AssertThrowsMixin
+from tests.test_unit.test_service.assertThrows import AssertThrowsMixin
 
 
 def getTree(rootDir):
@@ -139,7 +139,7 @@ class FilerTest(unittest.TestCase, AssertThrowsMixin):
 		def rmDir(d):
 			os.system(f'rm -r {d}')
 
-		baseDir = 'tests/test_unit/service/resources/copyDirTest/'
+		baseDir = 'tests/test_unit/test_service/resources/copyDirTest/'
 		src = os.path.join(baseDir, 'src')
 		dst1 = os.path.join(baseDir, 'dst1')
 		dst2 = os.path.join(baseDir, 'dst2')

@@ -1,4 +1,4 @@
-name: tesk-core-filer
+name: Build and Publish Filer
 
 on:
   push:
@@ -14,6 +14,7 @@ on:
 
 jobs:
   build-from-source:
+    name: Build and publish Docker image
     runs-on: ubuntu-latest
     steps:
       - name: Checkout elixir-cloud-aai/tesk-core

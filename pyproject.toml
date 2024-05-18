@@ -1,21 +1,19 @@
 [tool.poetry]
 name = "tesk"
 version = "0.1.0"
-description = "An implementation of a task execution engine based on the TES standard running on Kubernetes."
-authors = ["TBA <you@example.com>"]
-maintainers = ["TBA <you@example.com>", "TBA <you@example.com>"]
+description = "An implementation of a task execution engine based on the GA4GH Task Execution Service (TES) API standard running on Kubernetes."
+authors = ["Elixir Cloud AAI <cloud-service@elixir-europe.org>"]
+maintainers = ["Elixir Cloud AAI <cloud-service@elixir-europe.org>"]
 license = "Apache-2.0"
 readme = "README.md"
 repository = "https://github.com/elixir-cloud-aai/TESK"
 keywords = ["TES", "Kubernetes", "Task Execution", "ebi", "TESK", "workflow", "automation"]
 classifiers = [
-    "Development Status :: 4 - Alpha",
+    "Development Status :: 4 - Beta",
     "Intended Audience :: System Administrators",
     "License :: OSI Approved :: Apache Software License",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
-    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.11"
 ]
 
 [tool.poetry.scripts]

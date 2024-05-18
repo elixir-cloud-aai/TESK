@@ -1,4 +1,4 @@
-name: Code Test
+name: Code Test Unit
 
 on:
   push:
@@ -10,11 +10,8 @@ on:
 
 jobs:
   unit-test:
+    name: Unit Test
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ['3.11', '3.12', '3.13']
-
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -22,17 +19,14 @@ jobs:
       - name: Install poetry
         run: pipx install poetry
 
-      # Set up python versions with matrix to test on multiple versions
-      - name: Set up Python ${{ matrix.python-version }}
+      - name: Set up Python
         uses: actions/setup-python@v5
-        id: ct-${{ matrix.python-version}}
+        id: ct
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: '3.11'
           cache: 'poetry'
 
-      # Install all test dependencies
-      - name: Install dependencies
-        # if: steps.ct-${{ matrix.python-version }}.outputs.cache-hit != 'true'
+      - name: Install test dependencies
         run: poetry install --only=test --no-interaction --no-root
 
       - name: Run ATS

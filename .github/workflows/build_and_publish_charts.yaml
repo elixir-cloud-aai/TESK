@@ -1,12 +1,18 @@
-name: Helm Chart Testing
+name: Build and Publish Helm Charts
 
 on:
-  pull_request: 
-    branches: [main]
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
-  helm-test:
+  create-cluster:
+    name: Create k3s Cluster
     runs-on: ubuntu-latest
+    needs: checkout
     steps:
       - name: Checkout
         uses: actions/checkout@v3.3.0
@@ -20,31 +26,71 @@ jobs:
             
       - name: Create namespace
         run: kubectl create ns tesk
-        
+
+  helm-deps:
+    name: Helm Dependencies
+    runs-on: ubuntu-latest
+    needs: checkout
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3.3.0
+        with:
+          fetch-depth: 0
+
       - name: Helm Deps
         run: |
           for dir in $(ls -d deployment/charts/*); do
             helm dependency update $dir;
           done
-    
+
+  helm-lint:
+    name: Helm Lint
+    runs-on: ubuntu-latest
+    needs: [helm-deps]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3.3.0
+        with:
+          fetch-depth: 0
+
       - name: Helm Lint
         run: |
           for dir in $(ls -d deployment/charts/*); do
             helm lint $dir
           done
-        
+
+  helm-install:
+    name: Helm Install
+    runs-on: ubuntu-latest
+    needs: [create-cluster, helm-deps, helm-lint]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3.3.0
+        with:
+          fetch-depth: 0
+
       - name: Apply Helm file
         run: helm install -n tesk tesk . -f values.yaml
         working-directory: deployment/charts/tesk
         
       - name: Sleep for 30 seconds
         run: sleep 30
-           
+
       - name: Get Helm and k8s
         run: helm list -n tesk && kubectl get all -n tesk
     
       - name: curl URL
         run: curl localhost -vL
+
+  chart-releaser:
+    name: Run chart-releaser
+    runs-on: ubuntu-latest
+    needs: helm-install
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3.3.0
+        with:
+          fetch-depth: 0
             
       - name: Configure Git
         run: |
@@ -57,4 +103,3 @@ jobs:
           skip_existing: true
         env:
           CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-    

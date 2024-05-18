@@ -1,6 +1,3 @@
-# TODO: Add commands to be compatible for windows
-# TODO: Add commands for tesk_api
-
 # Define variables
 PYTHON_CMD := $(shell command -v python3 2> /dev/null)
 BUILDAH_CMD := $(shell command -v buildah 2> /dev/null)

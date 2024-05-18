@@ -10,6 +10,7 @@ on:
 
 jobs:
   code-vulnerabilities:
+    name: Code
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -25,15 +26,14 @@ jobs:
           python-version: '3.11'
           cache: 'poetry'
 
-      # Install only vulnerability check dependency
-      - name: Install dependencies
-        # if: steps.vt.outputs.cache-hit != 'true'
+      - name: Install vulnerabilities check dependencies
         run: poetry install --only=security --no-interaction --no-root
 
-      - name: Check code vulnerabilities
+      - name: Check code vulnerabilities with bandit
         run: poetry run bandit -c pyproject.toml -r tesk/
 
   dependency-vulnerabilities:
+    name: Dependencies
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -49,10 +49,8 @@ jobs:
           python-version: '3.11'
           cache: 'poetry'
 
-      # Install only vulnerabilities check dependency
-      - name: Install dependencies
-        # if: steps.vt.outputs.cache-hit != 'true'
+      - name: Install vulnerabilities check dependencies
         run: poetry install --only=security --no-interaction --no-root
 
-      - name: Check dependency vulnerabilities
+      - name: Check dependency vulnerabilities with safety
         run: poetry run safety check --full-report
