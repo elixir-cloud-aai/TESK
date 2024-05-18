@@ -27,7 +27,7 @@ jobs:
 
       # Install lint deps only
       - name: Install dependencies
-        if: steps.cq.outputs.cache-hit != 'true'
+        # if: steps.cq.outputs.cache-hit != 'true'
         run: poetry install --only=lint --no-interaction --no-root
 
       - name: Check code quality
@@ -51,7 +51,7 @@ jobs:
 
       # Install lint deps only
       - name: Install dependencies
-        if: steps.cq.outputs.cache-hit != 'true'
+        # if: steps.cq.outputs.cache-hit != 'true'
         run: poetry install --only=lint --no-interaction --no-root
 
       - name: Check code style
@@ -75,8 +75,8 @@ jobs:
 
       # Install only type check dependency
       - name: Install dependencies
-        if: steps.cqtc.outputs.cache-hit != 'true'
-        run: poetry install --only=types --no-root
+        # if: steps.cqtc.outputs.cache-hit != 'true'
+        run: poetry install --only=types --no-interaction --no-root
 
       - name: Check types
         run: poetry run mypy tesk/
@@ -99,8 +99,8 @@ jobs:
 
       # Install lint deps only
       - name: Install dependencies
-        if: steps.cq.outputs.cache-hit != 'true'
+        # if: steps.cq.outputs.cache-hit != 'true'
         run: poetry install --only=lint --no-interaction --no-root
 
-      - name: Spell Check
+      - name: Check spellings
         run: poetry run typos . 

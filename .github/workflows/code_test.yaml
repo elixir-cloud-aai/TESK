@@ -32,7 +32,7 @@ jobs:
 
       # Install all test dependencies
       - name: Install dependencies
-        if: steps.ct-${{ matrix.python-version }}.outputs.cache-hit != 'true'
+        # if: steps.ct-${{ matrix.python-version }}.outputs.cache-hit != 'true'
         run: poetry install --only=test --no-interaction --no-root
 
       - name: Run ATS
