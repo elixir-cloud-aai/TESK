@@ -27,21 +27,16 @@ jobs:
           cache: 'poetry'
 
       - name: Install test dependencies
-        run: poetry install --only=test --no-interaction --no-root
+        run: poetry install --only=test --no-interaction
 
-      - name: Run ATS
-        uses: codecov/codecov-ats@v0
-        env:
-          CODECOV_STATIC_TOKEN: ${{ secrets.CODECOV_STATIC_TOKEN }}
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-
-      - name: Run tests
-        run: poetry run pytest --cov app ${{ env.CODECOV_ATS_TESTS }}
+      - name: Run tests and generate coverage as test_unit.xml
+        run: poetry run pytest --cov-report term --cov-report xml:test_unit.xml --cov=tests/test_unit
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
         with:
-          flags: smart-tests
+          token: ${{ secrets.CODECOV_TOKEN }}
+          flags: test_unit
+          files: ./test_unit.xml
+          fail_ci_if_error: true
           verbose: true
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
