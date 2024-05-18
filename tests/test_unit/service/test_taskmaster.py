@@ -136,7 +136,6 @@ class TaskmasterTest(unittest.TestCase):
 		""" """
 		volume_mounts = []
 		task_volume_name = 'task-volume'
-		# sourcery skip: no-loop-in-tests
 		for aninput in self.data['inputs']:
 			dirnm = dirname(aninput)
 			append_mount(volume_mounts, task_volume_name, dirnm, self.pvc)

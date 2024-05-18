@@ -226,7 +226,6 @@ class JobTestCase(unittest.TestCase):
 		"""
 		Checking if the Job runs is completed successfully
 		"""
-		# sourcery skip: no-loop-in-tests
 		for executor in self.data['executors']:
 			jobname = executor['metadata']['name']
 			job = Job(executor, jobname, taskmaster.args.namespace)
@@ -249,7 +248,7 @@ class JobTestCase(unittest.TestCase):
 		"""
 		Checking if the Job is cancelled
 		"""
-		for executor in self.data['executors']:  # sourcery skip: no-loop-in-tests
+		for executor in self.data['executors']:
 			jobname = executor['metadata']['name']
 			job = Job(executor, jobname, taskmaster.args.namespace)
 			status = job.run_to_completion(
@@ -279,7 +278,7 @@ class JobTestCase(unittest.TestCase):
 		"""
 		Checking if the Job status is complete when an ApiException of 409 is raised
 		"""
-		for executor in self.data['executors']:  # sourcery skip: no-loop-in-tests
+		for executor in self.data['executors']:
 			jobname = executor['metadata']['name']
 			job = Job(executor, jobname, taskmaster.args.namespace)
 			status = job.run_to_completion(
@@ -300,7 +299,7 @@ class JobTestCase(unittest.TestCase):
 		Checking if the an exception is raised when ApiException status is other
 		than 409
 		"""
-		for executor in self.data['executors']:  # sourcery skip: no-loop-in-tests
+		for executor in self.data['executors']:
 			jobname = executor['metadata']['name']
 			job = Job(executor, jobname, taskmaster.args.namespace)
 			with self.assertRaises(ApiException):
@@ -333,7 +332,7 @@ class JobTestCase(unittest.TestCase):
 		mock_list_namespaced_pod.return_value = (
 			list_namespaced_pod_error_ImagePullBackOff(10)
 		)
-		for executor in self.data['executors']:  # sourcery skip: no-loop-in-tests
+		for executor in self.data['executors']:
 			jobname = executor['metadata']['name']
 			job = Job(executor, jobname, taskmaster.args.namespace)
 			status = job.run_to_completion(1, taskmaster.check_cancelled, 120)
