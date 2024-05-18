@@ -45,9 +45,7 @@ class Transput:
 		)
 		if self.ftype == Type.File:
 			return self.upload_file()
-		if self.ftype == Type.Directory:
-			return self.upload_dir()
-		return 1
+		return self.upload_dir() if self.ftype == Type.Directory else 1
 
 	def download(self):
 		logging.debug(
@@ -55,9 +53,7 @@ class Transput:
 		)
 		if self.ftype == Type.File:
 			return self.download_file()
-		if self.ftype == Type.Directory:
-			return self.download_dir()
-		return 1
+		return self.download_dir() if self.ftype == Type.Directory else 1
 
 	def delete(self):
 		pass

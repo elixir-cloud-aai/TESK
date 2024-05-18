@@ -42,9 +42,9 @@ def run_executor(executor, namespace, pvc=None):
 				}
 			]
 		)
-	logger.debug('Created job: ' + jobname)
+	logger.debug(f'Created job: {jobname}')
 	job = Job(executor, jobname, namespace)
-	logger.debug('Job spec: ' + str(job.body))
+	logger.debug(f'Job spec: {str(job.body)}')
 
 	created_jobs.append(job)
 
@@ -52,7 +52,7 @@ def run_executor(executor, namespace, pvc=None):
 	if status != 'Complete':
 		if status == 'Error':
 			job.delete()
-		exit_cancelled('Got status ' + status)
+		exit_cancelled(f'Got status {status}')
 
 
 # TODO move this code to PVC class
@@ -67,11 +67,7 @@ def append_mount(volume_mounts, name, path, pvc):
 	# If not, add mount path
 	if duplicate is None:
 		subpath = pvc.get_subpath()
-		logger.debug(
-			' '.join(
-				['appending' + name + 'at path' + path + 'with subPath:' + subpath]
-			)
-		)
+		logger.debug(' '.join([f'appending{name}at path{path}with subPath:{subpath}']))
 		volume_mounts.append({'name': name, 'mountPath': path, 'subPath': subpath})
 
 
@@ -79,7 +75,7 @@ def dirname(iodata):
 	if iodata['type'] == 'FILE':
 		# strip filename from path
 		r = '(.*)/'
-		dirname = re.match(r, iodata['path']).group(1)
+		dirname = re.match(r, iodata['path'])[1]
 		logger.debug('dirname of ' + iodata['path'] + 'is: ' + dirname)
 	elif iodata['type'] == 'DIRECTORY':
 		dirname = iodata['path']
@@ -110,7 +106,7 @@ def generate_mounts(data, pvc):
 
 def init_pvc(data, filer):
 	task_name = data['executors'][0]['metadata']['labels']['taskmaster-name']
-	pvc_name = task_name + '-pvc'
+	pvc_name = f'{task_name}-pvc'
 	pvc_size = data['resources']['disk_gb']
 	pvc = PVC(pvc_name, pvc_size, args.namespace)
 
@@ -130,7 +126,7 @@ def init_pvc(data, filer):
 
 	filerjob = Job(
 		filer.get_spec('inputs', args.debug),
-		task_name + '-inputs-filer',
+		f'{task_name}-inputs-filer',
 		args.namespace,
 	)
 
@@ -140,7 +136,7 @@ def init_pvc(data, filer):
 		poll_interval, check_cancelled, args.pod_timeout
 	)
 	if status != 'Complete':
-		exit_cancelled('Got status ' + status)
+		exit_cancelled(f'Got status {status}')
 
 	return pvc
 
@@ -153,7 +149,7 @@ def run_task(data, filer_name, filer_version, have_json_pvc=False):
 
 	if data['volumes'] or data['inputs'] or data['outputs']:
 		filer = Filer(
-			task_name + '-filer',
+			f'{task_name}-filer',
 			data,
 			filer_name,
 			filer_version,
@@ -181,7 +177,7 @@ def run_task(data, filer_name, filer_version, have_json_pvc=False):
 	if data['volumes'] or data['inputs'] or data['outputs']:
 		filerjob = Job(
 			filer.get_spec('outputs', args.debug),
-			task_name + '-outputs-filer',
+			f'{task_name}-outputs-filer',
 			args.namespace,
 		)
 
@@ -192,7 +188,7 @@ def run_task(data, filer_name, filer_version, have_json_pvc=False):
 			poll_interval, check_cancelled, args.pod_timeout
 		)
 		if status != 'Complete':
-			exit_cancelled('Got status ' + status)
+			exit_cancelled(f'Got status {status}')
 		else:
 			pvc.delete()
 
@@ -267,12 +263,7 @@ def main():
 
 	args = parser.parse_args()
 
-	# poll_interval = args.poll_interval
-
-	loglevel = logging.ERROR
-	if args.debug:
-		loglevel = logging.DEBUG
-
+	loglevel = logging.DEBUG if args.debug else logging.ERROR
 	global logger  # noqa: PLW0603
 	logger = newLogger(loglevel)
 	logger.debug('Starting taskmaster')
@@ -314,7 +305,7 @@ def clean_on_interrupt():
 
 
 def exit_cancelled(reason='Unknown reason'):
-	logger.error('Cancelling taskmaster: ' + reason)
+	logger.error(f'Cancelling taskmaster: {reason}')
 	sys.exit(0)
 
 
@@ -325,9 +316,9 @@ def check_cancelled():
 		return False
 
 	with open(labelInfoFile) as fh:
-		for line in fh.readlines():
+		for line in fh:
 			name, label = line.split('=')
-			logging.debug('Got label: ' + label)
+			logging.debug(f'Got label: {label}')
 			if label == '"Cancelled"':
 				return True
 

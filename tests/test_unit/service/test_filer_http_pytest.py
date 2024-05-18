@@ -80,7 +80,7 @@ def test_upload_dir(mocker, fs):
 
 	mock_put = mocker.patch('requests.put', return_value=resp)
 
-	http_obj = HTTPTransput('dir1', endpoint + '/dir1', Type.Directory)
+	http_obj = HTTPTransput('dir1', f'{endpoint}/dir1', Type.Directory)
 
 	assert http_obj.upload_dir() == 0
 
@@ -88,9 +88,9 @@ def test_upload_dir(mocker, fs):
 	# 'assert_has_calls' method would not work in this setting
 	assert sorted(mock_put.mock_calls) == sorted(
 		[
-			mock.call(endpoint + '/dir1/dir2/file2', data='not really'),
-			mock.call(endpoint + '/dir1/dir2/file4.txt', data='took me a while'),
-			mock.call(endpoint + '/dir1/file1', data='this is random'),
+			mock.call(f'{endpoint}/dir1/dir2/file2', data='not really'),
+			mock.call(f'{endpoint}/dir1/dir2/file4.txt', data='took me a while'),
+			mock.call(f'{endpoint}/dir1/file1', data='this is random'),
 		]
 	)
 
@@ -105,9 +105,9 @@ def test_upload_dir(mocker, fs):
 		# Non-existent endpoint
 		endpoint2 = 'http://somerandomendpoint.fail'
 
-		http_obj1 = HTTPTransput('dir1', endpoint1 + '/dir1', Type.Directory)
+		http_obj1 = HTTPTransput('dir1', f'{endpoint1}/dir1', Type.Directory)
 
-		http_obj2 = HTTPTransput('dir2', endpoint2 + '/dir1', Type.Directory)
+		http_obj2 = HTTPTransput('dir2', f'{endpoint2}/dir1', Type.Directory)
 
 		assert http_obj1.upload_dir() == 1
 		assert http_obj2.upload_dir() == 1

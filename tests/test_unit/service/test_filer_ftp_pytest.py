@@ -133,12 +133,18 @@ def test_ftp_download_dir(mocker, tmpdir, tmp_path, ftpserver):
 	tmpdir.mkdir('downloads')
 
 	# Populate the server with the above files to later download
-	ftpserver.put_files({'src': str(tmp_path) + '/dir1/file1', 'dest': 'remote1/file1'})
+	ftpserver.put_files({'src': f'{str(tmp_path)}/dir1/file1', 'dest': 'remote1/file1'})
 	ftpserver.put_files(
-		{'src': str(tmp_path) + '/dir1/dir2/file2', 'dest': 'remote1/remote2/file2'}
+		{
+			'src': f'{str(tmp_path)}/dir1/dir2/file2',
+			'dest': 'remote1/remote2/file2',
+		}
 	)
 	ftpserver.put_files(
-		{'src': str(tmp_path) + '/dir1/dir2/file3', 'dest': 'remote1/remote2/file3'}
+		{
+			'src': f'{str(tmp_path)}/dir1/dir2/file3',
+			'dest': 'remote1/remote2/file3',
+		}
 	)
 
 	login_dict = ftpserver.get_login_data()
@@ -150,7 +156,7 @@ def test_ftp_download_dir(mocker, tmpdir, tmp_path, ftpserver):
 	mock_retrbinary = mocker.patch('ftplib.FTP.retrbinary', side_effect=conn.retrbinary)
 
 	ftp_obj = FTPTransput(
-		str(tmp_path) + 'downloads',
+		f'{str(tmp_path)}downloads',
 		'ftp://' + login_dict['host'],
 		Type.Directory,
 		ftp_conn=conn,
@@ -169,9 +175,9 @@ def test_ftp_download_dir(mocker, tmpdir, tmp_path, ftpserver):
 		]
 	)
 
-	assert os.path.exists(str(tmp_path) + 'downloads/remote1/file1')
-	assert os.path.exists(str(tmp_path) + 'downloads/remote1/remote2/file2')
-	assert os.path.exists(str(tmp_path) + 'downloads/remote1/remote2/file3')
+	assert os.path.exists(f'{str(tmp_path)}downloads/remote1/file1')
+	assert os.path.exists(f'{str(tmp_path)}downloads/remote1/remote2/file2')
+	assert os.path.exists(f'{str(tmp_path)}downloads/remote1/remote2/file3')
 
 
 def test_ftp_check_directory_error(mocker, caplog):

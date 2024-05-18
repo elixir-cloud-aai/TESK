@@ -87,7 +87,7 @@ def test_s3_download_file(moto_boto, path, url, ftype, expected, fs, caplog):  #
 	"""
 	with S3Transput(path, url, ftype) as trans:
 		assert trans.download_file() == expected
-		if expected:
+		if expected:  # sourcery skip: no-conditionals-in-tests
 			assert 'Not Found' in caplog.text
 		else:
 			assert os.path.exists(path) is True
@@ -113,7 +113,7 @@ def test_s3_download_directory(  # noqa: PLR0913
 	with S3Transput(path, url, ftype) as trans:
 		assert trans.download_dir() == expected
 		print(mock_rename.mock_calls)
-		if expected:
+		if expected:  # sourcery skip: no-conditionals-in-tests
 			assert 'Invalid file path' in caplog.text
 		else:
 			"""
@@ -139,7 +139,7 @@ def test_s3_upload_file(moto_boto, path, url, ftype, expected, fs, caplog):  # n
 	trans = S3Transput(path, url, ftype)
 	trans.bucket_obj = client.Bucket(trans.bucket)
 	assert trans.upload_file() == expected
-	if expected:
+	if expected:  # sourcery skip: no-conditionals-in-tests
 		assert 'File upload failed for' in caplog.text
 	else:
 		"""

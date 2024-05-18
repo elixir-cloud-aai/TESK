@@ -52,7 +52,7 @@ class S3Transput(Transput):
 	def download_file(self):
 		logging.debug(
 			'Downloading s3 object: "%s" Target: %s',
-			self.bucket + '/' + self.file_path,
+			f'{self.bucket}/{self.file_path}',
 			self.path,
 		)
 		basedir = os.path.dirname(self.path)
@@ -63,13 +63,13 @@ class S3Transput(Transput):
 		logging.debug(
 			'Uploading s3 object: "%s" Target: %s',
 			self.path,
-			self.bucket + '/' + self.file_path,
+			f'{self.bucket}/{self.file_path}',
 		)
 		try:
 			self.bucket_obj.upload_file(Filename=self.path, Key=self.file_path)
 		except (botocore.exceptions.ClientError, OSError) as err:
 			logging.error(
-				"File upload failed for '%s'", self.bucket + '/' + self.file_path
+				"File upload failed for '%s'", f'{self.bucket}/{self.file_path}'
 			)
 			logging.error(err)
 			return 1
@@ -79,7 +79,7 @@ class S3Transput(Transput):
 		logging.debug(
 			'Uploading s3 object: "%s" Target: %s',
 			self.path,
-			self.bucket + '/' + self.file_path,
+			f'{self.bucket}/{self.file_path}',
 		)
 		try:
 			for item in os.listdir(self.path):
@@ -99,7 +99,7 @@ class S3Transput(Transput):
 						return 1
 		except OSError as err:
 			logging.error(
-				"File upload failed for '%s'", self.bucket + '/' + self.file_path
+				"File upload failed for '%s'", f'{self.bucket}/{self.file_path}'
 			)
 			logging.error(err)
 			return 1
@@ -108,7 +108,7 @@ class S3Transput(Transput):
 	def download_dir(self):
 		logging.debug(
 			'Downloading s3 object: "%s" Target: %s',
-			self.bucket + '/' + self.file_path,
+			f'{self.bucket}/{self.file_path}',
 			self.path,
 		)
 		client = boto3.client('s3', endpoint_url=self.extract_endpoint())

@@ -17,7 +17,7 @@ class PVC:
 			'metadata': {'name': name},
 			'spec': {
 				'accessModes': ['ReadWriteOnce'],
-				'resources': {'requests': {'storage': str(size_gb) + 'Gi'}},
+				'resources': {'requests': {'storage': f'{str(size_gb)}Gi'}},
 			},
 		}
 
@@ -36,7 +36,7 @@ class PVC:
 		self.volume_mounts = mounts
 
 	def get_subpath(self):
-		subpath = 'dir' + str(self.subpath_idx)
+		subpath = f'dir{str(self.subpath_idx)}'
 		self.subpath_idx += 1
 		return subpath
 

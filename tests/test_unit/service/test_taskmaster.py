@@ -44,14 +44,14 @@ class TaskmasterTest(unittest.TestCase):
 			pod_timeout=240,
 		)
 		self.filer = Filer(
-			self.task_name + '-filer',
+			f'{self.task_name}-filer',
 			self.data,
 			taskmaster.args.filer_name,
 			taskmaster.args.filer_version,
 			taskmaster.args.pull_policy_always,
 		)
 		self.pvc = PVC(
-			self.task_name + '-pvc',
+			f'{self.task_name}-pvc',
 			self.data['resources']['disk_gb'],
 			taskmaster.args.namespace,
 		)
@@ -136,6 +136,7 @@ class TaskmasterTest(unittest.TestCase):
 		""" """
 		volume_mounts = []
 		task_volume_name = 'task-volume'
+		# sourcery skip: no-loop-in-tests
 		for aninput in self.data['inputs']:
 			dirnm = dirname(aninput)
 			append_mount(volume_mounts, task_volume_name, dirnm, self.pvc)

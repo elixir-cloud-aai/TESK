@@ -43,12 +43,12 @@ def test_process_file_from_content(tmpdir, tmp_path):
 
 	# test_file = tmpdir.join('testfile')
 	filedata = {
-		'path': str(tmp_path) + '/testfile',
+		'path': f'{str(tmp_path)}/testfile',
 		'content': 'This is some test content',
 	}
 	process_file('inputs', filedata)
 
-	file_path = str(tmp_path) + '/testfile'
+	file_path = f'{str(tmp_path)}/testfile'
 	with open(file_path) as file:
 		assert file.read() == filedata['content']
 

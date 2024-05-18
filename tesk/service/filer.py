@@ -64,17 +64,17 @@ class HTTPTransput(Transput):
 	def upload_dir(self):
 		to_upload = []
 		for listing in os.listdir(self.path):
-			file_path = self.path + '/' + listing
+			file_path = f'{self.path}/{listing}'
 			if os.path.isdir(file_path):
 				ftype = Type.Directory
 			elif os.path.isfile(file_path):
 				ftype = Type.File
 			else:
 				return 1
-			to_upload.append(HTTPTransput(file_path, self.url + '/' + listing, ftype))
+			to_upload.append(HTTPTransput(file_path, f'{self.url}/{listing}', ftype))
 
 		# return 1 if any upload failed
-		return min(sum([transput.upload() for transput in to_upload]), 1)
+		return min(sum(transput.upload() for transput in to_upload), 1)
 
 	def download_dir(self):
 		logging.error(
@@ -167,8 +167,8 @@ class FTPTransput(Transput):
 
 	def upload_dir(self):
 		for file in os.listdir(self.path):
-			file_path = self.path + '/' + file
-			file_url = self.url + '/' + file
+			file_path = f'{self.path}/{file}'
+			file_url = f'{self.url}/{file}'
 
 			if os.path.isdir(file_path):
 				ftype = Type.Directory
@@ -190,8 +190,7 @@ class FTPTransput(Transput):
 		return 0
 
 	def upload_file(self):
-		error = ftp_make_dirs(self.ftp_connection, os.path.dirname(self.url_path))
-		if error:
+		if ftp_make_dirs(self.ftp_connection, os.path.dirname(self.url_path)):
 			logging.error('Unable to create remote directories needed for %s', self.url)
 			return 1
 
@@ -217,11 +216,11 @@ class FTPTransput(Transput):
 
 		for line in lines:
 			matches = ftp_command.match(line)
-			dirbit = matches.group('dir')
-			name = matches.group('name')
+			dirbit = matches['dir']
+			name = matches['name']
 
-			file_path = self.path + '/' + name
-			file_url = self.url + '/' + name
+			file_path = f'{self.path}/{name}'
+			file_url = f'{self.url}/{name}'
 
 			ftype = Type.Directory if dirbit == 'd' else Type.File
 
@@ -249,8 +248,7 @@ class FTPTransput(Transput):
 def ftp_login(ftp_connection, netloc, netrc_file):
 	user = None
 	if netrc_file is not None:
-		creds = netrc_file.authenticators(netloc)
-		if creds:
+		if creds := netrc_file.authenticators(netloc):
 			user, _, password = creds
 	elif 'TESK_FTP_USERNAME' in os.environ and 'TESK_FTP_PASSWORD' in os.environ:
 		user = os.environ['TESK_FTP_USERNAME']
@@ -311,7 +309,7 @@ def ftp_check_directory(ftp_connection, path):
 def ftp_upload_file(ftp_connection, local_source_path, remote_destination_path):
 	try:
 		with open(local_source_path, 'r+b') as file:
-			ftp_connection.storbinary('STOR /' + remote_destination_path, file)
+			ftp_connection.storbinary(f'STOR /{remote_destination_path}', file)
 	except (ftplib.error_reply, ftplib.error_perm, ftplib.error_temp):
 		logging.exception(
 			'Unable to upload file "%s" to "%s" as "%s"',
@@ -326,7 +324,7 @@ def ftp_upload_file(ftp_connection, local_source_path, remote_destination_path):
 def ftp_download_file(ftp_connection, remote_source_path, local_destination_path):
 	try:
 		with open(local_destination_path, 'w+b') as file:
-			ftp_connection.retrbinary('RETR ' + remote_source_path, file.write)
+			ftp_connection.retrbinary(f'RETR {remote_source_path}', file.write)
 	except (ftplib.error_reply, ftplib.error_perm, ftplib.error_temp):
 		logging.exception(
 			'Unable to download file "%s" from "%s" as "%s"',
@@ -353,11 +351,11 @@ def subfolders_in(whole_path):
 	"""
 	path_fragments = whole_path.lstrip('/').split('/')
 	if whole_path.startswith('/'):
-		path_fragments[0] = '/' + path_fragments[0]
+		path_fragments[0] = f'/{path_fragments[0]}'
 	path = path_fragments[0]
 	subfolders = [path]
 	for fragment in path_fragments[1:]:
-		path += '/' + fragment
+		path += f'/{fragment}'
 		subfolders.append(path)
 	return subfolders
 
@@ -420,9 +418,7 @@ def newTransput(scheme, netloc):
 		if fileEnabled():
 			return FileTransput
 		raise FileProtocolDisabled(
-			"'file:' protocol disabled\n"
-			f"To enable it, both {'HOST_BASE_PATH'} and "
-			f"{'CONTAINER_BASE_PATH'} environment variables must be defined."
+			"'file:' protocol disabled\nTo enable it, both HOST_BASE_PATH and CONTAINER_BASE_PATH environment variables must be defined."  # noqa: E501
 		)
 
 	if scheme == 'ftp':
