@@ -2,7 +2,7 @@ import logging
 import os
 
 from kubernetes import client
-from kubernetes.client.rest import ApiException
+from kubernetes.client.exceptions import ApiException
 
 from tesk.service.exceptions import ServiceStatusCodes
 from tesk.service.utils import pprint

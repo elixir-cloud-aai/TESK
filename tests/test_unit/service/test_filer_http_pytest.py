@@ -88,9 +88,11 @@ def test_upload_dir(mocker, fs):
 	# 'assert_has_calls' method would not work in this setting
 	assert sorted(mock_put.mock_calls) == sorted(
 		[
-			mock.call(f'{endpoint}/dir1/dir2/file2', data='not really'),
-			mock.call(f'{endpoint}/dir1/dir2/file4.txt', data='took me a while'),
-			mock.call(f'{endpoint}/dir1/file1', data='this is random'),
+			mock.call(f'{endpoint}/dir1/dir2/file2', data='not really', timeout='100'),
+			mock.call(
+				f'{endpoint}/dir1/dir2/file4.txt', data='took me a while', timeout='100'
+			),
+			mock.call(f'{endpoint}/dir1/file1', data='this is random', timeout='100'),
 		]
 	)
 

@@ -1,12 +1,8 @@
 import os
 from os.path import relpath
+from urllib.parse import urlparse
 
 from tesk.service.exceptions import InvalidHostPath
-
-try:
-	from urllib.parse import urlparse
-except ImportError:
-	from urlparse import urlparse
 
 
 def getEnv(varName):

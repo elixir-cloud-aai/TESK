@@ -26,7 +26,7 @@ taskmaster = 'tesk.service.taskmaster:main'
 python = "^3.11"
 kubernetes = "^29.0.0"
 requests = ">=2.20.0"
-urllib3 = "1.26.18"
+urllib3 = "^2.2.1"
 boto3 = "1.34.104"
 
 [tool.poetry.group.dev.dependencies]
@@ -41,15 +41,19 @@ mypy = "^1.10.0"
 typos = "^1.21.0"
 bandit = "^1.7.8"
 safety = "^3.2.0"
-
-# dependency groups for CI, helps isolate
-# dependencies that are only needed for specifc
-# CI jobs
 pytest-cov = "^5.0.0"
+
 [tool.poetry.group.lint.dependencies]
 ruff = "^0.4.4"
 typos = "^1.21.0"
+
+[tool.poetry.group.types.dependencies]
 mypy = "^1.10.0"
+kubernetes-stubs = "^22.6.0.post1"
+types-urllib3 = "^1.26.25.14"
+types-botocore = "^1.0.2"
+boto3-stubs = "^1.34.108"
+types-requests = "^2.31.0.20240406"
 
 [tool.poetry.group.security.dependencies]
 bandit = "^1.7.8"
@@ -94,7 +98,7 @@ FTP_PORT = 2111
 
 [tool.bandit]
 skips = [
-    "B321", # FTP-related functions are being called
+    "B321", # FTP-related functions are being called.
     "B402", # A FTP-related module is being imported.
 ]
 

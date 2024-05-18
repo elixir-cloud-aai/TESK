@@ -67,7 +67,7 @@ jobs:
         run: pipx install poetry
 
       - name: Set up python
-        id: cq
+        id: cqtc
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -75,8 +75,8 @@ jobs:
 
       # Install only type check dependency
       - name: Install dependencies
-        if: steps.cq.outputs.cache-hit != 'true'
-        run: poetry install --only=lint --no-root
+        if: steps.cqtc.outputs.cache-hit != 'true'
+        run: poetry install --only=types --no-root
 
       - name: Check types
         run: poetry run mypy tesk/
