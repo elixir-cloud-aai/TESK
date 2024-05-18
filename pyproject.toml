@@ -24,7 +24,7 @@ taskmaster = 'tesk.service.taskmaster:main'
 
 [tool.poetry.dependencies]
 python = "^3.11"
-kubernetes = "9.0.0"
+kubernetes = "^29.0.0"
 requests = ">=2.20.0"
 urllib3 = "1.26.18"
 boto3 = "1.34.104"
@@ -62,7 +62,7 @@ pytest-mock = "*"
 fs = "*"
 moto = "*"
 pytest-localftpserver = "*"
-kubernetes = "9.0.0"
+kubernetes = "*"
 
 [tool.ruff.lint]
 select = [

@@ -1,0 +1,49 @@
+version: '3.0'
+
+scanning-settings:
+  max-depth: 6
+  exclude: []
+  include-files: []
+  system:
+    targets: []
+
+security:
+  ignore-vulnerabilities:
+      65213:
+          reason: 'Fix is downgrading the pyopenssl package to 21.0.0, doing that breaks all the test.'
+          expires: '2025-5-18'
+      67599:
+          reason: 'No fix available.'
+          expires: '2025-5-18'
+      70612:
+          reason: 'No fix available.'
+          expires: '2025-5-18'
+
+report:
+  dependency-vulnerabilities:
+    enabled: true
+    auto-ignore-in-report:
+      python:
+        environment-results: true
+        unpinned-requirements: true
+      cvss-severity: []
+
+
+fail-scan-with-exit-code:
+  dependency-vulnerabilities:
+    enabled: true
+    fail-on-any-of:
+      cvss-severity:
+        - critical
+        - high
+        - medium
+      exploitability:
+        - critical
+        - high
+        - medium
+
+security-updates:
+  dependency-vulnerabilities:
+    auto-security-updates-limit:
+      - patch
+

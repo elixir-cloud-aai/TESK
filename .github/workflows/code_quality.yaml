@@ -103,4 +103,4 @@ jobs:
         run: poetry install --only=lint --no-interaction --no-root
 
       - name: Spell Check
-        run: poetry run typos
+        run: poetry run typos . 

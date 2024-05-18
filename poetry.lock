@@ -81,13 +81,13 @@ crt = ["botocore[crt] (>=1.21.0,<2.0a0)"]
 
 [[package]]
 name = "botocore"
-version = "1.34.106"
+version = "1.34.108"
 description = "Low-level, data-driven core of boto 3."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "botocore-1.34.106-py3-none-any.whl", hash = "sha256:4baf0e27c2dfc4f4d0dee7c217c716e0782f9b30e8e1fff983fce237d88f73ae"},
-    {file = "botocore-1.34.106.tar.gz", hash = "sha256:921fa5202f88c3e58fdcb4b3acffd56d65b24bca47092ee4b27aa988556c0be6"},
+    {file = "botocore-1.34.108-py3-none-any.whl", hash = "sha256:b1b9d00804267669c5fcc36489269f7e9c43580c30f0885fbf669cf73cec720b"},
+    {file = "botocore-1.34.108.tar.gz", hash = "sha256:384c9408c447631475dc41fdc9bf2e0f30c29c420d96bfe8b468bdc2bace3e13"},
 ]
 
 [package.dependencies]
@@ -540,25 +540,25 @@ files = [
 
 [[package]]
 name = "kubernetes"
-version = "9.0.0"
+version = "29.0.0"
 description = "Kubernetes python client"
 optional = false
-python-versions = "*"
+python-versions = ">=3.6"
 files = [
-    {file = "kubernetes-9.0.0-py2.py3-none-any.whl", hash = "sha256:f56137a298cb1453dd908b49dd4169347287c971e8cabd11b32f27570fec314c"},
-    {file = "kubernetes-9.0.0.tar.gz", hash = "sha256:a8b0aed55ba946faea660712595a52ae53a8854df773d96f47a63fa0c9d4e3bf"},
+    {file = "kubernetes-29.0.0-py2.py3-none-any.whl", hash = "sha256:ab8cb0e0576ccdfb71886366efb102c6a20f268d817be065ce7f9909c631e43e"},
+    {file = "kubernetes-29.0.0.tar.gz", hash = "sha256:c4812e227ae74d07d53c88293e564e54b850452715a59a927e7e1bc6b9a60459"},
 ]
 
 [package.dependencies]
 certifi = ">=14.05.14"
 google-auth = ">=1.0.1"
+oauthlib = ">=3.2.2"
 python-dateutil = ">=2.5.3"
-pyyaml = ">=3.12"
+pyyaml = ">=5.4.1"
 requests = "*"
 requests-oauthlib = "*"
-setuptools = ">=21.0.0"
 six = ">=1.9.0"
-urllib3 = ">=1.23"
+urllib3 = ">=1.24.2"
 websocket-client = ">=0.32.0,<0.40.0 || >0.40.0,<0.41.dev0 || >=0.43.dev0"
 
 [package.extras]
@@ -1083,19 +1083,20 @@ testing = ["fields", "hunter", "process-tests", "pytest-xdist", "virtualenv"]
 
 [[package]]
 name = "pytest-localftpserver"
-version = "1.2.0"
+version = "1.3.1"
 description = "A PyTest plugin which provides an FTP fixture for your tests"
 optional = false
 python-versions = "*"
 files = [
-    {file = "pytest_localftpserver-1.2.0-py3-none-any.whl", hash = "sha256:7f92af7ef172bb282e5c2f3c62ae78f1c49f93edd8b52be3b5f54aa5e487acb3"},
-    {file = "pytest_localftpserver-1.2.0.tar.gz", hash = "sha256:099512c3d8a1ca24808df31d85b426d8653ca6f178d6d8f3c1898d302c053b3e"},
+    {file = "pytest_localftpserver-1.3.1-py3-none-any.whl", hash = "sha256:dbb2fcc5ea950231a60c506d3039873cf9c322871618de2de52d5075c98247fc"},
+    {file = "pytest_localftpserver-1.3.1.tar.gz", hash = "sha256:8d9fbbceb2cca4ec212b0bb81655f73f5281bab606d1df7d7e43a2197d20c9fd"},
 ]
 
 [package.dependencies]
 pyftpdlib = ">=1.2.0"
 PyOpenSSL = "*"
 pytest = "*"
+wget = "*"
 
 [[package]]
 name = "pytest-mock"
@@ -1598,6 +1599,16 @@ MarkupSafe = ">=2.1.1"
 watchdog = ["watchdog (>=2.3)"]
 
 [[package]]
+name = "wget"
+version = "3.2"
+description = "pure python download utility"
+optional = false
+python-versions = "*"
+files = [
+    {file = "wget-3.2.zip", hash = "sha256:35e630eca2aa50ce998b9b1a127bb26b30dfee573702782aa982f875e3f16061"},
+]
+
+[[package]]
 name = "xmltodict"
 version = "0.13.0"
 description = "Makes working with XML feel like you are working with JSON"
@@ -1611,4 +1622,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "156bb607694732de334d3f9f35a0eb3e7b50ab5874817d15220371a451b68f6f"
+content-hash = "3b677363f783b517088bc7d9e4241a0514926d82ec29d6dc2c24d0f5071c4749"
