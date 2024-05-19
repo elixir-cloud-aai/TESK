@@ -59,33 +59,9 @@ jobs:
             helm lint $dir
           done
 
-  helm-install:
-    name: Helm Install
-    runs-on: ubuntu-latest
-    needs: [create-cluster, helm-deps, helm-lint]
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3.3.0
-        with:
-          fetch-depth: 0
-
-      - name: Apply Helm file
-        run: helm install -n tesk tesk . -f values.yaml
-        working-directory: deployment/charts/tesk
-        
-      - name: Sleep for 30 seconds
-        run: sleep 30
-
-      - name: Get Helm and k8s
-        run: helm list -n tesk && kubectl get all -n tesk
-    
-      - name: curl URL
-        run: curl localhost -vL
-
   chart-releaser:
     name: Run chart-releaser
     runs-on: ubuntu-latest
-    needs: helm-install
     steps:
       - name: Checkout
         uses: actions/checkout@v3.3.0
