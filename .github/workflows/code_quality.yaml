@@ -1,0 +1,102 @@
+name: Code Quality
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install poetry
+        run: pipx install poetry
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        id: cq
+        with:
+          python-version: '3.11'
+          cache: 'poetry'
+
+      - name: Install lint dependencies
+        run: poetry install --only=lint --no-interaction --no-root
+
+      - name: Check code quality
+        run: poetry run ruff check .
+
+  format:
+    name: Format
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install poetry
+        run: pipx install poetry
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        id: cq
+        with:
+          python-version: '3.11'
+          cache: 'poetry'
+
+      - name: Install lint dependencies
+        run: poetry install --only=lint --no-interaction --no-root
+
+      - name: Check code style
+        run: poetry run ruff format --check
+
+  type-check:
+    name: Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install poetry
+        run: pipx install poetry
+
+      - name: Set up python
+        id: cqtc
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'poetry'
+
+      - name: Install types and mypy dependencies
+        run: poetry install --only=types --no-interaction --no-root
+
+      - name: Check types
+        run: poetry run mypy tesk/
+
+  spell-check:
+    name: Spell Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install poetry
+        run: pipx install poetry
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        id: cq
+        with:
+          python-version: '3.11'
+          cache: 'poetry'
+
+      - name: Install lint dependencies
+        run: poetry install --only=lint --no-interaction --no-root
+
+      - name: Check spellings
+        run: poetry run typos . 

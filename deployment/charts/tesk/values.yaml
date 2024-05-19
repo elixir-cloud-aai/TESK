@@ -1,0 +1,93 @@
+# Default values for tesk.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# host_name: tes.tsi.ebi.ac.uk
+host_name: ""
+#
+#
+#
+
+# 'openstack' or 's3'
+storage: none
+
+# Configurable storage class. 
+storageClass: 
+
+tesk:
+    # if empty - default base path; currently /ga4gh/tes/v1
+    #tes_api_base_path:
+    # For backwards compatibility with TES 0.3 - old base bath
+    tes_api_base_path: /ga4gh/tes/v1
+    image: docker.io/elixircloud/tesk-api:1.1.0
+    port: 8080
+    taskmaster_image_name:  docker.io/elixircloud/tesk-core-taskmaster
+    taskmaster_image_version: v0.10.2
+    taskmaster_filer_image_name: docker.io/elixircloud/tesk-core-filer
+    taskmaster_filer_image_version: v0.10.2
+    debug: false
+    executor_retries: 2
+    filer_retries: 2
+
+    limitsCpu: 1
+    limitsMemory: 2048Mi
+    requestsCpu: 1
+    requestsMemory: 2048Mi
+
+    securityContext:
+      enabled: true
+
+transfer:
+    # If you want local file systems support (i.e. 'file:' urls in inputs and outputs),
+    # you have to define these 2 properties.
+    active: false
+
+    # wes_base_path: '/data'      # WesElixir via docker-compose
+    wes_base_path: '/tmp'         # WesElixir locally
+                                  # Change the value of $wesBasePath in minikubeStart accordingly
+    tes_base_path: '/transfer'
+    pvc_name: 'transfer-pvc'
+
+auth:
+    # the following variables are specific to each deployment
+    # mode: auth/noauth
+    mode: noauth
+    # EBI/CSC
+    env_subgroup: CSC
+    env_basegroup: ECP_CLN
+
+service:
+    # the following variables are specific to each deployment
+    # use:
+    # - NodePort, if you want to expose API directly
+    # - LoadBalancer for cloud provider (gcloud) or empty otherwise
+    # type: NodePort
+    # node_port: 31567
+    type: ""
+    node_port: ""
+
+ftp:
+    # If you need FTP configuration, choose one of the 2 methods of providing credentials
+    classic_ftp_secret: ftp-secret
+    netrc_secret:
+    #classic_ftp_secret:
+    #netrc_secret: netrc-secret
+    # If you install FTP locally, but outside of k8s and need a DNS entry for it (because your workflow manager might not like the IP address)
+    # one way of getting a DNS entry for your FTP service is to use a k8s "service without a selector"
+    # Put the IP under which your pods see see services running on your host (differs depending on the way you installs K8s)
+    # For virtualBox, it is 192.168.99.1 and your ftp service will be visible under ftp name
+    # You will be able to use it like this: ftp://ftp/file
+    hostip:
+
+ingress:
+  rules: true
+  ingressClassName: ""
+  path: /
+  # If no TLS secret name configured, TLS will be switched off
+  tls_secret_name:
+  # Annotations for Ingress Resource.
+  annotations:
+      kubernetes.io/tls-acme: "true"
+      # Choose one of the following depending on your setup
+      # cert-manager.io/issuer: letsencrypt-production
+      cert-manager.io/cluster-issuer: letsencrypt-production

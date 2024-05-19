@@ -1,0 +1,56 @@
+name: Vulnerability Test
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  code-vulnerabilities:
+    name: Code
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install poetry
+        run: pipx install poetry
+
+      - name: Set up python
+        id: vt
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'poetry'
+
+      - name: Install vulnerabilities check dependencies
+        run: poetry install --only=security --no-interaction --no-root
+
+      - name: Check code vulnerabilities with bandit
+        run: poetry run bandit -c pyproject.toml -r tesk/
+
+  dependency-vulnerabilities:
+    name: Dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install poetry
+        run: pipx install poetry
+
+      - name: Set up python
+        id: vt
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'poetry'
+
+      - name: Install vulnerabilities check dependencies
+        run: poetry install --only=security --no-interaction --no-root
+
+      - name: Check dependency vulnerabilities with safety
+        run: poetry run safety check --full-report

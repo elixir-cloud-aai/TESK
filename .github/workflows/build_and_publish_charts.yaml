@@ -1,0 +1,81 @@
+name: Build and Publish Helm Charts
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  create-cluster:
+    name: Create k3s Cluster
+    runs-on: ubuntu-latest
+    needs: checkout
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3.3.0
+        with:
+          fetch-depth: 0
+            
+      - name: Create k3s Cluster
+        uses: debianmaster/actions-k3s@v1.0.5
+        with:
+          version: 'latest'
+            
+      - name: Create namespace
+        run: kubectl create ns tesk
+
+  helm-deps:
+    name: Helm Dependencies
+    runs-on: ubuntu-latest
+    needs: checkout
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3.3.0
+        with:
+          fetch-depth: 0
+
+      - name: Helm Deps
+        run: |
+          for dir in $(ls -d deployment/charts/*); do
+            helm dependency update $dir;
+          done
+
+  helm-lint:
+    name: Helm Lint
+    runs-on: ubuntu-latest
+    needs: [helm-deps]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3.3.0
+        with:
+          fetch-depth: 0
+
+      - name: Helm Lint
+        run: |
+          for dir in $(ls -d deployment/charts/*); do
+            helm lint $dir
+          done
+
+  chart-releaser:
+    name: Run chart-releaser
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3.3.0
+        with:
+          fetch-depth: 0
+            
+      - name: Configure Git
+        run: |
+          git config user.name "$GITHUB_ACTOR"
+          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+    
+      - name: Run chart-releaser
+        uses: helm/chart-releaser-action@v1.6.0
+        with:
+          skip_existing: true
+        env:
+          CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"

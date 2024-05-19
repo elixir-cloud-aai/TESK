@@ -1,5 +1,21 @@
-.coverage
-.pytest_cache/
-.tox/
+# Cache and dot files
+.coverage/
 .eggs/
-tesk-core/containers/
+.github/
+.gitignore
+.mypy_cache/
+.pytest_cache/
+.ruff/
+.ruff_cache/
+.venv/
+# Docs and artifacts
+./deployment
+./docs
+./images
+# Build
+./build
+./dist
+# Scripts and tools
+./scripts
+Makefile
+PULL_REQUEST_TEMPLATE.md
