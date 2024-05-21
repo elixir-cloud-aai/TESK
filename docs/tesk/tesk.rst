@@ -7,7 +7,6 @@ Subpackages
 .. toctree::
    :maxdepth: 4
 
-   tesk.api
    tesk.services
 
 Module contents
