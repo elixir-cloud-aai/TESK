@@ -16,15 +16,32 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Install poetry
-        run: pipx install poetry
-
       - name: Set up Python
         uses: actions/setup-python@v5
-        id: cq
         with:
           python-version: '3.11'
-          cache: 'poetry'
+
+      - name: Install Poetry
+        run: pip install poetry
+
+      - name: Generate hash of req dependencies
+        id: cq
+        run: |
+          poetry export --only=lint --format=requirements.txt --output=requirements.txt
+          echo "hash=$(sha256sum requirements.txt | cut -d ' ' -f 1)" >> $GITHUB_ENV
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pypoetry
+            ~/.cache/pip
+          key: ${{ runner.os }}-poetry-${{ env.hash }}
+          restore-keys: |
+            ${{ runner.os }}-poetry-
+
+      - name: Echo env
+        run: poetry env info
 
       - name: Install lint dependencies
         run: poetry install --only=lint --no-interaction --no-root
@@ -99,4 +116,4 @@ jobs:
         run: poetry install --only=lint --no-interaction --no-root
 
       - name: Check spellings
-        run: poetry run typos . 
+        run: poetry run typos .
