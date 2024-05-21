@@ -9,7 +9,7 @@
 
 ## Installing TESK
 ### Helm
-TESK can be installed using Helm 3 (tested with v3.0.0) using [this chart](../charts/tesk). It is best to create a dedicated namespace for TESK, although for test or development clusters it is fine to use the `default` namespace.
+TESK can be installed using Helm 3 (tested with v3.0.0) using [this chart](/deployment/charts/tesk). It is best to create a dedicated namespace for TESK, although for test or development clusters it is fine to use the `default` namespace.
 The documentation of the chart gives a description of all configuration options and below the most common installation scenarios have been described.
 TESK installation consists of a single API installed as a K8s deployment and exposed as a K8s service. Additionally, TESK API requires access to the K8s API in order to create K8s Jobs and PVCs. That is why the installation additionally creates objects such as service accounts, roles and role bindings.
 The chart does not provide a way to install the default storage class and that needs to be done independently by the cluster administrator.
@@ -113,7 +113,7 @@ In the Helm chart provide your credentials in one of 2 ways. The old way has bee
 ftp:
     classic_ftp_secret: ftp-secret
 ```
-and additionally provide your username and password in the `secrets.yaml`, as describe [here](../charts/tesk/README.md).
+and additionally provide your username and password in the `secrets.yaml`, as describe [here](/deployment/charts/tesk/README.md).
 
 Alternatively, you can use a `.netrc` file, which will allow storing credentials for more than one FTP server.
 Provide a name for a secret, which will store .netrc file:

@@ -7,9 +7,9 @@
 [![Safety](https://img.shields.io/badge/security-safety-orange.svg)](https://safetycli.com/product/safety-cli)
 [![Ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://docs.astral.sh/ruff/)
 
-<img src="images/TESKlogowfont.png" height="200">
+<img src="/images/TESKlogowfont.png" height="200">
 
-An implementation of a task execution engine based on the [TES standard](https://github.com/ga4gh/task-execution-schemas) running on `Kubernetes`. For more details on `TES`, see the (very) brief [introduction to TES](docs/tesintro.md).
+An implementation of a task execution engine based on the [TES standard](https://github.com/ga4gh/task-execution-schemas) running on `Kubernetes`. For more details on `TES`, see the (very) brief [introduction to TES](/docs/documentation/tesintro.md).
 
 For organisational reasons, this project is split into 3 repositories:
 
@@ -19,9 +19,9 @@ For organisational reasons, this project is split into 3 repositories:
 
 If the API is running on your cluster it will pull the images from our `docker.io` repository automatically.
 
-`TESK` is designed with the goal to support any `Kubernetes` cluster, for its deployment please refer to the [deployment](deployment/documentation/deployment.md) page.
+`TESK` is designed with the goal to support any `Kubernetes` cluster, for its deployment please refer to the [deployment](/docs/documentation/deployment.md) page.
 
-The technical documentation is available in the [documentation](deployment/documentation) folder.
+The technical documentation is available in the [documentation](/docs/documentation) folder.
 
 ## Architecture
 
@@ -38,4 +38,4 @@ After the last executor, the `filer` is called once more to process the outputs 
 - A working [Kubernetes](https://kubernetes.io/) cluster version 1.9 and later.
 - If you want TESK to handle tasks with I/O (and you probably want), you additionally need:
 - A default storage class, which TESK will use to create temporary PVCs. It is enough that the storage class supports the RWO mode.
-- And, if you want TESK to integrate with workflow managers, you additionally need either an FTP account or a PVC that can be accessed from within or from outside of the cluster by the workflow manager (more in the [deployment](deployment/documentation/deployment.md) page).
+- And, if you want TESK to integrate with workflow managers, you additionally need either an FTP account or a PVC that can be accessed from within or from outside of the cluster by the workflow manager (more in the [deployment](/docs/documentation/deployment.md) page).
