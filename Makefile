@@ -27,6 +27,8 @@ help:
 	@echo "		\033[36mInstall dependencies\033[0m"
 	@echo "	\033[1mformat-lint \033[37m(fl\033[0m)"
 	@echo "		\033[36mFormats and lints python files\033[0m"
+	@echo "	\033[1mdocs \033[37m(d\033[0m)"
+	@echo "		\033[36mAuto generates docs using sphinx\033[0m"
 	@echo "	\033[1mtest \033[37m(t\033[0m)"
 	@echo "		\033[36mRun tests\033[0m"
 	@echo "	\033[1mbuild-service-image \033[37m(bsi\033[0m)"
@@ -114,6 +116,17 @@ format-lint:
 
 .PHONY: fl
 fl: format-lint
+
+.PHONY: docs
+docs:
+	@if [ -f .venv/bin/sphinx-apidoc ]; then \
+		sphinx-apidoc -o docs/pages tesk; \
+	else \
+		echo "👁️  Please install sphinx to generate docs, create venv using 'make v' and install using `make i`."; \
+	fi
+
+.PHONY: d
+d: docs
 
 .PHONY: build-service-image
 build-service-image:

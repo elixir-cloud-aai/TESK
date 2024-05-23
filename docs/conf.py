@@ -8,6 +8,7 @@
 import datetime
 import os
 import sys
+from pathlib import Path
 
 import tomli
 
@@ -16,14 +17,15 @@ sys.path.insert(0, os.path.abspath('../..'))
 
 # -- Project information -----------------------------------------------------
 def _get_project_meta():
-	with open('../pyproject.toml', mode='rb') as pyproject:
+	_pyproject_path = Path('../pyproject.toml')
+	with open(_pyproject_path, mode='rb') as pyproject:
 		return tomli.load(pyproject)['tool']['poetry']
 
 
 pkg_meta = _get_project_meta()
 current_year = datetime.datetime.now().year
 project = str(pkg_meta['name'])
-copyright = f"{current_year}, {str(pkg_meta['authors'][0])}"
+project_copyright = f"{current_year}, {str(pkg_meta['authors'][0])}"
 author = str(pkg_meta['authors'][0])
 
 # The short X.Y version

@@ -1,27 +1,37 @@
 TESK
 =================================
 
-.. mdinclude:: documentation/README.md
+.. toctree::
+   :maxdepth: 1
+   :caption: TESK
+
+.. mdinclude:: static_docs/README.md
 
 .. toctree::
    :maxdepth: 1
    :caption: Overview
 
-   documentation/tesintro
+   static_docs/tesintro
 
 .. toctree::
    :maxdepth: 1
    :caption: Documentation
 
-   documentation/deployment
-   documentation/integrated_wes_tes
-   documentation/local_ftp
+   static_docs/deployment
+   static_docs/integrated_wes_tes
+   static_docs/local_ftp
 
 .. toctree::
    :maxdepth: 1
    :caption: Examples
 
    examples/transferPvc/Readme
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Modules - Service
+
+   static_docs/README_services.md
 
 Package contents
 ==================
@@ -30,7 +40,7 @@ Package contents
    :maxdepth: 2
    :caption: package
 
-   tesk/modules
+   pages/modules
 
 Indices and tables
 ==================
