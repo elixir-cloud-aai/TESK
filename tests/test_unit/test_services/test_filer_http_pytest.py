@@ -19,7 +19,6 @@ resp._content = b'{ "foo" : "bar" }'
 
 def test_download_file(mocker):
 	"""Ensure a file gets properly downloaded."""
-
 	resp.status_code = SUCCESS
 	http_obj = HTTPTransput(PATH_DOWN, URL, FTYPE)
 	mocker.patch('requests.get', return_value=resp)
@@ -34,7 +33,6 @@ def test_download_file(mocker):
 
 def test_download_file_error(mocker, caplog):
 	"""Ensure download error returns the correct value and log message."""
-
 	resp.status_code = FAIL
 	http_obj = HTTPTransput(PATH_DOWN, URL, FTYPE)
 	mocker.patch('requests.get', return_value=resp)
@@ -45,7 +43,6 @@ def test_download_file_error(mocker, caplog):
 
 def test_upload_file(mocker):
 	"""Ensure a file gets properly uploaded."""
-
 	resp.status_code = SUCCESS
 	http_obj = HTTPTransput(PATH_UP, URL, FTYPE)
 	mocker.patch('requests.put', return_value=resp)
@@ -55,7 +52,6 @@ def test_upload_file(mocker):
 
 def test_upload_file_error(mocker, caplog):
 	"""Ensure upload error returns the correct value and log message."""
-
 	resp.status_code = FAIL
 	http_obj = HTTPTransput(PATH_UP, URL, FTYPE)
 	mocker.patch('requests.put', return_value=resp)
@@ -65,9 +61,11 @@ def test_upload_file_error(mocker, caplog):
 
 
 def test_upload_dir(mocker, fs):
-	"""Ensure that each file inside nexted directories gets successfully
-	uploaded."""
+	"""Check if a directory gets properly uploaded.
 
+	Ensure that each file inside nexted directories gets successfully
+	uploaded.
+	"""
 	# Tele2 Speedtest Service, free upload /download test server
 	endpoint = 'http://speedtest.tele2.net/upload.php'
 	resp.status_code = 200
@@ -98,7 +96,6 @@ def test_upload_dir(mocker, fs):
 
 	def test_upload_dir_error(mocker, fs):
 		"""Ensure 'upload_dir' error returns the correct value."""
-
 		fs.create_dir('dir2')
 
 		# Tele2 Speedtest Service, free upload /download test server

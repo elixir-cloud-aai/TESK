@@ -1,3 +1,1 @@
-"""
-tesk package initialization file.
-"""
+"""tesk package initialization file."""

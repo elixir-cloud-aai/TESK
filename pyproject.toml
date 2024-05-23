@@ -92,7 +92,33 @@ select = [
     "B",        # flake8-bugbear
     "SIM",      # flake8-simplify
     "I",        # isort
-    "PL"        # pylint
+    "PL",       # pylint
+    "D"         # pydocstyle
+]
+ignore = [
+    "D203", # conflicts with D202 as formatter removes black line before class docstring
+    "D213", # conflicts with D212, would have been ignored regardless
+    "D206"  # conflicts with E101, `format.indent-style="tab"`
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tesk/services/*.py" = [    # ignoring legacy code pydocstyle errors
+    "D100",
+    "D101",
+    "D102",
+    "D103",
+    "D105",
+    "D107",
+    "D419",
+]
+"tests/test_unit/test_services/*.py" = [    # ignoring legacy code pydocstyle errors
+    "D100",
+    "D101",
+    "D102",
+    "D103",
+    "D105",
+    "D107",
+    "D419",
 ]
 
 [tool.ruff.format]

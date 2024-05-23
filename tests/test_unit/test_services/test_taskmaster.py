@@ -62,9 +62,7 @@ class TaskmasterTest(unittest.TestCase):
 	@patch('tesk.services.taskmaster.Job.run_to_completion', return_value='Complete')
 	@patch('tesk.services.taskmaster.logger')
 	def test_pvc_creation(self, mock_logger, mock_run_to_compl, mock_pvc_create):
-		"""
-		Testing to check if the PVC volume was created successfully
-		"""
+		"""Testing to check if the PVC volume was created successfully."""
 		self.assertIsInstance(init_pvc(self.data, self.filer), PVC)
 
 	@patch('kubernetes.client.CoreV1Api.read_namespaced_persistent_volume_claim')
@@ -93,10 +91,7 @@ class TaskmasterTest(unittest.TestCase):
 	def test_pvc_failure(
 		self, mock_logger, run_to_compl, mock_pvc_create, mock_pvc_delete
 	):
-		"""
-		Testcase for finding if the PVC creation failed with exit 0
-		"""
-
+		"""Testcase for finding if the PVC creation failed with exit 0."""
 		self.assertRaises(SystemExit, init_pvc, self.data, self.filer)
 
 	@patch('tesk.services.taskmaster.PVC.delete')

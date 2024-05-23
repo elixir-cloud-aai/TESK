@@ -11,10 +11,12 @@ from tesk.services.filer import FileProtocolDisabled, copyContent, process_file
 
 
 def test_process_file_no_scheme(caplog):
-	"""Ensure that when process_file is called without a scheme and no
-	'HOST_BASE_PATH', 'CONTAINER_BASE_PATH' environment variables
-	set, the appropriate error is raised."""
+	"""If 'process_file' is called without a scheme, an error should be raised.
 
+	Ensure that when process_file is called without a scheme and no
+	'HOST_BASE_PATH', 'CONTAINER_BASE_PATH' environment variables
+	set, the appropriate error is raised.
+	"""
 	filedata = {'url': 'www.foo.bar'}
 
 	with pytest.raises(FileProtocolDisabled):
@@ -22,10 +24,12 @@ def test_process_file_no_scheme(caplog):
 
 
 def test_process_file_with_scheme(mocker):
-	"""Ensure expected behaviour when 'process_file' is called with scheme.
-	In this test example, scheme is 'http', filedata:type is 'FILE' and
-	ttype is 'inputs'."""
+	"""Check if 'process_file' is called with scheme, renders expected behaviour.
 
+	Ensure expected behaviour when 'process_file' is called with scheme.
+	In this test example, scheme is 'http', filedata:type is 'FILE' and
+	ttype is 'inputs'.
+	"""
 	filedata = {
 		'url': 'http://www.foo.bar',
 		'path': '.',
@@ -38,9 +42,11 @@ def test_process_file_with_scheme(mocker):
 
 
 def test_process_file_from_content(tmpdir, tmp_path):
-	"""Ensure 'process_file' behaves correctly when the file contents
-	should be drawn from the filedata content field."""
+	"""Check if 'process_file' behaves correctly when file contents are provided.
 
+	Ensure 'process_file' behaves correctly when the file contents
+	should be drawn from the filedata content field.
+	"""
 	# test_file = tmpdir.join('testfile')
 	filedata = {
 		'path': f'{str(tmp_path)}/testfile',
@@ -55,7 +61,6 @@ def test_process_file_from_content(tmpdir, tmp_path):
 
 def test_copyContent_dir(mocker):
 	"""Ensure that 'os.listdir' is called when 'copyContent' is called."""
-
 	mock_os_listdir = mocker.patch('os.listdir')
 	copyContent('.', '/test_dst')
 

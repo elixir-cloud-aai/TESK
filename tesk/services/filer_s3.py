@@ -40,10 +40,7 @@ class S3Transput(Transput):
 		return 0
 
 	def get_bucket_name_and_file_path(self):
-		"""
-		If the S3 url is similar to s3://idr-bucket-1/README.txt format
-		"""
-
+		"""If the S3 url is similar to s3://idr-bucket-1/README.txt format."""
 		bucket = self.netloc
 		file_path = self.url_path[1:]
 

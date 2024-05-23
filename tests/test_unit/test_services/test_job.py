@@ -73,10 +73,11 @@ def read_namespaced_job_success(name, namespace):
 
 
 def read_namespaced_job_running(name, namespace):
-	"""
-	if the `conditions` value is `None`, its assumed that
+	"""Check if pods are running on None conditions.
+
+	If the `conditions` value is `None`, its assumed that
 	the pod is running. Hence the value of `conditions` is
-	kept as `None`
+	kept as `None`.
 	"""
 	return_value = {
 		'active': None,
@@ -180,9 +181,7 @@ def list_namespaced_pod_pending_unknown_error(diff_time=5):
 
 class JobTestCase(unittest.TestCase):
 	def setUp(self):
-		"""
-		Initialising
-		"""
+		"""Initialise."""
 		file_path = os.path.join(os.path.dirname(__file__), 'resources/inputFile.json')
 		with open(file_path) as file:
 			self.data = json.load(file)
@@ -201,9 +200,7 @@ class JobTestCase(unittest.TestCase):
 		)
 
 	def test_job(self):
-		"""
-		Testing if Job object is getting created successfully
-		"""
+		"""Testing if Job object is getting created successfully."""
 		job = Job({'metadata': {'name': 'test'}})
 		self.assertEqual(job.name, 'task-job')
 		self.assertEqual(job.namespace, 'default')
@@ -223,9 +220,7 @@ class JobTestCase(unittest.TestCase):
 	def test_run_to_completion_success(
 		self, mock_get_status, mock_create_namespaced_job
 	):
-		"""
-		Checking if the Job runs is completed successfully
-		"""
+		"""Checking if the Job runs is completed successfully."""
 		for executor in self.data['executors']:
 			jobname = executor['metadata']['name']
 			job = Job(executor, jobname, taskmaster.args.namespace)
@@ -245,9 +240,7 @@ class JobTestCase(unittest.TestCase):
 		mock_check_cancelled,
 		mock_job_delete,
 	):
-		"""
-		Checking if the Job is cancelled
-		"""
+		"""Checking if the Job is cancelled."""
 		for executor in self.data['executors']:
 			jobname = executor['metadata']['name']
 			job = Job(executor, jobname, taskmaster.args.namespace)
@@ -275,8 +268,10 @@ class JobTestCase(unittest.TestCase):
 		mock_check_cancelled,
 		mock_create_namespaced_job,
 	):
-		"""
-		Checking if the Job status is complete when an ApiException of 409 is raised
+		"""Job status complete on 409.
+
+		Checking if the Job status is complete when an
+		ApiException of 409 is raised.
 		"""
 		for executor in self.data['executors']:
 			jobname = executor['metadata']['name']
@@ -295,9 +290,10 @@ class JobTestCase(unittest.TestCase):
 	def test_run_to_completion_check_other_K8_exception(
 		self, mock_create_namespaced_job
 	):
-		"""
+		"""Testing api exception.
+
 		Checking if the an exception is raised when ApiException status is other
-		than 409
+		than 409.
 		"""
 		for executor in self.data['executors']:
 			jobname = executor['metadata']['name']
@@ -325,9 +321,10 @@ class JobTestCase(unittest.TestCase):
 		mock_read_namespaced_job,
 		mock_list_namespaced_pod,
 	):
-		"""
-		Testing if the job state is 'error' when the status of the pod is in pending
-		state and reason is ImagePullBackOff
+		"""Testing run_to_completion.
+
+		if the job state is 'error' when the status of the pod is in pending
+		state and reason is ImagePullBackOff.
 		"""
 		mock_list_namespaced_pod.return_value = (
 			list_namespaced_pod_error_ImagePullBackOff(10)
@@ -346,9 +343,10 @@ class JobTestCase(unittest.TestCase):
 	def test_get_job_status_ImagaPullBackoff_error(
 		self, mock_list_namespaced_pod, mock_read_namespaced_job
 	):
-		"""
+		"""Testing get_job_status.
+
 		Checking whether the job state is 'error', when the pod failed to start and
-		if reason for pod failure is ImagePullBackOff
+		if reason for pod failure is ImagePullBackOff.
 		"""
 		mock_list_namespaced_pod.return_value = (
 			list_namespaced_pod_error_ImagePullBackOff()
@@ -368,9 +366,7 @@ class JobTestCase(unittest.TestCase):
 	def test_get_status_success(
 		self, mock_read_namespaced_job, mock_list_namespaced_pod
 	):
-		"""
-		Checking if job status is complete
-		"""
+		"""Checking if job status is complete."""
 		executor = self.data['executors'][0]
 		jobname = executor['metadata']['name']
 		job = Job(executor, jobname, taskmaster.args.namespace)
@@ -385,9 +381,7 @@ class JobTestCase(unittest.TestCase):
 	def test_get_status_running(
 		self, mock_read_namespaced_job, mock_list_namespaced_pod
 	):
-		"""
-		Checking if the job is in running state in an ideal situation
-		"""
+		"""Checking if the job is in running state in an ideal situation."""
 		executor = self.data['executors'][0]
 		jobname = executor['metadata']['name']
 		job = Job(executor, jobname, taskmaster.args.namespace)
@@ -399,7 +393,8 @@ class JobTestCase(unittest.TestCase):
 	def test_get_job_status_for_failed_pod(
 		self, mock_read_namespaced_job, mock_list_namespaced_pod
 	):
-		"""
+		"""Testing get_job_status for a failed pod.
+
 		Checking if the job status is 'running' when the pod failed to start with a
 		reason other than ImagePullBackOff.
 		"""
@@ -418,7 +413,8 @@ class JobTestCase(unittest.TestCase):
 	def test_get_job_status_for_wrong_image(
 		self, mock_read_namespaced_job, mock_list_namespaced_pod
 	):
-		"""
+		"""Testing get_job_status for wrong image.
+
 		Assuming image name is wrong, the testcase will check if job status returned
 		from the method is "running" during the default pod timeout.
 		"""

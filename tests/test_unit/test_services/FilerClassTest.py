@@ -41,7 +41,8 @@ class FilerClassTest_env(unittest.TestCase):
 		self.assertEqual(f.spec['spec']['backoffLimit'], 10)
 
 	def test_mounts(self):
-		"""
+		"""Testing mounts for a pod with a volume.
+
 		kind: Pod
 		apiVersion: v1
 		metadata:
@@ -58,9 +59,8 @@ class FilerClassTest_env(unittest.TestCase):
 					hostPath:
 						path: /transferAtNode
 					# persistentVolumeClaim:
-					#  claimName: task-pv-claim
+					#  claimName: task-pv-claim.
 		"""
-
 		f = Filer('name', {'a': 1})
 
 		pprint(f.spec)

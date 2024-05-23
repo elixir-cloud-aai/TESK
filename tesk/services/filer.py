@@ -85,10 +85,7 @@ class HTTPTransput(Transput):
 
 
 def copyContent(src, dst, symlinks=False, ignore=None):
-	"""
-	https://stackoverflow.com/a/12514470/1553043
-	"""
-
+	"""https://stackoverflow.com/a/12514470/1553043."""
 	for item in os.listdir(src):
 		s = os.path.join(src, item)
 		d = os.path.join(dst, item)
@@ -99,13 +96,13 @@ def copyContent(src, dst, symlinks=False, ignore=None):
 
 
 def copyDir(src, dst):
-	"""
+	"""Copy a directory tree.
+
 	Limitation of shutil.copytree:
 
 	The destination directory, named by dst, must not already exist;
 	it will be created as well as missing parent directories.
 	"""
-
 	if os.path.exists(dst):
 		copyContent(src, dst)
 
@@ -114,12 +111,12 @@ def copyDir(src, dst):
 
 
 def copyFile(src, dst):
-	"""
+	"""Copy a file.
+
 	Limitations of shutil.copy:
 
 	It does not interpret * as a glob, but as a character.
 	"""
-
 	# If there is any * in 'dst', use only the dirname (base path)
 	p = re.compile('.*\*.*')
 	if p.match(dst):
@@ -265,9 +262,10 @@ def ftp_login(ftp_connection, netloc, netrc_file):
 
 
 def ftp_check_directory(ftp_connection, path):
-	"""
+	"""Check if a `ftp` path is a directory.
+
 	Following convention with the rest of the code,
-	return 0 if it is a directory, 1 if it is not or failed to do the check
+	return 0 if it is a directory, 1 if it is not or failed to do the check.
 	"""
 	response = ftp_connection.pwd()
 	if response == '':
@@ -338,8 +336,7 @@ def ftp_download_file(ftp_connection, remote_source_path, local_destination_path
 
 
 def subfolders_in(whole_path):
-	"""
-	Returns all subfolders in a path, in order
+	"""Return all subfolders in a path, in order.
 
 	>>> subfolders_in('/')
 	['/']
@@ -435,11 +432,11 @@ def newTransput(scheme, netloc):
 
 
 def process_file(ttype, filedata):
-	"""
-	@param ttype: str
-	Can be 'inputs' or 'outputs'
-	"""
+	"""Process a file based on the filedata.
 
+	@param ttype: str
+	Can be 'inputs' or 'outputs'.
+	"""
 	if 'content' in filedata:
 		return file_from_content(filedata)
 	parsed_url = urlparse(filedata['url'])

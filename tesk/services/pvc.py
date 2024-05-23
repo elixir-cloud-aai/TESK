@@ -10,6 +10,16 @@ from tesk.services.utils import pprint
 
 class PVC:
 	def __init__(self, name='task-pvc', size_gb=1, namespace='default'):
+		"""Represent a PersistentVolumeClaim object.
+
+		Methods
+		-------
+		set_volume_mounts(mounts): Sets the volume mounts for the PVC.
+		get_subpath(): Generates a subpath for the PVC.
+		create(): Creates the PersistentVolumeClaim.
+		delete(): Deletes the PersistentVolumeClaim.
+
+		"""
 		self.name = name
 		self.spec = {
 			'apiVersion': 'v1',

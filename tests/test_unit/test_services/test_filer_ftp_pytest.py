@@ -16,9 +16,11 @@ from tesk.services.filer import (
 
 
 def test_ftp_login(mocker):
-	"""Ensure ftp_login detects ftp credentials and properly calls
-	ftplib.FTP.login."""
+	"""Detect creds.
 
+	Ensure ftp_login detects ftp credentials and properly calls
+	ftplib.FTP.login.
+	"""
 	conn = mocker.patch('ftplib.FTP')
 	mock_login = mocker.patch('ftplib.FTP.login')
 	with mock.patch.dict(
@@ -34,7 +36,6 @@ def test_ftp_login(mocker):
 
 def test_ftp_upload_file_error(mocker, caplog):
 	"""Ensure that upon upload error, ftp_upload_file behaves correctly."""
-
 	conn = mocker.patch('ftplib.FTP')
 	mocker.patch('ftplib.FTP.storbinary', side_effect=ftplib.error_reply)
 	assert ftp_upload_file(conn, __file__, '/home/tesk/test_copy.py') == 1
@@ -43,7 +44,6 @@ def test_ftp_upload_file_error(mocker, caplog):
 
 def test_ftp_download_file_error(mocker, caplog):
 	"""Ensure that upon download error, ftp_download_file behaves correctly."""
-
 	conn = mocker.patch('ftplib.FTP')
 	mocker.patch('ftplib.FTP.retrbinary', side_effect=ftplib.error_perm)
 	with mock.patch('builtins.open', mock.mock_open(), create=False):
@@ -52,9 +52,11 @@ def test_ftp_download_file_error(mocker, caplog):
 
 
 def test_ftp_download_file_success(mocker, caplog):
-	"""Ensure that upon successful download, the local destination file has
-	been created."""
+	"""On download, destination is created.
 
+	Ensure that upon successful download, the local destination file has
+	been created.
+	"""
 	conn = mocker.patch('ftplib.FTP')
 	mock_retrbin = mocker.patch('ftplib.FTP.retrbinary')
 	with mock.patch('builtins.open', mock.mock_open(), create=False) as m:
@@ -72,9 +74,11 @@ def test_ftp_download_file_success(mocker, caplog):
 
 
 def test_ftp_upload_dir(mocker, fs, ftpserver):
-	"""Check whether the upload of a directory through FTP completes
-	successfully."""
+	"""Upload though FTP completes successfully.
 
+	Check whether the upload of a directory through FTP completes
+	successfully.
+	"""
 	# Fake local nested directories with files
 	fs.create_dir('dir1')
 	fs.create_dir('dir1/dir2')
@@ -118,9 +122,11 @@ def test_ftp_upload_dir(mocker, fs, ftpserver):
 
 
 def test_ftp_download_dir(mocker, tmpdir, tmp_path, ftpserver):
-	"""Check whether the download of a directory through FTP completes
-	successfully."""
+	"""Check if download via FTP completes.
 
+	Check whether the download of a directory through FTP completes
+	successfully.
+	"""
 	# Temporary nested directories with files
 	file1 = tmpdir.mkdir('dir1').join('file1')
 	file1.write('this is random')
@@ -181,9 +187,11 @@ def test_ftp_download_dir(mocker, tmpdir, tmp_path, ftpserver):
 
 
 def test_ftp_check_directory_error(mocker, caplog):
-	"""Ensure ftp_check_directory_error creates the proper error log
-	message in case of error."""
+	"""Check if error is logged.
 
+	Ensure ftp_check_directory_error creates the proper error log
+	message in case of error.
+	"""
 	conn = mocker.patch('ftplib.FTP')
 	mocker.patch('ftplib.FTP.cwd', side_effect=ftplib.error_reply)
 	assert ftp_check_directory(conn, '/folder/file') == 1
@@ -192,15 +200,16 @@ def test_ftp_check_directory_error(mocker, caplog):
 
 def test_ftp_make_dirs(mocker):
 	"""In case of existing directory, exit with 0."""
-
 	conn = mocker.patch('ftplib.FTP')
 	assert ftp_make_dirs(conn, os.curdir) == 0
 
 
 def test_ftp_make_dirs_error(mocker, ftpserver, caplog):
-	"""Ensure in case of 'ftplib.error_reply', both the return value
-	and the error message are correct."""
+	"""Check correct error.`.
 
+	Ensure in case of 'ftplib.error_reply', both the return value
+	and the error message are correct.
+	"""
 	login_dict = ftpserver.get_login_data()
 
 	conn = ftplib.FTP()

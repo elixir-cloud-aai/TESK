@@ -87,10 +87,10 @@ class Filer:
 		self.add_s3_mount()
 
 	def add_s3_mount(self):
-		"""Mounts the s3 configuration file. The secret name is hardcoded and
-		set to 'aws-secret'.
-		"""
+		"""Mounts the s3 configuration file.
 
+		The secret name is hardcoded and set to 'aws-secret'.
+		"""
 		env = self.getEnv()
 		env.append({'name': 'AWS_CONFIG_FILE', 'value': '/aws/config'})
 		env.append({'name': 'AWS_SHARED_CREDENTIALS_FILE', 'value': '/aws/credentials'})
@@ -122,12 +122,16 @@ class Filer:
 		env.append({'name': 'TESK_FTP_PASSWORD', 'value': pw})
 
 	def set_backoffLimit(self, limit):
-		"""Set a number of retries of a job execution (default value is 6). Use the
-		environment variable TESK_API_TASKMASTER_ENVIRONMENT_FILER_BACKOFF_LIMIT to
-		explicitly set this value.
+		"""Set number of retries (default is 6).
+
+		Set a number of retries of a job execution. Use the environment variable
+		TESK_API_TASKMASTER_ENVIRONMENT_FILER_BACKOFF_LIMIT to explicitly set
+		this value.
 
 		Args:
+		----
 				limit: The number of retries before considering a Job as failed.
+
 		"""
 		self.spec['spec'].update({'backoffLimit': limit})
 
@@ -138,12 +142,12 @@ class Filer:
 		)
 
 	def add_netrc_mount(self, netrc_name='netrc'):
-		"""
-		Sets $HOME to an arbitrary location (to prevent its change as a result of
-		runAsUser), currently hardcoded to `/opt/home` Mounts the secret netrc into
+		"""Set $HOME to an arbitrary location.
+
+		This is to prevent its change as a result of runAsUser.
+		currently hardcoded to `/opt/home` Mounts the secret netrc into
 		that location: $HOME/.netrc.
 		"""
-
 		self.getVolumeMounts().append(
 			{'name': 'netrc', 'mountPath': '/opt/home/.netrc', 'subPath': '.netrc'}
 		)

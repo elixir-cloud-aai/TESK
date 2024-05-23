@@ -46,9 +46,7 @@ def moto_boto():
 	],
 )
 def test_get_bucket_name_and_file_path(moto_boto, path, url, ftype, expected):
-	"""
-	Check if the bucket name and path is extracted correctly for file and folders
-	"""
+	"""Check if the bucket name and path is extracted correctly for file and folders."""
 	trans = S3Transput(path, url, ftype)
 	assert trans.get_bucket_name_and_file_path() == expected
 
@@ -63,9 +61,7 @@ def test_get_bucket_name_and_file_path(moto_boto, path, url, ftype, expected):
 	],
 )
 def test_check_if_bucket_exists(moto_boto, path, url, ftype, expected):
-	"""
-	Check if the bucket exists
-	"""
+	"""Check if the bucket exists."""
 	client = boto3.resource('s3', endpoint_url='http://s3.amazonaws.com')
 	trans = S3Transput(path, url, ftype)
 	assert trans.check_if_bucket_exists(client) == expected
@@ -82,9 +78,7 @@ def test_check_if_bucket_exists(moto_boto, path, url, ftype, expected):
 	],
 )
 def test_s3_download_file(moto_boto, path, url, ftype, expected, fs, caplog):  # noqa: PLR0913
-	"""
-	Checking for successful/failed file download from Object storage server
-	"""
+	"""Checking for successful/failed file download from Object storage server."""
 	with S3Transput(path, url, ftype) as trans:
 		assert trans.download_file() == expected
 		if expected:
@@ -107,9 +101,7 @@ def test_s3_download_file(moto_boto, path, url, ftype, expected, fs, caplog):  #
 def test_s3_download_directory(  # noqa: PLR0913
 	mock_makedirs, mock_open, mock_rename, path, url, ftype, expected, moto_boto, caplog
 ):
-	"""
-	test case to check directory download from Object storage server
-	"""
+	"""Test case to check directory download from Object storage server."""
 	with S3Transput(path, url, ftype) as trans:
 		assert trans.download_dir() == expected
 		print(mock_rename.mock_calls)
@@ -117,9 +109,9 @@ def test_s3_download_directory(  # noqa: PLR0913
 			assert 'Invalid file path' in caplog.text
 		else:
 			"""
-            s3 object path s3://tesk/folder1/ will contain 'folder2', checking 
-            if the 'folder2' is present in the download folder.
-            """
+			s3 object path s3://tesk/folder1/ will contain 'folder2', checking 
+			if the 'folder2' is present in the download folder.
+			"""
 			mock_rename.assert_called_once_with('filer_test/folder2', exist_ok=True)
 
 
@@ -131,9 +123,7 @@ def test_s3_download_directory(  # noqa: PLR0913
 	],
 )
 def test_s3_upload_file(moto_boto, path, url, ftype, expected, fs, caplog):  # noqa: PLR0913
-	"""
-	Testing successful/failed file upload to object storage server
-	"""
+	"""Testing successful/failed file upload to object storage server."""
 	fs.create_file('/home/user/filer_test/file.txt')
 	client = boto3.resource('s3', endpoint_url='http://s3.amazonaws.com')
 	trans = S3Transput(path, url, ftype)
@@ -143,9 +133,9 @@ def test_s3_upload_file(moto_boto, path, url, ftype, expected, fs, caplog):  # n
 		assert 'File upload failed for' in caplog.text
 	else:
 		"""
-        Checking if the file was uploaded, if the object is found, 
-        load() method will return None otherwise an exception will be raised.
-        """
+				Checking if the file was uploaded, if the object is found, 
+				load() method will return None otherwise an exception will be raised.
+				"""
 		assert client.Object('tesk', 'folder/file.txt').load() is None
 
 
@@ -181,9 +171,10 @@ def test_s3_upload_file(moto_boto, path, url, ftype, expected, fs, caplog):  # n
 
 
 def test_upload_directory_for_unknown_file_type(moto_boto, fs, monkeypatch, caplog):
-	"""
-	Checking whether an exception is raised when the object type is neither file
-	or directory If the exception is raised, an error message will be logged.
+	"""Checking whether an exception is raised.
+
+	when the object type is neither file or directory If the exception is raised,
+	an error message will be logged.
 	"""
 	monkeypatch.setattr(os.path, 'isfile', lambda _: False)
 	fs.create_file('/home/user/filer_test/text.txt')
@@ -198,9 +189,7 @@ def test_upload_directory_for_unknown_file_type(moto_boto, fs, monkeypatch, capl
 
 @patch('tesk.services.filer.os.path.exists', return_value=1)
 def test_extract_url_from_config_file(mock_path_exists):
-	"""
-	Testing extraction of endpoint url from default file location
-	"""
+	"""Testing extraction of endpoint url from default file location."""
 	read_data = '\n'.join(
 		['[default]', 'endpoint_url = http://s3-aws-region.amazonaws.com']
 	)
@@ -214,9 +203,10 @@ def test_extract_url_from_config_file(mock_path_exists):
 
 @patch.dict(os.environ, {'AWS_CONFIG_FILE': '~/.aws/config'})
 def test_extract_url_from_environ_variable():
-	"""
-	Testing successful extraction of endpoint url read from file path saved
-	on environment variable
+	"""Testing successful extraction of endpoint url.
+
+	Testing successful extraction of endpoint urlread from file path saved
+	on environment variable.
 	"""
 	read_data = '\n'.join(
 		['[default]', 'endpoint_url = http://s3-aws-region.amazonaws.com']

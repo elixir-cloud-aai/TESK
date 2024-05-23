@@ -162,11 +162,11 @@ class FilerTest(unittest.TestCase, AssertThrowsMixin):
 		self.assertEqual(
 			getTree(dst1),
 			stripLines("""
-						|-- a
-						|   |-- 1.txt
-						|   `-- 2.txt
-						`-- 3.txt
-				"""),
+            |-- a
+            |   |-- 1.txt
+            |   `-- 2.txt
+            `-- 3.txt
+        """),
 		)
 
 		# Copying to non-existing dst -----------------------------------------
@@ -178,11 +178,11 @@ class FilerTest(unittest.TestCase, AssertThrowsMixin):
 		self.assertEqual(
 			getTree(dst1),
 			stripLines("""
-						|-- a
-						|   |-- 1.txt
-						|   `-- 2.txt
-						`-- 3.txt
-				"""),
+            |-- a
+            |   |-- 1.txt
+            |   `-- 2.txt
+            `-- 3.txt
+        """),
 		)
 
 	def test_getPath(self):
@@ -232,8 +232,11 @@ class FilerTest(unittest.TestCase, AssertThrowsMixin):
 
 	@patch('ftplib.FTP')
 	def test_ftp_check_directory(self, conn):
-		"""Ensure that when the path provided is an existing directory, the
-		return value is 0."""
+		"""Return 0 when  an existing directory.
+
+		Ensure that when the path provided is an existing directory, the
+		return value is 0.
+		"""
 		path = os.path.curdir
 		self.assertEqual(ftp_check_directory(conn, path), 0)
 

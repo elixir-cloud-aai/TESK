@@ -1,3 +1,1 @@
-"""
-service package initialization file.
-"""
+"""service package initialization file."""

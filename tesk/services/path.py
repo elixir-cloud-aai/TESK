@@ -10,13 +10,11 @@ def getEnv(varName):
 
 
 def getPathEnv(varName):
-	"""
-	Gets a path from env var 'varName' and normalizes it
+	"""Get a path from env var 'varName' and normalizes it.
 
 	e.g. removes trailing slashes.
 	This removes some cases from the rest of the code.
 	"""
-
 	varContent = getEnv(varName)
 
 	return os.path.normpath(varContent) if varContent else None
@@ -38,10 +36,7 @@ def getPath(url):
 
 
 def isDescendant(base, path):
-	"""
-	Is 'path' is a descendant of 'base'?
-	"""
-
+	"""Is 'path' is a descendant of 'base'?."""
 	return os.path.commonprefix([base, path]) == base
 
 
