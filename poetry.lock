@@ -987,6 +987,17 @@ websocket-client = ">=0.32.0,<0.40.0 || >0.40.0,<0.41.dev0 || >=0.43.dev0"
 adal = ["adal (>=1.0.2)"]
 
 [[package]]
+name = "kubernetes-stubs"
+version = "22.6.0.post1"
+description = "Type stubs for the Kubernetes Python API client"
+optional = false
+python-versions = "*"
+files = [
+    {file = "kubernetes-stubs-22.6.0.post1.tar.gz", hash = "sha256:9f4de86ef3c5aeb8ca555164f7427e8d909b00ad0b2081cf2bf17dc44cfb63e9"},
+    {file = "kubernetes_stubs-22.6.0.post1-py2.py3-none-any.whl", hash = "sha256:46a4d6fc30458f245c54d2f5777dcb2ecc16bc86258fb37c7b87c631d2ac61da"},
+]
+
+[[package]]
 name = "markdown-it-py"
 version = "3.0.0"
 description = "Python port of markdown-it. Markdown parsing, done right!"
@@ -2094,4 +2105,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "a7f0bc1215ac78b19a8a96f40dfaab690544048a2c4d3af2eba7b7c9b8466501"
+content-hash = "bb472da916633857af37c49aed2b65e94080d2b52282adc6de62defb0c91072e"
