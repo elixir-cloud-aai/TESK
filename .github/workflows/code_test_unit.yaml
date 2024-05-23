@@ -21,31 +21,13 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install poetry
-        run: pipx install poetry
-
-      - name: Generate hash of tesk with test dependencies only
-        run: |
-          poetry export --with=lint --format=requirements.txt --output=requirements.txt
-          echo "hash=$(sha256sum requirements.txt | cut -d ' ' -f 1)" >> $GITHUB_ENV
-
-      - name: Cache dependencies
-        id: ctuut
-        uses: actions/cache@v4
+      - name: Set up environment
+        uses: ./.github/actions/setup/poetry
         with:
-          path: |
-            ~/.cache/pypoetry
-          key: ${{ runner.os }}-test-${{ env.hash }}
-          restore-keys: |
-            ${{ runner.os }}-test-
-
-      - name: Check cache hit
-        run: |
-          echo "Cache hit status: ${{ steps.ctuut.outputs.cache-hit }}"
-
-      - name: Install test dependencies
-        if: steps.ctuut.outputs.cache-hit != 'true'
-        run: poetry install --only=test --no-interaction
+          os: ${{ job.os }}
+          python-version: '3.11'
+          poetry-install-options: "--with=test"
+          poetry-export-options: "--with=test"
 
       - name: Run tests and generate coverage as test_unit.xml
         run: poetry run pytest --cov-report term --cov-report xml:test_unit.xml --cov=tests/test_unit
