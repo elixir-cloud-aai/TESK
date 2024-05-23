@@ -1,5 +1,5 @@
 name: Setup Python and Poetry Action
-description: Install and configure the system, python, install poetry and requested deps with cache management.
+description: Install and configure the system, Python, Poetry and requested deps with cache management.
 
 inputs:
   os:
@@ -59,23 +59,21 @@ runs:
     - name: Read poetry cache location
       id: poetry-cache-location
       shell: bash
-      run: |-
-        echo "poetry-venv-location=$(poetry config virtualenvs.path)" >> $GITHUB_OUTPUT
+      run: echo "poetry-venv-location=$(poetry config virtualenvs.path)" >> $GITHUB_OUTPUT
 
     - name: Generate hash only for required deps
       run: |
         poetry export ${{ inputs.poetry-export-options }} --format=requirements.txt --output=requirements.txt
-        echo "hash=$(sha256sum requirements.txt | cut -d ' ' -f 1)" >> $GITHUB_ENV
+        echo "DEP_HASH=$(sha256sum requirements.txt | cut -d ' ' -f 1)" >> $GITHUB_ENV
       shell: bash
 
     - uses: actions/cache@v4
       name: Poetry cache
       with:
-        path: |
-          ${{ steps.poetry-cache-location.outputs.poetry-venv-location }}
-        key: ${{ runner.os }}-python-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('poetry.lock') }}-options-${{ inputs.poetry-install-options }}
+        path: ${{ steps.poetry-cache-location.outputs.poetry-venv-location }}
+        key: ${{ runner.os }}-[python-${{ steps.setup-python.outputs.python-version }}]-[${{ env.DEP_HASH }}]-[${{ inputs.poetry-install-options }}]
 
     - name: "Poetry install"
+      if: steps.poetry-cache.outputs.cache-hit != 'true'
       shell: bash
-      run: |
-        poetry install ${{ inputs.poetry-install-options }} --no-interaction
+      run: poetry install ${{ inputs.poetry-install-options }} --no-interaction
