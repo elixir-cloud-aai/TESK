@@ -30,8 +30,8 @@ jobs:
           echo "hash=$(sha256sum requirements.txt | cut -d ' ' -f 1)" >> $GITHUB_ENV
 
       - name: Cache dependencies
-        uses: actions/cache@v4
         id: ctuut
+        uses: actions/cache@v4
         with:
           path: |
             ~/.cache/pypoetry
@@ -39,8 +39,12 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-test-
 
+      - name: Check cache hit
+        run: |
+          echo "Cache hit status: ${{ steps.ctuut.outputs.cache-hit }}"
+
       - name: Install test dependencies
-        if: steps.ctuut.outputs.cache-hit == 'false'
+        if: steps.ctuut.outputs.cache-hit != 'true'
         run: poetry install --only=test --no-interaction
 
       - name: Run tests and generate coverage as test_unit.xml

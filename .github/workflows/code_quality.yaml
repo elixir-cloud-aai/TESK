@@ -30,8 +30,8 @@ jobs:
           echo "hash=$(sha256sum requirements.txt | cut -d ' ' -f 1)" >> $GITHUB_ENV
 
       - name: Cache dependencies
-        uses: actions/cache@v4
         id: cql
+        uses: actions/cache@v4
         with:
           path: |
             ~/.cache/pypoetry
@@ -40,7 +40,7 @@ jobs:
             ${{ runner.os }}-lint-
 
       - name: Install lint dependencies
-        if: steps.cql.outputs.cache-hit == 'false'
+        if: steps.cql.outputs.cache-hit != 'true'
         run: poetry install --only=lint --no-interaction --no-root
 
       - name: Check code quality
@@ -67,8 +67,8 @@ jobs:
           echo "hash=$(sha256sum requirements.txt | cut -d ' ' -f 1)" >> $GITHUB_ENV
 
       - name: Cache dependencies
-        uses: actions/cache@v4
         id: cqf
+        uses: actions/cache@v4
         with:
           path: |
             ~/.cache/pypoetry
@@ -77,7 +77,7 @@ jobs:
             ${{ runner.os }}-lint-
 
       - name: Install lint dependencies
-        if: steps.cqf.outputs.cache-hit == 'false'
+        if: steps.cqf.outputs.cache-hit != 'true'
         run: poetry install --only=lint --no-interaction --no-root
 
       - name: Check code style
@@ -104,8 +104,8 @@ jobs:
           echo "hash=$(sha256sum requirements.txt | cut -d ' ' -f 1)" >> $GITHUB_ENV
 
       - name: Cache dependencies
-        uses: actions/cache@v4
         id: cqtc
+        uses: actions/cache@v4
         with:
           path: |
             ~/.cache/pypoetry
@@ -140,8 +140,8 @@ jobs:
           echo "hash=$(sha256sum requirements.txt | cut -d ' ' -f 1)" >> $GITHUB_ENV
 
       - name: Cache dependencies
-        uses: actions/cache@v4
         id: cqsc
+        uses: actions/cache@v4
         with:
           path: |
             ~/.cache/pypoetry
@@ -150,7 +150,7 @@ jobs:
             ${{ runner.os }}-lint-
 
       - name: Install lint dependencies
-        if: steps.cqsc.outputs.cache-hit == 'false'
+        if: steps.cqsc.outputs.cache-hit != 'true'
         run: poetry install --only=lint --no-interaction --no-root
 
       - name: Check spellings

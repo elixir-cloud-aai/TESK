@@ -30,8 +30,8 @@ jobs:
           echo "hash=$(sha256sum requirements.txt | cut -d ' ' -f 1)" >> $GITHUB_ENV
 
       - name: Cache dependencies
-        uses: actions/cache@v4
         id: vcv
+        uses: actions/cache@v4
         with:
           path: |
             ~/.cache/pypoetry
@@ -40,7 +40,7 @@ jobs:
             ${{ runner.os }}-security-
 
       - name: Install vulnerabilities check dependencies
-        if: steps.vcv.outputs.cache-hit == 'false'
+        if: steps.vcv.outputs.cache-hit != 'true'
         run: poetry install --only=security --no-interaction --no-root
 
       - name: Check code vulnerabilities with bandit
@@ -77,7 +77,7 @@ jobs:
             ${{ runner.os }}-security-
 
       - name: Install vulnerabilities check dependencies
-        if: steps.vdv.outputs.cache-hit == 'false'
+        if: steps.vdv.outputs.cache-hit != 'true'
         run: poetry install --only=security --no-interaction --no-root
 
       - name: Check dependency vulnerabilities with safety
