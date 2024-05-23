@@ -22,28 +22,25 @@ jobs:
           python-version: '3.11'
 
       - name: Install Poetry
-        run: pip install poetry
+        run: pipx install poetry
 
-      - name: Generate hash of req dependencies
-        id: cq
+      - name: Generate hash of lint dependencies only
         run: |
           poetry export --only=lint --format=requirements.txt --output=requirements.txt
           echo "hash=$(sha256sum requirements.txt | cut -d ' ' -f 1)" >> $GITHUB_ENV
 
       - name: Cache dependencies
         uses: actions/cache@v4
+        id: cql
         with:
           path: |
             ~/.cache/pypoetry
-            ~/.cache/pip
-          key: ${{ runner.os }}-poetry-${{ env.hash }}
+          key: ${{ runner.os }}-lint-${{ env.hash }}
           restore-keys: |
-            ${{ runner.os }}-poetry-
-
-      - name: Echo env
-        run: poetry env info
+            ${{ runner.os }}-lint-
 
       - name: Install lint dependencies
+        if: steps.cql.outputs.cache-hit == 'false'
         run: poetry install --only=lint --no-interaction --no-root
 
       - name: Check code quality
@@ -56,17 +53,31 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
       - name: Install poetry
         run: pipx install poetry
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        id: cq
+      - name: Generate hash of lint dependencies only
+        run: |
+          poetry export --only=lint --format=requirements.txt --output=requirements.txt
+          echo "hash=$(sha256sum requirements.txt | cut -d ' ' -f 1)" >> $GITHUB_ENV
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        id: cqf
         with:
-          python-version: '3.11'
-          cache: 'poetry'
+          path: |
+            ~/.cache/pypoetry
+          key: ${{ runner.os }}-lint-${{ env.hash }}
+          restore-keys: |
+            ${{ runner.os }}-lint-
 
       - name: Install lint dependencies
+        if: steps.cqf.outputs.cache-hit == 'false'
         run: poetry install --only=lint --no-interaction --no-root
 
       - name: Check code style
@@ -79,15 +90,28 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Install poetry
-        run: pipx install poetry
-
       - name: Set up python
-        id: cqtc
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-          cache: 'poetry'
+
+      - name: Install poetry
+        run: pipx install poetry
+
+      - name: Generate hash of types dependencies only
+        run: |
+          poetry export --only=types --format=requirements.txt --output=requirements.txt
+          echo "hash=$(sha256sum requirements.txt | cut -d ' ' -f 1)" >> $GITHUB_ENV
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        id: cqtc
+        with:
+          path: |
+            ~/.cache/pypoetry
+          key: ${{ runner.os }}-types-${{ env.hash }}
+          restore-keys: |
+            ${{ runner.os }}-types-
 
       - name: Install types and mypy dependencies
         run: poetry install --only=types --no-interaction --no-root
@@ -102,17 +126,31 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
       - name: Install poetry
         run: pipx install poetry
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        id: cq
+      - name: Generate hash of lint dependencies only
+        run: |
+          poetry export --only=lint --format=requirements.txt --output=requirements.txt
+          echo "hash=$(sha256sum requirements.txt | cut -d ' ' -f 1)" >> $GITHUB_ENV
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        id: cqsc
         with:
-          python-version: '3.11'
-          cache: 'poetry'
+          path: |
+            ~/.cache/pypoetry
+          key: ${{ runner.os }}-lint-${{ env.hash }}
+          restore-keys: |
+            ${{ runner.os }}-lint-
 
       - name: Install lint dependencies
+        if: steps.cqsc.outputs.cache-hit == 'false'
         run: poetry install --only=lint --no-interaction --no-root
 
       - name: Check spellings

@@ -16,17 +16,31 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Install poetry
-        run: pipx install poetry
-
       - name: Set up python
-        id: vt
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-          cache: 'poetry'
+
+      - name: Install poetry
+        run: pipx install poetry
+
+      - name: Generate hash of security dependencies only
+        run: |
+          poetry export --only=security --format=requirements.txt --output=requirements.txt
+          echo "hash=$(sha256sum requirements.txt | cut -d ' ' -f 1)" >> $GITHUB_ENV
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        id: vcv
+        with:
+          path: |
+            ~/.cache/pypoetry
+          key: ${{ runner.os }}-security-${{ env.hash }}
+          restore-keys: |
+            ${{ runner.os }}-security-
 
       - name: Install vulnerabilities check dependencies
+        if: steps.vcv.outputs.cache-hit == 'false'
         run: poetry install --only=security --no-interaction --no-root
 
       - name: Check code vulnerabilities with bandit
@@ -39,17 +53,31 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Install poetry
-        run: pipx install poetry
-
       - name: Set up python
-        id: vt
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-          cache: 'poetry'
+
+      - name: Install poetry
+        run: pipx install poetry
+
+      - name: Generate hash of security dependencies only
+        run: |
+          poetry export --only=security --format=requirements.txt --output=requirements.txt
+          echo "hash=$(sha256sum requirements.txt | cut -d ' ' -f 1)" >> $GITHUB_ENV
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        id: vdv
+        with:
+          path: |
+            ~/.cache/pypoetry
+          key: ${{ runner.os }}-security-${{ env.hash }}
+          restore-keys: |
+            ${{ runner.os }}-security-
 
       - name: Install vulnerabilities check dependencies
+        if: steps.vdv.outputs.cache-hit == 'false'
         run: poetry install --only=security --no-interaction --no-root
 
       - name: Check dependency vulnerabilities with safety
