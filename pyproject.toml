@@ -67,6 +67,9 @@ pytest-localftpserver = "*"
 kubernetes = "*"
 pytest-cov = "^5.0.0"
 
+[tool.poetry.group.misc.dependencies]
+pre-commit = "^3.7.1"
+
 [tool.ruff.lint]
 select = [
     "E",        # pycodestyle
