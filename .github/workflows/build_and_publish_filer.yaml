@@ -1,9 +1,10 @@
+---
 name: Build and Publish Filer
 
 on:
   push:
-    branches: [ 'testing-gh-action' ]
-    tags: [ '*' ]
+    branches: ['testing-gh-action']
+    tags: ['*']
 
   workflow_dispatch:
     inputs:

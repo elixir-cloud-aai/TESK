@@ -1,3 +1,4 @@
+---
 name: Code Test Unit
 
 on:
@@ -30,7 +31,11 @@ jobs:
         run: poetry install --only=test --no-interaction
 
       - name: Run tests and generate coverage as test_unit.xml
-        run: poetry run pytest --cov-report term --cov-report xml:test_unit.xml --cov=tests/test_unit
+        run: |
+          poetry run pytest \
+            --cov-report term \
+            --cov-report xml:test_unit.xml \
+            --cov=tests/test_unit
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4

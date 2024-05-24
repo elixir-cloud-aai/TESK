@@ -25,10 +25,8 @@ repos:
             deployment/charts/tesk/templates/.*\.yaml|deployment/charts/tesk/tls_secret_name\.yml-TEMPLATE
           )$
       - id: double-quote-string-fixer
-      - id: end-of-file-fixer
       - id: fix-byte-order-marker
-      - id: fix-encoding-pragma
-        args: [--remove]
+      - id: end-of-file-fixer
       - id: mixed-line-ending
         args: [--fix=auto]
       - id: trailing-whitespace
@@ -48,11 +46,11 @@ repos:
           - mdformat-frontmatter
         args: [--wrap=80]
         # exclude: _.+\.md|CHANGELOG\.md  # Add when changelog is implemented
-  # - repo: https://github.com/adrienverge/yamllint.git # nice to have, but it's will change alot of files.
-  #   rev: v1.35.1
-  #   hooks:
-  #     - id: yamllint
-  #       ignore: deployment/charts
+  - repo: https://github.com/adrienverge/yamllint.git
+    rev: v1.35.1
+    hooks:
+      - id: yamllint
+        exclude: ^deployment/charts
   - repo: https://github.com/pappasam/toml-sort
     rev: v0.23.1
     hooks:
