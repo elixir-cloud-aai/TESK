@@ -1,21 +1,61 @@
+---
 # See https://pre-commit.com for more information
 # See https://pre-commit.com/hooks.html for more hooks
+# Common commands:
+# pre-commit install
+# pre-commit autoupdate
+# pre-commit run --all-files --hook-stage commit
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v3.2.0
+    rev: v4.6.0
     hooks:
-      - id: trailing-whitespace
-      - id: end-of-file-fixer
-      - id: check-yaml
       - id: check-added-large-files
       - id: check-builtin-literals
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: ''  # Use the sha / tag you want to point at
-    hooks:
-    -   id: mypy
+      - id: check-added-large-files
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-symlinks
+      - id: check-toml
+      - id: check-vcs-permalinks
+      - id: debug-statements
+      - id: destroyed-symlinks
+      - id: detect-private-key
+        exclude: |
+          (?x)^(
+            deployment/charts/tesk/templates/.*\.yaml|deployment/charts/tesk/tls_secret_name\.yml-TEMPLATE
+          )$
+      - id: double-quote-string-fixer
+      - id: end-of-file-fixer
+      - id: fix-byte-order-marker
+      - id: fix-encoding-pragma
+        args: [--remove]
+      - id: mixed-line-ending
+        args: [--fix=auto]
+      - id: trailing-whitespace
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.4.5
     hooks:
       - id: ruff
       - id: ruff-format
-        args: [ --check ]
+        args: [--check]
+  - repo: https://github.com/executablebooks/mdformat
+    rev: 0.7.17
+    hooks:
+      - id: mdformat
+        additional_dependencies:
+          - mdformat-config
+          - mdformat-black
+          - mdformat-frontmatter
+        args: [--wrap=80]
+        # exclude: _.+\.md|CHANGELOG\.md  # Add when changelog is implemented
+  # - repo: https://github.com/adrienverge/yamllint.git # nice to have, but it's will change alot of files.
+  #   rev: v1.35.1
+  #   hooks:
+  #     - id: yamllint
+  #       ignore: deployment/charts
+  - repo: https://github.com/pappasam/toml-sort
+    rev: v0.23.1
+    hooks:
+      - id: toml-sort-fix
+        args: [--in-place, --all, --trailing-comma-inline-array]
+        exclude: poetry\.lock

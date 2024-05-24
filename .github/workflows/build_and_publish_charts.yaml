@@ -18,12 +18,12 @@ jobs:
         uses: actions/checkout@v3.3.0
         with:
           fetch-depth: 0
-            
+
       - name: Create k3s Cluster
         uses: debianmaster/actions-k3s@v1.0.5
         with:
           version: 'latest'
-            
+
       - name: Create namespace
         run: kubectl create ns tesk
 
@@ -67,12 +67,12 @@ jobs:
         uses: actions/checkout@v3.3.0
         with:
           fetch-depth: 0
-            
+
       - name: Configure Git
         run: |
           git config user.name "$GITHUB_ACTOR"
           git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
-    
+
       - name: Run chart-releaser
         uses: helm/chart-releaser-action@v1.6.0
         with:

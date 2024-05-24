@@ -99,4 +99,4 @@ jobs:
         run: poetry install --only=lint --no-interaction --no-root
 
       - name: Check spellings
-        run: poetry run typos . 
+        run: poetry run typos .
