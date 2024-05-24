@@ -16,18 +16,13 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Install poetry
-        run: pipx install poetry
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        id: ct
+      - name: Set up environment
+        uses: ./.github/actions/setup/poetry
         with:
+          os: ${{ job.os }}
           python-version: '3.11'
-          cache: 'poetry'
-
-      - name: Install test dependencies
-        run: poetry install --only=test --no-interaction
+          poetry-install-options: "--with=test"
+          poetry-export-options: "--with=test"
 
       - name: Run tests and generate coverage as test_unit.xml
         run: poetry run pytest --cov-report term --cov-report xml:test_unit.xml --cov=tests/test_unit
