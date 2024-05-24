@@ -17,18 +17,13 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Install poetry
-        run: pipx install poetry
-
-      - name: Set up python
-        id: vt
-        uses: actions/setup-python@v5
+      - name: Set up environment
+        uses: ./.github/actions/setup/poetry
         with:
+          os: ${{ job.os }}
           python-version: '3.11'
-          cache: 'poetry'
-
-      - name: Install vulnerabilities check dependencies
-        run: poetry install --only=security --no-interaction --no-root
+          poetry-install-options: "--only=security --no-root"
+          poetry-export-options: "--only=security"
 
       - name: Check code vulnerabilities with bandit
         run: poetry run bandit -c pyproject.toml -r tesk/
@@ -40,18 +35,13 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Install poetry
-        run: pipx install poetry
-
-      - name: Set up python
-        id: vt
-        uses: actions/setup-python@v5
+      - name: Set up environment
+        uses: ./.github/actions/setup/poetry
         with:
+          os: ${{ job.os }}
           python-version: '3.11'
-          cache: 'poetry'
-
-      - name: Install vulnerabilities check dependencies
-        run: poetry install --only=security --no-interaction --no-root
+          poetry-install-options: "--only=security --no-root"
+          poetry-export-options: "--only=security"
 
       - name: Check dependency vulnerabilities with safety
         run: poetry run safety check --full-report

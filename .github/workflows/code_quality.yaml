@@ -17,18 +17,13 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Install poetry
-        run: pipx install poetry
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        id: cq
+      - name: Set up environment
+        uses: ./.github/actions/setup/poetry
         with:
+          os: ${{ job.os }}
           python-version: '3.11'
-          cache: 'poetry'
-
-      - name: Install lint dependencies
-        run: poetry install --only=lint --no-interaction --no-root
+          poetry-install-options: "--only=lint --no-root"
+          poetry-export-options: "--only=lint"
 
       - name: Check code quality
         run: poetry run ruff check .
@@ -40,18 +35,13 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Install poetry
-        run: pipx install poetry
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        id: cq
+      - name: Set up environment
+        uses: ./.github/actions/setup/poetry
         with:
+          os: ${{ job.os }}
           python-version: '3.11'
-          cache: 'poetry'
-
-      - name: Install lint dependencies
-        run: poetry install --only=lint --no-interaction --no-root
+          poetry-install-options: "--only=lint --no-root"
+          poetry-export-options: "--only=lint"
 
       - name: Check code style
         run: poetry run ruff format --check
@@ -63,18 +53,13 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Install poetry
-        run: pipx install poetry
-
-      - name: Set up python
-        id: cqtc
-        uses: actions/setup-python@v5
+      - name: Set up environment
+        uses: ./.github/actions/setup/poetry
         with:
+          os: ${{ job.os }}
           python-version: '3.11'
-          cache: 'poetry'
-
-      - name: Install types and mypy dependencies
-        run: poetry install --only=types --no-interaction --no-root
+          poetry-install-options: "--only=types --no-root"
+          poetry-export-options: "--only=types"
 
       - name: Check types
         run: poetry run mypy tesk/
@@ -86,18 +71,13 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Install poetry
-        run: pipx install poetry
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        id: cq
+      - name: Set up environment
+        uses: ./.github/actions/setup/poetry
         with:
+          os: ${{ job.os }}
           python-version: '3.11'
-          cache: 'poetry'
-
-      - name: Install lint dependencies
-        run: poetry install --only=lint --no-interaction --no-root
+          poetry-install-options: "--only=lint --no-root"
+          poetry-export-options: "--only=lint"
 
       - name: Check spellings
         run: poetry run typos .
