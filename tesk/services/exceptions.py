@@ -4,8 +4,7 @@
 class ServiceStatusCodes:
 	"""A class to represent the HTTP status codes.
 
-	Attributes
-	----------
+	Attributes:
 		OK (int): HTTP status code for OK.
 		REDIRECT (int): HTTP status code for Redirect.
 		CREATED (int): HTTP status code for Created.
@@ -39,12 +38,10 @@ class ServiceStatusCodes:
 		"""Retrieve the corresponding HTTP status code for a given status name.
 
 		Args:
-		----
-				status_name (str): The name of the HTTP status code to retrieve.
+			status_name (str): The name of the HTTP status code to retrieve.
 
 		Returns:
-		-------
-				int or None: Corresponding HTTP status code if found, otherwise None.
+			int or None: Corresponding HTTP status code if found, otherwise None.
 
 		"""
 		return getattr(cls, status_name.upper(), None)

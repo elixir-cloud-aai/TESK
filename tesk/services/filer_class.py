@@ -129,8 +129,7 @@ class Filer:
 		this value.
 
 		Args:
-		----
-				limit: The number of retries before considering a Job as failed.
+			limit: The number of retries before considering a Job as failed.
 
 		"""
 		self.spec['spec'].update({'backoffLimit': limit})
