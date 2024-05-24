@@ -51,6 +51,8 @@ typos = "^1.21.0"
 ruff = "^0.4.4"
 typos = "^1.21.0"
 
+[tool.poetry.group.misc.dependencies]
+pre-commit = "^3.7.1"
 
 [tool.poetry.group.security.dependencies]
 bandit = "^1.7.8"
