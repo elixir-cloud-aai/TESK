@@ -68,15 +68,6 @@ pytest-localftpserver = "*"
 kubernetes = "*"
 pytest-cov = "^5.0.0"
 
-[tool.poetry.group.docs.dependencies]
-sphinx = "^7.3.7"
-tomli = "^2.0.1"
-added-value = "^0.24.0"
-sphinx-autodoc-typehints = "^2.1.0"
-m2r2 = "^0.3.3.post2"
-docutils = "0.20.1"
-furo = "^2024.5.6"
-
 [tool.ruff.lint]
 select = [
     "E",        # pycodestyle
