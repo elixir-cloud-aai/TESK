@@ -46,4 +46,20 @@ jobs:
         run: git --no-pager grep "<<<<<<<" ":(exclude).github/" || true
       - name: Fail or succeed job if any files with merge conflict markers
         run: exit $(git grep "<<<<<<<" ":(exclude).github/" | wc --lines)
+
+  pre-commit:
+    name: Pre-commit checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up environment
+        uses: ./.github/actions/setup/poetry
+        with:
+          os: ${{ job.os }}
+          python-version: '3.11'
+          poetry-install-options: "--only=misc"
+          poetry-export-options: "--only=misc"
+      - name: Run pre-commit checks
+        run: poetry run pre-commit run --all-files
 ...
