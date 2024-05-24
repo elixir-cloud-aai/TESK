@@ -8,3 +8,6 @@ ignore: |
 rules:
   document-start:
     level: error
+  document-end:
+    level: error
+...

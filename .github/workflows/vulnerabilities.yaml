@@ -45,3 +45,4 @@ jobs:
 
       - name: Check dependency vulnerabilities with safety
         run: poetry run safety check --full-report
+...

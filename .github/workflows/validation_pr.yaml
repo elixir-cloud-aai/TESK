@@ -46,7 +46,4 @@ jobs:
         run: git --no-pager grep "<<<<<<<" ":(exclude).github/" || true
       - name: Fail or succeed job if any files with merge conflict markers
         run: exit $(git grep "<<<<<<<" ":(exclude).github/" | wc --lines)
-
-  # TODO: Add when cache PR is merged
-  # pre-commit:
-  #   name: Pre-commit checks
+...

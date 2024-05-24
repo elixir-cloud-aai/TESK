@@ -57,3 +57,4 @@ repos:
       - id: toml-sort-fix
         args: [--in-place, --all, --trailing-comma-inline-array]
         exclude: poetry\.lock
+...
