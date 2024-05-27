@@ -18,6 +18,12 @@ security:
       70612:
           reason: 'No fix available.'
           expires: '2025-5-18'
+      62019:
+          reason: 'Foca needs to udpate werkzeug to >=2.3.8.'
+          expires: '2025-5-27'
+      70624:
+          reason: 'No fix available.'
+          expires: '2025-5-27'
 
 report:
   dependency-vulnerabilities:

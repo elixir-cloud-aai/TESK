@@ -1,0 +1,2 @@
+class TaskRuns:
+	pass
