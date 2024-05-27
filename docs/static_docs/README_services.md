@@ -1,1 +1,0 @@
-../../tesk/services/README.md
