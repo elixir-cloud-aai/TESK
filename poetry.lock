@@ -2652,6 +2652,17 @@ files = [
 ]
 
 [[package]]
+name = "types-werkzeug"
+version = "1.0.9"
+description = "Typing stubs for Werkzeug"
+optional = false
+python-versions = "*"
+files = [
+    {file = "types-Werkzeug-1.0.9.tar.gz", hash = "sha256:5cc269604c400133d452a40cee6397655f878fc460e03fde291b9e3a5eaa518c"},
+    {file = "types_Werkzeug-1.0.9-py3-none-any.whl", hash = "sha256:194bd5715a13c598f05c63e8a739328657590943bce941e8a3619a6b5d4a54ec"},
+]
+
+[[package]]
 name = "typing"
 version = "3.7.4.3"
 description = "Type Hints for Python"
@@ -2789,4 +2800,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "9f87e513444db3568a033206beba6bb842f74f5d40dec8228700cd7264c96e77"
+content-hash = "7958f9f0ebd9b1c944f2d33373db4efda58aaf881b25a84e83a52023e56ed1b1"
