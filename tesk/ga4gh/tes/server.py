@@ -11,22 +11,23 @@ logger = logging.getLogger(__name__)
 
 # POST /tasks/{id}:cancel
 @log_traffic
-def CancelTask(id, *args, **kwargs) -> dict:	# type: ignore
+def CancelTask(id, *args, **kwargs) -> dict:  # type: ignore
 	pass
 
 
 # POST /tasks
 @log_traffic
-def CreateTask(*args, **kwargs) -> dict: # type: ignore
+def CreateTask(*args, **kwargs) -> dict:  # type: ignore
 	pass
 
 
 # GET /tasks/service-info
 @log_traffic
-def GetServiceInfo(*args, **kwargs) -> dict: # type: ignore
+def GetServiceInfo(*args, **kwargs) -> dict:  # type: ignore
 	pass
+
 
 # GET /tasks
 @log_traffic
-def ListTasks(*args, **kwargs) -> dict:	# type: ignore
+def ListTasks(*args, **kwargs) -> dict:  # type: ignore
 	pass

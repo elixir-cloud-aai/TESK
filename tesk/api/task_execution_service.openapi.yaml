@@ -30,7 +30,7 @@ info:
     that will call these TES services. Use cases include:
 
       - Deploying existing workflow engines on new infrastructure. Workflow engines
-      such as CWL-Tes and Cromwell have extentions for using TES. This will allow
+      such as CWL-Tes and Cromwell have extensions for using TES. This will allow
       a system engineer to deploy them onto a new infrastructure using a job scheduling
       system not previously supported by the engine.
 
@@ -366,7 +366,7 @@ components:
           additionalProperties:
             type: string
           description: |-
-            Enviromental variables to set within the container. Example:
+            Environmental variables to set within the container. Example:
             ```
             {
               "env" : {
@@ -434,7 +434,7 @@ components:
       description: |-
         Define if input/output element is a file or a directory. It is not required
         that the user provide this value, but it is required that the server fill in the
-        value once the information is avalible at run time.
+        value once the information is available at run time.
       default: FILE
       enum:
       - FILE
@@ -487,7 +487,7 @@ components:
             the local scratch space, may be faster despite the latency and
             overhead. This does not mean that the backend will use a streaming
             interface, as it may not be provided by the vendor, but if the
-            capacity is avalible it can be used without degrading the
+            capacity is available it can be used without degrading the
             performance of the underlying program.
       description: Input describes Task input files.
     tesListTasksResponse:
@@ -543,7 +543,7 @@ components:
           type: string
           description: |-
             Prefix to be removed from matching outputs if `tesOutput.path` contains wildcards;
-            output URLs are constructed by appending pruned paths to the directory specfied
+            output URLs are constructed by appending pruned paths to the directory specified
             in `tesOutput.url`.
             Required if `tesOutput.path` contains wildcards, ignored otherwise.
         type:
@@ -607,7 +607,7 @@ components:
             Request that the task be run in these compute zones. How this string
             is utilized will be dependent on the backend system. For example, a
             system based on a cluster queueing system may use this string to define
-            priorty queue to which the job is assigned.
+            priority queue to which the job is assigned.
           items:
             type: string
           example: us-west-1
