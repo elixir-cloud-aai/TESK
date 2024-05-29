@@ -9,33 +9,37 @@ from foca import Foca
 
 logger = logging.getLogger(__name__)
 
+
 def init_app() -> FlaskApp:
-    """Initialize the Foca app."""
+	"""Initialize the Foca app."""
 
-    # Use environment variables, this will be usefull for docker
-    config_path_env = os.getenv('TESK_FOCA_CONFIG_PATH')
-    config_filename_env = os.getenv('TESK_FOCA_CONFIG_FILENAME', 'config.yaml')
+	# Use environment variables, this will be useful for docker
+	config_path_env = os.getenv('TESK_FOCA_CONFIG_PATH')
+	config_filename_env = os.getenv('TESK_FOCA_CONFIG_FILENAME', 'config.yaml')
 
-    if config_path_env:
-        config_path = Path(config_path_env).resolve() / config_filename_env
-    else:
-        base_path = Path(__file__).parents[1]
-        config_path = (base_path / 'deployment' / config_filename_env).resolve()
+	if config_path_env:
+		config_path = Path(config_path_env).resolve() / config_filename_env
+	else:
+		base_path = Path(__file__).parents[1]
+		config_path = (base_path / 'deployment' / config_filename_env).resolve()
 
-    if not config_path.exists():
-        raise FileNotFoundError(f'Config file not found: {config_path}')
+	if not config_path.exists():
+		raise FileNotFoundError(f'Config file not found: {config_path}')
 
-    foca = Foca(
-        config_file=config_path,
-    )
-    return foca.create_app()
+	foca = Foca(
+		config_file=config_path,
+	)
+	return foca.create_app()
 
-if __name__ == "__main__":
-    app = init_app()
-    app.run()
 
-def main(app) -> None:
+if __name__ == '__main__':
+	app = init_app()
+	app.run()
+
+
+def main() -> None:
 	"""Run FOCA application."""
+	app = init_app()
 	app.run(port=app.port)
 
 

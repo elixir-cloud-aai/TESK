@@ -32,6 +32,7 @@ def GetServiceInfo(*args, **kwargs) -> dict:  # type: ignore
 def ListTasks(*args, **kwargs) -> dict:  # type: ignore
 	pass
 
+
 # GET /tasks
 @log_traffic
 def GetTask(*args, **kwargs) -> dict:  # type: ignore

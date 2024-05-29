@@ -28,7 +28,6 @@ requests = ">=2.20.0"
 urllib3 = "^2.2.1"
 boto3 = "1.34.104"
 foca = "^0.13.0"
-connexion = ">=2.11,<3.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "*"
