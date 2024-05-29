@@ -31,9 +31,9 @@ security:
 # Cf. https://foca.readthedocs.io/en/latest/modules/foca.models.html#foca.models.config.APIConfig
 api:
   specs:
-    - path: tesk/api/task_execution_service.openapi.yaml
+    - path: tesk/api/specs/task_execution_service.openapi.yaml
       add_operation_fields:
-        x-openapi-router-controller: tesk.ga4gh.tes.server
+        x-openapi-router-controller: tesk.api.ga4gh.tes.controllers
         security:
           - bearerAuth: []
       add_security_fields:
