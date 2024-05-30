@@ -1,4 +1,5 @@
 [![codecov](https://codecov.io/gh/elixir-cloud-aai/TESK/branch/main/graph/badge.svg)](https://codecov.io/gh/elixir-cloud-aai/TESK)
+[![Documentation Status](https://readthedocs.org/projects/tesk/badge/?version=latest)](https://tesk.readthedocs.io/en/latest/?badge=latest)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](./LICENSE)
 [![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)](https://www.python.org/downloads/release/python-311/)
 [![Development Status](https://img.shields.io/badge/status-beta-yellow.svg)](https://github.com/elixir-cloud-aai/TESK)
@@ -6,7 +7,6 @@
 [![Bandit](https://img.shields.io/badge/security-bandit-yellow.svg)](https://bandit.readthedocs.io/en/latest/)
 [![Safety](https://img.shields.io/badge/security-safety-orange.svg)](https://safetycli.com/product/safety-cli)
 [![Ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://docs.astral.sh/ruff/)
-[![Documentation Status](https://readthedocs.org/projects/tesk/badge/?version=latest)](https://tesk.readthedocs.io/en/latest/?badge=latest)
 
 <img src="/images/TESKlogowfont.png" height="200">
 
