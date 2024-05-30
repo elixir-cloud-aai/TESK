@@ -1,3 +1,1 @@
-"""
-_summary_:tesk package initialization file.
-"""
+"""TESK package initialization file."""

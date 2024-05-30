@@ -52,6 +52,9 @@ types-botocore = "^1.0.2"
 types-requests = "^2.31.0.20240406"
 types-urllib3 = "^1.26.25.14"
 
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
 [tool.ruff.lint]
 select = [
     "E",        # pycodestyle
@@ -60,8 +63,18 @@ select = [
     "B",        # flake8-bugbear
     "SIM",      # flake8-simplify
     "I",        # isort
-    "PL"        # pylint
+    "PL",       # pylint
+    "D"         # pydocstyle
 ]
+ignore = [
+    "D203", # conflicts with D202 as formatter removes black line before class docstring
+    "D213", # conflicts with D212, would have been ignored regardless
+    "D206"  # conflicts with E101, `format.indent-style="tab"`
+]
+
+[tool.ruff.lint.per-file-ignores]   # ignore all pydocstyle errors in test and services modules
+"tesk/services/**/*.py" = ["D"]
+"tests/test_unit/test_services/**/*.py" = ["D"]
 
 [tool.ruff.format]
 quote-style = "single"
