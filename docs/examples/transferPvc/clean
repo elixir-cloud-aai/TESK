@@ -3,7 +3,7 @@
 deleteAll() {
 
     objType="$1"
-    
+
     echo "-- Deleting all $objType ------------------------------------"
     kubectl delete "$objType" --all
     echo

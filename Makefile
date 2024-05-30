@@ -153,7 +153,7 @@ run-service:
 		exit 1; \
 	fi
 
-.PHONY: clean-service-image 
+.PHONY: clean-service-image
 clean-service-image:
 		@if [ -x "$(BUILDAH_CMD)" ]; then \
 				if $(BUILDAH_CMD) inspect $(ELIXIR_CLOUD_REGISTRY)/tesk-core-$(IMAGE):$(TAG) > /dev/null 2>&1; then \

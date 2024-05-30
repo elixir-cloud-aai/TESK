@@ -1,9 +1,10 @@
+---
 name: Build and Publish Taskmaster
 
 on:
   push:
-    branches: [ 'testing-gh-action' ]
-    tags: [ '*' ]
+    branches: ['testing-gh-action']
+    tags: ['*']
 
   workflow_dispatch:
     inputs:
@@ -37,7 +38,7 @@ jobs:
         with:
           images: |
             elixircloud/${{ github.workflow }}
-      
+
       - name: Build and push Docker images
         uses: docker/build-push-action@v3
         with:
@@ -46,4 +47,4 @@ jobs:
           file: ./deployment/containers/taskmaster.Dockerfile
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-
+...
