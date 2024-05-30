@@ -5,7 +5,7 @@ requires = ["poetry-core"]
 [tool.bandit]
 skips = [
   "B321", # FTP-related functions are being called.
-  "B402", # FTP-related module is being imported.
+  "B402", # A FTP-related module is being imported.
 ]
 
 [tool.poetry]
@@ -34,19 +34,14 @@ python = "^3.11"
 requests = ">=2.20.0"
 urllib3 = "^2.2.1"
 
-[tool.poetry.group.dev.dependencies]
-bandit = "^1.7.8"
-fs = "*"
-moto = "*"
-mypy = "^1.10.0"
-pyfakefs = "*"
-pytest = "*"
-pytest-cov = "^5.0.0"
-pytest-localftpserver = "*"
-pytest-mock = "*"
-ruff = "^0.4.4"
-safety = "^3.2.0"
-typos = "^1.21.0"
+[tool.poetry.group.docs.dependencies]
+added-value = "^0.24.0"
+docutils = "0.20.1"
+furo = "^2024.5.6"
+m2r2 = "^0.3.3.post2"
+sphinx = "^7.3.7"
+sphinx-autodoc-typehints = "^2.1.0"
+tomli = "^2.0.1"
 
 [tool.poetry.group.lint.dependencies]
 ruff = "^0.4.4"
@@ -58,7 +53,6 @@ safety = "^3.2.0"
 
 [tool.poetry.group.test.dependencies]
 fs = "*"
-kubernetes = "*"
 moto = "*"
 pyfakefs = "*"
 pytest = "*"
@@ -95,8 +89,14 @@ indent-style = "tab"
 quote-style = "single"
 
 [tool.ruff.lint]
+ignore = [
+  "D203", # conflicts with D202 as formatter removes black line before class docstring
+  "D206", # conflicts with E101, `format.indent-style="tab"`
+  "D213", # conflicts with D212, would have been ignored regardless
+]
 select = [
   "B", # flake8-bugbear
+  "D", # pydocstyle
   "E", # pycodestyle
   "F", # Pyflakes
   "I", # isort
@@ -104,6 +104,13 @@ select = [
   "SIM", # flake8-simplify
   "UP", # pyupgrade
 ]
+
+[tool.ruff.lint.per-file-ignores] # ignore all pydocstyle errors in test and services modules
+"tesk/services/**/*.py" = ["D"]
+"tests/test_unit/test_services/**/*.py" = ["D"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
 
 [tool.typos.default.extend-words]
 mke = 'mke'

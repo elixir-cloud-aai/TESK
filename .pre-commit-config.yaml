@@ -1,0 +1,55 @@
+
+---
+# See https://pre-commit.com for more information
+# See https://pre-commit.com/hooks.html for more hooks
+# Common commands:
+# pre-commit install
+# pre-commit autoupdate
+# pre-commit run --all-files --hook-stage commit
+repos:
+  # - repo: https://github.com/pre-commit/pre-commit-hooks
+  #   rev: v4.6.0
+  #   hooks:
+  #     - id: check-added-large-files
+  #     - id: check-builtin-literals
+  #     - id: check-added-large-files
+  #     - id: check-json
+  #     - id: check-merge-conflict
+  #     - id: check-symlinks
+  #     - id: check-toml
+  #     - id: check-vcs-permalinks
+  #     - id: debug-statements
+  #     - id: destroyed-symlinks
+  #     - id: detect-private-key
+  #       exclude: |
+  #         (?x)^(
+  #           deployment/charts/tesk/templates/.*\.yaml|deployment/charts/tesk/tls_secret_name\.yml-TEMPLATE
+  #         )$
+  #     - id: double-quote-string-fixer
+  #     - id: fix-byte-order-marker
+  #     - id: end-of-file-fixer
+  #     - id: mixed-line-ending
+  #       args: [--fix=auto]
+  #     - id: trailing-whitespace
+  # - repo: https://github.com/executablebooks/mdformat
+  #   rev: 0.7.17
+  #   hooks:
+  #     - id: mdformat
+  #       additional_dependencies:
+  #         - mdformat-config
+  #         - mdformat-black
+  #         - mdformat-frontmatter
+  #       args: [--wrap=80]
+  #       # exclude: _.+\.md|CHANGELOG\.md  # Add when changelog is implemented
+  # - repo: https://github.com/adrienverge/yamllint.git
+  #   rev: v1.35.1
+  #   hooks:
+  #     - id: yamllint
+  #       exclude: ^deployment/charts
+  - repo: https://github.com/pappasam/toml-sort
+    rev: v0.23.1
+    hooks:
+      - id: toml-sort-fix
+        args: [--in-place, --all, --trailing-comma-inline-array]
+        exclude: poetry\.lock
+...

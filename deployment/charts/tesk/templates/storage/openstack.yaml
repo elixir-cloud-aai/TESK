@@ -9,4 +9,3 @@ parameters:
   availability: nova
 provisioner: kubernetes.io/cinder
 {{ end }}
-

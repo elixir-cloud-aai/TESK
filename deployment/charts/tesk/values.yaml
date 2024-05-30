@@ -11,8 +11,8 @@ host_name: ""
 # 'openstack' or 's3'
 storage: none
 
-# Configurable storage class. 
-storageClass: 
+# Configurable storage class.
+storageClass:
 
 tesk:
     # if empty - default base path; currently /ga4gh/tes/v1

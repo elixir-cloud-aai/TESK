@@ -1,3 +1,4 @@
+---
 kind: Pod
 apiVersion: v1
 metadata:
@@ -6,10 +7,11 @@ spec:
   volumes:
     - name: transfer-volume
       persistentVolumeClaim:
-       claimName: transfer-pvc
+        claimName: transfer-pvc
   containers:
     - name: nginx-container
       image: nginx
       volumeMounts:
         - mountPath: /transfer
           name: transfer-volume
+...
