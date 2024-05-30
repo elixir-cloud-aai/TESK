@@ -10,7 +10,9 @@ scanning-settings:
 
 security:
   ignore-vulnerabilities:
-<<<<<<< HEAD
+      62019:
+          reason: 'Foca needs to update werkzeug to >=2.3.8.'
+          expires: '2025-5-27'
       65213:
           reason: 'Fix is downgrading the pyopenssl package to 21.0.0, doing that breaks all the test.'
           expires: '2025-5-18'
@@ -20,23 +22,9 @@ security:
       70612:
           reason: 'No fix available.'
           expires: '2025-5-18'
-      62019:
-          reason: 'Foca needs to update werkzeug to >=2.3.8.'
-          expires: '2025-5-27'
       70624:
           reason: 'No fix available.'
           expires: '2025-5-27'
-=======
-    65213:
-      reason: 'Need the pyopenssl== 21.0.0, which breaks the test.'
-      expires: '2025-5-18'
-    67599:
-      reason: 'No fix available.'
-      expires: '2025-5-18'
-    70612:
-      reason: 'No fix available.'
-      expires: '2025-5-18'
->>>>>>> main
 
 report:
   dependency-vulnerabilities:

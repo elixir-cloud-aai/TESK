@@ -12,7 +12,6 @@ logger = logging.getLogger(__name__)
 
 def init_app() -> FlaskApp:
 	"""Initialize the FOCA app."""
-
 	# Use environment variables, this will be useful for docker
 	config_path_env = os.getenv('TESK_FOCA_CONFIG_PATH')
 	config_filename_env = os.getenv('TESK_FOCA_CONFIG_FILENAME', 'config.yaml')
