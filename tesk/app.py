@@ -29,7 +29,9 @@ def init_app() -> FlaskApp:
 	if config_path_env:
 		config_path = Path(config_path_env).resolve()
 	else:
-		config_path = (Path(__file__).parents[1] / 'deployment' / 'config.yaml').resolve()
+		config_path = (
+			Path(__file__).parents[1] / 'deployment' / 'config.yaml'
+		).resolve()
 
 	# Check if the configuration file exists
 	if not config_path.exists():

@@ -1,0 +1,46 @@
+---
+name: Endpoint Test
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  boot:
+    name: API boots up
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up environment
+        uses: ./.github/actions/setup/poetry
+        with:
+          os: ${{ job.os }}
+          python-version: '3.11'
+          poetry-install-options: "--only=main"
+          poetry-export-options: "--only=main"
+
+      - name: Boot up API
+        run: |
+          nohup poetry run api &  # Start the API in the background
+          sleep 3
+
+      - name: Wait for API to be ready
+        run: |
+          for i in {1..10}; do
+            response=$(curl -s -L http://localhost:8080/ga4gh/tes/v1/ui)
+            if echo "$response" | grep -q "swagger"; then
+              echo "API is up and running"
+              exit 0
+            fi
+            echo "Waiting for API..."
+            sleep 2
+          done
+          echo "API failed to start in time"
+          exit 1
+...
