@@ -7,7 +7,7 @@
 [![Safety](https://img.shields.io/badge/security-safety-orange.svg)](https://safetycli.com/product/safety-cli)
 [![Ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://docs.astral.sh/ruff/)
 
-<img src="images/TESKlogowfont.png" height="200">
+<img src="/images/TESKlogowfont.png" height="200">
 
 An implementation of a task execution engine based on the [TES standard](https://github.com/ga4gh/task-execution-schemas) running on `Kubernetes`. For more details on `TES`, see the (very) brief [introduction to TES](docs/tesintro.md).
 
