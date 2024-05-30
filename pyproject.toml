@@ -1,109 +1,109 @@
-[tool.poetry]
-name = "tesk"
-version = "0.1.0"
-description = "An implementation of a task execution engine based on the GA4GH Task Execution Service (TES) API standard running on Kubernetes."
-authors = ["Elixir Cloud AAI <cloud-service@elixir-europe.org>"]
-maintainers = ["Elixir Cloud AAI <cloud-service@elixir-europe.org>"]
-license = "Apache-2.0"
-readme = "README.md"
-repository = "https://github.com/elixir-cloud-aai/TESK"
-keywords = ["TES", "Kubernetes", "Task Execution", "ebi", "TESK", "workflow", "automation"]
-classifiers = [
-    "Development Status :: 4 - Beta",
-    "Intended Audience :: System Administrators",
-    "License :: OSI Approved :: Apache Software License",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.11"
+[build-system]
+build-backend = "poetry.core.masonry.api"
+requires = ["poetry-core"]
+
+[tool.bandit]
+skips = [
+  "B321", # FTP-related functions are being called.
+  "B402", # FTP-related module is being imported.
 ]
 
-[tool.poetry.scripts]
-filer = 'tesk.services.filer:main'
-taskmaster = 'tesk.services.taskmaster:main'
-api= 'tesk.app:main'
+[tool.poetry]
+authors = ["Elixir Cloud AAI <cloud-service@elixir-europe.org>"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: System Administrators",
+  "License :: OSI Approved :: Apache Software License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+]
+description = "An implementation of a task execution engine based on the GA4GH Task Execution Service (TES) API standard running on Kubernetes."
+keywords = ["Kubernetes", "TES", "TESK", "Task Execution", "automation", "ebi", "workflow"]
+license = "Apache-2.0"
+maintainers = ["Elixir Cloud AAI <cloud-service@elixir-europe.org>"]
+name = "tesk"
+readme = "README.md"
+repository = "https://github.com/elixir-cloud-aai/TESK"
+version = "0.1.0"
 
 [tool.poetry.dependencies]
-python = "^3.11"
-kubernetes = "^29.0.0"
-requests = ">=2.20.0"
-urllib3 = "^2.2.1"
 boto3 = "1.34.104"
 foca = "^0.13.0"
+kubernetes = "^29.0.0"
+python = "^3.11"
+requests = ">=2.20.0"
+urllib3 = "^2.2.1"
 
 [tool.poetry.group.dev.dependencies]
-pytest = "*"
-pyfakefs = "*"
-pytest-mock = "*"
+bandit = "^1.7.8"
 fs = "*"
 moto = "*"
-pytest-localftpserver = "*"
-ruff = "^0.4.4"
 mypy = "^1.10.0"
-typos = "^1.21.0"
-bandit = "^1.7.8"
-safety = "^3.2.0"
+pyfakefs = "*"
+pytest = "*"
 pytest-cov = "^5.0.0"
+pytest-localftpserver = "*"
+pytest-mock = "*"
+ruff = "^0.4.4"
+safety = "^3.2.0"
+typos = "^1.21.0"
 
 [tool.poetry.group.lint.dependencies]
 ruff = "^0.4.4"
 typos = "^1.21.0"
-
-[tool.poetry.group.types.dependencies]
-mypy = "^1.10.0"
-kubernetes-stubs = "^22.6.0.post1"
-types-urllib3 = "^1.26.25.14"
-types-botocore = "^1.0.2"
-boto3-stubs = "^1.34.108"
-types-requests = "^2.31.0.20240406"
-types-werkzeug = "^1.0.9"
 
 [tool.poetry.group.security.dependencies]
 bandit = "^1.7.8"
 safety = "^3.2.0"
 
 [tool.poetry.group.test.dependencies]
-pytest = "*"
-pyfakefs = "*"
-pytest-mock = "*"
 fs = "*"
-moto = "*"
-pytest-localftpserver = "*"
 kubernetes = "*"
+moto = "*"
+pyfakefs = "*"
+pytest = "*"
 pytest-cov = "^5.0.0"
+pytest-localftpserver = "*"
+pytest-mock = "*"
+
+[tool.poetry.group.types.dependencies]
+boto3-stubs = "^1.34.108"
+kubernetes-stubs = "^22.6.0.post1"
+mypy = "^1.10.0"
+types-botocore = "^1.0.2"
+types-requests = "^2.31.0.20240406"
+types-urllib3 = "^1.26.25.14"
+types-werkzeug = "^1.0.9"
+
+[tool.poetry.scripts]
+api = 'tesk.app:main'
+filer = 'tesk.services.filer:main'
+taskmaster = 'tesk.services.taskmaster:main'
+
+[tool.pytest_env]
+FTP_FIXTURE_SCOPE = "function"
+FTP_HOME = "/tmp"
+FTP_PASS = "pass"
+FTP_PORT = 2111
+FTP_USER = "user"
+TESK_FTP_PASSWORD = "pass"
+TESK_FTP_USERNAME = "user"
+
+[tool.ruff.format]
+docstring-code-format = true
+indent-style = "tab"
+quote-style = "single"
 
 [tool.ruff.lint]
 select = [
-    "E",        # pycodestyle
-    "F",        # Pyflakes
-    "UP",       # pyupgrade
-    "B",        # flake8-bugbear
-    "SIM",      # flake8-simplify
-    "I",        # isort
-    "PL"        # pylint
+  "B", # flake8-bugbear
+  "E", # pycodestyle
+  "F", # Pyflakes
+  "I", # isort
+  "PL", # pylint
+  "SIM", # flake8-simplify
+  "UP", # pyupgrade
 ]
-
-[tool.ruff.format]
-quote-style = "single"
-indent-style = "tab"
-docstring-code-format = true
 
 [tool.typos.default.extend-words]
 mke = 'mke'
-
-[tool.pytest_env]
-FTP_USER="user"
-FTP_PASS="pass"
-TESK_FTP_USERNAME="user"
-TESK_FTP_PASSWORD="pass"
-FTP_HOME ="/tmp"
-FTP_FIXTURE_SCOPE="function"
-FTP_PORT = 2111
-
-[tool.bandit]
-skips = [
-    "B321", # FTP-related functions are being called.
-    "B402", # FTP-related module is being imported.
-]
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"

@@ -105,6 +105,17 @@ files = [
 ]
 
 [[package]]
+name = "blinker"
+version = "1.8.2"
+description = "Fast, simple object-to-object and broadcast signaling"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "blinker-1.8.2-py3-none-any.whl", hash = "sha256:1779309f71bf239144b9399d06ae925637cf6634cf6bd131104184531bf67c01"},
+    {file = "blinker-1.8.2.tar.gz", hash = "sha256:8f77b09d3bf7c795e969e9486f39c2c5e9c39d4ee07424be2bc594ece9642d83"},
+]
+
+[[package]]
 name = "boto3"
 version = "1.34.104"
 description = "The AWS SDK for Python"
@@ -125,13 +136,13 @@ crt = ["botocore[crt] (>=1.21.0,<2.0a0)"]
 
 [[package]]
 name = "boto3-stubs"
-version = "1.34.114"
-description = "Type annotations for boto3 1.34.114 generated with mypy-boto3-builder 7.24.0"
+version = "1.34.115"
+description = "Type annotations for boto3 1.34.115 generated with mypy-boto3-builder 7.24.0"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "boto3_stubs-1.34.114-py3-none-any.whl", hash = "sha256:7215e9e273e96f22ef3a7ff4164e7c80e0b5d7f4e196020a04a03488d2b3b281"},
-    {file = "boto3_stubs-1.34.114.tar.gz", hash = "sha256:2b51ebdaec9a2845c65a0a0962586cd400ab69ab678c13da4e4d191df1d99bb7"},
+    {file = "boto3_stubs-1.34.115-py3-none-any.whl", hash = "sha256:fd06dc6cfb2503fcd4314e63d52eae4889f84e06ff4f92dca4a1f6cae68bfb00"},
+    {file = "boto3_stubs-1.34.115.tar.gz", hash = "sha256:1d58dde687903e9b8cd01b2680219ace3981aab72f82165b58bb0a56cff2ce3f"},
 ]
 
 [package.dependencies]
@@ -182,7 +193,7 @@ bedrock-agent = ["mypy-boto3-bedrock-agent (>=1.34.0,<1.35.0)"]
 bedrock-agent-runtime = ["mypy-boto3-bedrock-agent-runtime (>=1.34.0,<1.35.0)"]
 bedrock-runtime = ["mypy-boto3-bedrock-runtime (>=1.34.0,<1.35.0)"]
 billingconductor = ["mypy-boto3-billingconductor (>=1.34.0,<1.35.0)"]
-boto3 = ["boto3 (==1.34.114)", "botocore (==1.34.114)"]
+boto3 = ["boto3 (==1.34.115)", "botocore (==1.34.115)"]
 braket = ["mypy-boto3-braket (>=1.34.0,<1.35.0)"]
 budgets = ["mypy-boto3-budgets (>=1.34.0,<1.35.0)"]
 ce = ["mypy-boto3-ce (>=1.34.0,<1.35.0)"]
@@ -530,13 +541,13 @@ xray = ["mypy-boto3-xray (>=1.34.0,<1.35.0)"]
 
 [[package]]
 name = "botocore"
-version = "1.34.114"
+version = "1.34.115"
 description = "Low-level, data-driven core of boto 3."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "botocore-1.34.114-py3-none-any.whl", hash = "sha256:606d1e55984d45e41a812badee292755f4db0233eed9cca63ea3bb8f5755507f"},
-    {file = "botocore-1.34.114.tar.gz", hash = "sha256:5705f74fda009656a218ffaf4afd81228359160f2ab806ab8222d07e9da3a73b"},
+    {file = "botocore-1.34.115-py3-none-any.whl", hash = "sha256:15b8ad1ee0e9cd57884fb0bcaf3a9551d2552e44a02c2ffb55ec583eebdb888e"},
+    {file = "botocore-1.34.115.tar.gz", hash = "sha256:a5d5e28b9c847b17a1ecb7660b46b83d9512b125f671e03e93d14bf6f0b274c2"},
 ]
 
 [package.dependencies]
@@ -910,32 +921,32 @@ files = [
 
 [[package]]
 name = "connexion"
-version = "2.14.2"
+version = "2.14.1"
 description = "Connexion - API first applications with OpenAPI/Swagger and Flask"
 optional = false
 python-versions = ">=3.6"
 files = [
-    {file = "connexion-2.14.2-py2.py3-none-any.whl", hash = "sha256:a73b96a0e07b16979a42cde7c7e26afe8548099e352cf350f80c57185e0e0b36"},
-    {file = "connexion-2.14.2.tar.gz", hash = "sha256:dbc06f52ebeebcf045c9904d570f24377e8bbd5a6521caef15a06f634cf85646"},
+    {file = "connexion-2.14.1-py2.py3-none-any.whl", hash = "sha256:f343717241b4c4802a694c38fee66fb1693c897fe4ea5a957fa9b3b07caf6394"},
+    {file = "connexion-2.14.1.tar.gz", hash = "sha256:99aa5781e70a7b94f8ffae8cf89f309d49cdb811bbd65a8e2f2546f3b19a01e6"},
 ]
 
 [package.dependencies]
 clickclick = ">=1.2,<21"
-flask = ">=1.0.4,<2.3"
+flask = ">=1.0.4,<3"
 inflection = ">=0.3.1,<0.6"
 itsdangerous = ">=0.24"
 jsonschema = ">=2.5.1,<5"
 packaging = ">=20"
 PyYAML = ">=5.1,<7"
 requests = ">=2.9.1,<3"
-werkzeug = ">=1.0,<2.3"
+werkzeug = ">=1.0,<3"
 
 [package.extras]
 aiohttp = ["MarkupSafe (>=0.23)", "aiohttp (>=2.3.10,<4)", "aiohttp-jinja2 (>=0.14.0,<2)"]
 docs = ["sphinx-autoapi (==1.8.1)"]
-flask = ["flask (>=1.0.4,<2.3)", "itsdangerous (>=0.24)"]
+flask = ["flask (>=1.0.4,<3)", "itsdangerous (>=0.24)"]
 swagger-ui = ["swagger-ui-bundle (>=0.0.2,<0.1)"]
-tests = ["MarkupSafe (>=0.23)", "aiohttp (>=2.3.10,<4)", "aiohttp-jinja2 (>=0.14.0,<2)", "aiohttp-remotes", "decorator (>=5,<6)", "flask (>=1.0.4,<2.3)", "itsdangerous (>=0.24)", "pytest (>=6,<7)", "pytest-aiohttp", "pytest-cov (>=2,<3)", "swagger-ui-bundle (>=0.0.2,<0.1)", "testfixtures (>=6,<7)"]
+tests = ["MarkupSafe (>=0.23)", "aiohttp (>=2.3.10,<4)", "aiohttp-jinja2 (>=0.14.0,<2)", "aiohttp-remotes", "decorator (>=5,<6)", "flask (>=1.0.4,<3)", "itsdangerous (>=0.24)", "pytest (>=6,<7)", "pytest-aiohttp", "pytest-cov (>=2,<3)", "swagger-ui-bundle (>=0.0.2,<0.1)", "testfixtures (>=6,<7)"]
 
 [[package]]
 name = "coverage"
@@ -1097,20 +1108,21 @@ poetry = ["poetry"]
 
 [[package]]
 name = "flask"
-version = "2.2.5"
+version = "2.3.3"
 description = "A simple framework for building complex web applications."
 optional = false
-python-versions = ">=3.7"
+python-versions = ">=3.8"
 files = [
-    {file = "Flask-2.2.5-py3-none-any.whl", hash = "sha256:58107ed83443e86067e41eff4631b058178191a355886f8e479e347fa1285fdf"},
-    {file = "Flask-2.2.5.tar.gz", hash = "sha256:edee9b0a7ff26621bd5a8c10ff484ae28737a2410d99b0bb9a6850c7fb977aa0"},
+    {file = "flask-2.3.3-py3-none-any.whl", hash = "sha256:f69fcd559dc907ed196ab9df0e48471709175e696d6e698dd4dbe940f96ce66b"},
+    {file = "flask-2.3.3.tar.gz", hash = "sha256:09c347a92aa7ff4a8e7f3206795f30d826654baf38b873d0744cd571ca609efc"},
 ]
 
 [package.dependencies]
-click = ">=8.0"
-itsdangerous = ">=2.0"
-Jinja2 = ">=3.0"
-Werkzeug = ">=2.2.2"
+blinker = ">=1.6.2"
+click = ">=8.1.3"
+itsdangerous = ">=2.1.2"
+Jinja2 = ">=3.1.2"
+Werkzeug = ">=2.3.7"
 
 [package.extras]
 async = ["asgiref (>=3.2)"]
@@ -2759,20 +2771,20 @@ test = ["websockets"]
 
 [[package]]
 name = "werkzeug"
-version = "2.2.3"
+version = "2.3.8"
 description = "The comprehensive WSGI web application library."
 optional = false
-python-versions = ">=3.7"
+python-versions = ">=3.8"
 files = [
-    {file = "Werkzeug-2.2.3-py3-none-any.whl", hash = "sha256:56433961bc1f12533306c624f3be5e744389ac61d722175d543e1751285da612"},
-    {file = "Werkzeug-2.2.3.tar.gz", hash = "sha256:2e1ccc9417d4da358b9de6f174e3ac094391ea1d4fbef2d667865d819dfd0afe"},
+    {file = "werkzeug-2.3.8-py3-none-any.whl", hash = "sha256:bba1f19f8ec89d4d607a3bd62f1904bd2e609472d93cd85e9d4e178f472c3748"},
+    {file = "werkzeug-2.3.8.tar.gz", hash = "sha256:554b257c74bbeb7a0d254160a4f8ffe185243f52a52035060b761ca62d977f03"},
 ]
 
 [package.dependencies]
 MarkupSafe = ">=2.1.1"
 
 [package.extras]
-watchdog = ["watchdog"]
+watchdog = ["watchdog (>=2.3)"]
 
 [[package]]
 name = "xmltodict"
