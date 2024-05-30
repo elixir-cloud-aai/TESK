@@ -33,6 +33,15 @@ python = "^3.11"
 requests = ">=2.20.0"
 urllib3 = "^2.2.1"
 
+[tool.poetry.group.docs.dependencies]
+added-value = "^0.24.0"
+docutils = "0.20.1"
+furo = "^2024.5.6"
+m2r2 = "^0.3.3.post2"
+sphinx = "^7.3.7"
+sphinx-autodoc-typehints = "^2.1.0"
+tomli = "^2.0.1"
+
 [tool.poetry.group.lint.dependencies]
 ruff = "^0.4.4"
 typos = "^1.21.0"
