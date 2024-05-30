@@ -8,7 +8,7 @@ TESK
 .. mdinclude:: ../../README.md
 .. mdinclude:: ../tesintro.md
 
-.. Not adding a heading to seperate deployment docs because 
+.. Not adding a heading to separate deployment docs because 
 .. these md files already have heading.
 .. mdinclude:: ../../deployment/documentation/deployment.md
 .. mdinclude:: ../../deployment/documentation/integrated_wes_tes.md
