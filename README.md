@@ -6,6 +6,7 @@
 [![Bandit](https://img.shields.io/badge/security-bandit-yellow.svg)](https://bandit.readthedocs.io/en/latest/)
 [![Safety](https://img.shields.io/badge/security-safety-orange.svg)](https://safetycli.com/product/safety-cli)
 [![Ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://docs.astral.sh/ruff/)
+[![Documentation Status](https://readthedocs.org/projects/tesk/badge/?version=latest)](https://tesk.readthedocs.io/en/latest/?badge=latest)
 
 <img src="/images/TESKlogowfont.png" height="200">
 
