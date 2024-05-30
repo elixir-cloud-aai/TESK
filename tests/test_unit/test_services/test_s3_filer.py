@@ -117,7 +117,7 @@ def test_s3_download_directory(  # noqa: PLR0913
 			assert 'Invalid file path' in caplog.text
 		else:
 			"""
-            s3 object path s3://tesk/folder1/ will contain 'folder2', checking 
+            s3 object path s3://tesk/folder1/ will contain 'folder2', checking
             if the 'folder2' is present in the download folder.
             """
 			mock_rename.assert_called_once_with('filer_test/folder2', exist_ok=True)
@@ -143,7 +143,7 @@ def test_s3_upload_file(moto_boto, path, url, ftype, expected, fs, caplog):  # n
 		assert 'File upload failed for' in caplog.text
 	else:
 		"""
-        Checking if the file was uploaded, if the object is found, 
+        Checking if the file was uploaded, if the object is found,
         load() method will return None otherwise an exception will be raised.
         """
 		assert client.Object('tesk', 'folder/file.txt').load() is None

@@ -1,3 +1,4 @@
+---
 name: Code Test Unit
 
 on:
@@ -25,7 +26,11 @@ jobs:
           poetry-export-options: "--with=test"
 
       - name: Run tests and generate coverage as test_unit.xml
-        run: poetry run pytest --cov-report term --cov-report xml:test_unit.xml --cov=tests/test_unit
+        run: |
+          poetry run pytest \
+            --cov-report term \
+            --cov-report xml:test_unit.xml \
+            --cov=tests/test_unit
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
@@ -35,3 +40,4 @@ jobs:
           files: ./test_unit.xml
           fail_ci_if_error: true
           verbose: true
+...

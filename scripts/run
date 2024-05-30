@@ -1,11 +1,11 @@
 # TODO: Remove once API is stable and tested on cluster.
 #       This script can also be added to Makefile
 
-# 
+#
 # Usage:
-# 
+#
 #     ./run examples/inputFile.json
-# 
+#
 
 jsonFile="$1"
 
@@ -23,7 +23,7 @@ echo
 deleteAll() {
 
     objType="$1"
-    
+
     echo "-- Deleting all $objType -----------------------------------"
     kubectl delete "$objType" --all
     echo
@@ -48,5 +48,4 @@ echo
 echo "-- Result ------------------------------------------------------"
 echo
 
-kubectl get pods 
-
+kubectl get pods
