@@ -49,5 +49,5 @@ def main() -> None:
 	app.run(port=app.port)
 
 
-my_app = init_app()
-my_app.run(port=my_app.port)
+if __name__ == '__main__':
+	main()
