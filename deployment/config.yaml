@@ -31,7 +31,7 @@ security:
 # Cf. https://foca.readthedocs.io/en/latest/modules/foca.models.html#foca.models.config.APIConfig
 api:
   specs:
-    - path: tesk/api/specs/task_execution_service.openapi.yaml
+    - path: tesk/api/specs/task_execution_service.117cd92.openapi.yaml
       add_operation_fields:
         x-openapi-router-controller: tesk.api.ga4gh.tes.controllers
         security:
@@ -74,9 +74,6 @@ exceptions:
     required_members: [['detail'], ['status'], ['title']]
     status_member: ['status']
     exceptions: tesk.exceptions.exceptions
-
-#tesk:
-#  service_list:
 
 storeLogs:
   execution_trace: True
