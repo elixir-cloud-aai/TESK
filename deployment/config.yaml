@@ -1,0 +1,79 @@
+# FOCA configuration
+# Available in app context as attributes of `current_app.config.foca`
+# Automatically validated via FOCA
+# Cf. https://foca.readthedocs.io/en/latest/modules/foca.models.html
+
+# Server configuration
+# Cf. https://foca.readthedocs.io/en/latest/modules/foca.models.html#foca.models.config.ServerConfig
+server:
+  host: "0.0.0.0"
+  port: 8080
+  debug: True
+  environment: development
+  testing: False
+  use_reloader: False
+
+# Security configuration
+# Cf. https://foca.readthedocs.io/en/latest/modules/foca.models.html#foca.models.config.SecurityConfig
+security:
+  auth:
+    add_key_to_claims: True
+    algorithms:
+      - RS256
+    allow_expired: False
+    audience: null
+    validation_methods:
+      - userinfo
+      - public_key
+    validation_checks: any
+
+# API configuration
+# Cf. https://foca.readthedocs.io/en/latest/modules/foca.models.html#foca.models.config.APIConfig
+api:
+  specs:
+    - path: tesk/api/specs/task_execution_service.117cd92.openapi.yaml
+      add_operation_fields:
+        x-openapi-router-controller: tesk.api.ga4gh.tes.controllers
+        security:
+          - bearerAuth: []
+      add_security_fields:
+        x-bearerInfoFunc: foca.security.auth.validate_token
+      disable_auth: True
+      connexion:
+        strict_validation: True
+        # current specs have inconsistency, therefore disabling response validation
+        # see: https://github.com/ga4gh/task-execution-schemas/issues/136
+        validate_responses: False
+        options:
+          swagger_ui: True
+          serve_spec: True
+
+# Logging configuration
+# Cf. https://foca.readthedocs.io/en/latest/modules/foca.models.html#foca.models.config.LogConfig
+log:
+  version: 1
+  disable_existing_loggers: False
+  formatters:
+    standard:
+      class: logging.Formatter
+      style: "{"
+      format: "[{asctime}: {levelname:<8}] {message} [{name}]"
+  handlers:
+    console:
+      class: logging.StreamHandler
+      level: 20
+      formatter: standard
+      stream: ext://sys.stderr
+  root:
+    level: 10
+    handlers: [console]
+
+# Exception configuration
+# Cf. https://foca.readthedocs.io/en/latest/modules/foca.models.html#foca.models.config.ExceptionConfig
+exceptions:
+    required_members: [['detail'], ['status'], ['title']]
+    status_member: ['status']
+    exceptions: tesk.exceptions.exceptions
+
+storeLogs:
+  execution_trace: True

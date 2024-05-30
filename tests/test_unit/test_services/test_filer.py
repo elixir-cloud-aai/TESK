@@ -4,6 +4,7 @@ import unittest
 from io import StringIO
 from unittest.mock import patch
 
+from assertThrows import AssertThrowsMixin
 from fs.opener import open_fs
 
 from tesk.services.exceptions import (
@@ -25,7 +26,6 @@ from tesk.services.filer import (
 )
 from tesk.services.filer_s3 import S3Transput
 from tesk.services.path import containerPath
-from tests.test_unit.test_services.assertThrows import AssertThrowsMixin
 
 
 def getTree(rootDir):

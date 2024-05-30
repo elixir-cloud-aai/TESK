@@ -28,6 +28,7 @@ version = "0.1.0"
 
 [tool.poetry.dependencies]
 boto3 = "1.34.104"
+foca = "^0.13.0"
 kubernetes = "^29.0.0"
 python = "^3.11"
 requests = ">=2.20.0"
@@ -66,8 +67,10 @@ mypy = "^1.10.0"
 types-botocore = "^1.0.2"
 types-requests = "^2.31.0.20240406"
 types-urllib3 = "^1.26.25.14"
+types-werkzeug = "^1.0.9"
 
 [tool.poetry.scripts]
+api = 'tesk.app:main'
 filer = 'tesk.services.filer:main'
 taskmaster = 'tesk.services.taskmaster:main'
 
