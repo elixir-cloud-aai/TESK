@@ -2,11 +2,22 @@
 
 from pydantic import BaseModel, Field, validator
 
-from .validators.rfc3986_validator import RFC3986Validator
+from tesk.api.ga4gh.tes.models.validators.rfc3986_validator import RFC3986Validator
 
 
 class TesServiceInfoOrganization(BaseModel):
-	"""Organization providing the service."""
+	"""Organization providing the service.
+
+	Attributes:
+		name (str): Name of the organization providing the service.
+		url (str): URL of the website of the organization (RFC 3986 format).
+
+	Example:
+		{
+			"name": "My organization",
+			"url": "https://example.com"
+		}
+	"""
 
 	name: str = Field(
 		...,
@@ -29,5 +40,5 @@ class TesServiceInfoOrganization(BaseModel):
 	@validator('url')
 	def validate_url(cls, v):
 		"""Validate the URL format based on RFC 3986 standard."""
-		validator = RFC3986Validator()
-		return validator.validate(v)
+		validator = RFC3986Validator(field=v, model=cls)
+		return validator.validate()

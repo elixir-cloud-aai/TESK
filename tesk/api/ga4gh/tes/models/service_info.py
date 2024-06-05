@@ -1,21 +1,66 @@
 """TesServiceInfo model, used to represent the service information."""
 
 import logging
-from contextlib import suppress
 from typing import List, Optional
 
-from pydantic import BaseModel, Field, ValidationError, validator
+from pydantic import BaseModel, Field
 
-from .service_info_organization import TesServiceInfoOrganization
-from .service_info_type import TesServiceInfoType
-from .validators.rfc2386_validator import RFC2386Validator
-from .validators.rfc3339_validator import RFC3339Validator
-from .validators.rfc3986_validator import RFC3986Validator
+from tesk.api.ga4gh.tes.models.service_info_organization import (
+	TesServiceInfoOrganization,
+)
+from tesk.api.ga4gh.tes.models.service_info_type import TesServiceInfoType
 
 logger = logging.getLogger(__name__)
 
+
 class TesServiceInfo(BaseModel):
-	"""TesServiceInfo model, used to represent the service information."""
+	"""TesServiceInfo model, used to represent the service information.
+
+	Attributes:
+		id (str): Unique ID of this service.
+		name (str): Name of this service.
+		type (TesServiceInfoType): Type of a GA4GH service.
+		description (str): Description of the service.
+		organization (TesServiceInfoOrganization): Organization providing the service.
+		contactUrl (str): URL of the contact for the provider of this service.
+		documentationUrl (str): URL of the documentation for this service.
+		created_at (str): Timestamp describing when the service was first deployed
+											and available.
+		updatedAt (str): Timestamp describing when the service was last updated.
+		environment (str): Environment the service is running in.
+		version (str): Version of the service being described.
+		storage (List[str]): Lists some, but not necessarily all, storage locations
+												supported by the service.
+		tesResources_backend_parameters (List[str]): Lists of supported
+																								tesResources.backend_parameters
+																								keys.
+
+	Example:
+		{
+			"id": "org.ga4gh.myservice",
+			"name": "My project",
+			"type": {
+				"group": "org.ga4gh",
+				"artifact": "tes",
+				"version": "1.0.0"
+			},
+			"description": "This service provides...",
+			"organization": {
+				"name": "My organization",
+				"url": "https://example.com"
+			},
+			"contactUrl": "mailto:support@example.com",
+			"documentationUrl": "https://docs.myservice.example.com",
+			"createdAt": "2019-06-04T12:58:19Z",
+			"updatedAt": "2019-06-04T12:58:19Z",
+			"environment": "test",
+			"version": "1.0.0",
+			"storage": [
+				"file:///path/to/local/funnel-storage",
+				"s3://ohsu-compbio-funnel/storage"
+			]
+		}
+	"""
 
 	id: str = Field(
 		...,
@@ -31,10 +76,7 @@ class TesServiceInfo(BaseModel):
 		example='My project',
 		description='Name of this service. Should be human readable.',
 	)
-	type: TesServiceInfoType = Field(
-		...,
-		description='Type of a GA4GH service',
-	)
+	type: TesServiceInfoType
 	description: Optional[str] = Field(
 		default=None,
 		example='This service provides...',
@@ -43,10 +85,7 @@ class TesServiceInfo(BaseModel):
 			'provide information about the service.'
 		),
 	)
-	organization: TesServiceInfoOrganization = Field(
-		...,
-		example='My organization',
-	)
+	organization: TesServiceInfoOrganization
 	contactUrl: Optional[str] = Field(
 		default=None,
 		example='mailto:support@example.com',
@@ -96,57 +135,64 @@ class TesServiceInfo(BaseModel):
 			'is updated.'
 		),
 	)
-	storage: List[str] = (
-		Field(
-			default_factory=list,
-			example=[
-				'file:///path/to/local/funnel-storage',
-				's3://ohsu-compbio-funnel/storage',
-			],
-			description=(
-				'Lists some, but not necessarily all, storage locations supported '
-				'by the service.'
-			),
+	storage: List[str] = Field(
+		default_factory=list,
+		example=[
+			'file:///path/to/local/funnel-storage',
+			's3://ohsu-compbio-funnel/storage',
+		],
+		description=(
+			'Lists some, but not necessarily all, storage locations supported '
+			'by the service.'
 		),
 	)
 	tesResources_backend_parameters: List[str] = Field(
 		default_factory=list,
 		example=['VmSize'],
 		description=(
-			'Lists all tesResources.backend_parameters keys ' 'supported by the service'
+			'Lists all tesResources.backend_parameters keys supported by the service'
 		),
 	)
 
-	@validator('id', 'name', 'type', 'organization', 'version')
-	def not_empty(cls, v):
-		"""Validate that the value is not empty."""
-		if not v:
-			raise ValueError('must not be empty')
-		return v
+	# @validator('id', 'name', 'type', 'organization', 'version')
+	# def not_empty(cls, v):
+	# 	"""Validate that the value is not empty."""
+	# 	if not v:
+	# 		logger.error(f'Field {v} must not be empty in model {cls.__name__}.')
+	# 		raise ValueError(f'Field {v} must not be empty in model {cls.__name__}.')
+	# 	return v
 
-	@validator('contactUrl')
-	def validate_contact(cls, v):
-		"""Validate the contactURL format based on RFC 3986 or 2368 standard."""
-		if v:
-			url_validator = RFC3986Validator(field=v, model=cls)
-			email_validator = RFC2386Validator(field=v, model=cls)
+	# @validator('documentationUrl')
+	# def validate_url(cls, v):
+	# 	"""Validate the documentationURL format based on RFC 3986 standard."""
+	# 	if v:
+	# 		validator = RFC3986Validator(field=v, model=cls)
+	# 		return validator.validate()
+	# 	return v
 
-			with suppress(ValidationError):
-				return email_validator.validate()
+	# @validator('contactUrl')
+	# def validate_url_and_email(cls, v):
+	# 	"""Validate the contactURL format based on RFC 3986 or 2368 standard."""
+	# 	if v:
+	# 		url_validator = RFC3986Validator(field=v, model=cls)
+	# 		email_validator = RFC2386Validator(field=v, model=cls)
 
-			with suppress(ValidationError):
-				return url_validator.validate()
+	# 		with suppress(ValidationError):
+	# 			return email_validator.validate()
 
-			logger.error('contactUrl must be based on RFC 3986 or 2368 standard.')
-			raise ValidationError(
-				'contactUrl must be based on RFC 3986 or 2368 standard.'
-			)
-		return v
+	# 		with suppress(ValidationError):
+	# 			return url_validator.validate()
 
-	@validator('createdAt', 'updatedAt')
-	def validate_timestamp(cls, v):
-		"""Validate the timestamp format based on RFC 3339 standard."""
-		if v:
-			date_validator = RFC3339Validator(field=v, model=cls)
-			date_validator.validate()
-		return v
+	# 		logger.error('contactUrl must be based on RFC 3986 or 2368 standard.')
+	# 		raise ValidationError(
+	# 			'contactUrl must be based on RFC 3986 or 2368 standard.'
+	# 		)
+	# 	return v
+
+	# @validator('createdAt', 'updatedAt')
+	# def validate_timestamp(cls, v):
+	# 	"""Validate the timestamp format based on RFC 3339 standard."""
+	# 	if v:
+	# 		date_validator = RFC3339Validator(field=v, model=cls)
+	# 		return date_validator.validate()
+	# 	return v

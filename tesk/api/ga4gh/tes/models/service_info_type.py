@@ -8,6 +8,11 @@ from pydantic import BaseModel, Field, validator
 class TesServiceInfoType(BaseModel):
 	"""Class represing the type of a `GA4GH` service.
 
+	Attributes:
+		group (str): Namespace in reverse domain name format.
+		artifact (str): Name of the API or GA4GH specification implemented.
+		version (str): Version of the API or specification.
+
 	Example:
 		{
 			"group": "org.ga4gh",

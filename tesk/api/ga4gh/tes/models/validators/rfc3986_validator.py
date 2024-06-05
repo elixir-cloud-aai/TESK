@@ -2,9 +2,7 @@
 
 import re
 
-from pydantic import BaseModel
-
-from .base.validator import BaseValidator
+from .base.base_validator import BaseValidator
 
 
 class RFC3986Validator(BaseValidator):
@@ -16,26 +14,6 @@ class RFC3986Validator(BaseValidator):
 			field (str): The URL string to be validated.
 			model (BaseModel): The Pydantic model whose field is being validated.
 	"""
-
-	def __init__(self, field: str, model: BaseModel) -> None:
-		"""Initialize the RFC3986Validator.
-
-		Args:
-			field (str): The URL string to be validated.
-			model (BaseModel): The Pydantic model whose field is being validated.
-		"""
-		self._field = field
-		self._model = model
-
-	@property
-	def field(self) -> str:
-		"""Return the field to be validated."""
-		return self._field
-
-	@property
-	def model(self) -> BaseModel:
-		"""Return the Pydantic model whose field is being validated."""
-		return self._model
 
 	@property
 	def error_message(self) -> str:
@@ -56,4 +34,4 @@ class RFC3986Validator(BaseValidator):
 			re.IGNORECASE,
 		)
 
-		return bool(re.match(url_regex, self.field))
+		return bool(re.match(url_regex, self._field))
