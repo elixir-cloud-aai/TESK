@@ -28,6 +28,14 @@ class BaseValidator(ABC, Generic[T]):
 		"""
 		pass
 
+	# TODO: Maybe add another abstract method for
+	#  			some common sanitization logic that might
+	# 			be invoked if validation fails, this way
+	# 			we can mitigate some common human errors.
+	# 			For example, if some one passes, mail@exmaple.com
+	# 			we can sanitize it to mailto:mail@example.com rather
+	# 			than throwing an error or potentially breaking the app.
+
 	@abstractmethod
 	def validation_logic(self, v: T) -> bool:
 		"""Validation logic for the field.

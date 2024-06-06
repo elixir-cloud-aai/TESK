@@ -10,7 +10,7 @@ from typing import Optional, final
 from yaml import safe_load
 
 from tesk.api.ga4gh.tes.base.base_tesk_request import BaseTeskRequest
-from tesk.api.ga4gh.tes.models.service_info import TesServiceInfo
+from tesk.api.ga4gh.tes.models.tes_service_info import TesServiceInfo
 
 
 class BaseServiceInfoRequest(BaseTeskRequest):
@@ -18,15 +18,16 @@ class BaseServiceInfoRequest(BaseTeskRequest):
 
 	Abstraction class to hide away reload and parsing of service info from
 	the config file.
+
+	Attributes:
+		_prev_service_info_hash (str): Hash of the service info configuration taken
+		at init or after a set interval.
+		_service_info (TesServiceInfo): Service info Pydantic model.
+		_tesk_service_info_reload_interval (float): Interval to reload the service info.
 	"""
 
 	def __init__(self) -> None:
-		"""Initializes the BaseServiceInfoRequest class.
-
-		Attributes:
-			_prev_service_info_hash (str): Hash of the service info configuration.
-			_service_info (TesServiceInfo): Service info Pydantic model.
-		"""
+		"""Initializes the BaseServiceInfoRequest class."""
 		super().__init__()
 		self._prev_service_info_hash = self._hash_service_info_config()
 		self._tesk_service_info_reload_interval = os.getenv(

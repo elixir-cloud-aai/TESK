@@ -1,10 +1,10 @@
 """Service info for TES API."""
 
-from tesk.api.ga4gh.tes.models.service_info import TesServiceInfo
-from tesk.api.ga4gh.tes.models.service_info_organization import (
+from tesk.api.ga4gh.tes.models.tes_service_info import TesServiceInfo
+from tesk.api.ga4gh.tes.models.tes_service_info_organization import (
 	TesServiceInfoOrganization,
 )
-from tesk.api.ga4gh.tes.models.service_info_type import TesServiceInfoType
+from tesk.api.ga4gh.tes.models.tes_service_info_type import TesServiceInfoType
 from tesk.api.ga4gh.tes.service_info.base.base_service_info_request import (
 	BaseServiceInfoRequest,
 )
@@ -33,4 +33,4 @@ class ServiceInfo(BaseServiceInfoRequest):
 
 	def api_response(self) -> TesServiceInfo:
 		"""Executes the service info request."""
-		return self._get_service_info()
+		return self._service_info

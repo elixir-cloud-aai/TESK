@@ -18,6 +18,12 @@ from foca import Foca
 logger = logging.getLogger(__name__)
 
 
+# TODO: Maybe TeskApp should be a singleton, and extend the Foca class, so that
+# 			we can have a single instance of the app, and we can access the configuration
+# 			and other attributes from the instance itself. This way we can avoid passing
+# 			the configuration file path to the Foca class, and we can have a single point
+# 			of access to the configuration and other attributes.
+
 class TeskApp:
 	"""TESK API class."""
 
@@ -70,6 +76,15 @@ class TeskApp:
 			config_file=self._tesk_foca_config_path,
 		)
 		self._app = self._foca.create_app()
+
+
+# Remarks:
+# @unique, Below code was in an attempt to restart the Flask server, but it
+# doesn't seem to work, the server doesn't restart, it breaks down. I saw that
+# java implementation had a reload time period and spent embarrassingly long time
+# trying to abstract that away here, failed to do so. Maybe FOCA can have a feature
+# to reload the configuration and restart the server, but I am not sure if that is
+# a good idea, as it might break the server in the middle of a request.
 
 
 # class TeskApp:

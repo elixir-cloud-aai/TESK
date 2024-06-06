@@ -6,10 +6,10 @@ from typing import List, Optional
 
 from pydantic import BaseModel, Field, ValidationError, validator
 
-from tesk.api.ga4gh.tes.models.service_info_organization import (
+from tesk.api.ga4gh.tes.models.tes_service_info_organization import (
 	TesServiceInfoOrganization,
 )
-from tesk.api.ga4gh.tes.models.service_info_type import TesServiceInfoType
+from tesk.api.ga4gh.tes.models.tes_service_info_type import TesServiceInfoType
 from tesk.api.ga4gh.tes.models.validators.rfc2386_validator import RFC2386Validator
 from tesk.api.ga4gh.tes.models.validators.rfc3339_validator import RFC3339Validator
 from tesk.api.ga4gh.tes.models.validators.rfc3986_validator import RFC3986Validator
@@ -159,7 +159,7 @@ class TesServiceInfo(BaseModel):
 	)
 
 	# Remarks:
-	# @unique: There is a better way to do this, create a ValidateClass, which
+	# @uniqueg: There is a better way to do this, create a ValidateClass, which
 	# has all the validators and date sanitizers, create a
 	# BaseTeskModel(BaseModel, ValidateClass), this class will then be implemented
 	# by all the models, and the validators will be reused.
