@@ -1,14 +1,18 @@
 """TesServiceInfo model, used to represent the service information."""
 
 import logging
+from contextlib import suppress
 from typing import List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError, validator
 
 from tesk.api.ga4gh.tes.models.service_info_organization import (
 	TesServiceInfoOrganization,
 )
 from tesk.api.ga4gh.tes.models.service_info_type import TesServiceInfoType
+from tesk.api.ga4gh.tes.models.validators.rfc2386_validator import RFC2386Validator
+from tesk.api.ga4gh.tes.models.validators.rfc3339_validator import RFC3339Validator
+from tesk.api.ga4gh.tes.models.validators.rfc3986_validator import RFC3986Validator
 
 logger = logging.getLogger(__name__)
 
@@ -154,45 +158,36 @@ class TesServiceInfo(BaseModel):
 		),
 	)
 
-	# @validator('id', 'name', 'type', 'organization', 'version')
-	# def not_empty(cls, v):
-	# 	"""Validate that the value is not empty."""
-	# 	if not v:
-	# 		logger.error(f'Field {v} must not be empty in model {cls.__name__}.')
-	# 		raise ValueError(f'Field {v} must not be empty in model {cls.__name__}.')
-	# 	return v
+	# Remarks:
+	# @unique: There is a better way to do this, create a ValidateClass, which
+	# has all the validators and date sanitizers, create a
+	# BaseTeskModel(BaseModel, ValidateClass), this class will then be implemented
+	# by all the models, and the validators will be reused.
+	# The issue with this approach is that we don't have consistent field names and I
+	# feel they might be subject to change in future or among different models.
+	# This is why I have not implemented this approach.
+	#
+	# Another cool approach would be to create a decorator, I tried that but given
+	# FOCA uses pydantic v1.*, and if FOCA is to be upgraded to v2.*, the decorator
+	# validate would be removed and the code would break.
 
-	# @validator('documentationUrl')
-	# def validate_url(cls, v):
-	# 	"""Validate the documentationURL format based on RFC 3986 standard."""
-	# 	if v:
-	# 		validator = RFC3986Validator(field=v, model=cls)
-	# 		return validator.validate()
-	# 	return v
+	# validators
+	_ = validator('documentationUrl', allow_reuse=True)(RFC3986Validator().validate)
+	_ = validator('created_at', 'updatedAt', allow_reuse=True)(
+		RFC3339Validator().validate
+	)
 
-	# @validator('contactUrl')
-	# def validate_url_and_email(cls, v):
-	# 	"""Validate the contactURL format based on RFC 3986 or 2368 standard."""
-	# 	if v:
-	# 		url_validator = RFC3986Validator(field=v, model=cls)
-	# 		email_validator = RFC2386Validator(field=v, model=cls)
+	@validator('contactUrl')
+	def validate_url_and_email(cls, v):
+		"""Validate the contactURL format based on RFC 3986 or 2368 standard."""
+		url_validator = RFC3986Validator()
+		email_validator = RFC2386Validator()
 
-	# 		with suppress(ValidationError):
-	# 			return email_validator.validate()
+		with suppress(ValidationError):
+			return email_validator.validate(cls, v)
 
-	# 		with suppress(ValidationError):
-	# 			return url_validator.validate()
+		with suppress(ValidationError):
+			return url_validator.validate(cls, v)
 
-	# 		logger.error('contactUrl must be based on RFC 3986 or 2368 standard.')
-	# 		raise ValidationError(
-	# 			'contactUrl must be based on RFC 3986 or 2368 standard.'
-	# 		)
-	# 	return v
-
-	# @validator('createdAt', 'updatedAt')
-	# def validate_timestamp(cls, v):
-	# 	"""Validate the timestamp format based on RFC 3339 standard."""
-	# 	if v:
-	# 		date_validator = RFC3339Validator(field=v, model=cls)
-	# 		return date_validator.validate()
-	# 	return v
+		logger.error('contactUrl must be based on RFC 3986 or 2368 standard.')
+		raise ValidationError('contactUrl must be based on RFC 3986 or 2368 standard.')

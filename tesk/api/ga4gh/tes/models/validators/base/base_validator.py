@@ -2,26 +2,21 @@
 
 import logging
 from abc import ABC, abstractmethod
-from typing import Generic, TypeVar, final
+from typing import Any, Generic, TypeVar
 
-from pydantic import BaseModel, ValidationError
+from pydantic import ValidationError
 
 T = TypeVar('T')
 logger = logging.getLogger(__name__)
 
 
 class BaseValidator(ABC, Generic[T]):
-	"""Base custom validator class."""
+	"""Base custom validator class.
 
-	def __init__(self, field: T, model: BaseModel) -> None:
-		"""Initialize the validator.
-
-		Args:
-			field (T): The field to be validated.
-			model (BaseModel): The pydantic model whose field is being validated.
-		"""
-		self._field = field
-		self._model = model
+	Validators assume that the filed being validated is not optional as
+	optional fields are handled by the Pydantic model itself and mypy type
+	checking.
+	"""
 
 	@property
 	@abstractmethod
@@ -34,41 +29,51 @@ class BaseValidator(ABC, Generic[T]):
 		pass
 
 	@abstractmethod
-	def validation_logic(self) -> bool:
+	def validation_logic(self, v: T) -> bool:
 		"""Validation logic for the field.
 
+		Args:
+			v: The value being validated.
+
 		Returns:
-			True if the validation is successful, False otherwise.
+			bool: True if the validation is successful, False otherwise.
 		"""
 		pass
 
-	@final
-	def _raise_error(self):
+	def _raise_error(self, cls: Any, v: T):
 		"""Raise a validation error.
+
+		Args:
+			cls: The class being validated.
+			v: The value being validated.
 
 		Raises:
 			ValidationError: Raised when the validation fails.
 		"""
-		logger.error(f"""
-			Validation failed for {self._field} in {self._model.__name__}.
-		""")
+		logger.error(f'Validation failed for {v} in {cls.__name__}.')
 		raise ValidationError(
 			self.error_message,
-			model=self._model,
-			fields={self._field},
+			model=cls,
 		)
 
-	@final
-	def validate(self) -> T:
+	def validate(self, cls: Any, v: T) -> T:
 		"""Validate the value.
 
+		If the value is None, ie the fields is optional
+		in the model, then it is returned as is without any validation.
+
+		Args:
+			cls: The class being validated.
+			v: The value being validated.
+
 		Returns:
-			The validated value (if valid).
+			T: The validated value (if valid).
 
 		Raises:
-			ValueError: If the value is not valid.
+			ValidationError: If the value is not valid.
 		"""
-		if not self.validation_logic():
-			self._raise_error()
-
-		return self._field
+		if not v:
+			return v
+		elif not self.validation_logic(v):
+			self._raise_error(cls, v)
+		return v

@@ -35,7 +35,7 @@ class BaseTeskRequest(ABC, TeskApp):
 	def response(self) -> dict:
 		"""Returns serialized response.
 
-		Should be envoked by controller.
+		Should be invoked by controller.
 
 		Returns:
 			dict: Serialized response for the specific endpoint.

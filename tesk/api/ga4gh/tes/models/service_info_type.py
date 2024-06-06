@@ -2,7 +2,7 @@
 
 from typing import Literal
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field
 
 
 class TesServiceInfoType(BaseModel):
@@ -49,10 +49,3 @@ class TesServiceInfoType(BaseModel):
 			'GA4GH specifications use semantic versioning.'
 		),
 	)
-
-	@validator('group', 'artifact', 'version')
-	def not_empty(cls, v):
-		"""Validate that the value is not empty."""
-		if not v:
-			raise ValueError('must not be empty')
-		return v

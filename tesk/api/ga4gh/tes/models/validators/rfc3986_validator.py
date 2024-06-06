@@ -2,17 +2,13 @@
 
 import re
 
-from .base.base_validator import BaseValidator
+from tesk.api.ga4gh.tes.models.validators.base.base_validator import BaseValidator
 
 
-class RFC3986Validator(BaseValidator):
+class RFC3986Validator(BaseValidator[str]):
 	"""RFC3986Validator URL validator.
 
 	Validate a URL based on RFC 3986 standard.
-
-	Attributes:
-			field (str): The URL string to be validated.
-			model (BaseModel): The Pydantic model whose field is being validated.
 	"""
 
 	@property
@@ -20,7 +16,7 @@ class RFC3986Validator(BaseValidator):
 		"""Return the error message."""
 		return 'Invalid URL format, only RFC 3986 standard allowed.'
 
-	def validation_logic(self) -> bool:
+	def validation_logic(self, v: str) -> bool:
 		"""Validate a URL based on RFC 3986 standard."""
 		url_regex = re.compile(
 			r'^(?:http|ftp)s?://'  # http:// or https://
@@ -34,4 +30,4 @@ class RFC3986Validator(BaseValidator):
 			re.IGNORECASE,
 		)
 
-		return bool(re.match(url_regex, self._field))
+		return bool(re.match(url_regex, v))
