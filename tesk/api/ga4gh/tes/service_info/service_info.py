@@ -1,4 +1,8 @@
-"""Service info for TES API."""
+"""Service info for TES API.
+
+This module provides the TesServiceInfo class, which is
+the response to the service info request for the TES API.
+"""
 
 from tesk.api.ga4gh.tes.models.tes_service_info import TesServiceInfo
 from tesk.api.ga4gh.tes.models.tes_service_info_organization import (

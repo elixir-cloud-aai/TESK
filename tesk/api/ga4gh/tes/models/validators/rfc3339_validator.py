@@ -52,6 +52,4 @@ class RFC3339Validator(BaseValidator[str]):
 			# Year 0 is not valid a valid date
 			return False
 		(_, max_day) = calendar.monthrange(year, month)
-		if not 1 <= day <= max_day:
-			return False
-		return True
+		return 1 <= day <= max_day

@@ -1,6 +1,7 @@
 """Controllers for GA4GH TES API endpoints."""
 
 import logging
+from typing import Any
 
 # from connexion import request  # type: ignore
 from foca.utils.logging import log_traffic  # type: ignore
@@ -38,7 +39,7 @@ def CreateTask(*args, **kwargs) -> dict:  # type: ignore
 
 # GET /tasks/service-info
 @log_traffic
-def GetServiceInfo() -> dict:
+def GetServiceInfo() -> dict[Any, Any]:
 	"""Get service info."""
 	service_info = ServiceInfo()
 	return service_info.response()

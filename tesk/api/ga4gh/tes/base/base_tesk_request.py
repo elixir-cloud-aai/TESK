@@ -1,7 +1,7 @@
 """Base classes for the TES API request."""
 
 from abc import ABC, abstractmethod
-from typing import final
+from typing import Any, final
 
 from pydantic import BaseModel
 
@@ -32,7 +32,7 @@ class BaseTeskRequest(ABC, TeskApp):
 		pass
 
 	@final
-	def response(self) -> dict:
+	def response(self) -> dict[Any, Any]:
 		"""Returns serialized response.
 
 		Should be invoked by controller.

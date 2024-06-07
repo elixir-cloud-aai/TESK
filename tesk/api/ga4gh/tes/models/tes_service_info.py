@@ -178,7 +178,7 @@ class TesServiceInfo(BaseModel):
 	)
 
 	@validator('contactUrl')
-	def validate_url_and_email(cls, v):
+	def validate_url_and_email(cls, v: str) -> str:
 		"""Validate the contactURL format based on RFC 3986 or 2368 standard."""
 		url_validator = RFC3986Validator()
 		email_validator = RFC2386Validator()
@@ -190,4 +190,6 @@ class TesServiceInfo(BaseModel):
 			return url_validator.validate(cls, v)
 
 		logger.error('contactUrl must be based on RFC 3986 or 2368 standard.')
-		raise ValidationError('contactUrl must be based on RFC 3986 or 2368 standard.')
+		raise ValidationError(
+			'contactUrl must be based on RFC 3986 or 2368 standard.', model=cls
+		)

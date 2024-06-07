@@ -48,7 +48,7 @@ class BaseValidator(ABC, Generic[T]):
 		"""
 		pass
 
-	def _raise_error(self, cls: Any, v: T):
+	def _raise_error(self, cls: Any, v: T) -> None:
 		"""Raise a validation error.
 
 		Args:
