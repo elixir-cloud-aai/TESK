@@ -41,5 +41,6 @@ class BaseTeskRequest(ABC, TeskApp):
 			dict: Serialized response for the specific endpoint.
 		"""
 		_response = self.api_response()
-		assert isinstance(_response, BaseModel)
+		if not isinstance(_response, BaseModel):
+			raise TypeError('API response must be a Pydantic model.')
 		return _response.dict()

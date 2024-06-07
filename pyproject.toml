@@ -69,6 +69,7 @@ types-botocore = "^1.0.2"
 types-requests = "^2.31.0.20240406"
 types-urllib3 = "^1.26.25.14"
 types-werkzeug = "^1.0.9"
+types-pyyaml = "^6.0.12.20240311"
 
 [tool.poetry.scripts]
 api = 'tesk.app:main'

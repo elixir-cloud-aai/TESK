@@ -115,9 +115,8 @@ class BaseServiceInfoRequest(BaseTeskRequest):
 		Returns:
 			str: Hash of the service info configuration.
 		"""
-		if not self._service_info_present_in_config():
-			return ''
 		_service_info = self._get_service_info_present_in_config()
-		assert _service_info is not None
+		if _service_info is None:
+			return ''
 		_config_to_hash = _service_info.json().encode('utf-8')
 		return sha256(_config_to_hash).hexdigest()

@@ -19,10 +19,12 @@ logger = logging.getLogger(__name__)
 
 
 # TODO: Maybe TeskApp should be a singleton, and extend the Foca class, so that
-# 			we can have a single instance of the app, and we can access the configuration
-# 			and other attributes from the instance itself. This way we can avoid passing
-# 			the configuration file path to the Foca class, and we can have a single point
-# 			of access to the configuration and other attributes.
+# 			we can have a single instance of the app, and we can access the
+# 			configuration and other attributes from the instance itself.
+# 			This way we can avoid passing the configuration file path to the Foca class,
+# 			and we can have a single point of access to the configuration and
+# 			other attributes.
+
 
 class TeskApp:
 	"""TESK API class."""

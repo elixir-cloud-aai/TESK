@@ -58,8 +58,8 @@ jobs:
         with:
           os: ${{ job.os }}
           python-version: '3.11'
-          poetry-install-options: "--only=types --no-root"
-          poetry-export-options: "--only=types"
+          poetry-install-options: "--only=main --only=types --no-root"
+          poetry-export-options: "--only=main --only=types"
 
       - name: Check types
         run: poetry run mypy tesk/
