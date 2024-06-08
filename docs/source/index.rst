@@ -19,7 +19,7 @@ Package contents
 
 .. toctree::
    :maxdepth: 2
-   :caption: package
+   :caption: API referance
 
    pages/tesk/modules
 
