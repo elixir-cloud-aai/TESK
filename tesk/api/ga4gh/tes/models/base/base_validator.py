@@ -1,4 +1,4 @@
-"""Base validator class, all custom validator must implement it."""
+"""Base validator class, all custom validators must implement it."""
 
 import logging
 from abc import ABC, abstractmethod

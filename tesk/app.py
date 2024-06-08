@@ -1,4 +1,4 @@
-"""App server entry point."""
+"""App entry point."""
 
 import logging
 

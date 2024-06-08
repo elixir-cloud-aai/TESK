@@ -1,4 +1,4 @@
-"""Base classes for the TES API request."""
+"""Base class for the TES API request."""
 
 from abc import ABC, abstractmethod
 from typing import Any, final
