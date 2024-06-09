@@ -1,11 +1,11 @@
 """Organization providing the service."""
 
-from pydantic import BaseModel, Field, validator
+from pydantic import Field
 
-from tesk.api.ga4gh.tes.models.validators.rfc3986_validator import RFC3986Validator
+from tesk.api.ga4gh.tes.models.base.base_tes_model import BaseTesModel
 
 
-class TesServiceInfoOrganization(BaseModel):
+class TesServiceInfoOrganization(BaseTesModel):
 	"""Organization providing the service.
 
 	Attributes:
@@ -29,6 +29,3 @@ class TesServiceInfoOrganization(BaseModel):
 		example='https://example.com',
 		description='URL of the website of the organization (RFC 3986 format).',
 	)
-
-	# validators
-	_ = validator('url')(RFC3986Validator().validate)

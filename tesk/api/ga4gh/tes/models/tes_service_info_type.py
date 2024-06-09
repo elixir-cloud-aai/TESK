@@ -2,10 +2,12 @@
 
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import Field
+
+from tesk.api.ga4gh.tes.models.base.base_tes_model import BaseTesModel
 
 
-class TesServiceInfoType(BaseModel):
+class TesServiceInfoType(BaseTesModel):
 	"""Class represing the type of a `GA4GH` service.
 
 	Attributes:

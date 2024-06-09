@@ -1,1 +1,1 @@
-"""Package for base class for custom pydantic validators."""
+"""Package for base TES API pydantic models."""

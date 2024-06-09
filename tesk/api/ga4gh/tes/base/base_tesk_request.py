@@ -5,19 +5,13 @@ from typing import Any, final
 
 from pydantic import BaseModel
 
-from tesk.tesk_app import TeskApp
 
-
-class BaseTeskRequest(ABC, TeskApp):
+class BaseTeskRequest(ABC):
 	"""Base class for the TES API.
 
 	This class is an abstract class that defines the common properties and
 	methods needed by all of the TES API endpoint business logic.
 	"""
-
-	def __init__(self) -> None:
-		"""Initializes the BaseTeskRequest class."""
-		super().__init__()
 
 	@abstractmethod
 	def api_response(self) -> BaseModel:
