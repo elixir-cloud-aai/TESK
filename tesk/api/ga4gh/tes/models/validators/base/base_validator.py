@@ -13,9 +13,9 @@ logger = logging.getLogger(__name__)
 class BaseValidator(ABC, Generic[T]):
 	"""Base custom validator class.
 
-	Validators assume that the filed being validated is not optional as
-	optional fields are handled by the Pydantic model itself and mypy type
-	checking.
+	Base validator class for fields in Pydantic models,
+	if the field is empty, ie None, then it is returned as is without any validation.
+	otherwise the validation logic is applied to the field.
 	"""
 
 	@property
@@ -29,51 +29,51 @@ class BaseValidator(ABC, Generic[T]):
 		pass
 
 	@abstractmethod
-	def validation_logic(self, v: T) -> bool:
+	def validation_logic(self, value: T) -> bool:
 		"""Validation logic for the field.
 
 		Args:
-			v: The value being validated.
+			value: The value of the field being validated.
 
 		Returns:
 			bool: True if the validation is successful, False otherwise.
 		"""
 		pass
 
-	def _raise_error(self, cls: Any, v: T) -> None:
+	def _raise_error(self, cls: Any, value: T) -> None:
 		"""Raise a validation error.
 
 		Args:
 			cls: The class being validated.
-			v: The value being validated.
+			value: The value of the field being validated.
 
 		Raises:
 			ValidationError: Raised when the validation fails.
 		"""
-		logger.error(f'Validation failed for {v} in {cls.__name__}.')
+		logger.error(f'Validation failed for {value} in {cls.__name__}.')
 		raise ValidationError(
 			self.error_message,
 			model=cls,
 		)
 
-	def validate(self, cls: Any, v: T) -> T:
+	def validate(self, cls: Any, value: T) -> T:
 		"""Validate the value.
 
-		If the value is None, ie the fields is optional
+		If the value is None, that is the fields is optional
 		in the model, then it is returned as is without any validation.
 
 		Args:
 			cls: The class being validated.
-			v: The value being validated.
+			value: The value of the field being validated.
 
 		Returns:
-			T: The validated value (if valid).
+			value: The validated value (if valid).
 
 		Raises:
 			ValidationError: If the value is not valid.
 		"""
-		if not v:
-			return v
-		elif not self.validation_logic(v):
-			self._raise_error(cls, v)
-		return v
+		if not value:
+			return value
+		elif not self.validation_logic(value):
+			self._raise_error(cls, value)
+		return value

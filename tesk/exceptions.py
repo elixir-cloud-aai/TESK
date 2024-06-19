@@ -7,6 +7,7 @@ from connexion.exceptions import (
 	OAuthProblem,
 	Unauthorized,
 )
+from pydantic import ValidationError
 from werkzeug.exceptions import (
 	BadRequest,
 	InternalServerError,
@@ -60,9 +61,9 @@ exceptions = {
 		'detail': 'An unexpected error occurred.',
 		'status': 500,
 	},
+	ValidationError: {
+		'title': 'Validation error',
+		'detail': 'Value or object is not compatible with required type or schema.',
+		'status': 400,
+	},
 }
-
-
-# exceptions raised outside of app context
-class ValidationError(Exception):
-	"""Value or object is not compatible with required type or schema."""

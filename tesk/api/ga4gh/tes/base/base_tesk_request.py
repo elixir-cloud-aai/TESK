@@ -27,12 +27,15 @@ class BaseTeskRequest(ABC, TeskApp):
 		business logic for the specific endpoint.
 
 		Returns:
-				BaseModel: API response for the specific endpoint.
+			BaseModel: API response for the specific endpoint.
+
+		Raises:
+			Exception: If API response break due to something unhandled.
 		"""
 		pass
 
 	@final
-	def response(self) -> dict[Any, Any]:
+	def response(self) -> dict[str, Any]:
 		"""Returns serialized response.
 
 		Should be invoked by controller.
