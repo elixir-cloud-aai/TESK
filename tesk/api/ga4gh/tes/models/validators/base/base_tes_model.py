@@ -19,8 +19,12 @@ class BaseTesModel(BaseModel):
 	_rfc3339 = RFC3339()
 	_rfc3986 = RFC3986()
 
-	_ = validator('documentationUrl', allow_reuse=True, check_fields=False)(_rfc3986.validate)
-	_ = validator('created_at', 'updatedAt', allow_reuse=True, check_fields=False)(_rfc3339.validate)
+	_ = validator('documentationUrl', allow_reuse=True, check_fields=False)(
+		_rfc3986.validate
+	)
+	_ = validator('created_at', 'updatedAt', allow_reuse=True, check_fields=False)(
+		_rfc3339.validate
+	)
 
 	@validator('contactUrl', allow_reuse=True, check_fields=False)
 	def validate_url_and_email(cls, v: str) -> str:

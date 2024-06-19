@@ -32,5 +32,5 @@ class BaseServiceInfoRequest(BaseTeskRequest):
 		else:
 			self.service_info = self._get_default_service_info()
 		if not self.service_info:
-			raise NotFound # for mypy
+			raise NotFound  # for mypy
 		return self.service_info

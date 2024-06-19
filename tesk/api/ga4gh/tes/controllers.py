@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 
 service_info = ServiceInfo()
 
+
 # POST /tasks/{id}:cancel
 @log_traffic
 def CancelTask(id, *args, **kwargs) -> dict:  # type: ignore
