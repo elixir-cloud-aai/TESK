@@ -12,7 +12,15 @@ class TesServiceInfoOrganization(BaseTesModel):
 		name (str): Name of the organization providing the service.
 		url (str): URL of the website of the organization (RFC 3986 format).
 
+	Args:
+		name (str): Name of the organization providing the service.
+		url (str): URL of the website of the organization (RFC 3986 format).
+
 	Example:
+		>>> from tesk.api.ga4gh.tes.models.tes_service_info_organization import (
+		...     TesServiceInfoOrganization,
+		... )
+		>>> TesServiceInfoOrganization(name='My organization', url='https://example.com')
 		{
 			"name": "My organization",
 			"url": "https://example.com"

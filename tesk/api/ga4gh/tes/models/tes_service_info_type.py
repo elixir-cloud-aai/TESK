@@ -8,19 +8,25 @@ from tesk.api.ga4gh.tes.models.base.base_tes_model import BaseTesModel
 
 
 class TesServiceInfoType(BaseTesModel):
-	"""Class represing the type of a `GA4GH` service.
+	"""Class representing the type of a `GA4GH` service.
 
 	Attributes:
 		group (str): Namespace in reverse domain name format.
 		artifact (str): Name of the API or GA4GH specification implemented.
 		version (str): Version of the API or specification.
 
+	Args:
+		group (str): Namespace in reverse domain name format.
+		artifact (str): Name of the API or GA4GH specification implemented.
+		version (str): Version of the API or specification.
+
 	Example:
-		{
-			"group": "org.ga4gh",
-			"artifact": "tes",
-			"version": "1.1.0"
-		}
+		>>> from tesk.api.ga4gh.tes.models.tes_service_info_type import (
+		...     TesServiceInfoType,
+		... )
+		>>> service_info_type = TesServiceInfoType()
+		>>> service_info_type.dict()
+		{'group': 'org.ga4gh', 'artifact': 'tes', 'version': '1.1.0'}
 	"""
 
 	group: str = Field(
