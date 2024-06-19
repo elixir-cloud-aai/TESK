@@ -11,6 +11,10 @@ class BaseTeskRequest(ABC):
 
 	This class is an abstract class that defines the common properties and
 	methods needed by all of the TES API endpoint business logic.
+
+	Notes: This initializes the parent class `TeskApp` and will give
+		all the subclasses access to the configuration object `conf` and
+		config path.
 	"""
 
 	@abstractmethod
@@ -26,7 +30,7 @@ class BaseTeskRequest(ABC):
 		Raises:
 			Exception: If API response break due to something unhandled.
 		"""
-		pass
+		return BaseModel()
 
 	@final
 	def response(self) -> dict[str, Any]:
