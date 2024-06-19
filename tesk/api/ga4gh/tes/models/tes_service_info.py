@@ -26,41 +26,88 @@ class TesServiceInfo(BaseTesModel):
 		contactUrl (str): URL of the contact for the provider of this service.
 		documentationUrl (str): URL of the documentation for this service.
 		created_at (str): Timestamp describing when the service was first deployed
-											and available.
+			and available.
 		updatedAt (str): Timestamp describing when the service was last updated.
 		environment (str): Environment the service is running in.
 		version (str): Version of the service being described.
 		storage (List[str]): Lists some, but not necessarily all, storage locations
-												supported by the service.
+			supported by the service.
 		tesResources_backend_parameters (List[str]): Lists of supported
-																								tesResources.backend_parameters
-																								keys.
+			tesResources.backend_parameters keys.
+
+	Args:
+		id (str): Unique ID of this service.
+		name (str): Name of this service.
+		type (TesServiceInfoType): Type of a GA4GH service.
+		description (str): Description of the service.
+		organization (TesServiceInfoOrganization): Organization providing the service.
+		contactUrl (str): URL of the contact for the provider of this service.
+		documentationUrl (str): URL of the documentation for this service.
+		created_at (str): Timestamp describing when the service was first deployed
+			and available.
+		updatedAt (str): Timestamp describing when the service was last updated.
+		environment (str): Environment the service is running in.
+		version (str): Version of the service being described.
+		storage (List[str]): Lists some, but not necessarily all, storage locations
+			supported by the service.
+		tesResources_backend_parameters (List[str]): Lists of supported
+			tesResources.backend_parameters keys.
+
+	Raises:
+		pydantic.ValidationError: The class was instantianted with an illegal
+			data type.
 
 	Example:
-		{
-			"id": "org.ga4gh.myservice",
-			"name": "My project",
-			"type": {
-				"group": "org.ga4gh",
-				"artifact": "tes",
-				"version": "1.0.0"
-			},
-			"description": "This service provides...",
-			"organization": {
-				"name": "My organization",
-				"url": "https://example.com"
-			},
-			"contactUrl": "mailto:support@example.com",
-			"documentationUrl": "https://docs.myservice.example.com",
-			"createdAt": "2019-06-04T12:58:19Z",
-			"updatedAt": "2019-06-04T12:58:19Z",
-			"environment": "test",
-			"version": "1.0.0",
-			"storage": [
-				"file:///path/to/local/funnel-storage",
-				"s3://ohsu-compbio-funnel/storage"
-			]
-		}
+	>>> from tesk.api.ga4gh.tes.models.tes_service_info import TesServiceInfo
+	>>> service_info = TesServiceInfo(
+	...	 id='org.ga4gh.myservice',
+	...	 name='My project',
+	...	 type={
+	...		'group': 'org.ga4gh',
+	...		'artifact': 'tes',
+	...		'version': '1.0.0',
+	...	 },
+	...	 description='This service provides...',
+	...	 organization={
+	...		'name': 'My organization',
+	...		'url': 'https://example.com',
+	...	 },
+	...	 contact_url='mailto:support@example.com',
+	...	 documentation_url='https://docs.myservice.example.com',
+	...	 created_at='2019-06-04T12:58:19Z',
+	...	 updated_at='2019-06-04T12:58:19Z',
+	...	 environment='test',
+	...	 version='1.0.0',
+	...	 storage=[
+	...		'file:///path/to/local/funnel-storage',
+	...		's3://ohsu-compbio-funnel/storage',
+	...	 ],
+	...)
+	>>> service_info.dict()
+	{
+		"id": "org.ga4gh.myservice",
+		"name": "My project",
+		"type": {
+			"group": "org.ga4gh",
+			"artifact": "tes",
+			"version": "1.0.0"
+		},
+		"description": "This service provides...",
+		"organization": {
+			"name": "My organization",
+			"url": "https://example.com"
+		},
+		"contact_url": "mailto:support@example.com",
+		"documentation_url": "https://docs.myservice.example.com",
+		"created_at": "2019-06-04T12:58:19Z",
+		"updated_at": "2019-06-04T12:58:19Z",
+		"environment": "test",
+		"version": "1.0.0",
+		"storage": [
+			"file:///path/to/local/funnel-storage",
+			"s3://ohsu-compbio-funnel/storage"
+		]
+	}
 	"""
 
 	id: str = Field(

@@ -13,7 +13,13 @@ logger = logging.getLogger(__name__)
 
 
 class BaseTesModel(BaseModel):
-	"""Base class for TES API pydantic models."""
+	"""Base class for TES API pydantic models.
+
+	This class is an abstract class that implements common validators
+	out of the box for all TES API models, such as documentationUrl being
+	a valid URL etc. Any child class that extends this class should implement
+	any specific validators according to the API specification.
+	"""
 
 	_rfc2386 = RFC2386()
 	_rfc3339 = RFC3339()
