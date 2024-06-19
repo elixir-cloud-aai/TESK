@@ -18,19 +18,17 @@ class ServiceInfo(BaseServiceInfoRequest):
 	"""Service info for TES API."""
 
 	def _get_default_service_info(self) -> TesServiceInfo:
-		_example_service_info_type = TesServiceInfoType(
-			group='org.ga4gh',
-			artifact='tes',
-			version='1.1.0',
-		)
-		_example_service_info_organization = TesServiceInfoOrganization(
-			name='my_organization',
-			url='https://example.com',
-		)
 		return TesServiceInfo(
 			id='org.ga4gh.tes',
 			name='TES',
-			type=_example_service_info_type,
-			organization=_example_service_info_organization,
+			type=TesServiceInfoType(
+				group='org.ga4gh',
+				artifact='tes',
+				version='1.1.0',
+			),
+			organization=TesServiceInfoOrganization(
+				name='my_organization',
+				url='https://example.com',
+			),
 			version='1.1.0',
 		)
