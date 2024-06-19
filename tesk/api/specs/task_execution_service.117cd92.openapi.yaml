@@ -120,7 +120,7 @@ paths:
             ?tag_key=foo1&tag_value=bar1&tag_key=foo2&tag_value=bar2
           ```
           Should be constructed into the structure { "foo1" : "bar1", "foo2" : "bar2"}
-          
+
           ```
             ?tag_key=foo1
           ```

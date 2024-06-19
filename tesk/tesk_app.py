@@ -8,11 +8,44 @@ from typing import Optional, final
 from foca import Foca
 from foca.config.config_parser import ConfigParser
 
+from tesk.exceptions import ConfigNotFoundError
+
 logger = logging.getLogger(__name__)
 
 
 class TeskApp(Foca):
-	"""TESK API class extending the Foca framework."""
+	"""TESK API class extending the Foca framework.
+
+	This class is used to initialize the TESK API application, contains
+	business logic for parsing configuration files and starting the
+	application server.
+
+	Attributes:
+		config_file (Path): Path to the configuration file.
+		custom_config_model (Path): Path to the custom configuration model file.
+		conf (Any): Configuration object.
+
+	Args:
+		config_file (Optional[Path]): Path to the configuration file.
+			Defaults to None.
+		custom_config_model (Optional[Path]): Path to the custom
+			configuration model file. Defaults to None.
+
+	Notes: TeskApp class uses environment variables to load the configuration
+		file and custom configuration model file with `TESK_FOCA_CONFIG_FILE`
+		and `TESK_FOCA_CUSTOM_CONFIG_MODEL` respectively.
+
+	Raises:
+		ConfigNotFoundError: If the configuration file is not found.
+
+	Method:
+		run: Run the application.
+
+	Example:
+		>>> from tesk.tesk_app import TeskApp
+		>>> app = TeskApp()
+		>>> app.run()
+	"""
 
 	def __init__(
 		self,
@@ -40,7 +73,6 @@ class TeskApp(Foca):
 			custom_config_model=self.custom_config_model,
 			format_logs=True,
 		).config
-		self._app = self.create_app()
 
 	@final
 	def run(self) -> None:
@@ -48,16 +80,15 @@ class TeskApp(Foca):
 		_environment = self.conf.server.environment or 'production'
 		logger.info(f'Running application in {_environment} environment...')
 		_debug = self.conf.server.debug or False
-		self._app.run(
-			host=self.conf.server.host, port=self.conf.server.port, debug=_debug
-		)
+		_app = self.create_app()
+		_app.run(host=self.conf.server.host, port=self.conf.server.port, debug=_debug)
 
 	@final
 	def _load_config_file(self) -> None:
 		"""Load the configuration file path from env variable or default location.
 
 		Raises:
-			FileNotFoundError: If the configuration file is not found.
+			ConfigNotFoundError: If the configuration file is not found.
 		"""
 		logger.info('Loading configuration path...')
 		if config_path_env := os.getenv('TESK_FOCA_CONFIG_FILE'):
@@ -68,7 +99,7 @@ class TeskApp(Foca):
 			).resolve()
 
 		if not self.config_file.exists():
-			raise FileNotFoundError(
+			raise ConfigNotFoundError(
 				f'Config file not found at: {self.config_file}',
 			)
 
@@ -77,7 +108,8 @@ class TeskApp(Foca):
 		"""Load the custom configuration model path from environment variable or None.
 
 		Raises:
-			FileNotFoundError: If the custom configuration model is specified and found.
+			ConfigNotFoundError: If the custom configuration model is specified
+				and found.
 		"""
 		logger.info('Loading custom configuration model path...')
 		if custom_config_model_env := os.getenv('TESK_FOCA_CUSTOM_CONFIG_MODEL'):
@@ -86,6 +118,6 @@ class TeskApp(Foca):
 			self.custom_config_model = None
 
 		if self.custom_config_model and not self.custom_config_model.exists():
-			raise FileNotFoundError(
+			raise ConfigNotFoundError(
 				f'Custom configuration model not found at: {self.custom_config_model}',
 			)

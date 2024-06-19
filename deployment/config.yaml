@@ -1,3 +1,4 @@
+---
 # FOCA configuration
 # Available in app context as attributes of `current_app.config.foca`
 # Automatically validated via FOCA
@@ -71,9 +72,10 @@ log:
 # Exception configuration
 # Cf. https://foca.readthedocs.io/en/latest/modules/foca.models.html#foca.models.config.ExceptionConfig
 exceptions:
-    required_members: [['detail'], ['status'], ['title']]
-    status_member: ['status']
-    exceptions: tesk.exceptions.exceptions
+  required_members: [['detail'], ['status'], ['title']]
+  status_member: ['status']
+  exceptions: tesk.exceptions.exceptions
 
 storeLogs:
   execution_trace: True
+...

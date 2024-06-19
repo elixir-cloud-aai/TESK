@@ -14,6 +14,11 @@ from werkzeug.exceptions import (
 	NotFound,
 )
 
+
+class ConfigNotFoundError(FileNotFoundError):
+	"""Configuration file not found error."""
+
+
 # exceptions raised in app context
 exceptions = {
 	Exception: {
@@ -65,5 +70,10 @@ exceptions = {
 		'title': 'Validation error',
 		'detail': 'Value or object is not compatible with required type or schema.',
 		'status': 400,
+	},
+	ConfigNotFoundError: {
+		'title': 'Configuration file not found',
+		'detail': 'Configuration file not found.',
+		'status': 500,
 	},
 }
