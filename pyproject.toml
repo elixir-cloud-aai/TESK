@@ -70,9 +70,9 @@ types-urllib3 = "^1.26.25.14"
 types-werkzeug = "^1.0.9"
 
 [tool.poetry.scripts]
-api = 'tesk.app:main'
-filer = 'tesk.services.filer:main'
-taskmaster = 'tesk.services.taskmaster:main'
+api = "tesk.app:main"
+filer = "tesk.services.filer:main"
+taskmaster = "tesk.services.taskmaster:main"
 
 [tool.pytest_env]
 FTP_FIXTURE_SCOPE = "function"
@@ -83,17 +83,20 @@ FTP_USER = "user"
 TESK_FTP_PASSWORD = "pass"
 TESK_FTP_USERNAME = "user"
 
+[tool.ruff]
+exclude = [
+  "tesk/services/*",
+  "tests/test_unit/test_services/*",
+]
+indent-width = 2
+
 [tool.ruff.format]
 docstring-code-format = true
-indent-style = "tab"
-quote-style = "single"
+indent-style = "space"
+line-ending = "lf"
+quote-style = "double"
 
 [tool.ruff.lint]
-ignore = [
-  "D203", # conflicts with D202 as formatter removes black line before class docstring
-  "D206", # conflicts with E101, `format.indent-style="tab"`
-  "D213", # conflicts with D212, would have been ignored regardless
-]
 select = [
   "B", # flake8-bugbear
   "D", # pydocstyle
@@ -105,12 +108,8 @@ select = [
   "UP", # pyupgrade
 ]
 
-[tool.ruff.lint.per-file-ignores] # ignore all pydocstyle errors in test and services modules
-"tesk/services/**/*.py" = ["D"]
-"tests/test_unit/test_services/**/*.py" = ["D"]
-
 [tool.ruff.lint.pydocstyle]
 convention = "google"
 
 [tool.typos.default.extend-words]
-mke = 'mke'
+mke = "mke"
