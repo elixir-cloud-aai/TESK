@@ -48,6 +48,34 @@ api:
           swagger_ui: True
           serve_spec: True
 
+# Custom configuration
+# Cf. https://foca.readthedocs.io/en/latest/modules/foca.models.html#foca.models.config.CustomConfig
+custom:
+  # ServiceInfo configuration based on ServiceInfo model
+  service_info:
+    id: org.ga4gh.myservice
+    name: My project
+    type:
+      group: org.ga4gh
+      artifact: tes
+      version: 1.0.0
+    description: This service provides...
+    organization:
+      name: My organization
+      url: https://example.com
+    contactUrl: mailto:support@example.com
+    documentationUrl: https://docs.myservice.example.com
+    createdAt: '2019-06-04T12:58:19Z'
+    updatedAt: '2019-06-04T12:58:19Z'
+    environment: test
+    version: 1.0.0
+    storage:
+      - file:///path/to/local/funnel-storage
+      - s3://ohsu-compbio-funnel/storage
+    tesResources_backend_parameters:
+      - VmSize
+      - ParamToRecogniseDataComingFromConfig
+
 # Logging configuration
 # Cf. https://foca.readthedocs.io/en/latest/modules/foca.models.html#foca.models.config.LogConfig
 log:
