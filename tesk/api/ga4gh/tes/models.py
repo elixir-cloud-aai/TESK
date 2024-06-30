@@ -353,7 +353,7 @@ class Service(BaseModel):
   organization: Organization = Field(
     ..., description="Organization providing the service"
   )
-  contactUrl: Optional[AnyUrl] = Field(
+  contactUrl: Optional[str] = Field(
     default=None,
     description="URL of the contact for the provider of this service, e.g. a link to a "
     "contact form (RFC 3986 format), or an email (RFC 2368 format).",

@@ -5,6 +5,8 @@ import logging
 # from connexion import request  # type: ignore
 from foca.utils.logging import log_traffic  # type: ignore
 
+from tesk.api.ga4gh.tes.service_info.service_info import ServiceInfo
+
 # Get logger instance
 logger = logging.getLogger(__name__)
 
@@ -36,14 +38,10 @@ def CreateTask(*args, **kwargs) -> dict:  # type: ignore
 
 # GET /tasks/service-info
 @log_traffic
-def GetServiceInfo(*args, **kwargs) -> dict:  # type: ignore
-  """Get service info.
-
-  Args:
-                  *args: Variable length argument list.
-                  **kwargs: Arbitrary keyword arguments.
-  """
-  pass
+def GetServiceInfo() -> dict:  # type: ignore
+  """Get service info."""
+  service_info = ServiceInfo()
+  return service_info.response()
 
 
 # GET /tasks
