@@ -469,7 +469,7 @@ class TesServiceInfo(Service):
     "service",
     example=["VmSize"],
   )
-  type: Optional[TesServiceType] = None # type: ignore
+  type: Optional[TesServiceType] = None  # type: ignore
 
 
 class TesTask(BaseModel):
