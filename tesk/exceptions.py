@@ -13,6 +13,11 @@ from werkzeug.exceptions import (
   NotFound,
 )
 
+
+class ConfigNotFoundError(FileNotFoundError):
+  """Configuration file not found error."""
+
+
 # exceptions raised in app context
 exceptions = {
   Exception: {
