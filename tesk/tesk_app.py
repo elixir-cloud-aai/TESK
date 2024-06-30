@@ -22,14 +22,11 @@ class TeskApp(Foca):
 
   Attributes:
     config_file (Path): Path to the configuration file.
-    custom_config_model (Path): Path to the custom configuration model file.
     conf (Any): Configuration object.
 
   Args:
     config_file (Optional[Path]): Path to the configuration file.
       Defaults to None.
-    custom_config_model (Optional[Path]): Path to the custom
-      configuration model file. Defaults to None.
 
   Notes: TeskApp class uses environment variables to load the configuration
     file and custom configuration model file with `TESK_FOCA_CONFIG_FILE`
