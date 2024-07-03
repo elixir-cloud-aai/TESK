@@ -19,7 +19,7 @@ def init_app() -> FlaskApp:
     configuration file is not found.
 
     Returns:
-        FlaskApp: A Connexion application instance.
+        A Connexion application instance.
 
     Raises:
         FileNotFoundError: If the configuration file is not found.
