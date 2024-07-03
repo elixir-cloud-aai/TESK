@@ -86,7 +86,7 @@ class TesExecutor(BaseModel):
         example={"BLASTDB": "/data/GRC38", "HMMERDB": "/data/hmmer"},
     )
     ignore_error: Optional[bool] = Field(
-        default=None,
+        default=False,
         description="Default behavior of running an array of executors is that "
         "execution\nstops on the first error. If `ignore_error` is `True`, then "
         "the\nrunner will record error exit codes, but will continue on to the "
@@ -154,7 +154,7 @@ class TesInput(BaseModel):
         description="Path of the file inside the container.\nMust be an absolute path.",
         example="/data/file1",
     )
-    type: Optional[TesFileType] = TesFileType.FILE
+    type: Optional[TesFileType] = Field(default=TesFileType.FILE)
     content: Optional[str] = Field(
         default=None,
         description="File content literal.\n\nImplementations should support a minimum "
@@ -486,7 +486,7 @@ class TesTask(BaseModel):
         description="Task identifier assigned by the server.",
         example="job-0012345",
     )
-    state: Optional[TesState] = TesState.UNKNOWN
+    state: Optional[TesState] = Field(default=TesState.UNKNOWN)
     name: Optional[str] = Field(None, description="User-provided task name.")
     description: Optional[str] = Field(
         default=None,
