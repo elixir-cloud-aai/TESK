@@ -25,8 +25,7 @@ def init_app() -> FlaskApp:
         FileNotFoundError: If the configuration file is not found.
     """
     # Determine the configuration path
-    config_path_env = os.getenv("TESK_FOCA_CONFIG_PATH")
-    if config_path_env:
+    if config_path_env := os.getenv("TESK_FOCA_CONFIG_PATH"):
         config_path = Path(config_path_env).resolve()
     else:
         config_path = (
