@@ -88,7 +88,7 @@ exclude = [
   "tesk/services/*",
   "tests/test_unit/test_services/*",
 ]
-indent-width = 2
+indent-width = 4
 
 [tool.ruff.format]
 docstring-code-format = true
