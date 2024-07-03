@@ -3,6 +3,7 @@
 import json
 from typing import Any, Optional
 
+from foca import Foca
 from pydantic import AnyUrl
 
 from tesk.api.ga4gh.tes.models import (
@@ -12,7 +13,7 @@ from tesk.api.ga4gh.tes.models import (
     TesServiceType,
 )
 from tesk.exceptions import ConfigNotFoundError
-from tesk.tesk_app import TeskApp
+from tesk.utils import get_config_path
 
 
 class ServiceInfo:
@@ -21,7 +22,7 @@ class ServiceInfo:
     def __init__(self) -> None:
         """Initializes the BaseServiceInfoRequest class."""
         self.service_info: Optional[TesServiceInfo] = None
-        self.config = TeskApp().conf
+        self.config = Foca(config_file=get_config_path()).conf
 
     def get_default_service_info(self) -> TesServiceInfo:
         """Get the default service info.
