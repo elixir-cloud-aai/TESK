@@ -1,11 +1,11 @@
 """API server entry point."""
 
 import logging
+import os
+from pathlib import Path
 
 from connexion import FlaskApp
 from foca import Foca
-
-from tesk.utils import get_config_path
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +24,13 @@ def init_app() -> FlaskApp:
     Raises:
         FileNotFoundError: If the configuration file is not found.
     """
-    config_path = get_config_path()
+    # Determine the configuration path
+    if config_path_env := os.getenv("TESK_FOCA_CONFIG_PATH"):
+        config_path = Path(config_path_env).resolve()
+    else:
+        config_path = (
+            Path(__file__).parents[1] / "deployment" / "config.yaml"
+        ).resolve()
 
     # Check if the configuration file exists
     if not config_path.exists():
