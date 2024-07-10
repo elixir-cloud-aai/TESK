@@ -6,7 +6,7 @@
 # Server configuration
 # Cf. https://foca.readthedocs.io/en/latest/modules/foca.models.html#foca.models.config.ServerConfig
 server:
-  host: "0.0.0.0"
+  host: '0.0.0.0'
   port: 8080
   debug: True
   environment: development
@@ -54,12 +54,12 @@ custom:
   # ServiceInfo configuration based on ServiceInfo model
   service_info:
     id: org.ga4gh.myservice
-    name: My project
+    name: TESK
     type:
       group: org.ga4gh
       artifact: tes
-      version: 1.0.0
-    description: This service provides...
+      version: 1.1.0
+    description: TES on Kubernetes
     organization:
       name: My organization
       url: https://example.com
@@ -69,9 +69,6 @@ custom:
     updatedAt: '2019-06-04T12:58:19Z'
     environment: test
     version: 1.0.0
-    storage:
-      - file:///path/to/local/funnel-storage
-      - s3://ohsu-compbio-funnel/storage
     tesResources_backend_parameters:
       - VmSize
       - ParamToRecogniseDataComingFromConfig
@@ -84,8 +81,8 @@ log:
   formatters:
     standard:
       class: logging.Formatter
-      style: "{"
-      format: "[{asctime}: {levelname:<8}] {message} [{name}]"
+      style: '{'
+      format: '[{asctime}: {levelname:<8}] {message} [{name}]'
   handlers:
     console:
       class: logging.StreamHandler
@@ -99,9 +96,9 @@ log:
 # Exception configuration
 # Cf. https://foca.readthedocs.io/en/latest/modules/foca.models.html#foca.models.config.ExceptionConfig
 exceptions:
-    required_members: [['detail'], ['status'], ['title']]
-    status_member: ['status']
-    exceptions: tesk.exceptions.exceptions
+  required_members: [['detail'], ['status'], ['title']]
+  status_member: ['status']
+  exceptions: tesk.exceptions.exceptions
 
 storeLogs:
   execution_trace: True

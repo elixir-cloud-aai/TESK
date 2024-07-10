@@ -1,6 +1,7 @@
 """Service info for TES API."""
 
 import json
+import logging
 from typing import Any, Optional
 
 from foca import Foca
@@ -14,6 +15,8 @@ from tesk.api.ga4gh.tes.models import (
 )
 from tesk.exceptions import ConfigNotFoundError
 from tesk.utils import get_config_path
+
+logger = logging.getLogger(__name__)
 
 
 class ServiceInfo:
@@ -33,6 +36,7 @@ class ServiceInfo:
         Returns:
             TesServiceInfo: Default service info.
         """
+        logger.warning("Service info not found in config. Using default service info.")
         return TesServiceInfo(
             id="org.ga4gh.tes",
             name="TES",
@@ -45,7 +49,7 @@ class ServiceInfo:
                 name="my_organization",
                 url=AnyUrl("https://example.com"),
             ),
-            version="1.1.0",
+            version="1.0.0",
         )
 
     def get_service_info_from_config(self) -> TesServiceInfo:
@@ -68,6 +72,7 @@ class ServiceInfo:
         try:
             service_info = TesServiceInfo(**service_info_data)
         except TypeError as e:
+            logging.error(f"Exception occurred: {e}")
             raise ConfigNotFoundError(f"Invalid service info format: {e}") from None
 
         return service_info
@@ -84,5 +89,4 @@ class ServiceInfo:
             except ConfigNotFoundError:
                 self.service_info = self.get_default_service_info()
 
-        # return self.service_info.dict()
         return dict(json.loads(self.service_info.json()))
