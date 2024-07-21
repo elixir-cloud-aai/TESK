@@ -25,6 +25,12 @@ security:
     70624:
       reason: 'No fix available.'
       expires: '2025-5-27'
+    71595:
+      reason: 'Foca needs to update werkzeug to >=2.3.8.'
+      expires: '2025-7-21'
+    71594:
+      reason: 'Foca needs to update werkzeug to >=3.0.3.'
+      expires: '2025-7-21'
 
 report:
   dependency-vulnerabilities:
