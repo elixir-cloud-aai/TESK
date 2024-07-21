@@ -2,8 +2,14 @@
 
 import logging
 
-# from connexion import request  # type: ignore
 from foca.utils.logging import log_traffic  # type: ignore
+
+from tesk.api.kubernetes.template import KubernetesTemplateSupplier
+from tesk.api.ga4gh.tes.models import TesTask
+from tesk.utils import get_custom_config
+from tesk.api.kubernetes.converter import TesKubernetesConverter
+
+# from tesk.api.ga4gh.tes.task.create_task import CreateTask as TaskCreater
 
 # Get logger instance
 logger = logging.getLogger(__name__)
@@ -24,13 +30,22 @@ def CancelTask(id, *args, **kwargs) -> dict:  # type: ignore
 
 # POST /tasks
 @log_traffic
-def CreateTask(*args, **kwargs) -> dict:  # type: ignore
+def CreateTask(**kwargs) -> dict:  # type: ignore
     """Create task.
 
     Args:
         *args: Variable length argument list.
         **kwargs: Arbitrary keyword arguments.
     """
+    request_body = kwargs["body"]
+    create_task_request = TesTask(**request_body)
+    user = {
+        "username": "test",
+        "is_member": True,
+        "any_group": "test_group",
+    }
+    tkc = TesKubernetesConverter().from_tes_task_to_k8s_job(create_task_request, user)
+    print(tkc)
     pass
 
 

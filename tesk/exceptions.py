@@ -7,11 +7,17 @@ from connexion.exceptions import (
     OAuthProblem,
     Unauthorized,
 )
+from kubernetes.client.exceptions import ApiException
 from werkzeug.exceptions import (
     BadRequest,
     InternalServerError,
     NotFound,
 )
+
+
+class ConfigNotFoundError(FileNotFoundError):
+    """Configuration file not found error."""
+
 
 # exceptions raised in app context
 exceptions = {
@@ -66,3 +72,7 @@ exceptions = {
 # exceptions raised outside of app context
 class ValidationError(Exception):
     """Value or object is not compatible with required type or schema."""
+
+
+class KubernetesError(ApiException):
+    """Kubernetes error."""
