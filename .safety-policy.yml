@@ -31,6 +31,9 @@ security:
     71594:
       reason: 'Foca needs to update werkzeug to >=3.0.3.'
       expires: '2025-7-21'
+    71636:
+      reason: 'Foca needs to update authlib to >=1.3.0.'
+      expires: '2025-7-21'
 
 report:
   dependency-vulnerabilities:
