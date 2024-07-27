@@ -33,7 +33,7 @@ foca = "^0.13.0"
 kubernetes = "^29.0.0"
 python = "^3.11"
 requests = ">=2.20.0"
-urllib3 = "^2.2.1"
+urllib3 = "^2.2.2"
 
 [tool.poetry.group.docs.dependencies]
 added-value = "^0.24.0"

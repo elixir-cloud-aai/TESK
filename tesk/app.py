@@ -38,6 +38,7 @@ def init_app() -> FlaskApp:
 
     foca = Foca(
         config_file=config_path,
+        custom_config_model="tesk.custom_config.CustomConfig",
     )
     return foca.create_app()
 
