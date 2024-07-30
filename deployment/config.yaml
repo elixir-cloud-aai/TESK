@@ -6,7 +6,7 @@
 # Server configuration
 # Cf. https://foca.readthedocs.io/en/latest/modules/foca.models.html#foca.models.config.ServerConfig
 server:
-  host: "0.0.0.0"
+  host: '0.0.0.0'
   port: 8080
   debug: True
   environment: development
@@ -48,7 +48,31 @@ api:
           swagger_ui: True
           serve_spec: True
 
+# Custom configuration
+# Cf. https://foca.readthedocs.io/en/latest/modules/foca.models.html#foca.models.config.CustomConfig
 custom:
+  # ServiceInfo configuration based on ServiceInfo model
+  service_info:
+    id: org.ga4gh.myservice
+    name: TESK
+    type:
+      group: org.ga4gh
+      artifact: tes
+      version: 1.1.0
+    description: TES on Kubernetes
+    organization:
+      name: My organization
+      url: https://example.com
+    contactUrl: mailto:support@example.com
+    documentationUrl: https://docs.myservice.example.com
+    createdAt: '2019-06-04T12:58:19Z'
+    updatedAt: '2019-06-04T12:58:19Z'
+    environment: test
+    version: 1.0.0
+    tesResources_backend_parameters:
+      - VmSize
+      - ParamToRecogniseDataComingFromConfig
+  # Taskmaster configuration
   taskmaster_template:
     apiVersion: batch/v1
     kind: Job
@@ -96,6 +120,7 @@ custom:
                 fieldRef:
                   fieldPath: metadata.labels
           restartPolicy: Never
+  # Taskmaster environment properties
   taskmaster_env_properties:
     # Taskmaster image name
     imageName: docker.io/elixircloud/tesk-core-taskmaster
@@ -128,8 +153,8 @@ log:
   formatters:
     standard:
       class: logging.Formatter
-      style: "{"
-      format: "[{asctime}: {levelname:<8}] {message} [{name}]"
+      style: '{'
+      format: '[{asctime}: {levelname:<8}] {message} [{name}]'
   handlers:
     console:
       class: logging.StreamHandler
@@ -143,9 +168,9 @@ log:
 # Exception configuration
 # Cf. https://foca.readthedocs.io/en/latest/modules/foca.models.html#foca.models.config.ExceptionConfig
 exceptions:
-    required_members: [['detail'], ['status'], ['title']]
-    status_member: ['status']
-    exceptions: tesk.exceptions.exceptions
+  required_members: [['detail'], ['status'], ['title']]
+  status_member: ['status']
+  exceptions: tesk.exceptions.exceptions
 
 storeLogs:
   execution_trace: True

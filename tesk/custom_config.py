@@ -4,6 +4,7 @@ from typing import Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
+from tesk.api.ga4gh.tes.models import Service
 from tesk.constants import TeskConstants
 
 
@@ -151,5 +152,7 @@ class Job(BaseModel):
 class CustomConfig(BaseModel):
     """Custom configuration model for the FOCA app."""
 
+    # Define custom configuration fields here
+    service_info: Service
     taskmaster_template: Job  # This is Pydantic model for V1Job
     taskmaster_env_properties: TaskmasterEnvProperties

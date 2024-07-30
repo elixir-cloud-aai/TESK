@@ -4,12 +4,12 @@ import logging
 
 from foca.utils.logging import log_traffic  # type: ignore
 
-from tesk.api.kubernetes.template import KubernetesTemplateSupplier
 from tesk.api.ga4gh.tes.models import TesTask
-from tesk.utils import get_custom_config
+from tesk.api.ga4gh.tes.service_info.service_info import ServiceInfo
 from tesk.api.kubernetes.converter import TesKubernetesConverter
+from tesk.api.kubernetes.template import KubernetesTemplateSupplier
 from tesk.exceptions import BadRequest, InternalServerError
-# from tesk.api.ga4gh.tes.task.create_task import CreateTask as TaskCreater
+from tesk.utils import get_custom_config
 
 # Get logger instance
 logger = logging.getLogger(__name__)
@@ -48,14 +48,10 @@ def CreateTask(**kwargs) -> dict:  # type: ignore
 
 # GET /tasks/service-info
 @log_traffic
-def GetServiceInfo(*args, **kwargs) -> dict:  # type: ignore
-    """Get service info.
-
-    Args:
-        *args: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments.
-    """
-    pass
+def GetServiceInfo() -> dict:  # type: ignore
+    """Get service info."""
+    service_info = ServiceInfo()
+    return service_info.response()
 
 
 # GET /tasks

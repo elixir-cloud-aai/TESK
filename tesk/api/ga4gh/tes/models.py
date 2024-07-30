@@ -86,7 +86,7 @@ class TesExecutor(BaseModel):
         example={"BLASTDB": "/data/GRC38", "HMMERDB": "/data/hmmer"},
     )
     ignore_error: Optional[bool] = Field(
-        default=False,
+        default=None,
         description="Default behavior of running an array of executors is that "
         "execution\nstops on the first error. If `ignore_error` is `True`, then "
         "the\nrunner will record error exit codes, but will continue on to the "
@@ -154,7 +154,7 @@ class TesInput(BaseModel):
         description="Path of the file inside the container.\nMust be an absolute path.",
         example="/data/file1",
     )
-    type: Optional[TesFileType] = Field(default=TesFileType.FILE)
+    type: Optional[TesFileType] = TesFileType.FILE
     content: Optional[str] = Field(
         default=None,
         description="File content literal.\n\nImplementations should support a minimum "
@@ -337,9 +337,9 @@ class Service(BaseModel):
     id: str = Field(
         ...,
         description="Unique ID of this service. Reverse domain name notation is "
-        "recommended, though not required. The identifier should attempt to be globally"
-        " unique so it can be used in downstream aggregator services e.g. Service "
-        "Registry.",
+        "recommended, though not required. The identifier should attempt to be "
+        "globally unique so it can be used in downstream aggregator services e.g. "
+        "Service Registry.",
         example="org.ga4gh.myservice",
     )
     name: str = Field(
@@ -357,7 +357,7 @@ class Service(BaseModel):
     organization: Organization = Field(
         ..., description="Organization providing the service"
     )
-    contactUrl: Optional[AnyUrl] = Field(
+    contactUrl: Optional[str] = Field(
         default=None,
         description="URL of the contact for the provider of this service, e.g. a link "
         "to a contact form (RFC 3986 format), or an email (RFC 2368 format).",
@@ -486,7 +486,7 @@ class TesTask(BaseModel):
         description="Task identifier assigned by the server.",
         example="job-0012345",
     )
-    state: Optional[TesState] = Field(default=TesState.UNKNOWN)
+    state: Optional[TesState] = TesState.UNKNOWN
     name: Optional[str] = Field(None, description="User-provided task name.")
     description: Optional[str] = Field(
         default=None,
