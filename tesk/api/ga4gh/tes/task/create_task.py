@@ -7,6 +7,7 @@ from tesk.api.kubernetes.client_wrapper import KubernetesClientWrapper
 from tesk.api.kubernetes.constants import Constants
 from tesk.api.kubernetes.converter import TesKubernetesConverter
 from tesk.exceptions import KubernetesError
+from tesk.constants import TeskConstants
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +15,8 @@ logger = logging.getLogger(__name__)
 class CreateTesTask:
     """Create TES task."""
 
-    def __init__(self, task: TesTask, user=None, namespace="default"):
+    # TODO: Add user to the class when auth implemented in FOCA
+    def __init__(self, task: TesTask, namespace=TeskConstants.tesk_namespace):
         """Initialize the CreateTask class.
 
         Args:
@@ -23,7 +25,7 @@ class CreateTesTask:
           namespace: Kubernetes namespace where the task is created.
         """
         self.task = task
-        self.user = user
+        # self.user = user
         self.kubernetes_client_wrapper = KubernetesClientWrapper()
         self.namespace = namespace
         self.tes_kubernetes_converter = TesKubernetesConverter(self.namespace)
@@ -32,7 +34,7 @@ class CreateTesTask:
     def create_task(self):
         """Create TES task."""
         attempts_no = 0
-        while True:
+        while attempts_no > self.constants.job_create_attempts_no:
             try:
                 resources = self.task.resources
 
@@ -46,7 +48,7 @@ class CreateTesTask:
                         self.task, self.user
                     )
                 )
-                
+
                 # TODO: Create ConfigMap
                 # TODO: Create Job
                 # TODO Return created job

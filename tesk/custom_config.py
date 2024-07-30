@@ -4,6 +4,8 @@ from typing import Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
+from tesk.constants import TeskConstants
+
 
 class FtpConfig(BaseModel):
     """Ftp configuration model for the TESK."""
@@ -21,13 +23,19 @@ class TaskmasterEnvProperties(BaseModel):
     """Taskmaster environment properties model for the TESK."""
 
     imageName: str = Field(
-        default="eu.gcr.io/tes-wes/taskmaster", description="Taskmaster image name"
+        default=TeskConstants.taskmaster_image_name,
+        description="Taskmaster image name",
     )
-    imageVersion: str = Field(default="v0.10.0", description="Taskmaster image version")
+    imageVersion: str = Field(
+        default=TeskConstants.taskmaster_image_version,
+        description="Taskmaster image version",
+    )
     filerImageName: str = Field(
-        default="eu.gcr.io/tes-wes/filer", description="Filer image name"
+        default=TeskConstants.filer_image_name, description="Filer image name"
     )
-    filerImageVersion: str = Field(default="v0.10.0", description="Filer image version")
+    filerImageVersion: str = Field(
+        default=TeskConstants.filer_image_version, description="Filer image version"
+    )
     ftp: FtpConfig = Field(default=None, description="Test FTP account settings")
     debug: bool = Field(
         default=False,

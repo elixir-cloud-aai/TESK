@@ -7,6 +7,7 @@ from kubernetes import client, config
 from kubernetes.client import V1ConfigMap, V1Job, V1LimitRangeList
 from kubernetes.utils.quantity import parse_quantity  # type: ignore
 
+from tesk.constants import TeskConstants
 from tesk.exceptions import KubernetesError, NotFound
 
 logger = logging.getLogger(__name__)
@@ -15,7 +16,7 @@ logger = logging.getLogger(__name__)
 class KubernetesClientWrapper:
     """Kubernetes client wrapper class."""
 
-    def __init__(self, namespace="tesk"):
+    def __init__(self, namespace=TeskConstants.tesk_namespace):
         """Initialize the Kubernetes client wrapper.
 
         Args:
@@ -132,9 +133,12 @@ class KubernetesClientWrapper:
                         mem_bytes = self.quantity_to_bytes(mem_quantity)
                         min_ram = max(min_ram, mem_bytes)
             return min_ram / (1024**3)
-        except Exception as e:
+        except (ValueError, TypeError) as e:
             logger.error(f"Error in minimum_ram_gb: {e}")
             return 0.0
+        except Exception as e:
+            logger.error(f"Unexpected error in minimum_ram_gb: {e}")
+            raise
 
     def quantity_to_bytes(self, quantity: str) -> int:
         """Convert quantity(resource) to bytes."""

@@ -8,7 +8,7 @@ from tesk.api.kubernetes.template import KubernetesTemplateSupplier
 from tesk.api.ga4gh.tes.models import TesTask
 from tesk.utils import get_custom_config
 from tesk.api.kubernetes.converter import TesKubernetesConverter
-
+from tesk.exceptions import BadRequest, InternalServerError
 # from tesk.api.ga4gh.tes.task.create_task import CreateTask as TaskCreater
 
 # Get logger instance
@@ -37,16 +37,13 @@ def CreateTask(**kwargs) -> dict:  # type: ignore
         *args: Variable length argument list.
         **kwargs: Arbitrary keyword arguments.
     """
-    request_body = kwargs["body"]
-    create_task_request = TesTask(**request_body)
-    user = {
-        "username": "test",
-        "is_member": True,
-        "any_group": "test_group",
-    }
-    tkc = TesKubernetesConverter().from_tes_task_to_k8s_job(create_task_request, user)
-    print(tkc)
-    pass
+    try:
+        request_body = kwargs.get("body")
+        if request_body is None:
+            logger("Nothing recieved in request body.")
+            raise BadRequest("No request body recieved.")
+    except Exception as e:
+        raise InternalServerError from e
 
 
 # GET /tasks/service-info

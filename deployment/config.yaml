@@ -64,7 +64,7 @@ custom:
           serviceAccountName: default
           containers:
           - name: taskmaster
-            image: eu.gcr.io/tes-wes/taskmaster:v0.0.5.2
+            image: docker.io/elixircloud/tesk-core-taskmaster:v0.10.2
             args:
             - -f
             - /jsoninput/JSON_INPUT.gz
@@ -98,13 +98,13 @@ custom:
           restartPolicy: Never
   taskmaster_env_properties:
     # Taskmaster image name
-    imageName: eu.gcr.io/tes-wes/taskmaster
+    imageName: docker.io/elixircloud/tesk-core-taskmaster
     # Taskmaster image version
-    imageVersion: v0.10.0
+    imageVersion: latest
     # Filer image name
-    filerImageName: eu.gcr.io/tes-wes/filer
+    filerImageName: docker.io/elixircloud/tesk-core-filer
     # Filer image version
-    filerImageVersion: v0.10.0
+    filerImageVersion: latest
     # Test FTP account settings
     ftp:
       # Name of the secret with FTP account credentials

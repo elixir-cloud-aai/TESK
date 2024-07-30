@@ -9,6 +9,7 @@ from kubernetes.client import (
 from kubernetes.client.models import V1Job
 
 from tesk.api.kubernetes.constants import Constants, K8sConstants
+from tesk.constants import TeskConstants
 from tesk.custom_config import TaskmasterEnvProperties
 from tesk.utils import get_taskmaster_env_property, get_taskmaster_template
 
@@ -18,7 +19,7 @@ logger = logging.getLogger(__name__)
 class KubernetesTemplateSupplier:
     """Templates for tasmaster's and executor's job object.."""
 
-    def __init__(self, namespace="default"):
+    def __init__(self, namespace=TeskConstants.tesk_namespace):
         """Initialize the converter."""
         self.taskmaster_template: V1Job = get_taskmaster_template()
         self.taskmaster_env_properties: TaskmasterEnvProperties = (

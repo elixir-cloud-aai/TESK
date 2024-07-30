@@ -16,6 +16,7 @@ from kubernetes.client.models import V1Job
 from tesk.api.ga4gh.tes.models import TesTask
 from tesk.api.kubernetes.constants import Constants, K8sConstants
 from tesk.api.kubernetes.template import KubernetesTemplateSupplier
+from tesk.constants import TeskConstants
 from tesk.custom_config import TaskmasterEnvProperties
 from tesk.utils import get_taskmaster_env_property, get_taskmaster_template
 
@@ -23,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 
 class TesKubernetesConverter:
-    def __init__(self, namespace="default"):
+    def __init__(self, namespace=TeskConstants.tesk_namespace):
         """Initialize the converter."""
         self.taskmaster_template: V1Job = get_taskmaster_template()
         self.taskmaster_env_properties: TaskmasterEnvProperties = (
@@ -33,7 +34,8 @@ class TesKubernetesConverter:
         self.k8s_constants = K8sConstants()
         self.namespace = namespace
 
-    def from_tes_task_to_k8s_job(self, task: TesTask, user):
+    # TODO: Add user to the mmethod when auth implemented in FOCA
+    def from_tes_task_to_k8s_job(self, task: TesTask):
         taskmsater_job: V1Job = KubernetesTemplateSupplier(
             self.namespace
         ).task_master_template()
@@ -50,18 +52,18 @@ class TesKubernetesConverter:
         taskmsater_job.metadata.annotations[self.constants.ann_testask_name_key] = (
             task.name
         )
-        taskmsater_job.metadata.labels[self.constants.label_userid_key] = user[
-            "username"
-        ]
+        # taskmsater_job.metadata.labels[self.constants.label_userid_key] = user[
+        #     "username"
+        # ]
 
-        if task.tags and "GROUP_NAME" in task.tags:
-            taskmsater_job.metadata.labels[self.constants.label_userid_key] = task[
-                "tags"
-            ]["GROUP_NAME"]
-        elif user["is_member"]:
-            taskmsater_job.metadata.labels[self.constants.label_groupname_key] = user[
-                "any_group"
-            ]
+        # if task.tags and "GROUP_NAME" in task.tags:
+        #     taskmsater_job.metadata.labels[self.constants.label_userid_key] = task[
+        #         "tags"
+        #     ]["GROUP_NAME"]
+        # elif user["is_member"]:
+        #     taskmsater_job.metadata.labels[self.constants.label_groupname_key] = user[
+        #         "any_group"
+        #     ]
 
         try:
             taskmsater_job.metadata.annotations[self.constants.ann_json_input_key] = (
