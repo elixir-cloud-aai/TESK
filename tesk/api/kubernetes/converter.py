@@ -13,7 +13,7 @@ from kubernetes.client import (
 )
 from kubernetes.client.models import V1Job
 
-from tesk.api.ga4gh.tes.models import TesTask
+from tesk.api.ga4gh.tes.models import TesExecutor, TesResources, TesTask
 from tesk.api.kubernetes.constants import Constants, K8sConstants
 from tesk.api.kubernetes.template import KubernetesTemplateSupplier
 from tesk.constants import TeskConstants
@@ -26,7 +26,6 @@ logger = logging.getLogger(__name__)
 class TesKubernetesConverter:
     def __init__(self, namespace=TeskConstants.tesk_namespace):
         """Initialize the converter."""
-        self.taskmaster_template: V1Job = get_taskmaster_template()
         self.taskmaster_env_properties: TaskmasterEnvProperties = (
             get_taskmaster_env_property()
         )
@@ -82,54 +81,108 @@ class TesKubernetesConverter:
 
         return taskmsater_job
 
-    # def from_tes_task_to_k8s_config_map(self, task, user, job):
-    #     task_master_config_map = V1ConfigMap(
-    #         metadata=V1ObjectMeta(name=job.metadata.name)
-    #     )
-    #     task_master_config_map.metadata.annotations[ANN_TESTASK_NAME_KEY] = task["name"]
-    #     task_master_config_map.metadata.labels[LABEL_USERID_KEY] = user["username"]
+    def from_tes_task_to_k8s_config_map(
+        self,
+        task: TesTask,
+        # user,
+        job,
+    ):
+        task_master_config_map = V1ConfigMap(
+            metadata=V1ObjectMeta(name=job.metadata.name)
+        )
+        task_master_config_map.metadata.annotations[
+            self.constants.ann_testask_name_key
+        ] = task["name"]
+        # task_master_config_map.metadata.labels[self.constants.label_userid_key] = user["username"]
 
-    #     if "tags" in task and "GROUP_NAME" in task["tags"]:
-    #         task_master_config_map.metadata.labels[LABEL_GROUPNAME_KEY] = task["tags"][
-    #             "GROUP_NAME"
-    #         ]
-    #     elif user["is_member"]:
-    #         task_master_config_map.metadata.labels[LABEL_GROUPNAME_KEY] = user[
-    #             "any_group"
-    #         ]
+        if "tags" in task and "GROUP_NAME" in task["tags"]:
+            task_master_config_map.metadata.labels[
+                self.constants.label_groupname_key
+            ] = task["tags"]["GROUP_NAME"]
+        # elif user["is_member"]:
+        #     task_master_config_map.metadata.labels[self.constants.label_groupname_key] = user[
+        #         "any_group"
+        #     ]
 
-    #     executors_as_jobs = [
-    #         self.from_tes_executor_to_k8s_job(
-    #             task_master_config_map.metadata.name,
-    #             task["name"],
-    #             executor,
-    #             idx,
-    #             task["resources"],
-    #             user,
-    #         )
-    #         for idx, executor in enumerate(task["executors"])
-    #     ]
+        executors_as_jobs = [
+            self.from_tes_executor_to_k8s_job(
+                task_master_config_map.metadata.name,
+                task["name"],
+                executor,
+                idx,
+                task["resources"],
+                # user,
+            )
+            for idx, executor in enumerate(task["executors"])
+        ]
 
-    #     task_master_input = {
-    #         "inputs": task.get("inputs", []),
-    #         "outputs": task.get("outputs", []),
-    #         "volumes": task.get("volumes", []),
-    #         "resources": {"disk_gb": task["resources"].get("disk_gb", 10.0)},
-    #     }
-    #     task_master_input[TASKMASTER_INPUT_EXEC_KEY] = executors_as_jobs
+        task_master_input = {
+            "inputs": task.inputs or [],
+            "outputs": task.outputs or [],
+            "volumes": task.volumes or [],
+            "resources": {"disk_gb": task.resources.disk_gb or 10.0},
+        }
+        task_master_input[self.constants.taskmaster_input_exec_key] = executors_as_jobs
 
-    #     task_master_input_as_json = json.dumps(task_master_input)
-    #     try:
-    #         with BytesIO() as obj:
-    #             with gzip.GzipFile(fileobj=obj, mode="wb") as gzip_file:
-    #                 gzip_file.write(task_master_input_as_json.encode("utf-8"))
-    #             task_master_config_map.binary_data = {
-    #                 f"{TASKMASTER_INPUT}.gz": obj.getvalue()
-    #             }
-    #     except Exception as e:
-    #         logger.info(
-    #             f"Compression of task {task_master_config_map.metadata.name} JSON configmap failed",
-    #             e,
-    #         )
+        task_master_input_as_json = json.dumps(task_master_input)
+        try:
+            with BytesIO() as obj:
+                with gzip.GzipFile(fileobj=obj, mode="wb") as gzip_file:
+                    gzip_file.write(task_master_input_as_json.encode("utf-8"))
+                task_master_config_map.binary_data = {
+                    f"{self.constants.taskmaster_input}.gz": obj.getvalue()
+                }
+        except Exception as e:
+            logger.info(
+                f"Compression of task {task_master_config_map.metadata.name} JSON configmap failed",
+                e,
+            )
 
-    #     return task_master_config_map
+        return task_master_config_map
+
+
+    def from_tes_executor_to_k8s_job(
+        self,
+        generated_task_id: str,
+        tes_task_name: str,
+        executor: TesExecutor,
+        executor_index: int,
+        resources: TesResources,
+        # user: User
+    ) -> V1Job:
+        # Get new template executor Job object
+        job = self.executor_template_supplier()
+        
+        # Set executors name based on taskmaster's job name
+        Job(job).change_job_name(Task(generated_task_id).get_executor_name(executor_index))
+        
+        # Put arbitrary labels and annotations
+        job.metadata.labels = job.metadata.labels or {}
+        job.metadata.labels["taskId"] = generated_task_id
+        job.metadata.labels["execNo"] = str(executor_index)
+        job.metadata.labels["userId"] = user.username
+        
+        job.metadata.annotations = job.metadata.annotations or {}
+        job.metadata.annotations["tesTaskName"] = tes_task_name
+        
+        container = job.spec.template.spec.containers[0]
+        
+        # Convert potential TRS URI into docker image
+        container.image = self.trs_client.get_docker_image_for_tool_version_uri(executor.image)
+        
+        # Map executor's command to job container's command
+        for command in ExecutorCommandWrapper(executor).get_commands_with_stream_redirects():
+            container.add_command_item(command)
+        
+        if executor.env:
+            container.env = [V1EnvVar(name=key, value=value) for key, value in executor.env.items()]
+        
+        container.working_dir = executor.workdir
+        
+        if resources.cpu_cores:
+            container.resources.requests['cpu'] = QuantityFormatter().parse(str(resources.cpu_cores))
+        
+        if resources.ram_gb:
+            container.resources.requests['memory'] = QuantityFormatter().parse(f"{resources.ram_gb:.6f}Gi")
+        
+        return job

@@ -55,6 +55,32 @@ After the last executor, the `filer` is called once more to process the outputs
 and push them to remote locations from the PVC. The PVC is the scrubbed, deleted
 and the taskmaster ends, completing the task.
 
+┌─────────────────────────────────────────────────────────┐
+│                         Kubernetes                      │
+│                                                         │
+│  ┌────────────────────────────┐  ┌───────────────────┐  │
+│  │ Secret: ftp-secret         │  │ ConfigMap/PVC     │  │
+│  │ - username                 │  │ - JSON_INPUT.gz   │  │
+│  │ - password                 │  │                   │  │
+│  └──────────▲─────────────────┘  └───────▲───────────┘  │
+│             │                            |              │
+│             │                            |              │
+│             │                            |              │
+│   ┌─────────┴────────────────────────────┴────────────┐ │
+│   │                Job: taskmaster                    │ │
+│   │ ┌───────────────────────────────────────────────┐ │ │
+│   │ │ Pod: taskmaster                               │ │ │
+│   │ │ - Container: taskmaster                       │ │ │
+│   │ │   - Env: TESK_FTP_USERNAME                    │ │ │
+│   │ │   - Env: TESK_FTP_PASSWORD                    │ │ │
+│   │ │   - Args: -f /jsoninput/JSON_INPUT.gz         │ │ │
+│   │ │   - Mounts: /podinfo                          │ │ │
+│   │ │             /jsoninput                        │ │ │
+│   │ └───────────────────────────────────────────────┘ │ │
+│   └───────────────────────────────────────────────────┘ │
+│                                                         │
+└─────────────────────────────────────────────────────────┘
+
 ## Requirements
 
 - A working [Kubernetes](https://kubernetes.io/) cluster version 1.9 and later.

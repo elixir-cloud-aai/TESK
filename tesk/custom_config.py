@@ -20,6 +20,26 @@ class FtpConfig(BaseModel):
     )
 
 
+class ExecutorSecret(BaseModel):
+    """Executor secret configuration."""
+
+    name: Optional[str] = Field(
+        default=None,
+        description=(
+            "Name of a secret that will be mounted as volume to each executor. The same"
+            " name will be used for the secret and the volume"
+        ),
+    )
+    mountPath: Optional[str] = Field(
+        default=None,
+        alias="mountPath",
+        description="The path where the secret will be mounted to executors",
+    )
+    enabled: bool = Field(
+        default=False, description="Indicates whether the secret is enabled"
+    )
+
+
 class TaskmasterEnvProperties(BaseModel):
     """Taskmaster environment properties model for the TESK."""
 
@@ -49,6 +69,15 @@ class TaskmasterEnvProperties(BaseModel):
     )
     serviceAccountName: str = Field(
         default="default", description="Service Account name for taskmaster"
+    )
+    debug: bool = Field(
+        default=False,
+        description="If verbose (debug) mode of taskmaster is on (passes additional "
+        "flag to taskmaster and sets image pull policy to Always)",
+    )
+    executorSecret: Optional[ExecutorSecret] = Field(
+        default=None,
+        description="Executor secret configuration"
     )
 
 

@@ -21,7 +21,6 @@ class CreateTesTask:
 
         Args:
           task: TES task to create.
-          user: User who creates the task.
           namespace: Kubernetes namespace where the task is created.
         """
         self.task = task
@@ -45,9 +44,12 @@ class CreateTesTask:
 
                 task_master_job = (
                     self.tes_kubernetes_converter.from_tes_task_to_k8s_job(
-                        self.task, self.user
+                        self.task,
+                        # self.user
                     )
                 )
+
+                print(task_master_job)
 
                 # TODO: Create ConfigMap
                 # TODO: Create Job

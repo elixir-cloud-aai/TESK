@@ -4,7 +4,16 @@ import logging
 import uuid
 
 from kubernetes.client import (
+    V1Container,
     V1EnvVar,
+    V1JobSpec,
+    V1ObjectMeta,
+    V1PodSpec,
+    V1PodTemplateSpec,
+    V1ResourceRequirements,
+    V1SecretVolumeSource,
+    V1Volume,
+    V1VolumeMount,
 )
 from kubernetes.client.models import V1Job
 
@@ -19,7 +28,7 @@ logger = logging.getLogger(__name__)
 class KubernetesTemplateSupplier:
     """Templates for tasmaster's and executor's job object.."""
 
-    def __init__(self, namespace=TeskConstants.tesk_namespace):
+    def __init__(self, namespace=TeskConstants.tesk_namespace, security_context = None):
         """Initialize the converter."""
         self.taskmaster_template: V1Job = get_taskmaster_template()
         self.taskmaster_env_properties: TaskmasterEnvProperties = (
@@ -28,6 +37,7 @@ class KubernetesTemplateSupplier:
         self.constants = Constants()
         self.k8s_constants = K8sConstants()
         self.namespace = namespace
+        self.security_context= security_context
 
     def get_task_master_name(self) -> str:
         """Generate a unique name for the taskmaster job."""
@@ -87,5 +97,50 @@ class KubernetesTemplateSupplier:
                     env.value_from.secret_key_ref.name = (
                         self.taskmaster_env_properties.ftp.secretName
                     )
+
+        return job
+
+    def executor_template(self):
+        container = V1Container(resources=V1ResourceRequirements())
+
+        if self.taskmaster_env_properties.executorSecret is not None:
+            container.volume_mounts = [
+                V1VolumeMount(
+                    read_only=True,
+                    name=self.taskmaster_env_properties.executorSecret.name,
+                    mount_path=self.taskmaster_env_properties.executorSecret.mountPath,
+                )
+            ]
+
+        pod_spec = V1PodSpec(
+            containers=[container],
+            restart_policy=self.k8s_constants.job_restart_policy,
+        )
+
+        if self.security_context:
+            pod_spec.security_context = self.security_context
+
+        job = V1Job(
+            api_version=self.k8s_constants.k8s_batch_api_version,
+            kind=self.k8s_constants.k8s_batch_api_job_type,
+            metadata=V1ObjectMeta(
+                labels={
+                    self.constants.label_jobtype_key: self.constants.label_jobtype_value_exec
+                }
+            ),
+            spec=V1JobSpec(
+                template=V1PodTemplateSpec(metadata=V1ObjectMeta(), spec=pod_spec)
+            ),
+        )
+
+        if self.taskmaster_env_properties.executorSecret is not None:
+            job.spec.template.spec.volumes = [
+                V1Volume(
+                    name=self.taskmaster_env_properties.executorSecret.name,
+                    secret=V1SecretVolumeSource(
+                        secret_name=self.taskmaster_env_properties.executorSecret.name
+                    ),
+                )
+            ]
 
         return job
