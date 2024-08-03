@@ -5,9 +5,9 @@ import logging
 from tesk.api.ga4gh.tes.models import TesTask
 from tesk.api.kubernetes.client_wrapper import KubernetesClientWrapper
 from tesk.api.kubernetes.constants import Constants
-from tesk.api.kubernetes.converter import TesKubernetesConverter
-from tesk.exceptions import KubernetesError
+from tesk.api.kubernetes.convert.converter import TesKubernetesConverter
 from tesk.constants import TeskConstants
+from tesk.exceptions import KubernetesError
 
 logger = logging.getLogger(__name__)
 
@@ -33,8 +33,9 @@ class CreateTesTask:
     def create_task(self):
         """Create TES task."""
         attempts_no = 0
-        while attempts_no > self.constants.job_create_attempts_no:
+        while attempts_no < self.constants.job_create_attempts_no:
             try:
+                attempts_no += 1
                 resources = self.task.resources
 
                 if resources and resources.ram_gb:
@@ -49,28 +50,27 @@ class CreateTesTask:
                     )
                 )
 
+                task_master_config_map = (
+                    self.tes_kubernetes_converter.from_tes_task_to_k8s_config_map(
+                        self.task,
+                        task_master_job,
+                        # user
+                    )
+                )
+                _ = self.kubernetes_client_wrapper.create_config_map(
+                    task_master_config_map
+                )
+                created_job = self.kubernetes_client_wrapper.create_job(task_master_job)
+                print(task_master_config_map)
                 print(task_master_job)
-
-                # TODO: Create ConfigMap
-                # TODO: Create Job
-                # TODO Return created job
-                # task_master_config_map = converter.from_tes_task_to_k8s_config_map(
-                #     task, user, task_master_job
-                # )
-                # created_config_map = kubernetes_client_wrapper.create_config_map(
-                #     task_master_config_map
-                # )
-                # created_job = kubernetes_client_wrapper.create_job(task_master_job)
-                # return converter.from_k8s_job_to_tes_create_task_response(created_job)
+                return created_job.metadata.name
 
             except KubernetesError as e:
-                # Handle Kubernetes specific exceptions
                 if (
                     not e.is_object_name_duplicated()
                     or attempts_no >= self.constants.job_create_attempts_no
                 ):
                     raise e
-                attempts_no += 1
 
             except Exception as exc:
                 logging.error("ERROR: In createTask", exc_info=True)

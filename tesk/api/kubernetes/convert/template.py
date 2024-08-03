@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 class KubernetesTemplateSupplier:
     """Templates for tasmaster's and executor's job object.."""
 
-    def __init__(self, namespace=TeskConstants.tesk_namespace, security_context = None):
+    def __init__(self, namespace=TeskConstants.tesk_namespace, security_context=None):
         """Initialize the converter."""
         self.taskmaster_template: V1Job = get_taskmaster_template()
         self.taskmaster_env_properties: TaskmasterEnvProperties = (
@@ -37,7 +37,7 @@ class KubernetesTemplateSupplier:
         self.constants = Constants()
         self.k8s_constants = K8sConstants()
         self.namespace = namespace
-        self.security_context= security_context
+        self.security_context = security_context
 
     def get_task_master_name(self) -> str:
         """Generate a unique name for the taskmaster job."""
@@ -101,7 +101,7 @@ class KubernetesTemplateSupplier:
         return job
 
     def executor_template(self):
-        container = V1Container(resources=V1ResourceRequirements())
+        container = V1Container(name="executor", resources=V1ResourceRequirements())
 
         if self.taskmaster_env_properties.executorSecret is not None:
             container.volume_mounts = [

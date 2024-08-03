@@ -13,6 +13,7 @@ from werkzeug.exceptions import (
     InternalServerError,
     NotFound,
 )
+from http import HTTPStatus
 
 
 class ConfigNotFoundError(FileNotFoundError):
@@ -76,3 +77,7 @@ class ValidationError(Exception):
 
 class KubernetesError(ApiException):
     """Kubernetes error."""
+
+    def is_object_name_duplicated(self) -> bool:
+        """Check if object name is duplicated."""
+        return self.status == HTTPStatus.CONFLICT

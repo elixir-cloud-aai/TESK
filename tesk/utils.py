@@ -2,7 +2,7 @@
 
 import os
 from pathlib import Path
-from typing import Optional
+from typing import Any, List, Optional
 
 from foca import Foca
 from kubernetes.client.models import (
@@ -20,6 +20,7 @@ from kubernetes.client.models import (
     V1Volume,
     V1VolumeMount,
 )
+from pydantic import BaseModel
 
 from tesk.custom_config import (
     Container,
@@ -75,7 +76,6 @@ def get_taskmaster_template() -> V1Job:
     """
     custom_conf = get_custom_config()
     try:
-        print(custom_conf.taskmaster_template)
         return job_to_v1job(custom_conf.taskmaster_template)
     except AttributeError:
         raise ConfigNotFoundError(
@@ -189,3 +189,10 @@ def job_to_v1job(job: Job) -> V1Job:
         metadata=convert_job_metadata(job.metadata),
         spec=convert_job_spec(job.spec),
     )
+
+
+def pydantic_model_list_json(model_list: List[BaseModel]) -> List[dict[str, Any]]:
+    json_list = []
+    for item in model_list:
+        json_list.append(item.json())
+    return json_list

@@ -7,8 +7,8 @@ from foca.utils.logging import log_traffic  # type: ignore
 from tesk.api.ga4gh.tes.models import TesTask
 from tesk.api.ga4gh.tes.service_info.service_info import ServiceInfo
 from tesk.api.ga4gh.tes.task.create_task import CreateTesTask
-from tesk.api.kubernetes.converter import TesKubernetesConverter
-from tesk.api.kubernetes.template import KubernetesTemplateSupplier
+from tesk.api.kubernetes.convert.converter import TesKubernetesConverter
+from tesk.api.kubernetes.convert.template import KubernetesTemplateSupplier
 from tesk.exceptions import BadRequest, InternalServerError
 from tesk.utils import get_custom_config
 
@@ -43,7 +43,10 @@ def CreateTask(**kwargs) -> dict:  # type: ignore
         if request_body is None:
             logger("Nothing recieved in request body.")
             raise BadRequest("No request body recieved.")
-        CreateTesTask(TesTask(**request_body)).create_task()
+        tes_task = TesTask(**request_body)
+        namespace = "tesk"
+        task_creater = CreateTesTask(tes_task, namespace)
+        task_creater.response()
     except Exception as e:
         raise InternalServerError from e
 
