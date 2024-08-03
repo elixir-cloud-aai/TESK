@@ -1,5 +1,7 @@
 """App exceptions."""
 
+from http import HTTPStatus
+
 from connexion.exceptions import (
     BadRequestProblem,
     ExtraParameterProblem,
@@ -13,7 +15,6 @@ from werkzeug.exceptions import (
     InternalServerError,
     NotFound,
 )
-from http import HTTPStatus
 
 
 class ConfigNotFoundError(FileNotFoundError):

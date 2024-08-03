@@ -23,7 +23,6 @@ from kubernetes.utils.quantity import parse_quantity  # type: ignore
 from tesk.api.ga4gh.tes.models import TesExecutor, TesResources, TesTask
 from tesk.api.kubernetes.constants import Constants, K8sConstants
 from tesk.api.kubernetes.convert.data.job import Job
-from tesk.api.kubernetes.convert.data.task import Task
 from tesk.api.kubernetes.convert.executor_command_wrapper import ExecutorCommandWrapper
 from tesk.api.kubernetes.convert.template import KubernetesTemplateSupplier
 from tesk.constants import TeskConstants
@@ -121,16 +120,17 @@ class TesKubernetesConverter:
         task_master_config_map.metadata.annotations[
             self.constants.ann_testask_name_key
         ] = task.name
-        # task_master_config_map.metadata.labels[self.constants.label_userid_key] = user["username"]
+
+        # task_master_config_map.metadata.labels[self.constants.label_userid_key]
+        # = user["username"]
 
         if "tags" in task and "GROUP_NAME" in task.tags:
             task_master_config_map.metadata.labels[
                 self.constants.label_groupname_key
             ] = task.tags["GROUP_NAME"]
         # elif user["is_member"]:
-        #     task_master_config_map.metadata.labels[self.constants.label_groupname_key] = user[
-        #         "any_group"
-        #     ]
+        #     task_master_config_map.metadata.labels[self.constants.label_groupname_key]
+        #       = user["any_group"]
 
         executors_as_jobs = [
             self.from_tes_executor_to_k8s_job(
@@ -174,13 +174,16 @@ class TesKubernetesConverter:
                 }
         except Exception as e:
             logger.info(
-                f"Compression of task {task_master_config_map.metadata.name} JSON configmap failed",
+                (
+                    f"Compression of task {task_master_config_map.metadata.name}"
+                    f" JSON configmap failed"
+                ),
                 e,
             )
 
         return task_master_config_map
 
-    def from_tes_executor_to_k8s_job(
+    def from_tes_executor_to_k8s_job(  # noqa: PLR0913
         self,
         generated_task_id: str,
         tes_task_name: str,
@@ -189,6 +192,7 @@ class TesKubernetesConverter:
         resources: TesResources,
         # user: User
     ) -> V1Job:
+        """Create a Kubernetes job from a TES executor."""
         # Get new template executor Job object
         job: V1Job = self.template_supplier.executor_template()
 

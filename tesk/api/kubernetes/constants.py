@@ -6,6 +6,8 @@ from pydantic import BaseModel, Field
 
 
 class Constants(BaseModel):
+    """Constants related to job and tasks."""
+
     taskmaster_input: str = Field(
         default="JSON_INPUT",
         description="ENV var that serves as taskmaster script input (JSON format)",
@@ -29,30 +31,47 @@ class Constants(BaseModel):
     )
     job_name_taskm_rand_part_length: int = Field(
         default=4,
-        description="No of bytes of random part of task master's name (which end up encoded to hex)",
+        description=(
+            "No of bytes of random part of task master's name (which end up "
+            "encoded to hex)"
+        ),
     )
     job_name_exec_no_length: int = Field(
         default=2,
-        description="No of digits reserved for executor number in executor's job name. Ends up padded with '0' for numbers < 10",
+        description=(
+            "No of digits reserved for executor number in executor's job name. Ends up "
+            "padded with '0' for numbers < 10",
+        ),
     )
     job_name_filer_suf: str = Field(
         default="-outputs-filer", description="Output filer name suffix"
     )
     ann_testask_name_key: str = Field(
         default="tes-task-name",
-        description="Key of the annotation, that stores name of TES task in both taskmaster's job and executor's jobs",
+        description=(
+            "Key of the annotation, that stores name of TES task in both taskmaster's "
+            "job and executor's jobs"
+        ),
     )
     ann_json_input_key: str = Field(
         default="json-input",
-        description="Key of the annotation, that stores whole input TES task serialized to JSON",
+        description=(
+            "Key of the annotation, that stores whole input TES task serialized to "
+            "JSON",
+        ),
     )
     label_testask_id_key: str = Field(
         default="taskmaster-name",
-        description="Key of the label, that stores taskmaster's name (==TES task generated ID) in executor jobs",
+        description=(
+            "Key of the label, that stores taskmaster's name (==TES task generated ID)"
+            " in executor jobs",
+        ),
     )
     label_jobtype_key: str = Field(
         default="job-type",
-        description="Key of the label, that stores type of a job (taskmaster or executor)",
+        description=(
+            "Key of the label, that stores type of a job (taskmaster or executor)",
+        ),
     )
     label_jobtype_value_taskm: str = Field(
         default="taskmaster",
@@ -85,20 +104,30 @@ class Constants(BaseModel):
     )
     absolute_path_message: str = Field(
         default="must be an absolute path",
-        description="Message for absolute path validation (to avoid message.properties)",
+        description=(
+            "Message for absolute path validation (to avoid message.properties)",
+        ),
     )
     resource_disk_default: float = Field(0.1, description="Default resource disk value")
     completed_states: Set[str] = Field(
         default={"CANCELED", "COMPLETE", "EXECUTOR_ERROR", "SYSTEM_ERROR"},
-        description="TES task states, indicating task is not running and cannot be cancelled",
+        description=(
+            "TES task states, indicating task is not running and cannot be cancelled",
+        ),
     )
     ftp_secret_username_env: str = Field(
         default="TESK_FTP_USERNAME",
-        description="Name of taskmaster's ENV variable with username of FTP account used for storage",
+        description=(
+            "Name of taskmaster's ENV variable with username of FTP account used for "
+            "storage",
+        ),
     )
     ftp_secret_password_env: str = Field(
         default="TESK_FTP_PASSWORD",
-        description="Name of taskmaster's ENV variable with password of FTP account used for storage",
+        description=(
+            "Name of taskmaster's ENV variable with password of FTP account used for "
+            "storage",
+        ),
     )
     cancel_patch: str = Field(
         default='{"metadata":{"labels":{"task-status":"Cancelled"}}}',
@@ -106,11 +135,9 @@ class Constants(BaseModel):
     )
 
 
-class PodPhase(BaseModel):
-    code: str = Field(default="Pending", description="The phase code of the pod")
-
-
 class K8sConstants(BaseModel):
+    """Constants related to Kubernetes."""
+
     k8s_batch_api_version: str = Field(
         default="batch/v1", description="Kubernetes Batch API version"
     )

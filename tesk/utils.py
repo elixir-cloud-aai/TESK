@@ -79,7 +79,8 @@ def get_taskmaster_template() -> V1Job:
         return job_to_v1job(custom_conf.taskmaster_template)
     except AttributeError:
         raise ConfigNotFoundError(
-            "Custom configuration doesn't seem to have taskmaster_template in config file."
+            "Custom configuration doesn't seem to have taskmaster_template in config "
+            "file."
         ) from None
 
 
@@ -94,7 +95,8 @@ def get_taskmaster_env_property() -> TaskmasterEnvProperties:
         return custom_conf.taskmaster_env_properties
     except AttributeError:
         raise ConfigNotFoundError(
-            "Custom configuration doesn't seem to have taskmaster_env_properties in config file."
+            "Custom configuration doesn't seem to have taskmaster_env_properties in "
+            "config file."
         ) from None
 
 
@@ -192,6 +194,7 @@ def job_to_v1job(job: Job) -> V1Job:
 
 
 def pydantic_model_list_json(model_list: List[BaseModel]) -> List[dict[str, Any]]:
+    """Convert a list of pydantic models to a list of JSON objects."""
     json_list = []
     for item in model_list:
         json_list.append(item.json())

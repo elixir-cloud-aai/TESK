@@ -16,12 +16,16 @@ from tesk.api.ga4gh.tes.models import TesExecutor
 
 
 class ExecutorCommandWrapper:
+    """Wraps executor's command."""
+
     SPECIAL_CHARS = re.compile(r"[ !\"#$&'()*;<>?\[\\`{|~\t\n]")
 
     def __init__(self, executor: TesExecutor):
+        """Initialize the wrapper."""
         self.executor = executor
 
     def get_commands_with_stream_redirects(self) -> List[str]:
+        """Get command with stream redirects."""
         result = []
 
         if (
@@ -38,10 +42,12 @@ class ExecutorCommandWrapper:
 
         for command_part in self.executor.command:
             if self.SPECIAL_CHARS.search(command_part):
+                # Replace single quotes with '"'"'
                 if "'" in command_part:
-                    command_part = command_part.replace("'", "'\"'\"'")
-                command_part = f"'{command_part}'"
-            command_parts.append(command_part)
+                    replace_command_part = command_part.replace("'", "'\"'\"'")
+                # Quote the command part
+                quote_command_part = f"'{replace_command_part}'"
+            command_parts.append(quote_command_part)
 
         if self.executor.stdin:
             command_parts.append("<")

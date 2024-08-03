@@ -52,7 +52,10 @@ class KubernetesTemplateSupplier:
         )
 
         container = job.spec.template.spec.containers[0]
-        container.image = f"{self.taskmaster_env_properties.imageName}:{self.taskmaster_env_properties.imageVersion}"
+        container.image = (
+            f"{self.taskmaster_env_properties.imageName}:"
+            f"{self.taskmaster_env_properties.imageVersion}"
+        )
         container.args.extend(
             [
                 "-n",
@@ -100,7 +103,8 @@ class KubernetesTemplateSupplier:
 
         return job
 
-    def executor_template(self):
+    def executor_template(self) -> V1Job:
+        """Create a template for the executor job."""
         container = V1Container(name="executor", resources=V1ResourceRequirements())
 
         if self.taskmaster_env_properties.executorSecret is not None:
@@ -125,7 +129,9 @@ class KubernetesTemplateSupplier:
             kind=self.k8s_constants.k8s_batch_api_job_type,
             metadata=V1ObjectMeta(
                 labels={
-                    self.constants.label_jobtype_key: self.constants.label_jobtype_value_exec
+                    self.constants.label_jobtype_key: (
+                        self.constants.label_jobtype_value_exec
+                    )
                 }
             ),
             spec=V1JobSpec(

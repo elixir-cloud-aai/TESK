@@ -1,4 +1,8 @@
-"""A container for a single Kubernetes job object (can be both a taskmaster and an executor) and its list of worker pods (Kubernetes Pod objects)."""
+"""A container for a single Kubernetes job object.
+
+Can be both a taskmaster and an executor, it list of worker pods (Kubernetes
+Pod objects).
+"""
 
 from typing import List, Optional
 
@@ -6,7 +10,7 @@ from kubernetes.client import V1Job, V1Pod
 
 
 class Job:
-    """A container for a single Kubernetes job object (can be both a taskmaster and an executor) and its list of worker pods (Kubernetes Pod objects)"""
+    """Class to list worker pods (Kubernetes Pod objects)."""
 
     def __init__(self, job: V1Job):
         """Initializes the Job with a Kubernetes job object."""
@@ -27,17 +31,26 @@ class Job:
         return bool(self.pods)
 
     def get_first_pod(self) -> Optional[V1Pod]:
-        """Returns arbitrarily chosen pod from the list (currently the first one added) or None if the job has no pods."""
+        """Returns arbitrarily chosen pod from the list.
+
+        Currently the first one added or None if the job has no pods.
+        """
         if not self.has_pods():
             return None
         return self.pods[0]
 
     def get_pods(self) -> List[V1Pod]:
-        """Returns the list of job pods in the order of addition to the list or an empty list if no pods."""
+        """Returns the list of job pods.
+
+        Returns in the order of addition to the list or an empty list if no pods.
+        """
         return self.pods
 
     def change_job_name(self, new_name: str):
-        """Changes the job name, as well as the names in its metadata and container specs."""
+        """Changes the job name.
+
+        Also the names in its metadata and container specs.
+        """
         self.job.metadata.name = new_name
         self.job.spec.template.metadata.name = new_name
         if self.job.spec.template.spec.containers:

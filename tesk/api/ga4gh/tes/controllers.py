@@ -7,10 +7,7 @@ from foca.utils.logging import log_traffic  # type: ignore
 from tesk.api.ga4gh.tes.models import TesTask
 from tesk.api.ga4gh.tes.service_info.service_info import ServiceInfo
 from tesk.api.ga4gh.tes.task.create_task import CreateTesTask
-from tesk.api.kubernetes.convert.converter import TesKubernetesConverter
-from tesk.api.kubernetes.convert.template import KubernetesTemplateSupplier
 from tesk.exceptions import BadRequest, InternalServerError
-from tesk.utils import get_custom_config
 
 # Get logger instance
 logger = logging.getLogger(__name__)
