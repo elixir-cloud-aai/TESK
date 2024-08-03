@@ -22,9 +22,6 @@ class KubernetesClientWrapper:
         Args:
           namespace: Namespace to use for Kubernetes.
         """
-        # NOTE: WE might want to provide config files to load_kube_config
-        #   we can have env variable define this or it can be passed from
-        #   custom in FOCA config. Latter is prefered.
         config.load_kube_config()
         self.batch_api = client.BatchV1Api()
         self.core_api = client.CoreV1Api()

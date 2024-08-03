@@ -38,12 +38,11 @@ def CreateTask(**kwargs) -> dict:  # type: ignore
     try:
         request_body = kwargs.get("body")
         if request_body is None:
-            logger("Nothing recieved in request body.")
-            raise BadRequest("No request body recieved.")
+            logger("Nothing received in request body.")
+            raise BadRequest("No request body received.")
         tes_task = TesTask(**request_body)
         namespace = "tesk"
-        task_creater = CreateTesTask(tes_task, namespace)
-        task_creater.response()
+        CreateTesTask(tes_task, namespace).response()
     except Exception as e:
         raise InternalServerError from e
 

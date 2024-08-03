@@ -22,7 +22,7 @@ class TeskConstants:
     taskmaster_service_account_name: str = os.getenv(
         "TESK_API_TASKMASTER_SERVICE_ACCOUNT_NAME", "taskmaster"
     )
-    taskmaster_environement_executor_backoff_limit: str = os.getenv(
+    taskmaster_environment_executor_backoff_limit: str = os.getenv(
         "ENVIRONMENT_EXECUTOR_BACKOFF_LIMIT", "2"
     )
     filer_environment_filer_backoff_limit: str = os.getenv(

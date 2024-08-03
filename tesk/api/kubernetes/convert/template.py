@@ -1,4 +1,4 @@
-"""Create tamplates for kubernetes objects."""
+"""Create template for kubernetes objects."""
 
 import logging
 import uuid
