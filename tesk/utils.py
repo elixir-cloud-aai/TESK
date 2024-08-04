@@ -13,7 +13,6 @@ from kubernetes.client.models import (
     V1EnvVarSource,
     V1Job,
     V1JobSpec,
-    V1ObjectFieldSelector,
     V1ObjectMeta,
     V1PodSpec,
     V1PodTemplateSpec,
@@ -128,10 +127,7 @@ def job_to_v1job(job: Job) -> V1Job:
     ) -> V1DownwardAPIVolumeFile:
         return V1DownwardAPIVolumeFile(
             path=downward_api_item.path,
-            field_ref=V1ObjectFieldSelector(
-                # TODO: Check if this is correct.
-                field_path=downward_api_item.fieldRef
-            ),
+            field_ref=downward_api_item.fieldRef,
         )
 
     def convert_volume(volume: Volume) -> V1Volume:
