@@ -2,17 +2,18 @@
 
 import os
 from pathlib import Path
-from typing import Any, List, Optional, Sequence
+from typing import List, Optional, Sequence
 
 from foca import Foca
 from kubernetes.client.models import (
     V1Container,
-    V1DownwardAPIProjection,
     V1DownwardAPIVolumeFile,
+    V1DownwardAPIVolumeSource,
     V1EnvVar,
     V1EnvVarSource,
     V1Job,
     V1JobSpec,
+    V1ObjectFieldSelector,
     V1ObjectMeta,
     V1PodSpec,
     V1PodTemplateSpec,
@@ -126,14 +127,18 @@ def job_to_v1job(job: Job) -> V1Job:
         downward_api_item: DownwardAPIItem,
     ) -> V1DownwardAPIVolumeFile:
         return V1DownwardAPIVolumeFile(
-            path=downward_api_item.path, field_ref=downward_api_item.fieldRef
+            path=downward_api_item.path,
+            field_ref=V1ObjectFieldSelector(
+                # TODO: Check if this is correct.
+                field_path=downward_api_item.fieldRef
+            ),
         )
 
     def convert_volume(volume: Volume) -> V1Volume:
         if volume.downwardAPI:
             return V1Volume(
                 name=volume.name,
-                downward_api=V1DownwardAPIProjection(
+                downward_api=V1DownwardAPIVolumeSource(
                     items=[
                         convert_downward_api_item(item)
                         for item in volume.downwardAPI["items"]
@@ -193,7 +198,7 @@ def job_to_v1job(job: Job) -> V1Job:
     )
 
 
-def pydantic_model_list_json(model_list: Sequence[BaseModel]) -> List[dict[str, Any]]:
+def pydantic_model_list_json(model_list: Sequence[BaseModel]) -> List[str]:
     """Convert a list of pydantic models to a list of JSON objects."""
     json_list = []
     for item in model_list:

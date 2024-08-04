@@ -43,7 +43,7 @@ class DownwardAPIItem(BaseModel):
     """Downward API item configuration."""
 
     path: str
-    fieldRef: Dict[str, str]
+    fieldRef: str
 
 
 class Volume(BaseModel):
