@@ -16,7 +16,7 @@ class Constants(BaseModel):
         default="executors",
         description="Key in JSON taskmaster input, which holds list of executors",
     )
-    volume_name: str = Field("PVC", description="Volume name")
+    volume_name: str = Field(default="PVC", description="Volume name")
     job_create_attempts_no: int = Field(
         default=5,
         description="Number of attempts of job creation in case of name collision",
@@ -38,10 +38,8 @@ class Constants(BaseModel):
     )
     job_name_exec_no_length: int = Field(
         default=2,
-        description=(
-            "No of digits reserved for executor number in executor's job name. Ends up "
-            "padded with '0' for numbers < 10",
-        ),
+        description="No of digits reserved for executor number in executor's job name."
+        " Ends up padded with '0' for numbers < 10",
     )
     job_name_filer_suf: str = Field(
         default="-outputs-filer", description="Output filer name suffix"
@@ -55,23 +53,18 @@ class Constants(BaseModel):
     )
     ann_json_input_key: str = Field(
         default="json-input",
-        description=(
-            "Key of the annotation, that stores whole input TES task serialized to "
-            "JSON",
-        ),
+        description="Key of the annotation, that stores whole input TES task serialized"
+        " to JSON",
     )
     label_testask_id_key: str = Field(
         default="taskmaster-name",
-        description=(
-            "Key of the label, that stores taskmaster's name (==TES task generated ID)"
-            " in executor jobs",
-        ),
+        description="Key of the label, that stores taskmaster's name (==TES task "
+        "generated ID) in executor jobs",
     )
     label_jobtype_key: str = Field(
         default="job-type",
-        description=(
-            "Key of the label, that stores type of a job (taskmaster or executor)",
-        ),
+        description="Key of the label, that stores type of a job (taskmaster or "
+        "executor)",
     )
     label_jobtype_value_taskm: str = Field(
         default="taskmaster",
@@ -104,30 +97,26 @@ class Constants(BaseModel):
     )
     absolute_path_message: str = Field(
         default="must be an absolute path",
-        description=(
-            "Message for absolute path validation (to avoid message.properties)",
-        ),
+        description="Message for absolute path validation (to avoid "
+        "message.properties)",
     )
-    resource_disk_default: float = Field(0.1, description="Default resource disk value")
+    resource_disk_default: float = Field(
+        default=0.1, description="Default resource disk value"
+    )
     completed_states: Set[str] = Field(
         default={"CANCELED", "COMPLETE", "EXECUTOR_ERROR", "SYSTEM_ERROR"},
-        description=(
-            "TES task states, indicating task is not running and cannot be cancelled",
-        ),
+        description="TES task states, indicating task is not running and cannot be "
+        "cancelled",
     )
     ftp_secret_username_env: str = Field(
         default="TESK_FTP_USERNAME",
-        description=(
-            "Name of taskmaster's ENV variable with username of FTP account used for "
-            "storage",
-        ),
+        description="Name of taskmaster's ENV variable with username of FTP account "
+        "used for storage",
     )
     ftp_secret_password_env: str = Field(
         default="TESK_FTP_PASSWORD",
-        description=(
-            "Name of taskmaster's ENV variable with password of FTP account used for "
-            "storage",
-        ),
+        description="Name of taskmaster's ENV variable with password of FTP account "
+        "used for storage",
     )
     cancel_patch: str = Field(
         default='{"metadata":{"labels":{"task-status":"Cancelled"}}}',

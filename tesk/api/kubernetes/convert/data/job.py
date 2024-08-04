@@ -6,7 +6,7 @@ Pod objects).
 
 from typing import List, Optional
 
-from kubernetes.client import V1Job, V1Pod
+from kubernetes.client import V1Job, V1ObjectMeta, V1Pod
 
 
 class Job:
@@ -51,11 +51,22 @@ class Job:
 
         Also the names in its metadata and container specs.
         """
-        self.job.metadata.name = new_name
-        self.job.spec.template.metadata.name = new_name
-        if self.job.spec.template.spec.containers:
-            self.job.spec.template.spec.containers[0].name = new_name
+        if self.job.metadata is None:
+            self.job.metadata = V1ObjectMeta(name=new_name)
+        else:
+            self.job.metadata.name = new_name
+
+        if (
+            self.job is not None
+            and self.job.spec is not None
+            and self.job.spec.template is not None
+            and self.job.spec.template.metadata is not None
+        ):
+            self.job.spec.template.metadata.name = new_name
+
+            if self.job.spec.template.spec and self.job.spec.template.spec.containers:
+                self.job.spec.template.spec.containers[0].name = new_name
 
     def get_job_name(self) -> Optional[str]:
         """Returns the job name."""
-        return self.job.metadata.name
+        return self.job.metadata.name if self.job.metadata else None

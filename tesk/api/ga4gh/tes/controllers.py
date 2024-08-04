@@ -28,21 +28,20 @@ def CancelTask(id, *args, **kwargs) -> dict:  # type: ignore
 
 # POST /tasks
 @log_traffic
-def CreateTask(**kwargs) -> dict:  # type: ignore
+def CreateTask(**kwargs) -> dict[str, str]:  # type: ignore
     """Create task.
 
     Args:
-        *args: Variable length argument list.
         **kwargs: Arbitrary keyword arguments.
     """
     try:
         request_body = kwargs.get("body")
         if request_body is None:
-            logger("Nothing received in request body.")
+            logger.error("Nothing received in request body.")
             raise BadRequest("No request body received.")
         tes_task = TesTask(**request_body)
         namespace = "tesk"
-        CreateTesTask(tes_task, namespace).response()
+        return CreateTesTask(tes_task, namespace).response()
     except Exception as e:
         raise InternalServerError from e
 

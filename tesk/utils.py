@@ -2,7 +2,7 @@
 
 import os
 from pathlib import Path
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Sequence
 
 from foca import Foca
 from kubernetes.client.models import (
@@ -193,7 +193,7 @@ def job_to_v1job(job: Job) -> V1Job:
     )
 
 
-def pydantic_model_list_json(model_list: List[BaseModel]) -> List[dict[str, Any]]:
+def pydantic_model_list_json(model_list: Sequence[BaseModel]) -> List[dict[str, Any]]:
     """Convert a list of pydantic models to a list of JSON objects."""
     json_list = []
     for item in model_list:

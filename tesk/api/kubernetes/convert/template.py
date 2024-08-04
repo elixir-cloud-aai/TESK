@@ -2,6 +2,7 @@
 
 import logging
 import uuid
+from typing import Iterable
 
 from kubernetes.client import (
     V1Container,
@@ -41,11 +42,17 @@ class KubernetesTemplateSupplier:
 
     def get_task_master_name(self) -> str:
         """Generate a unique name for the taskmaster job."""
-        return self.constants.job_name_taskm_prefix + str(uuid.uuid4())
+        name: str = self.constants.job_name_taskm_prefix + str(uuid.uuid4())
+        return name
 
     def task_master_template(self) -> V1Job:
         """Create a template for the taskmaster job."""
         job: V1Job = self.taskmaster_template
+
+        if job.spec is None:
+            job.spec = V1JobSpec(template=V1PodTemplateSpec())
+        if job.spec.template.spec is None:
+            job.spec.template.spec = V1PodSpec(containers=[])
 
         job.spec.template.spec.service_account_name = (
             self.taskmaster_env_properties.serviceAccountName
@@ -56,6 +63,9 @@ class KubernetesTemplateSupplier:
             f"{self.taskmaster_env_properties.imageName}:"
             f"{self.taskmaster_env_properties.imageVersion}"
         )
+
+        assert isinstance(container.args, Iterable)
+
         container.args.extend(
             [
                 "-n",
@@ -71,11 +81,18 @@ class KubernetesTemplateSupplier:
             container.args.append("-d")
             container.image_pull_policy = "Always"
 
+        if job.metadata is None:
+            job.metadata = V1ObjectMeta(labels={})
+
+        assert job.metadata.labels is not None
+
         job.metadata.labels[self.constants.label_jobtype_key] = (
             self.constants.label_jobtype_value_taskm
         )
         task_master_name = self.get_task_master_name()
         job.metadata.name = task_master_name
+
+        assert isinstance(container.env, Iterable)
 
         container.env.extend(
             [
@@ -97,6 +114,8 @@ class KubernetesTemplateSupplier:
         if self.taskmaster_env_properties.ftp.enabled:
             for env in container.env:
                 if env.name in ftp_secrets:
+                    assert env.value_from is not None
+                    assert env.value_from.secret_key_ref is not None
                     env.value_from.secret_key_ref.name = (
                         self.taskmaster_env_properties.ftp.secretName
                     )
@@ -111,8 +130,10 @@ class KubernetesTemplateSupplier:
             container.volume_mounts = [
                 V1VolumeMount(
                     read_only=True,
-                    name=self.taskmaster_env_properties.executorSecret.name,
-                    mount_path=self.taskmaster_env_properties.executorSecret.mountPath,
+                    name=str(self.taskmaster_env_properties.executorSecret.name),
+                    mount_path=str(
+                        self.taskmaster_env_properties.executorSecret.mountPath
+                    ),
                 )
             ]
 
@@ -140,9 +161,14 @@ class KubernetesTemplateSupplier:
         )
 
         if self.taskmaster_env_properties.executorSecret is not None:
+            if job.spec is None:
+                job.spec = V1JobSpec(template=V1PodTemplateSpec())
+            if job.spec.template.spec is None:
+                job.spec.template.spec = V1PodSpec(containers=[])
+
             job.spec.template.spec.volumes = [
                 V1Volume(
-                    name=self.taskmaster_env_properties.executorSecret.name,
+                    name=str(self.taskmaster_env_properties.executorSecret.name),
                     secret=V1SecretVolumeSource(
                         secret_name=self.taskmaster_env_properties.executorSecret.name
                     ),

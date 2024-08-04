@@ -69,11 +69,6 @@ class TaskmasterEnvProperties(BaseModel):
     serviceAccountName: str = Field(
         default="default", description="Service Account name for taskmaster"
     )
-    debug: bool = Field(
-        default=False,
-        description="If verbose (debug) mode of taskmaster is on (passes additional "
-        "flag to taskmaster and sets image pull policy to Always)",
-    )
     executorSecret: Optional[ExecutorSecret] = Field(
         default=None, description="Executor secret configuration"
     )

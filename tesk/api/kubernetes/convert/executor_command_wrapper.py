@@ -41,13 +41,14 @@ class ExecutorCommandWrapper:
         command_parts = []
 
         for command_part in self.executor.command:
+            command = ""
             if self.SPECIAL_CHARS.search(command_part):
                 # Replace single quotes with '"'"'
                 if "'" in command_part:
                     replace_command_part = command_part.replace("'", "'\"'\"'")
                 # Quote the command part
-                quote_command_part = f"'{replace_command_part}'"
-            command_parts.append(quote_command_part)
+                command = f"'{replace_command_part}'"
+            command_parts.append(command)
 
         if self.executor.stdin:
             command_parts.append("<")

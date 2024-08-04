@@ -6,14 +6,17 @@ import json
 import logging
 from decimal import Decimal
 from io import BytesIO
-from typing import Any
+from typing import Any, Optional
 
 from kubernetes.client import (
     V1ConfigMap,
     V1ConfigMapVolumeSource,
     V1Container,
     V1EnvVar,
+    V1JobSpec,
     V1ObjectMeta,
+    V1PodSpec,
+    V1PodTemplateSpec,
     V1ResourceRequirements,
     V1Volume,
 )
@@ -48,56 +51,62 @@ class TesKubernetesConverter:
         self.k8s_constants = K8sConstants()
         self.namespace = namespace
 
-    # TODO: Add user to the method when auth implemented in FOCA
     def from_tes_task_to_k8s_job(self, task: TesTask):
         """Convert TES task to Kubernetes job."""
-        taskmsater_job: V1Job = KubernetesTemplateSupplier(
+        taskmaster_job: V1Job = KubernetesTemplateSupplier(
             self.namespace
         ).task_master_template()
 
-        if taskmsater_job.metadata is None:
-            taskmsater_job.metadata = V1ObjectMeta()
+        if taskmaster_job.metadata is None:
+            taskmaster_job.metadata = V1ObjectMeta()
 
-        if taskmsater_job.metadata.annotations is None:
-            taskmsater_job.metadata.annotations = {}
+        if taskmaster_job.metadata.annotations is None:
+            taskmaster_job.metadata.annotations = {}
 
-        if taskmsater_job.metadata.labels is None:
-            taskmsater_job.metadata.labels = {}
+        if taskmaster_job.metadata.labels is None:
+            taskmaster_job.metadata.labels = {}
 
-        # taskmsater_job.metadata.name = task.name
-
-        taskmsater_job.metadata.annotations[self.constants.ann_testask_name_key] = (
-            task.name
-        )
-        # taskmsater_job.metadata.labels[self.constants.label_userid_key] = user[
+        # taskmaster_job.metadata.name = task.name
+        if task.name:
+            taskmaster_job.metadata.annotations[self.constants.ann_testask_name_key] = (
+                task.name
+            )
+        # taskmaster_job.metadata.labels[self.constants.label_userid_key] = user[
         #     "username"
         # ]
 
         # if task.tags and "GROUP_NAME" in task.tags:
-        #     taskmsater_job.metadata.labels[self.constants.label_userid_key] = task[
+        #     taskmaster_job.metadata.labels[self.constants.label_userid_key] = task[
         #         "tags"
         #     ]["GROUP_NAME"]
         # elif user["is_member"]:
-        #     taskmsater_job.metadata.labels[self.constants.label_groupname_key] = user[
+        #     taskmaster_job.metadata.labels[self.constants.label_groupname_key] = user[
         #         "any_group"
         #     ]
 
         try:
-            taskmsater_job.metadata.annotations[self.constants.ann_json_input_key] = (
+            taskmaster_job.metadata.annotations[self.constants.ann_json_input_key] = (
                 task.json()
             )
         except Exception as ex:
             logger.info(
-                f"Serializing task {taskmsater_job.metadata.name} to JSON failed", ex
+                f"Serializing task {taskmaster_job.metadata.name} to JSON failed", ex
             )
 
         volume = V1Volume(
             name="jsoninput",
-            config_map=V1ConfigMapVolumeSource(name=taskmsater_job.metadata.name),
+            config_map=V1ConfigMapVolumeSource(name=taskmaster_job.metadata.name),
         )
-        taskmsater_job.spec.template.spec.volumes.append(volume)
 
-        return taskmsater_job
+        if taskmaster_job.spec is None:
+            taskmaster_job.spec = V1JobSpec(template=V1PodTemplateSpec())
+        if taskmaster_job.spec.template.spec is None:
+            taskmaster_job.spec.template.spec = V1PodSpec(containers=[])
+        if taskmaster_job.spec.template.spec.volumes is None:
+            taskmaster_job.spec.template.spec.volumes = []
+
+        taskmaster_job.spec.template.spec.volumes.append(volume)
+        return taskmaster_job
 
     def from_tes_task_to_k8s_config_map(
         self,
@@ -106,10 +115,14 @@ class TesKubernetesConverter:
         # user,
     ) -> V1ConfigMap:
         """Create a Kubernetes ConfigMap from a TES task."""
+        if job.metadata is None:
+            job.metadata = V1ObjectMeta()
+
         task_master_config_map = V1ConfigMap(
             metadata=V1ObjectMeta(name=job.metadata.name)
         )
 
+        assert task_master_config_map.metadata is not None
         task_master_config_map.metadata.labels = (
             task_master_config_map.metadata.labels or {}
         )
@@ -117,20 +130,24 @@ class TesKubernetesConverter:
             task_master_config_map.metadata.annotations or {}
         )
 
-        task_master_config_map.metadata.annotations[
-            self.constants.ann_testask_name_key
-        ] = task.name
+        if task.name:
+            task_master_config_map.metadata.annotations[
+                self.constants.ann_testask_name_key
+            ] = task.name
 
         # task_master_config_map.metadata.labels[self.constants.label_userid_key]
         # = user["username"]
 
-        if "tags" in task and "GROUP_NAME" in task.tags:
+        if task.tags and "GROUP_NAME" in task.tags:
             task_master_config_map.metadata.labels[
                 self.constants.label_groupname_key
             ] = task.tags["GROUP_NAME"]
         # elif user["is_member"]:
         #     task_master_config_map.metadata.labels[self.constants.label_groupname_key]
         #       = user["any_group"]
+
+        assert task_master_config_map.metadata.name is not None
+        assert task.resources is not None
 
         executors_as_jobs = [
             self.from_tes_executor_to_k8s_job(
@@ -145,10 +162,14 @@ class TesKubernetesConverter:
         ]
 
         task_master_input: dict[str, Any] = {
-            "inputs": pydantic_model_list_json(task.inputs) or [],
-            "outputs": pydantic_model_list_json(task.outputs) or [],
+            "inputs": pydantic_model_list_json(task.inputs) if task.inputs else [],
+            "outputs": pydantic_model_list_json(task.outputs) if task.outputs else [],
             "volumes": task.volumes or [],
-            "resources": {"disk_gb": float(task.resources.disk_gb) or 10.0},
+            "resources": {
+                "disk_gb": float(task.resources.disk_gb)
+                if task.resources.disk_gb
+                else 10.0
+            },
         }
         task_master_input[self.constants.taskmaster_input_exec_key] = [
             exec_job.to_dict() for exec_job in executors_as_jobs
@@ -186,7 +207,7 @@ class TesKubernetesConverter:
     def from_tes_executor_to_k8s_job(  # noqa: PLR0913
         self,
         generated_task_id: str,
-        tes_task_name: str,
+        tes_task_name: Optional[str],
         executor: TesExecutor,
         executor_index: int,
         resources: TesResources,
@@ -197,10 +218,14 @@ class TesKubernetesConverter:
         job: V1Job = self.template_supplier.executor_template()
 
         # Set executors name based on taskmaster's job name
+        # TODO: Fix me ASAP
         Job(job).change_job_name(
             # Task(job, generated_task_id).get_executor_name(executor_index)
             "newname"
         )
+
+        if job.metadata is None:
+            job.metadata = V1ObjectMeta()
 
         # Put arbitrary labels and annotations
         job.metadata.labels = job.metadata.labels or {}
@@ -209,7 +234,15 @@ class TesKubernetesConverter:
         # job.metadata.labels[self.constants.label_userid_key] = user.username
 
         job.metadata.annotations = job.metadata.annotations or {}
-        job.metadata.annotations[self.constants.ann_testask_name_key] = tes_task_name
+        if tes_task_name:
+            job.metadata.annotations[self.constants.ann_testask_name_key] = (
+                tes_task_name
+            )
+
+        if job.spec is None:
+            job.spec = V1JobSpec(template=V1PodTemplateSpec())
+        if job.spec.template.spec is None:
+            job.spec.template.spec = V1PodSpec(containers=[])
 
         container: V1Container = job.spec.template.spec.containers[0]
 
@@ -235,8 +268,9 @@ class TesKubernetesConverter:
             container.env = []
 
         container.working_dir = executor.workdir
-
         container.resources = V1ResourceRequirements(requests={})
+
+        assert container.resources.requests is not None
 
         if resources.cpu_cores:
             container.resources.requests["cpu"] = parse_quantity(

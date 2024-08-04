@@ -34,10 +34,17 @@ class Task:
         self.executors_by_name: Dict[str, Job] = {}
         self.output_filer: Optional[Job] = None
         self.constants = Constants()
+        self.MAX_INT = 2**31 - 1
 
-    def add_executor(self, executor: Job):
+    def add_executor(self, executor: Job) -> None:
         """Add executor to the task."""
-        self.executors_by_name.setdefault(executor.get_job().metadata.name, executor)
+        metadata = executor.get_job().metadata
+        assert metadata is not None
+
+        name = metadata.name
+        assert name is not None
+
+        self.executors_by_name.setdefault(name, executor)
 
     def set_output_filer(self, filer: Job):
         """Set output filer for the task."""
@@ -65,11 +72,19 @@ class Task:
     def extract_executor_number(self, executor: Job) -> int:
         """Extract executor number from the executor's name."""
         taskmaster_name = self.taskmaster.get_job_name()
+        assert taskmaster_name is not None
+
         prefix = taskmaster_name + self.constants.job_name_exec_prefix
-        match = re.match(f"{re.escape(prefix)}(\d+)", executor.get_job_name())
+        exec_name = executor.get_job_name()
+
+        if not exec_name:
+            return self.MAX_INT
+
+        match = re.match(f"{re.escape(prefix)}(\d+)", exec_name)
         if match:
             return int(match.group(1))
-        return float("inf")
+
+        return self.MAX_INT
 
     def get_executor_name(self, executor_index: int) -> str:
         """Get executor name based on the taskmaster's job name and executor index."""

@@ -275,7 +275,7 @@ class TesResources(BaseModel):
         example={"VmSize": "Standard_D64_v3"},
     )
     backend_parameters_strict: Optional[bool] = Field(
-        False,
+        default=False,
         description="If set to true, backends should fail the task if any "
         "backend_parameters\nkey/values are unsupported, otherwise, backends should "
         "attempt to run the task",
