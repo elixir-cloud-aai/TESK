@@ -1,8 +1,11 @@
 """Utility functions for the TESK package."""
 
+import datetime
 import os
 from pathlib import Path
+from enum import Enum
 from typing import List, Optional, Sequence
+from decimal import Decimal
 
 from foca import Foca
 from kubernetes.client.models import (
@@ -210,3 +213,20 @@ def pydantic_model_list_json(model_list: Sequence[BaseModel]) -> List[str]:
     for item in model_list:
         json_list.append(item.json())
     return json_list
+
+
+def time_formatter(time: Optional[str]) -> Optional[str]:
+    """Set start time in RFC 3339 format."""
+    rfc_time = time.strftime("%Y-%m-%dT%H:%M:%SZ") if time else None
+    return rfc_time
+
+
+def decimal_to_float(obj):
+    if isinstance(obj, Decimal):
+        return float(obj)
+    raise TypeError
+
+
+def enum_to_string(enum):
+    if isinstance(enum, Enum):
+        return str(enum.name)

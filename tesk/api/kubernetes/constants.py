@@ -1,5 +1,6 @@
 """Constants for Kubernetes API."""
 
+from enum import Enum
 from typing import Set
 
 from pydantic import BaseModel, Field
@@ -146,3 +147,12 @@ class K8sConstants(BaseModel):
     resource_mem_one_gb: int = Field(
         default=1073741824, description="One Gibibyte (Gi) in bytes"
     )
+
+    class PodPhase(Enum):
+        """Pod state."""
+
+        PENDING = "Pending"
+
+        def get_code(self) -> str:
+            """Return the pod state."""
+            return self.value

@@ -19,11 +19,21 @@ from kubernetes.client import (
     V1PodTemplateSpec,
     V1ResourceRequirements,
     V1Volume,
+    V1JobStatus,
+    V1ObjectMeta,
 )
 from kubernetes.client.models import V1Job
 from kubernetes.utils.quantity import parse_quantity  # type: ignore
 
-from tesk.api.ga4gh.tes.models import TesExecutor, TesResources, TesTask
+from tesk.api.ga4gh.tes.models import (
+    TesExecutor,
+    TesResources,
+    TesTask,
+    TesExecutorLog,
+    TesState,
+    TesTaskLog,
+    TesExecutorLog,
+)
 from tesk.api.kubernetes.constants import Constants, K8sConstants
 from tesk.api.kubernetes.convert.data.job import Job
 from tesk.api.kubernetes.convert.executor_command_wrapper import ExecutorCommandWrapper
@@ -31,6 +41,10 @@ from tesk.api.kubernetes.convert.template import KubernetesTemplateSupplier
 from tesk.constants import TeskConstants
 from tesk.custom_config import TaskmasterEnvProperties
 from tesk.utils import get_taskmaster_env_property, pydantic_model_list_json
+from tesk.api.kubernetes.convert.data.task import Task
+from tesk.api.kubernetes.client_wrapper import KubernetesClientWrapper
+from tesk.api.kubernetes.convert.data.job import JobStatus
+from tesk.utils import time_formatter, decimal_to_float
 
 logger = logging.getLogger(__name__)
 
@@ -50,6 +64,7 @@ class TesKubernetesConverter:
         self.constants = Constants()
         self.k8s_constants = K8sConstants()
         self.namespace = namespace
+        self.kubernetes_client_wrapper = KubernetesClientWrapper(namespace=namespace)
 
     def from_tes_task_to_k8s_job(self, task: TesTask):
         """Convert TES task to Kubernetes job."""
@@ -175,11 +190,6 @@ class TesKubernetesConverter:
             exec_job.to_dict() for exec_job in executors_as_jobs
         ]
 
-        def decimal_to_float(obj):
-            if isinstance(obj, Decimal):
-                return float(obj)
-            raise TypeError
-
         taskmaster_input_as_json = json.loads(
             json.dumps(task_master_input, default=decimal_to_float)
         )
@@ -283,3 +293,188 @@ class TesKubernetesConverter:
             )
 
         return job
+
+    def is_job_in_status(tested_object: V1JobStatus, test_objective: JobStatus) -> bool:
+        no_of_pods_in_state = None
+        if test_objective == JobStatus.ACTIVE:
+            no_of_pods_in_state = tested_object.active
+        elif test_objective == JobStatus.SUCCEEDED:
+            no_of_pods_in_state = tested_object.succeeded
+        elif test_objective == JobStatus.FAILED:
+            if tested_object.succeeded is not None and tested_object.succeeded > 0:
+                return False
+            no_of_pods_in_state = tested_object.failed
+
+        return no_of_pods_in_state is not None and no_of_pods_in_state > 0
+
+    def extract_state_from_k8s_jobs(self, taskmaster_with_executors: Task) -> TesState:
+        # task_master_job: V1Job = taskmaster_with_executors.get_taskmaster().get_job()
+        # last_executor: Optional[Job] = taskmaster_with_executors.get_last_executor()
+        # output_filer: Optional[Job] = taskmaster_with_executors.get_output_filer()
+        # task_master_cancelled = (
+        #     task_master_job.metadata.labels.get(self.constants.label_taskstate_key)
+        #     == self.constants.label_taskstate_value_canc
+        # )
+        # task_master_running = self.is_job_in_status(
+        #     tested_object=task_master_job.status,
+        #     test_objective=JobStatus.ACTIVE
+        # )
+        # print(task_master_running)
+        # task_master_completed = self.is_job_in_status(
+        #     task_master_job.status, JobStatus.SUCCEEDED
+        # )
+        # print(task_master_completed)
+        # executor_present = last_executor is not None
+        # last_executor_failed = executor_present and self.is_job_in_status(
+        #     last_executor.get_job().status, JobStatus.FAILED
+        # )
+        # print(last_executor_failed)
+        # last_executor_completed = executor_present and self.is_job_in_status(
+        #     last_executor.get_job().status, JobStatus.SUCCEEDED
+        # )
+        # print(last_executor_completed)
+        # output_filer_failed = output_filer is not None and self.is_job_in_status(
+        #     output_filer.get_job().status, JobStatus.FAILED
+        # )
+        # print(output_filer_failed)
+        # pending = self.k8s_constants.PodPhase.PENDING
+        # task_master_pending = any(
+        #     pod.status.phase == pending
+        #     for pod in taskmaster_with_executors.get_taskmaster().get_pods()
+        # )
+        # last_executor_pending = executor_present and any(
+        #     pod.status.phase == pending for pod in last_executor.get_pods()
+        # )
+
+        # if task_master_cancelled:
+        #     return TesState.CANCELED
+        # if task_master_completed and output_filer_failed:
+        #     return TesState.SYSTEM_ERROR
+        # if task_master_completed and last_executor_completed:
+        #     return TesState.COMPLETE
+        # if task_master_completed and last_executor_failed:
+        #     return TesState.EXECUTOR_ERROR
+        # if task_master_pending:
+        #     return TesState.QUEUED
+        # if task_master_running and not executor_present:
+        #     return TesState.INITIALIZING
+        # if last_executor_pending:
+        #     return TesState.QUEUED
+        # if task_master_running:
+        #     return TesState.RUNNING
+        return TesState.SYSTEM_ERROR
+
+    def extract_executor_log_from_k8s_job_and_pod(
+        self, executor: Job
+    ) -> TesExecutorLog:
+        """Extracts TesExecutorLog from executor job and pod objects.
+
+        Does not contain stdout (which needs access to pod log).
+        """
+        log = TesExecutorLog()
+        executor_job: V1Job = executor.get_job()
+        start_time = getattr(executor_job.status, "start_time", None)
+        log.start_time = time_formatter(start_time)
+
+        end_time = getattr(executor_job.status, "completion_time", None)
+        log.end_time = time_formatter(end_time)
+
+        log.stdout = ""
+
+        if executor.has_pods():
+            first_pod_status = getattr(executor.get_first_pod(), "status", None)
+            exit_code = None
+
+            if first_pod_status:
+                container_statuses = getattr(first_pod_status, "container_statuses", [])
+                if container_statuses:
+                    container_status = container_statuses[0]
+                    container_state = getattr(container_status, "state", None)
+                    if container_state:
+                        terminated = getattr(container_state, "terminated", None)
+                        if terminated:
+                            exit_code = getattr(terminated, "exit_code", None)
+
+            log.exit_code = exit_code
+
+        return log
+
+    def from_k8s_jobs_to_tes_task_minimal(
+        self, taskmaster_with_executors: Task, is_list: bool
+    ) -> TesTask:
+        """Convert Kubernetes jobs to TES task."""
+
+        executors = taskmaster_with_executors.get_executors()
+        task = TesTask(
+            # FIXME: I don't think this is it :'(
+            executors=[
+                TesExecutor(
+                    image=executor.image or None, command=executor.command or None
+                )
+                for executor in executors
+            ]
+        )
+        metadata: V1ObjectMeta = (
+            taskmaster_with_executors.get_taskmaster().get_job().metadata
+        )
+        task.id = metadata.name
+        task.state = self.extract_state_from_k8s_jobs(taskmaster_with_executors)
+        if not is_list:
+            # FIXME: This is a hack, we need to get the real values
+            log = TesTaskLog(logs=TesExecutorLog(exit_code=0))
+            task.logs.append(log)
+            metadata = taskmaster_with_executors.taskmaster.job["metadata"]["labels"]
+            log.metadata["USER_ID"] = metadata[self.constants.label_userid_key]
+            if self.constants.label_groupname_key in metadata:
+                log.metadata["GROUP_NAME"] = metadata[
+                    self.constants.label_groupname_key
+                ]
+        return task
+
+    def from_k8s_jobs_to_tes_task_basic(
+        self, taskmaster_with_executors: Task, nullify_input_content: bool
+    ) -> TesTask:
+        task = TesTask()
+        task_master_job: V1Job = taskmaster_with_executors.taskmaster.job
+        task_master_job_metadata: V1ObjectMeta = task_master_job.metadata
+        input_json = (task_master_job_metadata.annotations or {}).get(
+            self.constants.ann_json_input_key, ""
+        )
+        try:
+            task = TesTask.parse_raw(input_json)
+            if nullify_input_content and task.inputs:
+                for input_item in task.inputs:
+                    input_item["content"] = None
+        except json.JSONDecodeError as ex:
+            print(
+                f"Deserializing task {task_master_job_metadata['name']} from JSON failed; {ex}"
+            )
+
+        task.id = task_master_job_metadata["name"]
+        task.state = self.extract_state_from_k8s_jobs(taskmaster_with_executors)
+        task.creation_time = time_formatter(
+            task_master_job_metadata["creation_timestamp"]
+        )
+        log = TesTaskLog()
+        task.logs.append(log)
+        log.metadata["USER_ID"] = task_master_job_metadata["labels"][
+            self.constants.label_userid_key
+        ]
+        if self.constants.label_groupname_key in task_master_job_metadata["labels"]:
+            log["GROUP_NAME"] = task_master_job_metadata["labels"][
+                self.constants.label_groupname_key
+            ]
+        log.start_time = (
+            time_formatter(task_master_job.status.start_time)
+            if task_master_job.status.start_time
+            else None
+        )
+        log.end_time = (
+            time_formatter(task_master_job.status.completion_time)
+            if task_master_job.status.completion_time
+            else None
+        )
+        for executor_job in taskmaster_with_executors.get_executors():
+            executor_log = self.extract_executor_log_from_k8s_job_and_pod(executor_job)
+            task.logs.append(executor_log)
+        return task

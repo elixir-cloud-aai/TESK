@@ -2,17 +2,21 @@
 
 import logging
 
+from pydantic import BaseModel
+
 from tesk.api.ga4gh.tes.models import TesResources, TesTask
 from tesk.api.kubernetes.client_wrapper import KubernetesClientWrapper
 from tesk.api.kubernetes.constants import Constants
 from tesk.api.kubernetes.convert.converter import TesKubernetesConverter
 from tesk.constants import TeskConstants
 from tesk.exceptions import KubernetesError
+from tesk.api.ga4gh.tes.task.task_request import TesTaskRequest
+from tesk.api.ga4gh.tes.models import TesCreateTaskResponse
 
 logger = logging.getLogger(__name__)
 
 
-class CreateTesTask:
+class CreateTesTask(TesTaskRequest):
     """Create TES task."""
 
     # TODO: Add user to the class when auth implemented in FOCA
@@ -25,12 +29,12 @@ class CreateTesTask:
         """
         self.task = task
         # self.user = user
-        self.kubernetes_client_wrapper = KubernetesClientWrapper()
         self.namespace = namespace
+        self.kubernetes_client_wrapper = KubernetesClientWrapper()
         self.tes_kubernetes_converter = TesKubernetesConverter(self.namespace)
         self.constants = Constants()
 
-    def create_task(self) -> dict[str, str]:
+    def create_task(self) -> TesCreateTaskResponse:
         """Create TES task."""
         attempts_no = 0
         while attempts_no < self.constants.job_create_attempts_no:
@@ -68,7 +72,7 @@ class CreateTesTask:
                 assert created_job.metadata is not None
                 assert created_job.metadata.name is not None
 
-                return {"id": created_job.metadata.name}
+                return TesCreateTaskResponse(id=created_job.metadata.name)
 
             except KubernetesError as e:
                 if (
@@ -82,6 +86,5 @@ class CreateTesTask:
                 raise exc
         return {}  # Dummy return to silence mypy
 
-    def response(self) -> dict[str, str]:
-        """Create response."""
+    def handle_request(self) -> BaseModel:
         return self.create_task()

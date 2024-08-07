@@ -7,6 +7,7 @@ from kubernetes import client, config
 from kubernetes.client import (
     V1ConfigMap,
     V1Job,
+    V1JobList,
     V1LabelSelector,
     V1LimitRangeList,
     V1PodList,
@@ -94,16 +95,21 @@ class KubernetesClientWrapper:
                 raise
         raise Exception(f"Task {task_id} not found")
 
-    def list_jobs(self, label_selector=None, limit=None):
+    def list_jobs(self, page_token: str = None, label_selector=None, limit=None):
         """List jobs in the Kubernetes cluster.
 
         Args:
+                page_token: pageToken supplied by user (from previous result; points to
+                    next page of results)
                 label_selector: Label selector to filter jobs.
                 limit: Maximum number of jobs to return.
         """
         try:
             return self.batch_api.list_namespaced_job(
-                namespace=self.namespace, label_selector=label_selector, limit=limit
+                namespace=self.namespace,
+                label_selector=label_selector,
+                limit=limit,
+                _continue=page_token,
             )
         except KubernetesError as e:
             logger.error(f"Exception when listing jobs: {e}")
@@ -154,6 +160,84 @@ class KubernetesClientWrapper:
         parsed_quantity: int = parse_quantity(quantity)
         return parsed_quantity
 
+    def list_all_taskmaster_jobs_for_user(
+        self,
+        page_token: str,
+        items_per_page: int,
+        # user: str
+    ) -> V1JobList:
+        """Gets all Taskmaster job objects, a User is allowed to see.
+
+        Args:
+            page_token: pageToken supplied by user (from previous result; points to
+                next page of results)
+            items_per_page: Value submitted by user, limiting number of results.
+            user: User identifier.
+
+        Returns:
+            Job list of Taskmaster jobs that user is allowed to see.
+        """
+        # TODO: Implement this method when auth is implemented in FOCA.
+        label_selector = f"{self.constant.label_jobtype_key}={self.constant.label_jobtype_value_taskm}"
+        # if user.get_label_selector():
+        #     label_selector += f",{user.get_label_selector()}"
+
+        result = self.list_jobs(page_token, label_selector, items_per_page)
+
+        # if user.is_member_in_non_managed_groups():
+        #     filtered_job_list = [
+        #         job for job in result.items
+        #         if user.is_group_manager(
+        #             job.metadata.labels.get(self.constant.label_groupname_key)
+        #             ) or user.get_username()
+        #             == job.metadata.labels.get(self.constant.label_userid_key)
+        #     ]
+        #     result.items = filtered_job_list
+
+        return result
+
+    def list_single_task_executor_jobs(self, task_id: str) -> V1JobList:
+        """List single task executor job."""
+        label_selector = (self.constant.label_testask_id_key + "=" + task_id,)
+        return self.list_jobs(label_selector=label_selector)
+
+    def get_single_task_output_filer_job(self, task_id: str) -> Optional[V1Job]:
+        """Get single task output filer job."""
+        try:
+            job: V1Job = self.batch_api.read_namespaced_job(
+                name=task_id + self.constant.job_name_filer_suf,
+                namespace=self.namespace,
+            )
+            return job
+        except KubernetesError as e:
+            if e.status != NotFound.code:
+                logger.error(f"Exception when reading output filer job: {e}")
+                raise
+        return None
+
+    def list_all_taskmaster_jobs(self) -> V1JobList:
+        """List all taskmaster jobs in the Kubernetes cluster."""
+        label_selector = (
+            self.constant.label_jobtype_key
+            + "="
+            + self.constant.label_jobtype_value_taskm
+        )
+        return self.list_jobs(label_selector=label_selector)
+
+    def list_all_task_executor_jobs(self) -> V1JobList:
+        """List all executor jobs in the Kubernetes cluster."""
+        label_selector = (
+            self.constant.label_jobtype_key
+            + "="
+            + self.constant.label_jobtype_value_exec
+        )
+        return self.list_jobs(label_selector=label_selector)
+
+    def list_all_filer_jobs(self) -> V1JobList:
+        """List all output filer jobs in the Kubernetes cluster."""
+        label_selector = "!" + self.constant.label_jobtype_key
+        return self.list_jobs(label_selector=label_selector)
+
     def list_single_job_pods(self, job: V1Job) -> V1PodList:
         """List pods associated with a single job.
 
@@ -179,6 +263,17 @@ class KubernetesClientWrapper:
                 return V1PodList(items=[])
         except KubernetesError as e:
             logger.error(f"Exception when listing pods: {e}")
+            raise
+
+    def list_all_job_pods(self):
+        """List all job pods."""
+        label_selector = "job-name"
+        try:
+            return self.core_api.list_namespaced_pod(
+                namespace=self.namespace, label_selector=label_selector
+            )
+        except KubernetesError as e:
+            logger.error(f"Couldn't list job of {self.namespace} namespace.")
             raise
 
     def read_pod_log(self, pod_name: str) -> Optional[str]:

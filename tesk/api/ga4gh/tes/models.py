@@ -568,3 +568,11 @@ class TesListTasksResponse(BaseModel):
         description="Token used to return the next page of results. This value can be "
         "used\nin the `page_token` field of the next ListTasks request.",
     )
+
+
+class TaskView(str, Enum):
+    """View of task for API response."""
+
+    MINIMAL = "MINIMAL"
+    BASIC = "BASIC"
+    FULL = "FULL"

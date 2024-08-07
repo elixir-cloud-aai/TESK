@@ -5,6 +5,7 @@ Pod objects).
 """
 
 from typing import List, Optional
+from enum import Enum
 
 from kubernetes.client import V1Job, V1ObjectMeta, V1Pod
 
@@ -70,3 +71,11 @@ class Job:
     def get_job_name(self) -> Optional[str]:
         """Returns the job name."""
         return self.job.metadata.name if self.job.metadata else None
+
+
+class JobStatus(Enum):
+    """State of job."""
+
+    ACTIVE = "Active"
+    SUCCEEDED = "Succeeded"
+    FAILED = "Failed"
