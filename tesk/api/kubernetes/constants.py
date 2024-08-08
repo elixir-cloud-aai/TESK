@@ -123,6 +123,14 @@ class Constants(BaseModel):
         default='{"metadata":{"labels":{"task-status":"Cancelled"}}}',
         description="Patch object passed to job API, when cancelling task",
     )
+    executor_backoff_limit: str = Field(
+        default="EXECUTOR_BACKOFF_LIMIT",
+        description="Set a number of retries of a job execution.",
+    )
+    filer_backoff_limit: str = Field(
+        default="FILER_BACKOFF_LIMIT",
+        description="Set a number of retries of a filer job execution.",
+    )
 
 
 class K8sConstants(BaseModel):

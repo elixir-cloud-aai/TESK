@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 class KubernetesClientWrapper:
     """Kubernetes client wrapper class."""
 
-    def __init__(self, namespace=TeskConstants.tesk_namespace):
+    def __init__(self):
         """Initialize the Kubernetes client wrapper.
 
         Args:
@@ -33,7 +33,7 @@ class KubernetesClientWrapper:
         config.load_kube_config()
         self.batch_api = client.BatchV1Api()
         self.core_api = client.CoreV1Api()
-        self.namespace = namespace
+        self.namespace = TeskConstants.tesk_namespace
         self.constant = Constants()
 
     def create_job(self, job: V1Job) -> V1Job:

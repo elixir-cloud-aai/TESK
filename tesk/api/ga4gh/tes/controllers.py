@@ -39,9 +39,6 @@ def CreateTask(**kwargs) -> dict:
     """
     try:
         request_body = kwargs.get("body")
-        if request_body is None:
-            logger.error("Nothing received in request body.")
-            raise BadRequest("No request body received.")
         tes_task = TesTask(**request_body)
         response = CreateTesTask(tes_task).response()
         return response

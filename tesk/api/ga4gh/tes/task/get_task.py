@@ -1,21 +1,22 @@
+"""Module for getting task."""
+
 from typing import List
+
 from kubernetes.client.models import V1JobList
 from pydantic import BaseModel
+
 from tesk.api.ga4gh.tes.models import TaskView, TesListTasksResponse, TesTask
-from tesk.api.kubernetes.client_wrapper import KubernetesClientWrapper
-from tesk.api.kubernetes.convert.converter import TesKubernetesConverter
+from tesk.api.ga4gh.tes.task.task_request import TesTaskRequest
 from tesk.api.kubernetes.convert.data.task import Task
 from tesk.api.kubernetes.convert.data.task_builder import TaskBuilder
 
-from tesk.api.ga4gh.tes.models import TesListTasksResponse, TesTask
-from tesk.api.ga4gh.tes.task.task_request import TesTaskRequest
-from tesk.constants import TeskConstants
 
+class GetTesTaskInterface(TesTaskRequest):
+    """Base class for listing task request."""
 
-class GetTesTaskInterface:
-    def __init__(self, namespace=TeskConstants.tesk_namespace):
-        self.kubernetes_client_wrapper = KubernetesClientWrapper(namespace=namespace)
-        self.tes_kubernetes_converter = TesKubernetesConverter()
+    def __init__(self):
+        """Initialise base class for listing task."""
+        super().__init__()
 
     def get_task(
         self,
@@ -23,18 +24,18 @@ class GetTesTaskInterface:
         view: TaskView,
         #  user: User
     ) -> TesTask:
-        task_master_job = self.kubernetes_client_wrapper.read_taskmaster_job(task_id)
+        taskmaster_job = self.kubernetes_client_wrapper.read_taskmaster_job(task_id)
         executor_jobs = self.kubernetes_client_wrapper.list_single_task_executor_jobs(
-            task_master_job.metadata.name
+            taskmaster_job.metadata.name
         )
-        task_master_pods = self.kubernetes_client_wrapper.list_single_job_pods(
-            task_master_job
+        taskmaster_pods = self.kubernetes_client_wrapper.list_single_job_pods(
+            taskmaster_job
         )
         task_builder = (
             TaskBuilder.new_single_task()
-            .add_job(task_master_job)
+            .add_job(taskmaster_job)
             .add_job_list(executor_jobs.items)
-            .add_pod_list(task_master_pods.items)
+            .add_pod_list(taskmaster_pods.items)
         )
 
         for executor_job in executor_jobs.items:
@@ -45,7 +46,7 @@ class GetTesTaskInterface:
 
         output_filer_job = (
             self.kubernetes_client_wrapper.get_single_task_output_filer_job(
-                task_master_job.metadata.name
+                taskmaster_job.metadata.name
             )
         )
         if output_filer_job:
@@ -77,11 +78,11 @@ class GetTesTaskInterface:
                         executor_log.stdout = executor_pod_log
 
         if task_objects.taskmaster.has_pods():
-            task_master_pod_log = self.kubernetes_client_wrapper.read_pod_log(
+            taskmaster_pod_log = self.kubernetes_client_wrapper.read_pod_log(
                 task_objects.get_taskmaster().get_first_pod().metadata.name
             )
-            if task_master_pod_log is not None:
-                task.logs[0].system_logs.append(task_master_pod_log)
+            if taskmaster_pod_log is not None:
+                task.logs[0].system_logs.append(taskmaster_pod_log)
 
         return task
 
@@ -123,7 +124,7 @@ class GetTesTaskInterface:
         return response
 
 
-class GetTesTask(TesTaskRequest, GetTesTaskInterface):
+class GetTesTask(GetTesTaskInterface):
     def handle_request(
         self,
         name_prefix: str,

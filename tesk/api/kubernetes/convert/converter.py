@@ -14,37 +14,38 @@ from kubernetes.client import (
     V1Container,
     V1EnvVar,
     V1JobSpec,
+    V1JobStatus,
     V1ObjectMeta,
     V1PodSpec,
     V1PodTemplateSpec,
     V1ResourceRequirements,
     V1Volume,
-    V1JobStatus,
-    V1ObjectMeta,
 )
 from kubernetes.client.models import V1Job
 from kubernetes.utils.quantity import parse_quantity  # type: ignore
 
 from tesk.api.ga4gh.tes.models import (
     TesExecutor,
+    TesExecutorLog,
     TesResources,
-    TesTask,
-    TesExecutorLog,
     TesState,
+    TesTask,
     TesTaskLog,
-    TesExecutorLog,
 )
+from tesk.api.kubernetes.client_wrapper import KubernetesClientWrapper
 from tesk.api.kubernetes.constants import Constants, K8sConstants
-from tesk.api.kubernetes.convert.data.job import Job
+from tesk.api.kubernetes.convert.data.job import Job, JobStatus
+from tesk.api.kubernetes.convert.data.task import Task
 from tesk.api.kubernetes.convert.executor_command_wrapper import ExecutorCommandWrapper
 from tesk.api.kubernetes.convert.template import KubernetesTemplateSupplier
-from tesk.constants import TeskConstants
 from tesk.custom_config import TaskmasterEnvProperties
-from tesk.utils import get_taskmaster_env_property, pydantic_model_list_json
-from tesk.api.kubernetes.convert.data.task import Task
-from tesk.api.kubernetes.client_wrapper import KubernetesClientWrapper
-from tesk.api.kubernetes.convert.data.job import JobStatus
-from tesk.utils import time_formatter, decimal_to_float
+from tesk.utils import (
+    decimal_to_float,
+    enum_to_string,
+    get_taskmaster_env_property,
+    pydantic_model_list_json,
+    time_formatter,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -52,25 +53,21 @@ logger = logging.getLogger(__name__)
 class TesKubernetesConverter:
     """Convert TES requests to Kubernetes resources."""
 
-    def __init__(self, namespace=TeskConstants.tesk_namespace):
+    def __init__(self):
         """Initialize the converter."""
         self.taskmaster_env_properties: TaskmasterEnvProperties = (
             get_taskmaster_env_property()
         )
-        self.template_supplier = KubernetesTemplateSupplier(
-            namespace=namespace
-            # security_context=security_context
-        )
+        self.template_supplier = KubernetesTemplateSupplier()
         self.constants = Constants()
         self.k8s_constants = K8sConstants()
-        self.namespace = namespace
-        self.kubernetes_client_wrapper = KubernetesClientWrapper(namespace=namespace)
+        self.kubernetes_client_wrapper = KubernetesClientWrapper()
 
     def from_tes_task_to_k8s_job(self, task: TesTask):
         """Convert TES task to Kubernetes job."""
-        taskmaster_job: V1Job = KubernetesTemplateSupplier(
-            self.namespace
-        ).task_master_template()
+        taskmaster_job: V1Job = (
+            self.template_supplier.get_taskmaster_template_with_value_from_config()
+        )
 
         if taskmaster_job.metadata is None:
             taskmaster_job.metadata = V1ObjectMeta()
@@ -99,9 +96,15 @@ class TesKubernetesConverter:
         #         "any_group"
         #     ]
 
+        # Convert Pydantic model to dictionary
+        task_dict = task.dict()
+
+        # Serialize to JSON with indentation
+        json_input = json.dumps(task_dict, indent=2, default=enum_to_string)
+
         try:
             taskmaster_job.metadata.annotations[self.constants.ann_json_input_key] = (
-                task.json()
+                json_input
             )
         except Exception as ex:
             logger.info(
@@ -126,57 +129,63 @@ class TesKubernetesConverter:
     def from_tes_task_to_k8s_config_map(
         self,
         task: TesTask,
-        job: V1Job,
+        taskmaster_job: V1Job,
         # user,
     ) -> V1ConfigMap:
         """Create a Kubernetes ConfigMap from a TES task."""
-        if job.metadata is None:
-            job.metadata = V1ObjectMeta()
-
-        task_master_config_map = V1ConfigMap(
-            metadata=V1ObjectMeta(name=job.metadata.name)
+        assert taskmaster_job.metadata is not None, (
+            "Taskmaster job metadata should have already been set while create"
+            " taskmaster!"
         )
 
-        assert task_master_config_map.metadata is not None
-        task_master_config_map.metadata.labels = (
-            task_master_config_map.metadata.labels or {}
-        )
-        task_master_config_map.metadata.annotations = (
-            task_master_config_map.metadata.annotations or {}
+        taskmaster_config_map = V1ConfigMap(
+            metadata=V1ObjectMeta(name=taskmaster_job.metadata.name)
         )
 
-        if task.name:
-            task_master_config_map.metadata.annotations[
-                self.constants.ann_testask_name_key
-            ] = task.name
+        assert (
+            taskmaster_config_map.metadata is not None
+        ), "Taskmaster metadata is should have already been set!"
 
-        # task_master_config_map.metadata.labels[self.constants.label_userid_key]
+        if taskmaster_config_map.metadata.labels is None:
+            taskmaster_config_map.metadata.labels = {}
+
+        if taskmaster_config_map.metadata.annotations is None:
+            taskmaster_config_map.metadata.annotations = {}
+
+        # FIXME: Figure out what to do if task.name is none.
+        task_name = task.name or "String"
+
+        taskmaster_config_map.metadata.annotations[
+            self.constants.ann_testask_name_key
+        ] = task_name
+
+        # taskmaster_config_map.metadata.labels[self.constants.label_userid_key]
         # = user["username"]
 
         if task.tags and "GROUP_NAME" in task.tags:
-            task_master_config_map.metadata.labels[
+            taskmaster_config_map.metadata.labels[
                 self.constants.label_groupname_key
             ] = task.tags["GROUP_NAME"]
         # elif user["is_member"]:
-        #     task_master_config_map.metadata.labels[self.constants.label_groupname_key]
+        #     taskmaster_config_map.metadata.labels[self.constants.label_groupname_key]
         #       = user["any_group"]
 
-        assert task_master_config_map.metadata.name is not None
+        assert taskmaster_config_map.metadata.name is not None
         assert task.resources is not None
 
         executors_as_jobs = [
             self.from_tes_executor_to_k8s_job(
-                task_master_config_map.metadata.name,
-                task.name,
-                executor,
-                idx,
-                task.resources,
-                # user,
+                generated_task_id=taskmaster_config_map.metadata.name,
+                tes_task_name=task_name,
+                executor=executor,
+                executor_index=idx,
+                resources=task.resources,
+                # user=user,
             )
             for idx, executor in enumerate(task.executors)
         ]
 
-        task_master_input: dict[str, Any] = {
+        taskmaster_input: dict[str, Any] = {
             "inputs": pydantic_model_list_json(task.inputs) if task.inputs else [],
             "outputs": pydantic_model_list_json(task.outputs) if task.outputs else [],
             "volumes": task.volumes or [],
@@ -186,19 +195,20 @@ class TesKubernetesConverter:
                 else 10.0
             },
         }
-        task_master_input[self.constants.taskmaster_input_exec_key] = [
+        taskmaster_input[self.constants.taskmaster_input_exec_key] = [
             exec_job.to_dict() for exec_job in executors_as_jobs
         ]
 
         taskmaster_input_as_json = json.loads(
-            json.dumps(task_master_input, default=decimal_to_float)
+            json.dumps(taskmaster_input, default=decimal_to_float)
         )
+
         try:
             with BytesIO() as obj:
                 with gzip.GzipFile(fileobj=obj, mode="wb") as gzip_file:
                     json_data = json.dumps(taskmaster_input_as_json)
                     gzip_file.write(json_data.encode("utf-8"))
-                task_master_config_map.binary_data = {
+                taskmaster_config_map.binary_data = {
                     f"{self.constants.taskmaster_input}.gz": base64.b64encode(
                         obj.getvalue()
                     ).decode("utf-8")
@@ -206,13 +216,13 @@ class TesKubernetesConverter:
         except Exception as e:
             logger.info(
                 (
-                    f"Compression of task {task_master_config_map.metadata.name}"
+                    f"Compression of task {taskmaster_config_map.metadata.name}"
                     f" JSON configmap failed"
                 ),
                 e,
             )
 
-        return task_master_config_map
+        return taskmaster_config_map
 
     def from_tes_executor_to_k8s_job(  # noqa: PLR0913
         self,
@@ -225,36 +235,42 @@ class TesKubernetesConverter:
     ) -> V1Job:
         """Create a Kubernetes job from a TES executor."""
         # Get new template executor Job object
-        job: V1Job = self.template_supplier.executor_template()
-
-        # Set executors name based on taskmaster's job name
-        # TODO: Fix me ASAP
-        Job(job).change_job_name(
-            # Task(job, generated_task_id).get_executor_name(executor_index)
-            "newname"
+        executor_job: V1Job = (
+            self.template_supplier.get_executor_template_with_value_from_config()
         )
 
-        if job.metadata is None:
-            job.metadata = V1ObjectMeta()
+        # Set executors name based on taskmaster's job name
+        Job(executor_job).change_job_name(new_name=generated_task_id)
+
+        if executor_job.metadata is None:
+            executor_job.metadata = V1ObjectMeta()
 
         # Put arbitrary labels and annotations
-        job.metadata.labels = job.metadata.labels or {}
-        job.metadata.labels[self.constants.label_testask_id_key] = generated_task_id
-        job.metadata.labels[self.constants.label_execno_key] = str(executor_index)
+        executor_job.metadata.labels = executor_job.metadata.labels or {}
+        executor_job.metadata.labels[self.constants.label_testask_id_key] = (
+            generated_task_id
+        )
+        executor_job.metadata.labels[self.constants.label_execno_key] = str(
+            executor_index
+        )
         # job.metadata.labels[self.constants.label_userid_key] = user.username
 
-        job.metadata.annotations = job.metadata.annotations or {}
+        if executor_job.metadata is None:
+            executor_job.metadata = V1ObjectMeta()
+        if executor_job.metadata.annotations is None:
+            executor_job.metadata.annotations = {}
+
         if tes_task_name:
-            job.metadata.annotations[self.constants.ann_testask_name_key] = (
+            executor_job.metadata.annotations[self.constants.ann_testask_name_key] = (
                 tes_task_name
             )
 
-        if job.spec is None:
-            job.spec = V1JobSpec(template=V1PodTemplateSpec())
-        if job.spec.template.spec is None:
-            job.spec.template.spec = V1PodSpec(containers=[])
+        if executor_job.spec is None:
+            executor_job.spec = V1JobSpec(template=V1PodTemplateSpec())
+        if executor_job.spec.template.spec is None:
+            executor_job.spec.template.spec = V1PodSpec(containers=[])
 
-        container: V1Container = job.spec.template.spec.containers[0]
+        container: V1Container = executor_job.spec.template.spec.containers[0]
 
         # TODO: Not sure what to do with this
         # Convert potential TRS URI into docker image
@@ -264,7 +280,7 @@ class TesKubernetesConverter:
 
         if not container.command:
             container.command = []
-        # Map executor's command to job container's command
+
         for command in ExecutorCommandWrapper(
             executor
         ).get_commands_with_stream_redirects():
@@ -292,7 +308,7 @@ class TesKubernetesConverter:
                 f"{resources.ram_gb:.6f}Gi"
             )
 
-        return job
+        return executor_job
 
     def is_job_in_status(tested_object: V1JobStatus, test_objective: JobStatus) -> bool:
         no_of_pods_in_state = None
@@ -308,22 +324,22 @@ class TesKubernetesConverter:
         return no_of_pods_in_state is not None and no_of_pods_in_state > 0
 
     def extract_state_from_k8s_jobs(self, taskmaster_with_executors: Task) -> TesState:
-        # task_master_job: V1Job = taskmaster_with_executors.get_taskmaster().get_job()
+        # taskmaster_job: V1Job = taskmaster_with_executors.get_taskmaster().get_job()
         # last_executor: Optional[Job] = taskmaster_with_executors.get_last_executor()
         # output_filer: Optional[Job] = taskmaster_with_executors.get_output_filer()
-        # task_master_cancelled = (
-        #     task_master_job.metadata.labels.get(self.constants.label_taskstate_key)
+        # taskmaster_cancelled = (
+        #     taskmaster_job.metadata.labels.get(self.constants.label_taskstate_key)
         #     == self.constants.label_taskstate_value_canc
         # )
-        # task_master_running = self.is_job_in_status(
-        #     tested_object=task_master_job.status,
+        # taskmaster_running = self.is_job_in_status(
+        #     tested_object=taskmaster_job.status,
         #     test_objective=JobStatus.ACTIVE
         # )
-        # print(task_master_running)
-        # task_master_completed = self.is_job_in_status(
-        #     task_master_job.status, JobStatus.SUCCEEDED
+        # print(taskmaster_running)
+        # taskmaster_completed = self.is_job_in_status(
+        #     taskmaster_job.status, JobStatus.SUCCEEDED
         # )
-        # print(task_master_completed)
+        # print(taskmaster_completed)
         # executor_present = last_executor is not None
         # last_executor_failed = executor_present and self.is_job_in_status(
         #     last_executor.get_job().status, JobStatus.FAILED
@@ -338,7 +354,7 @@ class TesKubernetesConverter:
         # )
         # print(output_filer_failed)
         # pending = self.k8s_constants.PodPhase.PENDING
-        # task_master_pending = any(
+        # taskmaster_pending = any(
         #     pod.status.phase == pending
         #     for pod in taskmaster_with_executors.get_taskmaster().get_pods()
         # )
@@ -346,21 +362,21 @@ class TesKubernetesConverter:
         #     pod.status.phase == pending for pod in last_executor.get_pods()
         # )
 
-        # if task_master_cancelled:
+        # if taskmaster_cancelled:
         #     return TesState.CANCELED
-        # if task_master_completed and output_filer_failed:
+        # if taskmaster_completed and output_filer_failed:
         #     return TesState.SYSTEM_ERROR
-        # if task_master_completed and last_executor_completed:
+        # if taskmaster_completed and last_executor_completed:
         #     return TesState.COMPLETE
-        # if task_master_completed and last_executor_failed:
+        # if taskmaster_completed and last_executor_failed:
         #     return TesState.EXECUTOR_ERROR
-        # if task_master_pending:
+        # if taskmaster_pending:
         #     return TesState.QUEUED
-        # if task_master_running and not executor_present:
+        # if taskmaster_running and not executor_present:
         #     return TesState.INITIALIZING
         # if last_executor_pending:
         #     return TesState.QUEUED
-        # if task_master_running:
+        # if taskmaster_running:
         #     return TesState.RUNNING
         return TesState.SYSTEM_ERROR
 
@@ -435,9 +451,9 @@ class TesKubernetesConverter:
         self, taskmaster_with_executors: Task, nullify_input_content: bool
     ) -> TesTask:
         task = TesTask()
-        task_master_job: V1Job = taskmaster_with_executors.taskmaster.job
-        task_master_job_metadata: V1ObjectMeta = task_master_job.metadata
-        input_json = (task_master_job_metadata.annotations or {}).get(
+        taskmaster_job: V1Job = taskmaster_with_executors.taskmaster.job
+        taskmaster_job_metadata: V1ObjectMeta = taskmaster_job.metadata
+        input_json = (taskmaster_job_metadata.annotations or {}).get(
             self.constants.ann_json_input_key, ""
         )
         try:
@@ -447,31 +463,31 @@ class TesKubernetesConverter:
                     input_item["content"] = None
         except json.JSONDecodeError as ex:
             print(
-                f"Deserializing task {task_master_job_metadata['name']} from JSON failed; {ex}"
+                f"Deserializing task {taskmaster_job_metadata['name']} from JSON failed; {ex}"
             )
 
-        task.id = task_master_job_metadata["name"]
+        task.id = taskmaster_job_metadata["name"]
         task.state = self.extract_state_from_k8s_jobs(taskmaster_with_executors)
         task.creation_time = time_formatter(
-            task_master_job_metadata["creation_timestamp"]
+            taskmaster_job_metadata["creation_timestamp"]
         )
         log = TesTaskLog()
         task.logs.append(log)
-        log.metadata["USER_ID"] = task_master_job_metadata["labels"][
+        log.metadata["USER_ID"] = taskmaster_job_metadata["labels"][
             self.constants.label_userid_key
         ]
-        if self.constants.label_groupname_key in task_master_job_metadata["labels"]:
-            log["GROUP_NAME"] = task_master_job_metadata["labels"][
+        if self.constants.label_groupname_key in taskmaster_job_metadata["labels"]:
+            log["GROUP_NAME"] = taskmaster_job_metadata["labels"][
                 self.constants.label_groupname_key
             ]
         log.start_time = (
-            time_formatter(task_master_job.status.start_time)
-            if task_master_job.status.start_time
+            time_formatter(taskmaster_job.status.start_time)
+            if taskmaster_job.status.start_time
             else None
         )
         log.end_time = (
-            time_formatter(task_master_job.status.completion_time)
-            if task_master_job.status.completion_time
+            time_formatter(taskmaster_job.status.completion_time)
+            if taskmaster_job.status.completion_time
             else None
         )
         for executor_job in taskmaster_with_executors.get_executors():

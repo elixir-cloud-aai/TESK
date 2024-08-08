@@ -62,8 +62,8 @@ class TaskmasterEnvProperties(BaseModel):
         description="If verbose (debug) mode of taskmaster is on (passes additional "
         "flag to taskmaster and sets image pull policy to Always)",
     )
-    environment: Dict[str, str] = Field(
-        default={"key": "value"},
+    environment: Optional[Dict[str, str]] = Field(
+        default=None,
         description="Environment variables, that will be passed to taskmaster",
     )
     serviceAccountName: str = Field(

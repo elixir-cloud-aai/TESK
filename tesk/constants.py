@@ -23,8 +23,11 @@ class TeskConstants:
         "TESK_API_TASKMASTER_SERVICE_ACCOUNT_NAME", "taskmaster"
     )
     taskmaster_environment_executor_backoff_limit: str = os.getenv(
-        "ENVIRONMENT_EXECUTOR_BACKOFF_LIMIT", "2"
+        "ENVIRONMENT_EXECUTOR_BACKOFF_LIMIT", "6"
     )
-    filer_environment_filer_backoff_limit: str = os.getenv(
-        "TESK_API_TASKMASTER_ENVIRONMENT_FILER_BACKOFF_LIMIT", "2"
+    filer_backoff_limit: str = os.getenv("FILER_BACKOFF_LIMIT", "2")
+    executor_backoff_limit: str = os.getenv("EXECUTOR_BACKOFF_LIMIT", "2")
+    # TODO: IDK what to do with this
+    tesk_api_taskmaster_environment_filer_backoff_limit: str = os.getenv(
+        "TESK_API_TASKMASTER_ENVIRONMENT_FILER_BACKOFF_LIMIT", "6"
     )

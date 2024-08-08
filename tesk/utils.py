@@ -1,11 +1,10 @@
 """Utility functions for the TESK package."""
 
-import datetime
 import os
-from pathlib import Path
-from enum import Enum
-from typing import List, Optional, Sequence
 from decimal import Decimal
+from enum import Enum
+from pathlib import Path
+from typing import List, Optional, Sequence
 
 from foca import Foca
 from kubernetes.client.models import (
@@ -27,19 +26,19 @@ from kubernetes.client.models import (
 from pydantic import BaseModel
 
 from tesk.custom_config import (
-    Container,
     CustomConfig,
-    DownwardAPIItem,
-    EnvVar,
-    EnvVarSource,
-    Job,
-    JobMetadata,
-    JobSpec,
-    PodSpec,
-    PodTemplate,
+    PydanticK8sContainer,
+    PydanticK8sDownwardAPIItem,
+    PydanticK8sEnvVar,
+    PydanticK8sEnvVarSource,
+    PydanticK8sJob,
+    PydanticK8sJobMetadata,
+    PydanticK8sJobSpec,
+    PydanticK8sPodSpec,
+    PydanticK8sPodTemplate,
+    PydanticK8sVolume,
+    PydanticK8sVolumeMount,
     TaskmasterEnvProperties,
-    Volume,
-    VolumeMount,
 )
 from tesk.exceptions import ConfigNotFoundError
 
@@ -80,7 +79,7 @@ def get_taskmaster_template() -> V1Job:
     """
     custom_conf = get_custom_config()
     try:
-        return job_to_v1job(custom_conf.taskmaster_template)
+        return pydantic_k8s_job_to_v1job(custom_conf.taskmaster_template)
     except AttributeError:
         raise ConfigNotFoundError(
             "Custom configuration doesn't seem to have taskmaster_template in config "
@@ -104,15 +103,18 @@ def get_taskmaster_env_property() -> TaskmasterEnvProperties:
         ) from None
 
 
-def job_to_v1job(job: Job) -> V1Job:
+def pydantic_k8s_job_to_v1job(job: PydanticK8sJob) -> V1Job:
     """Convert a pydantic job model to a V1Job object.
+
+    FOCA validates config via pydantic models and kubernetes
+    client's models aren't written using pydantic.
 
     Returns:
         The V1Job object.
     """
 
     def convert_env_var_source(
-        env_var_source: Optional[EnvVarSource],
+        env_var_source: Optional[PydanticK8sEnvVarSource],
     ) -> Optional[V1EnvVarSource]:
         if env_var_source is None:
             return None
@@ -127,7 +129,7 @@ def job_to_v1job(job: Job) -> V1Job:
         return None
 
     def convert_downward_api_item(
-        downward_api_item: DownwardAPIItem,
+        downward_api_item: PydanticK8sDownwardAPIItem,
     ) -> V1DownwardAPIVolumeFile:
         field_ref = None
         if downward_api_item.fieldRef:
@@ -143,7 +145,7 @@ def job_to_v1job(job: Job) -> V1Job:
             field_ref=field_ref,
         )
 
-    def convert_volume(volume: Volume) -> V1Volume:
+    def convert_volume(volume: PydanticK8sVolume) -> V1Volume:
         if volume.downwardAPI:
             return V1Volume(
                 name=volume.name,
@@ -156,19 +158,19 @@ def job_to_v1job(job: Job) -> V1Job:
             )
         return V1Volume(name=volume.name)
 
-    def convert_env_var(env_var: EnvVar) -> V1EnvVar:
+    def convert_env_var(env_var: PydanticK8sEnvVar) -> V1EnvVar:
         return V1EnvVar(
             name=env_var.name, value_from=convert_env_var_source(env_var.valueFrom)
         )
 
-    def convert_volume_mount(volume_mount: VolumeMount) -> V1VolumeMount:
+    def convert_volume_mount(volume_mount: PydanticK8sVolumeMount) -> V1VolumeMount:
         return V1VolumeMount(
             name=volume_mount.name,
             mount_path=volume_mount.mountPath,
             read_only=volume_mount.readOnly,
         )
 
-    def convert_container(container: Container) -> V1Container:
+    def convert_container(container: PydanticK8sContainer) -> V1Container:
         return V1Container(
             name=container.name,
             image=container.image,
@@ -177,7 +179,7 @@ def job_to_v1job(job: Job) -> V1Job:
             volume_mounts=[convert_volume_mount(vm) for vm in container.volumeMounts],
         )
 
-    def convert_pod_spec(pod_spec: PodSpec) -> V1PodSpec:
+    def convert_pod_spec(pod_spec: PydanticK8sPodSpec) -> V1PodSpec:
         return V1PodSpec(
             service_account_name=pod_spec.serviceAccountName,
             containers=[
@@ -187,16 +189,16 @@ def job_to_v1job(job: Job) -> V1Job:
             restart_policy=pod_spec.restartPolicy,
         )
 
-    def convert_pod_template(pod_template: PodTemplate) -> V1PodTemplateSpec:
+    def convert_pod_template(pod_template: PydanticK8sPodTemplate) -> V1PodTemplateSpec:
         return V1PodTemplateSpec(
             metadata=V1ObjectMeta(name=pod_template.metadata.name),
             spec=convert_pod_spec(pod_template.spec),
         )
 
-    def convert_job_spec(job_spec: JobSpec) -> V1JobSpec:
+    def convert_job_spec(job_spec: PydanticK8sJobSpec) -> V1JobSpec:
         return V1JobSpec(template=convert_pod_template(job_spec.template))
 
-    def convert_job_metadata(job_metadata: JobMetadata) -> V1ObjectMeta:
+    def convert_job_metadata(job_metadata: PydanticK8sJobMetadata) -> V1ObjectMeta:
         return V1ObjectMeta(name=job_metadata.name, labels=job_metadata.labels)
 
     return V1Job(
@@ -222,11 +224,19 @@ def time_formatter(time: Optional[str]) -> Optional[str]:
 
 
 def decimal_to_float(obj):
+    """Convert decimal to float.
+
+    Can be used to make Decimal serializable.
+    """
     if isinstance(obj, Decimal):
         return float(obj)
     raise TypeError
 
 
 def enum_to_string(enum):
+    """Converts enum to string.
+
+    Can be used to make Enums serializable.
+    """
     if isinstance(enum, Enum):
         return str(enum.name)

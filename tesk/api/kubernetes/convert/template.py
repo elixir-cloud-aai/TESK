@@ -29,7 +29,10 @@ logger = logging.getLogger(__name__)
 class KubernetesTemplateSupplier:
     """Templates for tasmaster's and executor's job object.."""
 
-    def __init__(self, namespace=TeskConstants.tesk_namespace, security_context=None):
+    def __init__(
+        self,
+        # security_context=None
+    ):
         """Initialize the converter."""
         self.taskmaster_template: V1Job = get_taskmaster_template()
         self.taskmaster_env_properties: TaskmasterEnvProperties = (
@@ -37,15 +40,16 @@ class KubernetesTemplateSupplier:
         )
         self.constants = Constants()
         self.k8s_constants = K8sConstants()
-        self.namespace = namespace
-        self.security_context = security_context
+        self.tesk_constants = TeskConstants()
+        self.namespace = self.tesk_constants.tesk_namespace
+        # self.security_context = security_context
 
-    def get_task_master_name(self) -> str:
+    def get_taskmaster_name(self) -> str:
         """Generate a unique name for the taskmaster job."""
         name: str = self.constants.job_name_taskm_prefix + str(uuid.uuid4())
         return name
 
-    def task_master_template(self) -> V1Job:
+    def get_taskmaster_template_with_value_from_config(self) -> V1Job:
         """Create a template for the taskmaster job."""
         job: V1Job = self.taskmaster_template
 
@@ -84,21 +88,36 @@ class KubernetesTemplateSupplier:
         if job.metadata is None:
             job.metadata = V1ObjectMeta(labels={})
 
-        assert job.metadata.labels is not None
+        if job.metadata.labels is None:
+            job.metadata.labels = V1ObjectMeta()
 
         job.metadata.labels[self.constants.label_jobtype_key] = (
             self.constants.label_jobtype_value_taskm
         )
-        task_master_name = self.get_task_master_name()
-        job.metadata.name = task_master_name
+        taskmaster_name = self.get_taskmaster_name()
+        job.metadata.name = taskmaster_name
+        container.name = taskmaster_name
 
         assert isinstance(container.env, Iterable)
 
+        if container.env is None:
+            container.env = V1EnvVar()
+
+        if self.taskmaster_env_properties:
+            container.env.extend(
+                [
+                    V1EnvVar(name=key.upper().replace(".", "_"), value=value)
+                    for key, value in self.taskmaster_env_properties.environment.items()
+                ]
+            )
+
+        # Set backoff env variables for `filer` and `executor`
+        backoff_limits = {
+            self.constants.filer_backoff_limit: self.tesk_constants.filer_backoff_limit,
+            self.constants.executor_backoff_limit: self.tesk_constants.executor_backoff_limit,
+        }
         container.env.extend(
-            [
-                V1EnvVar(name=key.upper().replace(".", "_"), value=value)
-                for key, value in self.taskmaster_env_properties.environment.items()
-            ]
+            [V1EnvVar(name=key, value=value) for key, value in backoff_limits.items()]
         )
 
         ftp_secrets = [
@@ -122,9 +141,12 @@ class KubernetesTemplateSupplier:
 
         return job
 
-    def executor_template(self) -> V1Job:
+    def get_executor_template_with_value_from_config(self) -> V1Job:
         """Create a template for the executor job."""
-        container = V1Container(name="executor", resources=V1ResourceRequirements())
+        container = V1Container(
+            name=self.constants.label_jobtype_value_exec,
+            resources=V1ResourceRequirements(),
+        )
 
         if self.taskmaster_env_properties.executorSecret is not None:
             container.volume_mounts = [
@@ -142,8 +164,8 @@ class KubernetesTemplateSupplier:
             restart_policy=self.k8s_constants.job_restart_policy,
         )
 
-        if self.security_context:
-            pod_spec.security_context = self.security_context
+        # if self.security_context:
+        #     pod_spec.security_context = self.security_context
 
         job = V1Job(
             api_version=self.k8s_constants.k8s_batch_api_version,

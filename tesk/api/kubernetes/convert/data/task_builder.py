@@ -36,7 +36,7 @@ class TaskBuilder:
         wrapped_job = Job(job)
         job_type = job.metadata.labels.get(self.constants.label_jobtype_key)
         if job_type == self.constants.label_jobtype_value_taskm:
-            self.build_strategy.add_task_master_job(wrapped_job)
+            self.build_strategy.add_taskmaster_job(wrapped_job)
         elif job_type == self.constants.label_jobtype_value_exec:
             self.build_strategy.add_executor_job(wrapped_job)
         else:

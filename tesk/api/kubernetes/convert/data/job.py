@@ -4,8 +4,8 @@ Can be both a taskmaster and an executor, it list of worker pods (Kubernetes
 Pod objects).
 """
 
-from typing import List, Optional
 from enum import Enum
+from typing import List, Optional
 
 from kubernetes.client import V1Job, V1ObjectMeta, V1Pod
 
@@ -23,8 +23,7 @@ class Job:
         return self.job
 
     def add_pod(self, pod: V1Pod):
-        """Adds a single pod to the list (without any duplication checks)."""
-        # TODO: This doesn't take care of duplication, use set on id or name
+        """Adds a single pod to the list."""
         self.pods.append(pod)
 
     def has_pods(self) -> bool:

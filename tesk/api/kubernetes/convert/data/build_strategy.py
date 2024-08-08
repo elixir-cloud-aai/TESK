@@ -21,7 +21,7 @@ class BuildStrategy(ABC):
     """
 
     @abstractmethod
-    def add_task_master_job(self, taskmaster_job: Job):
+    def add_taskmaster_job(self, taskmaster_job: Job):
         """Add taskmaster job.
 
         Method should optionally filter and place the passed taskmaster's job object

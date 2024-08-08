@@ -10,7 +10,7 @@ from tesk.api.kubernetes.convert.taskmaster_env_properties import (
 )
 
 
-class SecretKeyRef(BaseModel):
+class PydanticK8sSecretKeyRef(BaseModel):
     """Reference to a secret key."""
 
     name: str
@@ -18,20 +18,20 @@ class SecretKeyRef(BaseModel):
     optional: Optional[bool] = Field(False, description="If the reference is optional")
 
 
-class EnvVarSource(BaseModel):
+class PydanticK8sEnvVarSource(BaseModel):
     """Source for an environment variable."""
 
-    secretKeyRef: Optional[SecretKeyRef] = None
+    secretKeyRef: Optional[PydanticK8sSecretKeyRef] = None
 
 
-class EnvVar(BaseModel):
+class PydanticK8sEnvVar(BaseModel):
     """Environment variable."""
 
     name: str
-    valueFrom: Optional[EnvVarSource] = None
+    valueFrom: Optional[PydanticK8sEnvVarSource] = None
 
 
-class VolumeMount(BaseModel):
+class PydanticK8sVolumeMount(BaseModel):
     """Volume mount configuration."""
 
     name: str
@@ -39,72 +39,72 @@ class VolumeMount(BaseModel):
     readOnly: bool
 
 
-class DownwardAPIItem(BaseModel):
+class PydanticK8sDownwardAPIItem(BaseModel):
     """Downward API item configuration."""
 
     path: str
     fieldRef: Dict[str, str]
 
 
-class Volume(BaseModel):
+class PydanticK8sVolume(BaseModel):
     """Volume configuration."""
 
     name: str
-    downwardAPI: Optional[Dict[str, List[DownwardAPIItem]]] = None
+    downwardAPI: Optional[Dict[str, List[PydanticK8sDownwardAPIItem]]] = None
 
 
-class Container(BaseModel):
+class PydanticK8sContainer(BaseModel):
     """Container configuration."""
 
     name: str
     image: str
     args: List[str]
-    env: List[EnvVar]
-    volumeMounts: List[VolumeMount]
+    env: List[PydanticK8sEnvVar]
+    volumeMounts: List[PydanticK8sVolumeMount]
 
 
-class PodSpec(BaseModel):
+class PydanticK8sPodSpec(BaseModel):
     """Pod specification."""
 
     serviceAccountName: str
-    containers: List[Container]
-    volumes: List[Volume]
+    containers: List[PydanticK8sContainer]
+    volumes: List[PydanticK8sVolume]
     restartPolicy: str
 
 
-class PodMetadata(BaseModel):
+class PydanticK8sPodMetadata(BaseModel):
     """Pod metadata."""
 
     name: str
 
 
-class PodTemplate(BaseModel):
+class PydanticK8sPodTemplate(BaseModel):
     """Pod template configuration."""
 
-    metadata: PodMetadata
-    spec: PodSpec
+    metadata: PydanticK8sPodMetadata
+    spec: PydanticK8sPodSpec
 
 
-class JobSpec(BaseModel):
+class PydanticK8sJobSpec(BaseModel):
     """Job specification."""
 
-    template: PodTemplate
+    template: PydanticK8sPodTemplate
 
 
-class JobMetadata(BaseModel):
+class PydanticK8sJobMetadata(BaseModel):
     """Job metadata."""
 
     name: str
     labels: Dict[str, str]
 
 
-class Job(BaseModel):
+class PydanticK8sJob(BaseModel):
     """Kubernetes Job configuration."""
 
     apiVersion: str
     kind: str
-    metadata: JobMetadata
-    spec: JobSpec
+    metadata: PydanticK8sJobMetadata
+    spec: PydanticK8sJobSpec
 
 
 class CustomConfig(BaseModel):
@@ -112,5 +112,5 @@ class CustomConfig(BaseModel):
 
     # Define custom configuration fields here
     service_info: Service
-    taskmaster_template: Job  # This is Pydantic model for V1Job
+    taskmaster_template: PydanticK8sJob  # This is Pydantic model for V1Job
     taskmaster_env_properties: TaskmasterEnvProperties

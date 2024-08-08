@@ -38,7 +38,7 @@ class TaskListStrategy(BuildStrategy):
         self.tasks_by_id: Dict[str, Task] = {}
         self.constants = Constants()
 
-    def add_task_master_job(self, taskmaster_job: Job):
+    def add_taskmaster_job(self, taskmaster_job: Job):
         """Add taskmater job."""
         task_name = taskmaster_job.get_job().metadata.name
         if task_name not in self.tasks_by_id:

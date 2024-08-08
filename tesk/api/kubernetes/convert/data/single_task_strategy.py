@@ -33,7 +33,7 @@ class SingleTaskStrategy(BuildStrategy):
         """Initialise SingleTaskStrategy."""
         self.task = None
 
-    def add_task_master_job(self, taskmaster_job: Job):
+    def add_taskmaster_job(self, taskmaster_job: Job):
         """Add taskmaster job."""
         self.task = Task(taskmaster_job)
 
