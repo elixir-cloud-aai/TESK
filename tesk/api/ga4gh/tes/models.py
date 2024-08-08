@@ -275,7 +275,7 @@ class TesResources(BaseModel):
         example={"VmSize": "Standard_D64_v3"},
     )
     backend_parameters_strict: Optional[bool] = Field(
-        False,
+        default=False,
         description="If set to true, backends should fail the task if any "
         "backend_parameters\nkey/values are unsupported, otherwise, backends should "
         "attempt to run the task",
@@ -568,3 +568,11 @@ class TesListTasksResponse(BaseModel):
         description="Token used to return the next page of results. This value can be "
         "used\nin the `page_token` field of the next ListTasks request.",
     )
+
+
+class TaskView(str, Enum):
+    """View of task for API response."""
+
+    MINIMAL = "MINIMAL"
+    BASIC = "BASIC"
+    FULL = "FULL"

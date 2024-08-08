@@ -4,9 +4,10 @@ requires = ["poetry-core"]
 
 [tool.bandit]
 skips = [
+  "B101", # Use of asserts is discouraged as it is removed during byte generation, we don't need that! 
+  "B108",  # Insecure usage of temp file/directory, false positive.
   "B321", # FTP-related functions are being called.
-  "B402", # A FTP-related module is being imported.
-  "B108"  # Insecure usage of temp file/directory, false positive.
+  "B402" # A FTP-related module is being imported.
 ]
 
 [tool.poetry]

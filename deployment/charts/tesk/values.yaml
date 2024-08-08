@@ -9,7 +9,7 @@ host_name: ""
 #
 
 # 'openstack' or 's3'
-storage: none
+storage: s3
 
 # Configurable storage class.
 storageClass:
