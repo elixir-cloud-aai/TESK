@@ -6,7 +6,7 @@ from typing import Set
 from pydantic import BaseModel, Field
 
 
-class Constants(BaseModel):
+class JobConstants(BaseModel):
     """Constants related to job and tasks."""
 
     taskmaster_input: str = Field(
@@ -45,6 +45,27 @@ class Constants(BaseModel):
     job_name_filer_suf: str = Field(
         default="-outputs-filer", description="Output filer name suffix"
     )
+    resource_disk_default: float = Field(
+        default=0.1, description="Default resource disk value"
+    )
+    completed_states: Set[str] = Field(
+        default={"CANCELED", "COMPLETE", "EXECUTOR_ERROR", "SYSTEM_ERROR"},
+        description="TES task states, indicating task is not running and cannot be "
+        "cancelled",
+    )
+    executor_backoff_limit: str = Field(
+        default="EXECUTOR_BACKOFF_LIMIT",
+        description="Set a number of retries of a job execution.",
+    )
+    filer_backoff_limit: str = Field(
+        default="FILER_BACKOFF_LIMIT",
+        description="Set a number of retries of a filer job execution.",
+    )
+
+
+class AnnotationConstants(BaseModel):
+    """Constants related to Kubernetes annotations."""
+
     ann_testask_name_key: str = Field(
         default="tes-task-name",
         description=(
@@ -57,6 +78,11 @@ class Constants(BaseModel):
         description="Key of the annotation, that stores whole input TES task serialized"
         " to JSON",
     )
+
+
+class LabelConstants(BaseModel):
+    """Constants related to Kubernetes labels."""
+
     label_testask_id_key: str = Field(
         default="taskmaster-name",
         description="Key of the label, that stores taskmaster's name (==TES task "
@@ -93,6 +119,11 @@ class Constants(BaseModel):
         default="creator-group-name",
         description="Key of the label, that holds user's group name",
     )
+
+
+class PathValidationConstants(BaseModel):
+    """Constants related to path validation."""
+
     absolute_path_regexp: str = Field(
         default="^\\/.*", description="Pattern to validate paths"
     )
@@ -101,14 +132,11 @@ class Constants(BaseModel):
         description="Message for absolute path validation (to avoid "
         "message.properties)",
     )
-    resource_disk_default: float = Field(
-        default=0.1, description="Default resource disk value"
-    )
-    completed_states: Set[str] = Field(
-        default={"CANCELED", "COMPLETE", "EXECUTOR_ERROR", "SYSTEM_ERROR"},
-        description="TES task states, indicating task is not running and cannot be "
-        "cancelled",
-    )
+
+
+class FTPConstants(BaseModel):
+    """Constants related to FTP configuration."""
+
     ftp_secret_username_env: str = Field(
         default="TESK_FTP_USERNAME",
         description="Name of taskmaster's ENV variable with username of FTP account "
@@ -119,17 +147,14 @@ class Constants(BaseModel):
         description="Name of taskmaster's ENV variable with password of FTP account "
         "used for storage",
     )
+
+
+class PatchConstants(BaseModel):
+    """Constants related to patch operations."""
+
     cancel_patch: str = Field(
         default='{"metadata":{"labels":{"task-status":"Cancelled"}}}',
         description="Patch object passed to job API, when cancelling task",
-    )
-    executor_backoff_limit: str = Field(
-        default="EXECUTOR_BACKOFF_LIMIT",
-        description="Set a number of retries of a job execution.",
-    )
-    filer_backoff_limit: str = Field(
-        default="FILER_BACKOFF_LIMIT",
-        description="Set a number of retries of a filer job execution.",
     )
 
 
@@ -145,7 +170,9 @@ class K8sConstants(BaseModel):
     job_restart_policy: str = Field(
         default="Never", description="Kubernetes Job restart policy"
     )
-    resource_cpu_key: str = Field("cpu", description="Executor CPU resource label")
+    resource_cpu_key: str = Field(
+        default="cpu", description="Executor CPU resource label"
+    )
     resource_mem_key: str = Field(
         default="memory", description="Executor memory resource label"
     )
@@ -164,3 +191,15 @@ class K8sConstants(BaseModel):
         def get_code(self) -> str:
             """Return the pod state."""
             return self.value
+
+
+class Constants(BaseModel):
+    """All the constants related to k8s and job creation."""
+
+    job_constants: JobConstants = JobConstants()
+    annotation_constants: AnnotationConstants = AnnotationConstants()
+    label_constants: LabelConstants = LabelConstants()
+    path_validation_constants: PathValidationConstants = PathValidationConstants()
+    ftp_constants: FTPConstants = FTPConstants()
+    patch_constants: PatchConstants = PatchConstants()
+    k8s_constants: K8sConstants = K8sConstants()

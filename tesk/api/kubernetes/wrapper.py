@@ -25,11 +25,7 @@ class KubernetesClientWrapper:
     """Kubernetes client wrapper class."""
 
     def __init__(self):
-        """Initialize the Kubernetes client wrapper.
-
-        Args:
-          namespace: Namespace to use for Kubernetes.
-        """
+        """Initialize the Kubernetes client wrapper."""
         config.load_kube_config()
         self.batch_api = client.BatchV1Api()
         self.core_api = client.CoreV1Api()
@@ -40,7 +36,7 @@ class KubernetesClientWrapper:
         """Create a job in the Kubernetes cluster.
 
         Returns:
-                Job object created in the Kubernetes cluster.
+            Job object created in the Kubernetes cluster.
         """
         try:
             v1_job: V1Job = self.batch_api.create_namespaced_job(
@@ -72,10 +68,10 @@ class KubernetesClientWrapper:
         task_id: Task identifier.
 
         Returns:
-                Job object read from the Kubernetes cluster
+            Job object read from the Kubernetes cluster
 
         Raises:
-                Exception: If the task is not found.
+            Exception: If the task is not found.
         """
         try:
             job: V1Job = self.batch_api.read_namespaced_job(
@@ -84,9 +80,10 @@ class KubernetesClientWrapper:
             if (
                 job.metadata
                 and job.metadata.labels
-                and self.constant.label_jobtype_key in job.metadata.labels
-                and job.metadata.labels[self.constant.label_jobtype_key]
-                == self.constant.label_jobtype_value_taskm
+                and self.constant.label_constants.label_jobtype_key
+                in job.metadata.labels
+                and job.metadata.labels[self.constant.label_constants.label_jobtype_key]
+                == self.constant.label_constants.label_jobtype_value_taskm
             ):
                 return job
         except KubernetesError as e:
@@ -101,10 +98,10 @@ class KubernetesClientWrapper:
         """List jobs in the Kubernetes cluster.
 
         Args:
-                page_token: pageToken supplied by user (from previous result; points to
-                    next page of results)
-                label_selector: Label selector to filter jobs.
-                limit: Maximum number of jobs to return.
+            page_token: pageToken supplied by user (from previous result; points to
+                next page of results)
+            label_selector: Label selector to filter jobs.
+            limit: Maximum number of jobs to return.
         """
         try:
             return self.batch_api.list_namespaced_job(
@@ -166,7 +163,6 @@ class KubernetesClientWrapper:
         self,
         page_token: str,
         items_per_page: int,
-        # user: str
     ) -> V1JobList:
         """Gets all Taskmaster job objects, a User is allowed to see.
 
@@ -174,37 +170,25 @@ class KubernetesClientWrapper:
             page_token: pageToken supplied by user (from previous result; points to
                 next page of results)
             items_per_page: Value submitted by user, limiting number of results.
-            # user: User identifier.
 
         Returns:
             Job list of Taskmaster jobs that user is allowed to see.
         """
-        # TODO: Implement this method when auth is implemented in FOCA.
         label_selector = (
-            f"{self.constant.label_jobtype_key}"
+            f"{self.constant.label_constants.label_jobtype_key}"
             "="
-            f"{self.constant.label_jobtype_value_taskm}"
+            f"{self.constant.label_constants.label_jobtype_value_taskm}"
         )
-        # if user.get_label_selector():
-        #     label_selector += f",{user.get_label_selector()}"
 
         result: V1JobList = self.list_jobs(page_token, label_selector, items_per_page)
-
-        # if user.is_member_in_non_managed_groups():
-        #     filtered_job_list = [
-        #         job for job in result.items
-        #         if user.is_group_manager(
-        #             job.metadata.labels.get(self.constant.label_groupname_key)
-        #             ) or user.get_username()
-        #             == job.metadata.labels.get(self.constant.label_userid_key)
-        #     ]
-        #     result.items = filtered_job_list
 
         return result
 
     def list_single_task_executor_jobs(self, task_id: str) -> V1JobList:
         """List single task executor job."""
-        label_selector = (self.constant.label_testask_id_key + "=" + task_id,)
+        label_selector = (
+            self.constant.label_constants.label_testask_id_key + "=" + task_id,
+        )
         job_list: V1JobList = self.list_jobs(label_selector=label_selector)
         return job_list
 
@@ -212,7 +196,7 @@ class KubernetesClientWrapper:
         """Get single task output filer job."""
         try:
             job: V1Job = self.batch_api.read_namespaced_job(
-                name=task_id + self.constant.job_name_filer_suf,
+                name=task_id + self.constant.job_constants.job_name_filer_suf,
                 namespace=self.namespace,
             )
             return job
@@ -225,9 +209,9 @@ class KubernetesClientWrapper:
     def list_all_taskmaster_jobs(self) -> V1JobList:
         """List all taskmaster jobs in the Kubernetes cluster."""
         label_selector = (
-            self.constant.label_jobtype_key
+            self.constant.label_constants.label_jobtype_key
             + "="
-            + self.constant.label_jobtype_value_taskm
+            + self.constant.label_constants.label_jobtype_value_taskm
         )
         job_list: V1JobList = self.list_jobs(label_selector=label_selector)
         return job_list
@@ -235,16 +219,16 @@ class KubernetesClientWrapper:
     def list_all_task_executor_jobs(self) -> V1JobList:
         """List all executor jobs in the Kubernetes cluster."""
         label_selector = (
-            self.constant.label_jobtype_key
+            self.constant.label_constants.label_jobtype_key
             + "="
-            + self.constant.label_jobtype_value_exec
+            + self.constant.label_constants.label_jobtype_value_exec
         )
         job_list: V1JobList = self.list_jobs(label_selector=label_selector)
         return job_list
 
     def list_all_filer_jobs(self) -> V1JobList:
         """List all output filer jobs in the Kubernetes cluster."""
-        label_selector = "!" + self.constant.label_jobtype_key
+        label_selector = "!" + self.constant.label_constants.label_jobtype_key
         job_list: V1JobList = self.list_jobs(label_selector=label_selector)
         return job_list
 
