@@ -18,6 +18,7 @@ from kubernetes.client.models import (
 )
 
 from tesk.api.kubernetes.constants import Constants, K8sConstants
+from tesk.constants import TeskConstants
 from tesk.custom_config import (
     CustomConfig,
     TaskmasterEnvProperties,
@@ -62,16 +63,19 @@ def get_taskmaster_template() -> V1Job:
     job = V1Job(
         api_version="batch/v1",
         kind="Job",
-        metadata=V1ObjectMeta(name="taskmaster", labels={"app": "taskmaster"}),
+        metadata=V1ObjectMeta(
+            name=Constants.label_jobtype_value_taskm,
+            labels={"app": Constants.label_jobtype_value_taskm},
+        ),
         spec=V1JobSpec(
             template=V1PodTemplateSpec(
-                metadata=V1ObjectMeta(name="taskmaster"),
+                metadata=V1ObjectMeta(name=Constants.label_jobtype_value_taskm),
                 spec=V1PodSpec(
                     service_account_name="default",
                     containers=[
                         V1Container(
-                            name="taskmaster",
-                            image="docker.io/elixircloud/tesk-core-taskmaster:v0.10.2",
+                            name=Constants.label_jobtype_value_taskm,
+                            image=f"{TeskConstants.taskmaster_image_name}:{TeskConstants.taskmaster_image_version}",
                             args=["-f", f"/jsoninput/{Constants.taskmaster_input}.gz"],
                             env=[
                                 V1EnvVar(
@@ -131,4 +135,5 @@ def get_taskmaster_env_property() -> TaskmasterEnvProperties:
         raise ConfigNotFoundError(
             "Custom configuration doesn't seem to have taskmaster_env_properties in "
             "config file."
+            f"Custom config:\n{custom_conf}"
         ) from None
