@@ -20,7 +20,7 @@ spec:
     http:
       paths:
       - path: {{ .Values.ingress.path }}
-        pathType: Exact
+        pathType: Prefix
         backend:
           service:
             name: tesk-api
