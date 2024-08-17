@@ -85,7 +85,8 @@ custom:
         metadata:
           name: taskmaster
         spec:
-          serviceAccountName: default
+          serviceAccount: taskmaster
+          serviceAccountName: taskmaster
           containers:
           - name: taskmaster
             image: docker.io/elixircloud/tesk-core-taskmaster:v0.10.2
@@ -142,7 +143,7 @@ custom:
     environment:
       key: value
     # Service Account name for taskmaster
-    serviceAccountName: default
+    serviceAccountName: taskmaster
 
 
 # Logging configuration

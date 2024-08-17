@@ -5,6 +5,7 @@ from decimal import Decimal
 from enum import Enum
 from pathlib import Path
 from typing import List, Optional, Sequence
+import json
 
 from foca import Foca
 from kubernetes.client.models import (
@@ -209,11 +210,11 @@ def pydantic_k8s_job_to_v1job(job: PydanticK8sJob) -> V1Job:
     )
 
 
-def pydantic_model_list_json(model_list: Sequence[BaseModel]) -> List[str]:
-    """Convert a list of pydantic models to a list of JSON objects."""
+def pydantic_model_list_dict(model_list: Sequence[BaseModel]) -> List[str]:
+    """Convert a list of pydantic models to a list of dictionaries."""
     json_list = []
     for item in model_list:
-        json_list.append(item.json())
+        json_list.append(json.loads(item.json()))
     return json_list
 
 

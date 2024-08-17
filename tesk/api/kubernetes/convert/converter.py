@@ -43,7 +43,7 @@ from tesk.utils import (
     decimal_to_float,
     enum_to_string,
     get_taskmaster_env_property,
-    pydantic_model_list_json,
+    pydantic_model_list_dict,
     time_formatter,
 )
 
@@ -185,9 +185,14 @@ class TesKubernetesConverter:
             for idx, executor in enumerate(task.executors)
         ]
 
+        print("nice")
+        print(task)
+        print(task.volumes)
+        print("nice")
+
         taskmaster_input: dict[str, Any] = {
-            "inputs": pydantic_model_list_json(task.inputs) if task.inputs else [],
-            "outputs": pydantic_model_list_json(task.outputs) if task.outputs else [],
+            "inputs": pydantic_model_list_dict(task.inputs) if task.inputs else [],
+            "outputs": pydantic_model_list_dict(task.outputs) if task.outputs else [],
             "volumes": task.volumes or [],
             "resources": {
                 "disk_gb": float(task.resources.disk_gb)
@@ -195,13 +200,16 @@ class TesKubernetesConverter:
                 else 10.0
             },
         }
+        print(taskmaster_input)
         taskmaster_input[self.constants.taskmaster_input_exec_key] = [
             exec_job.to_dict() for exec_job in executors_as_jobs
         ]
 
+        print(taskmaster_input)
         taskmaster_input_as_json = json.loads(
             json.dumps(taskmaster_input, default=decimal_to_float)
         )
+        print(taskmaster_input_as_json)
 
         try:
             with BytesIO() as obj:
