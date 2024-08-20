@@ -27,7 +27,3 @@ class TeskConstants:
     )
     filer_backoff_limit: str = os.getenv("FILER_BACKOFF_LIMIT", "2")
     executor_backoff_limit: str = os.getenv("EXECUTOR_BACKOFF_LIMIT", "2")
-    # FIXME: IDK what to do with this
-    tesk_api_taskmaster_environment_filer_backoff_limit: str = os.getenv(
-        "TESK_API_TASKMASTER_ENVIRONMENT_FILER_BACKOFF_LIMIT", "6"
-    )

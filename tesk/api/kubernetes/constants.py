@@ -193,7 +193,7 @@ class K8sConstants(BaseModel):
             return self.value
 
 
-class Constants(BaseModel):
+class TeskK8sConstants(BaseModel):
     """All the constants related to k8s and job creation."""
 
     job_constants: JobConstants = JobConstants()

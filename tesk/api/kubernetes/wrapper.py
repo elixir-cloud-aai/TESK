@@ -14,7 +14,7 @@ from kubernetes.client import (
 )
 from kubernetes.utils.quantity import parse_quantity  # type: ignore
 
-from tesk.api.kubernetes.constants import Constants
+from tesk.api.kubernetes.constants import TeskK8sConstants
 from tesk.constants import TeskConstants
 from tesk.exceptions import KubernetesError, NotFound
 
@@ -30,7 +30,7 @@ class KubernetesClientWrapper:
         self.batch_api = client.BatchV1Api()
         self.core_api = client.CoreV1Api()
         self.namespace = TeskConstants.tesk_namespace
-        self.constant = Constants()
+        self.tesk_k8s_constant = TeskK8sConstants()
 
     def create_job(self, job: V1Job) -> V1Job:
         """Create a job in the Kubernetes cluster.
@@ -80,10 +80,12 @@ class KubernetesClientWrapper:
             if (
                 job.metadata
                 and job.metadata.labels
-                and self.constant.label_constants.label_jobtype_key
+                and self.tesk_k8s_constant.label_constants.label_jobtype_key
                 in job.metadata.labels
-                and job.metadata.labels[self.constant.label_constants.label_jobtype_key]
-                == self.constant.label_constants.label_jobtype_value_taskm
+                and job.metadata.labels[
+                    self.tesk_k8s_constant.label_constants.label_jobtype_key
+                ]
+                == self.tesk_k8s_constant.label_constants.label_jobtype_value_taskm
             ):
                 return job
         except KubernetesError as e:
@@ -175,9 +177,9 @@ class KubernetesClientWrapper:
             Job list of Taskmaster jobs that user is allowed to see.
         """
         label_selector = (
-            f"{self.constant.label_constants.label_jobtype_key}"
+            f"{self.tesk_k8s_constant.label_constants.label_jobtype_key}"
             "="
-            f"{self.constant.label_constants.label_jobtype_value_taskm}"
+            f"{self.tesk_k8s_constant.label_constants.label_jobtype_value_taskm}"
         )
 
         result: V1JobList = self.list_jobs(page_token, label_selector, items_per_page)
@@ -187,7 +189,7 @@ class KubernetesClientWrapper:
     def list_single_task_executor_jobs(self, task_id: str) -> V1JobList:
         """List single task executor job."""
         label_selector = (
-            self.constant.label_constants.label_testask_id_key + "=" + task_id,
+            self.tesk_k8s_constant.label_constants.label_testask_id_key + "=" + task_id,
         )
         job_list: V1JobList = self.list_jobs(label_selector=label_selector)
         return job_list
@@ -196,7 +198,7 @@ class KubernetesClientWrapper:
         """Get single task output filer job."""
         try:
             job: V1Job = self.batch_api.read_namespaced_job(
-                name=task_id + self.constant.job_constants.job_name_filer_suf,
+                name=task_id + self.tesk_k8s_constant.job_constants.job_name_filer_suf,
                 namespace=self.namespace,
             )
             return job
@@ -209,9 +211,9 @@ class KubernetesClientWrapper:
     def list_all_taskmaster_jobs(self) -> V1JobList:
         """List all taskmaster jobs in the Kubernetes cluster."""
         label_selector = (
-            self.constant.label_constants.label_jobtype_key
+            self.tesk_k8s_constant.label_constants.label_jobtype_key
             + "="
-            + self.constant.label_constants.label_jobtype_value_taskm
+            + self.tesk_k8s_constant.label_constants.label_jobtype_value_taskm
         )
         job_list: V1JobList = self.list_jobs(label_selector=label_selector)
         return job_list
@@ -219,16 +221,16 @@ class KubernetesClientWrapper:
     def list_all_task_executor_jobs(self) -> V1JobList:
         """List all executor jobs in the Kubernetes cluster."""
         label_selector = (
-            self.constant.label_constants.label_jobtype_key
+            self.tesk_k8s_constant.label_constants.label_jobtype_key
             + "="
-            + self.constant.label_constants.label_jobtype_value_exec
+            + self.tesk_k8s_constant.label_constants.label_jobtype_value_exec
         )
         job_list: V1JobList = self.list_jobs(label_selector=label_selector)
         return job_list
 
     def list_all_filer_jobs(self) -> V1JobList:
         """List all output filer jobs in the Kubernetes cluster."""
-        label_selector = "!" + self.constant.label_constants.label_jobtype_key
+        label_selector = "!" + self.tesk_k8s_constant.label_constants.label_jobtype_key
         job_list: V1JobList = self.list_jobs(label_selector=label_selector)
         return job_list
 
