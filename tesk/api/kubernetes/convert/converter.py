@@ -282,9 +282,7 @@ class TesKubernetesConverter:
 
         # TODO: Not sure what to do with this
         # Convert potential TRS URI into docker image
-        # container.image = self.trs_client.get_docker_image_for_tool_version_uri(
-        #     executor.image
-        # )
+        container.image = executor.image
 
         if not container.command:
             container.command = []
@@ -315,6 +313,15 @@ class TesKubernetesConverter:
             container.resources.requests["memory"] = parse_quantity(
                 f"{resources.ram_gb:.6f}Gi"
             )
+
+            # # Workaround
+            # # Check if volumes is None and set it to an empty list if it is
+            # if (
+            #     executor_job.spec
+            #     and executor_job.spec.spec
+            #     and executor_job.spec.spec.volumes is None
+            # ):
+            #     executor_job.spec.spec.volumes = []
 
         return executor_job
 
