@@ -9,7 +9,6 @@ Such that:
   params
 """
 
-import re
 from typing import List
 
 from tesk.api.ga4gh.tes.models import TesExecutor
@@ -17,8 +16,6 @@ from tesk.api.ga4gh.tes.models import TesExecutor
 
 class ExecutorCommandWrapper:
     """Wraps executor's command."""
-
-    SPECIAL_CHARS = re.compile(r"[ !\"#$&'()*;<>?\[\\`{|~\t\n]")
 
     def __init__(self, executor: TesExecutor):
         """Initialize the wrapper."""
@@ -38,17 +35,7 @@ class ExecutorCommandWrapper:
         result.append("/bin/sh")
         result.append("-c")
 
-        command_parts = []
-
-        for command_part in self.executor.command:
-            command = ""
-            if self.SPECIAL_CHARS.search(command_part):
-                # Replace single quotes with '"'"'
-                if "'" in command_part:
-                    replace_command_part = command_part.replace("'", "'\"'\"'")
-                # Quote the command part
-                command = f"'{replace_command_part}'"
-            command_parts.append(command)
+        command_parts = [" ".join(self.executor.command)]
 
         if self.executor.stdin:
             command_parts.append("<")
