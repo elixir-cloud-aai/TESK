@@ -248,7 +248,7 @@ class TesKubernetesConverter:
         )
 
         # Set executors name based on taskmaster's job name
-        Job(executor_job).change_job_name(new_name=generated_task_id)
+        Job(executor_job).change_job_name(Task(taskmaster_name=generated_task_id).get_executor_name(executor_index))
 
         if executor_job.metadata is None:
             executor_job.metadata = V1ObjectMeta()
