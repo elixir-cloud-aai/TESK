@@ -126,7 +126,7 @@ custom:
     # Taskmaster image name
     imageName: docker.io/elixircloud/tesk-core-taskmaster
     # Taskmaster image version
-    imageVersion: fix-null-volumes
+    imageVersion: fix-null-volumes3
     # Filer image name
     filerImageName: docker.io/elixircloud/tesk-core-filer
     # Filer image version
