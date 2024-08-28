@@ -89,7 +89,7 @@ custom:
           serviceAccountName: taskmaster
           containers:
           - name: taskmaster
-            image: docker.io/elixircloud/tesk-core-taskmaster:v0.10.2
+            image: docker.io/lvarin/tesk-core-taskmaster:testing
             args:
             - -f
             - /jsoninput/JSON_INPUT.gz
@@ -124,9 +124,9 @@ custom:
   # Taskmaster environment properties
   taskmaster_env_properties:
     # Taskmaster image name
-    imageName: docker.io/elixircloud/tesk-core-taskmaster
+    imageName: docker.io/lvarin/tesk-core-taskmaster
     # Taskmaster image version
-    imageVersion: fix-null-volumes5
+    imageVersion: testing
     # Filer image name
     filerImageName: docker.io/elixircloud/tesk-core-filer
     # Filer image version
