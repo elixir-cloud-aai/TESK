@@ -582,7 +582,7 @@ components:
           type: integer
           description: Requested number of CPUs
           format: int32
-          example: 4
+          example: 1
         preemptible:
           type: boolean
           description: |-
@@ -595,12 +595,12 @@ components:
           type: number
           description: Requested RAM required in gigabytes (GB)
           format: double
-          example: 8
+          example: 1
         disk_gb:
           type: number
           description: Requested disk size in gigabytes (GB)
           format: double
-          example: 40
+          example: 2
         zones:
           type: array
           description: |-
@@ -610,7 +610,8 @@ components:
             priority queue to which the job is assigned.
           items:
             type: string
-          example: us-west-1
+          example: 
+            - us-west-1
         backend_parameters:
             type: object
             additionalProperties:

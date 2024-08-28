@@ -7,7 +7,8 @@ from pydantic import BaseModel
 from tesk.api.ga4gh.tes.models import TesCreateTaskResponse, TesResources, TesTask
 from tesk.api.ga4gh.tes.task.task_request import TesTaskRequest
 from tesk.exceptions import KubernetesError
-
+import os
+from datetime import datetime
 logger = logging.getLogger(__name__)
 
 
@@ -36,7 +37,8 @@ class CreateTesTask(TesTaskRequest):
             try:
                 attempts_no += 1
                 resources = self.task.resources
-
+                limits = self.kubernetes_client_wrapper.list_limits()
+                print("limits", limits)
                 minimum_ram_gb = self.kubernetes_client_wrapper.minimum_ram_gb()
 
                 if not self.task.resources:
@@ -49,7 +51,6 @@ class CreateTesTask(TesTaskRequest):
                     # self.user
                 )
 
-                print(taskmaster_job)
                 taskmaster_config_map = (
                     self.tes_kubernetes_converter.from_tes_task_to_k8s_config_map(
                         self.task,
@@ -57,14 +58,33 @@ class CreateTesTask(TesTaskRequest):
                         # self.user
                     )
                 )
-                print(taskmaster_config_map)
 
-                # Create ConfigMap and Job
-                _ = self.kubernetes_client_wrapper.create_config_map(
-                    taskmaster_config_map
-                )
+                configmap = self.kubernetes_client_wrapper.create_config_map(taskmaster_config_map)
                 created_job = self.kubernetes_client_wrapper.create_job(taskmaster_job)
 
+                os.makedirs("/tmp/tesk", exist_ok=True)
+                output_log_path = f"/tmp/tesk/output-at-{datetime.now().strftime('%H:%M:%S')}.log"
+                with open(output_log_path, "w") as f:
+                    f.write("*********************************\n")
+                    f.write(f"Manifest consumed to create taskmaster job as {type(taskmaster_job)}\n")
+                    f.write(str(taskmaster_job) + "\n")
+                    f.write("*********************************\n")
+
+                    f.write("*********************************\n")
+                    f.write(f"Manifest consumed to create config map as {type(taskmaster_config_map)}\n")
+                    f.write(str(taskmaster_config_map) + "\n")
+                    f.write("*********************************\n")
+
+                    # Create ConfigMap and Job
+                    f.write("*********************************\n")
+                    f.write(f"Created ConfigMap as {type(configmap)}\n")
+                    f.write(str(configmap) + "\n")
+                    f.write("*********************************\n")
+                    
+                    f.write("*********************************\n")
+                    f.write(f"Created taskmaster job as {type(created_job)}\n")
+                    f.write(str(created_job) + "\n")
+                    f.write("*********************************\n")
                 assert created_job.metadata is not None
                 assert created_job.metadata.name is not None
 

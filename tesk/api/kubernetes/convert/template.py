@@ -197,4 +197,6 @@ class KubernetesTemplateSupplier:
                 )
             ]
 
+        job.spec.template.spec.containers[0].restart_policy = "Never"
+
         return job
