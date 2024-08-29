@@ -1,11 +1,16 @@
 """Controllers for GA4GH TES API endpoints."""
 
 import logging
-
-# from connexion import request  # type: ignore
+import json
 from foca.utils.logging import log_traffic  # type: ignore
 
+from tesk.api.ga4gh.tes.models import TesTask
 from tesk.api.ga4gh.tes.service_info.service_info import ServiceInfo
+from tesk.api.ga4gh.tes.task.create_task import CreateTesTask
+from tesk.exceptions import BadRequest, InternalServerError
+from tesk.api.ga4gh.tes.task.get_task import GetTesTask
+from tesk.api.ga4gh.tes.models import TaskView
+from tesk.utils import enum_to_string
 
 # Get logger instance
 logger = logging.getLogger(__name__)
@@ -26,19 +31,24 @@ def CancelTask(id, *args, **kwargs) -> dict:  # type: ignore
 
 # POST /tasks
 @log_traffic
-def CreateTask(*args, **kwargs) -> dict:  # type: ignore
+def CreateTask(**kwargs) -> dict:
     """Create task.
 
     Args:
-        *args: Variable length argument list.
         **kwargs: Arbitrary keyword arguments.
     """
-    pass
+    try:
+        request_body = kwargs.get("body")
+        tes_task = TesTask(**request_body)
+        response = CreateTesTask(tes_task).response()
+        return response
+    except Exception as e:
+        raise InternalServerError from e
 
 
 # GET /tasks/service-info
 @log_traffic
-def GetServiceInfo() -> dict:  # type: ignore
+def GetServiceInfo() -> dict:
     """Get service info."""
     service_info = ServiceInfo()
     return service_info.response()
@@ -46,14 +56,22 @@ def GetServiceInfo() -> dict:  # type: ignore
 
 # GET /tasks
 @log_traffic
-def ListTasks(*args, **kwargs) -> dict:  # type: ignore
+def ListTasks(*args, **kwargs):
     """List all available tasks.
 
     Args:
         *args: Variable length argument list.
         **kwargs: Arbitrary keyword arguments.
     """
-    pass
+    get_tes_task = GetTesTask()
+    view = TaskView(kwargs.get("view"))
+    name_prefix = kwargs.get("name_prefix")
+    page_size = kwargs.get("page_size")
+    page_token = kwargs.get("page_token")
+    response = get_tes_task.list_tasks(
+        view=view, name_prefix=name_prefix, page_size=page_size, page_token=page_token
+    )
+    return json.loads(response.json())
 
 
 # GET /tasks

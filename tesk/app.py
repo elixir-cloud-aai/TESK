@@ -46,7 +46,7 @@ def init_app() -> FlaskApp:
 def main() -> None:
     """Run FOCA application."""
     app = init_app()
-    app.run(port=app.port)
+    app.run(port=8081)
 
 
 if __name__ == "__main__":
