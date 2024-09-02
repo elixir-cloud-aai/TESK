@@ -9,16 +9,16 @@ class TeskConstants(BaseModel):
     """Tesk's K8s scoped constants.
 
     Attributes:
-        filer_image_name: Name of the filer image
-        filer_image_version: Version of the filer image
-        taskmaster_image_name:  Name of the taskmaster image
-        taskmaster_image_version: Version of the taskmaster image
-        tesk_namespace: Namespace in which api will create K8s resources from TES
+        FILER_IMAGE_NAME: Name of the filer image
+        FILER_IMAGE_VERSION: Version of the filer image
+        TASKMASTER_IMAGE_NAME:  Name of the taskmaster image
+        TASKMASTER_IMAGE_VERSION: Version of the taskmaster image
+        TESK_NAMESPACE: Namespace in which api will create K8s resources from TES
             request
-        taskmaster_service_account_name: Taskmaster service account name
-        taskmaster_environment_executor_backoff_limit:  Backoff limit for taskmaster env
-        filer_backoff_limit: Backoff limit got filer job
-        executor_backoff_limit: Backoff limit for executor job
+        TASKMASTER_SERVICE_ACCOUNT_NAME: Taskmaster service account name
+        TASKMASTER_ENVIRONMENT_EXECUTOR_BACKOFF_LIMIT:  Backoff limit for taskmaster env
+        FILER_BACKOFF_LIMIT: Backoff limit got filer job
+        EXECUTOR_BACKOFF_LIMIT: Backoff limit for executor job
 
     Note:
         Below are the mentioned environment variable with which these constants can be
@@ -27,49 +27,51 @@ class TeskConstants(BaseModel):
         variable:
             ENV_VARIABLE = default
 
-        filer_image_name:
+        FILER_IMAGE_NAME:
             TESK_API_TASKMASTER_FILER_IMAGE_NAME = docker.io/elixircloud/tesk-core-filer
-        filer_image_version:
+        FILER_IMAGE_VERSION:
             TESK_API_TASKMASTER_FILER_IMAGE_VERSION = latest
-        taskmaster_image_name:
+        TASKMASTER_IMAGE_NAME:
             TESK_API_TASKMASTER_IMAGE_NAME = docker.io/elixircloud/tesk-core-taskmaster
-        taskmaster_image_version:
+        TASKMASTER_IMAGE_VERSION:
             TESK_API_TASKMASTER_IMAGE_VERSION = latest
-        tesk_namespace:
+        TESK_NAMESPACE:
             TESK_API_K8S_NAMESPACE = tesk
-        taskmaster_service_account_name:
+        TASKMASTER_SERVICE_ACCOUNT_NAME:
             TESK_API_TASKMASTER_SERVICE_ACCOUNT_NAME = taskmaster
-        taskmaster_environment_executor_backoff_limit:
+        TASKMASTER_ENVIRONMENT_EXECUTOR_BACKOFF_LIMIT:
             ENVIRONMENT_EXECUTOR_BACKOFF_LIMIT = 6
-        filer_backoff_limit:
+        FILER_BACKOFF_LIMIT:
             FILER_BACKOFF_LIMIT = 2
-        executor_backoff_limit:
+        EXECUTOR_BACKOFF_LIMIT:
             EXECUTOR_BACKOFF_LIMIT = 2
     """
 
-    filer_image_name: str = os.getenv(
+    FILER_IMAGE_NAME: str = os.getenv(
         "TESK_API_TASKMASTER_FILER_IMAGE_NAME", "docker.io/elixircloud/tesk-core-filer"
     )
-    filer_image_version: str = os.getenv(
+    FILER_IMAGE_VERSION: str = os.getenv(
         "TESK_API_TASKMASTER_FILER_IMAGE_VERSION", "latest"
     )
-    taskmaster_image_name: str = os.getenv(
+    TASKMASTER_IMAGE_NAME: str = os.getenv(
         "TESK_API_TASKMASTER_IMAGE_NAME", "docker.io/elixircloud/tesk-core-taskmaster"
     )
-    taskmaster_image_version: str = os.getenv(
+    TASKMASTER_IMAGE_VERSION: str = os.getenv(
         "TESK_API_TASKMASTER_IMAGE_VERSION", "latest"
     )
-    tesk_namespace: str = os.getenv("TESK_API_K8S_NAMESPACE", "tesk")
-    taskmaster_service_account_name: str = os.getenv(
+    TESK_NAMESPACE: str = os.getenv("TESK_API_K8S_NAMESPACE", "tesk")
+    TASKMASTER_SERVICE_ACCOUNT_NAME: str = os.getenv(
         "TESK_API_TASKMASTER_SERVICE_ACCOUNT_NAME", "taskmaster"
     )
-    taskmaster_environment_executor_backoff_limit: str = os.getenv(
+    TASKMASTER_ENVIRONMENT_EXECUTOR_BACKOFF_LIMIT: str = os.getenv(
         "ENVIRONMENT_EXECUTOR_BACKOFF_LIMIT", "6"
     )
-    filer_backoff_limit: str = os.getenv("FILER_BACKOFF_LIMIT", "2")
-    executor_backoff_limit: str = os.getenv("EXECUTOR_BACKOFF_LIMIT", "2")
+    FILER_BACKOFF_LIMIT: str = os.getenv("FILER_BACKOFF_LIMIT", "2")
+    EXECUTOR_BACKOFF_LIMIT: str = os.getenv("EXECUTOR_BACKOFF_LIMIT", "2")
 
     class Config:
         """Configuration for class."""
 
         frozen = True
+
+tesk_constants = TeskConstants()
