@@ -68,3 +68,8 @@ class TeskConstants(BaseModel):
     )
     filer_backoff_limit: str = os.getenv("FILER_BACKOFF_LIMIT", "2")
     executor_backoff_limit: str = os.getenv("EXECUTOR_BACKOFF_LIMIT", "2")
+
+    class Config:
+        """Configuration for class."""
+
+        frozen = True
