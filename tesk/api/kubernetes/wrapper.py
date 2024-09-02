@@ -14,7 +14,7 @@ from kubernetes.client import (
 )
 from kubernetes.utils.quantity import parse_quantity  # type: ignore
 
-from tesk.api.kubernetes.constants import TeskK8sConstants
+from tesk.api.kubernetes.constants import tesk_k8s_constants
 from tesk.constants import TeskConstants
 from tesk.exceptions import KubernetesError, NotFound
 
@@ -30,7 +30,7 @@ class KubernetesClientWrapper:
         self.batch_api = client.BatchV1Api()
         self.core_api = client.CoreV1Api()
         self.namespace = TeskConstants.tesk_namespace
-        self.tesk_k8s_constant = TeskK8sConstants()
+        self.tesk_k8s_constant = tesk_k8s_constants
 
     def create_job(self, job: V1Job) -> V1Job:
         """Create a job in the Kubernetes cluster.
