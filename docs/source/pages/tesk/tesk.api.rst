@@ -8,7 +8,6 @@ Subpackages
    :maxdepth: 4
 
    tesk.api.ga4gh
-   tesk.api.kubernetes
 
 Module contents
 ---------------

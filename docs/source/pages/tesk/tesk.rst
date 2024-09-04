@@ -8,6 +8,7 @@ Subpackages
    :maxdepth: 4
 
    tesk.api
+   tesk.kubernetes
    tesk.services
 
 Submodules
