@@ -14,9 +14,9 @@ from kubernetes.client import (
 )
 from kubernetes.utils.quantity import parse_quantity  # type: ignore
 
-from tesk.api.kubernetes.constants import tesk_k8s_constants
 from tesk.constants import TeskConstants
 from tesk.exceptions import KubernetesError, NotFound
+from tesk.kubernetes.constants import tesk_k8s_constants
 
 logger = logging.getLogger(__name__)
 
