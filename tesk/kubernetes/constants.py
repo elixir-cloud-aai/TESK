@@ -212,22 +212,22 @@ class TeskK8sConstants(BaseModel):
     """All the constants related to k8s and job creation.
 
     Attributes:
-        JOB_CONSTANTS
-        ANNOTATION_CONSTANTS
-        LABEL_CONSTANTS
-        PATH_VALIDATION_CONSTANTS
-        FTP_CONSTANTS
-        PATCH_CONSTANTS
-        K8S_CONSTANTS
+        job_constants
+        annotation_constants
+        label_constants
+        path_validation_constants
+        ftp_constants
+        patch_constants
+        k8s_constants
     """
 
-    JOB_CONSTANTS: JobConstants = JobConstants()
-    ANNOTATION_CONSTANTS: AnnotationConstants = AnnotationConstants()
-    LABEL_CONSTANTS: LabelConstants = LabelConstants()
-    PATH_VALIDATION_CONSTANTS: PathValidationConstants = PathValidationConstants()
-    FTP_CONSTANTS: FTPConstants = FTPConstants()
-    PATCH_CONSTANTS: PatchConstants = PatchConstants()
-    K8S_CONSTANTS: K8sConstants = K8sConstants()
+    job_constants: JobConstants = JobConstants()
+    annotation_constants: AnnotationConstants = AnnotationConstants()
+    label_constants: LabelConstants = LabelConstants()
+    path_validation_constants: PathValidationConstants = PathValidationConstants()
+    ftp_constants: FTPConstants = FTPConstants()
+    patch_constants: PatchConstants = PatchConstants()
+    k8s_constants: K8sConstants = K8sConstants()
 
     class Config:
         """Configuration for class."""

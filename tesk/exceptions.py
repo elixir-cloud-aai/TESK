@@ -1,7 +1,5 @@
 """App exceptions."""
 
-from http import HTTPStatus
-
 from connexion.exceptions import (
     BadRequestProblem,
     ExtraParameterProblem,
@@ -19,6 +17,10 @@ from werkzeug.exceptions import (
 
 class ConfigNotFoundError(FileNotFoundError):
     """Configuration file not found error."""
+
+
+class KubernetesError(ApiException):
+    """Kubernetes error."""
 
 
 # exceptions raised in app context
@@ -74,11 +76,3 @@ exceptions = {
 # exceptions raised outside of app context
 class ValidationError(Exception):
     """Value or object is not compatible with required type or schema."""
-
-
-class KubernetesError(ApiException):
-    """Kubernetes error."""
-
-    def is_object_name_duplicated(self) -> bool:
-        """Check if object name is duplicated."""
-        return self.status == HTTPStatus.CONFLICT
