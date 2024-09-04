@@ -10,27 +10,27 @@ class JobConstants(BaseModel):
     """Constants related to job and tasks.
 
     Attributes:
-        TASKMASTER_INPUT: str = ENV var that serves as taskmaster script input (JSON
+        TASKMASTER_INPUT = ENV var that serves as taskmaster script input (JSON
             format)
-        TASKMASTER_INPUT_EXEC_KEY: str = Key in JSON taskmaster input, which holds list
+        TASKMASTER_INPUT_EXEC_KEY = Key in JSON taskmaster input, which holds list
             of executors
-        VOLUME_NAME: str = Volume name
-        JOB_CREATE_ATTEMPTS_NO: int = Number of attempts of job creation in case of name
+        VOLUME_NAME = Volume name
+        JOB_CREATE_ATTEMPTS_NO = Number of attempts of job creation in case of name
             collision
-        JOB_NAME_TASKM_PREFIX: str = Constant prefix of taskmaster's job name (== TES
+        JOB_NAME_TASKM_PREFIX = Constant prefix of taskmaster's job name (== TES
             task ID)
-        JOB_NAME_EXEC_PREFIX: str = Part of executor's job name, that follows
+        JOB_NAME_EXEC_PREFIX = Part of executor's job name, that follows
             taskmaster's name
-        JOB_NAME_TASKM_RAND_PART_LENGTH: int = No of bytes of random part of task
+        JOB_NAME_TASKM_RAND_PART_LENGTH = No of bytes of random part of task
             master's name (which end up encoded to hex)
-        JOB_NAME_EXEC_NO_LENGTH: int = No of digits reserved for executor number in
+        JOB_NAME_EXEC_NO_LENGTH = No of digits reserved for executor number in
             executor's job name. Ends up padded with '0' for numbers < 10
-        JOB_NAME_FILER_SUF: str = Output filer name suffix
+        JOB_NAME_FILER_SUF = Output filer name suffix
         RESOURCE_DISK_DEFAULT: float = Default resource disk value
-        COMPLETED_STATES: Set[str] = TES task states, indicating task is not running and
+        COMPLETED_STATES = TES task states, indicating task is not running and
             cannot be cancelled
-        EXECUTOR_BACKOFF_LIMIT: str = Set a number of retries of a job execution.
-        FILER_BACKOFF_LIMIT: str = Set a number of retries of a filer job execution.
+        EXECUTOR_BACKOFF_LIMIT = Set a number of retries of a job execution.
+        FILER_BACKOFF_LIMIT = Set a number of retries of a filer job execution.
     """
 
     TASKMASTER_INPUT: str = "JSON_INPUT"
@@ -62,9 +62,9 @@ class AnnotationConstants(BaseModel):
     """Constants related to Kubernetes annotations.
 
     Attributes:
-        ANN_TESTASK_NAME_KEY: str = Key of the annotation, that stores name of TES task
+        ANN_TESTASK_NAME_KEY = Key of the annotation, that stores name of TES task
             in both taskmaster's job and executor's jobs
-        ANN_JSON_INPUT_KEY: str = Key of the annotation, that stores whole input TES
+        ANN_JSON_INPUT_KEY = Key of the annotation, that stores whole input TES
             task serialized to JSON
     """
 
@@ -81,19 +81,19 @@ class LabelConstants(BaseModel):
     """Constants related to Kubernetes labels.
 
     Attributes:
-        LABEL_TESTASK_ID_KEY: str = Key of the label, that stores taskmaster's name (==
+        LABEL_TESTASK_ID_KEY = Key of the label, that stores taskmaster's name (==
             TES task generated ID) in executor jobs
-        LABEL_JOBTYPE_KEY: str = Key of the label, that stores type of a job (taskmaster
+        LABEL_JOBTYPE_KEY = Key of the label, that stores type of a job (taskmaster
             or executor)
-        LABEL_JOBTYPE_VALUE_TASKM: str = Value of the label with taskmaster's job type
-        LABEL_JOBTYPE_VALUE_EXEC: str = Value of the label with executor's job type
-        LABEL_EXECNO_KEY: str = Key of the label, that holds executor number for
+        LABEL_JOBTYPE_VALUE_TASKM = Value of the label with taskmaster's job type
+        LABEL_JOBTYPE_VALUE_EXEC = Value of the label with executor's job type
+        LABEL_EXECNO_KEY = Key of the label, that holds executor number for
             executor jobs
-        LABEL_TASKSTATE_KEY: str = Key of the label, that holds executor's state
-        LABEL_TASKSTATE_VALUE_CANC: str = Value of the label, that holds executor's
+        LABEL_TASKSTATE_KEY = Key of the label, that holds executor's state
+        LABEL_TASKSTATE_VALUE_CANC = Value of the label, that holds executor's
             Cancelled state
-        LABEL_USERID_KEY: str = Key of the label, that holds user id
-        LABEL_GROUPNAME_KEY: str = Key of the label, that holds user's group name
+        LABEL_USERID_KEY = Key of the label, that holds user id
+        LABEL_GROUPNAME_KEY = Key of the label, that holds user's group name
     """
 
     LABEL_TESTASK_ID_KEY: str = "taskmaster-name"
@@ -116,8 +116,8 @@ class PathValidationConstants(BaseModel):
     """Constants related to path validation.
 
     Attributes:
-        ABSOLUTE_PATH_REGEX: str = Pattern to validate path
-        ABSOLUTE_PATH_MESSAGE: str = Message for absolute path validation (to avoid
+        ABSOLUTE_PATH_REGEX = Pattern to validate path
+        ABSOLUTE_PATH_MESSAGE = Message for absolute path validation (to avoid
             message.property)
     """
 
@@ -134,8 +134,8 @@ class FTPConstants(BaseModel):
     """Constants related to FTP configuration.
 
     Attributes:
-        FTP_SECRET_USERNAME_ENV: str = Environment variable name for FTP username
-        FTP_SECRET_PASSWORD_ENV: str = Environment variable name for FTP password
+        FTP_SECRET_USERNAME_ENV = Environment variable name for FTP username
+        FTP_SECRET_PASSWORD_ENV = Environment variable name for FTP password
     """
 
     FTP_SECRET_USERNAME_ENV: str = "TESK_FTP_USERNAME"
@@ -151,7 +151,7 @@ class PatchConstants(BaseModel):
     """Constants related to patch operations.
 
     Attributes:
-        CANCEL_PATH: str = Patch object passed to job API, when cancelling task
+        CANCEL_PATH = Patch object passed to job API, when cancelling task
     """
 
     CANCEL_PATCH: str = '{"metadata":{"labels":{"task-status":"Cancelled"}}}'
@@ -192,7 +192,7 @@ class K8sConstants(BaseModel):
         """Pod state.
 
         Attribute:
-            PENDING: str = pending
+            PENDING = pending
         """
 
         PENDING = "Pending"
