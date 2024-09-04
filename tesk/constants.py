@@ -74,4 +74,5 @@ class TeskConstants(BaseModel):
 
         frozen = True
 
+
 tesk_constants = TeskConstants()

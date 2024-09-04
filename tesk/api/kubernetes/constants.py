@@ -40,7 +40,7 @@ class JobConstants(BaseModel):
     JOB_NAME_TASKM_PREFIX: str = "task-"
     JOB_NAME_EXEC_PREFIX: str = "-ex-"
     JOB_NAME_TASKM_RAND_PART_LENGTH: int = 4
-    JOB_NAME_EXEC_NO_LENGTH: int = (2,)
+    JOB_NAME_EXEC_NO_LENGTH: int = 2
     JOB_NAME_FILER_SUF: str = "-outputs-filer"
     RESOURCE_DISK_DEFAULT: float = 0.1
     COMPLETED_STATES: Set[str] = {
@@ -204,7 +204,8 @@ class K8sConstants(BaseModel):
 
         def get_code(self) -> str:
             """Return the pod state."""
-            return self.value
+            code: str = self.value
+            return code
 
 
 class TeskK8sConstants(BaseModel):
