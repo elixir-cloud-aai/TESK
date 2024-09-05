@@ -7,6 +7,7 @@ from connexion.exceptions import (
     OAuthProblem,
     Unauthorized,
 )
+from kubernetes.client.exceptions import ApiException
 from werkzeug.exceptions import (
     BadRequest,
     InternalServerError,
@@ -16,6 +17,10 @@ from werkzeug.exceptions import (
 
 class ConfigNotFoundError(FileNotFoundError):
     """Configuration file not found error."""
+
+
+class KubernetesError(ApiException):
+    """Kubernetes error."""
 
 
 # exceptions raised in app context
