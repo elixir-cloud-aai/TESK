@@ -1,29 +1,36 @@
 """Utility functions for the TESK package."""
 
+import json
 import os
 from pathlib import Path
+from typing import List, Sequence
 
 from foca import Foca
 from kubernetes.client.models import (
     V1Container,
+    V1DownwardAPIVolumeFile,
+    V1DownwardAPIVolumeSource,
     V1EnvVar,
     V1EnvVarSource,
     V1Job,
     V1JobSpec,
+    V1ObjectFieldSelector,
     V1ObjectMeta,
     V1PodSpec,
     V1PodTemplateSpec,
     V1SecretKeySelector,
+    V1Volume,
     V1VolumeMount,
 )
+from pydantic import BaseModel
 
-from tesk.constants import TeskConstants
+from tesk.constants import tesk_constants
 from tesk.custom_config import (
     CustomConfig,
-    TaskmasterEnvProperties,
+    Taskmaster,
 )
 from tesk.exceptions import ConfigNotFoundError
-from tesk.k8s.constants import TeskK8sConstants
+from tesk.k8s.constants import tesk_k8s_constants
 
 
 def get_config_path() -> Path:
@@ -64,27 +71,29 @@ def get_taskmaster_template() -> V1Job:
         api_version="batch/v1",
         kind="Job",
         metadata=V1ObjectMeta(
-            name=TeskK8sConstants.label_constants.LABEL_JOBTYPE_VALUE_TASKM,
-            labels={"app": TeskK8sConstants.label_constants.LABEL_JOBTYPE_VALUE_TASKM},
+            name=tesk_k8s_constants.label_constants.LABEL_JOBTYPE_VALUE_TASKM,
+            labels={
+                "app": tesk_k8s_constants.label_constants.LABEL_JOBTYPE_VALUE_TASKM
+            },
         ),
         spec=V1JobSpec(
             template=V1PodTemplateSpec(
                 metadata=V1ObjectMeta(
-                    name=TeskK8sConstants.label_constants.LABEL_JOBTYPE_VALUE_TASKM
+                    name=tesk_k8s_constants.label_constants.LABEL_JOBTYPE_VALUE_TASKM
                 ),
                 spec=V1PodSpec(
                     service_account_name="default",
                     containers=[
                         V1Container(
-                            name=TeskK8sConstants.label_constants.LABEL_JOBTYPE_VALUE_TASKM,
-                            image=f"{TeskConstants.TASKMASTER_IMAGE_NAME}:{TeskConstants.TASKMASTER_IMAGE_VERSION}",
+                            name=tesk_k8s_constants.label_constants.LABEL_JOBTYPE_VALUE_TASKM,
+                            image=f"{tesk_constants.TASKMASTER_IMAGE_NAME}:{tesk_constants.TASKMASTER_IMAGE_VERSION}",
                             args=[
                                 "-f",
-                                f"/jsoninput/{TeskK8sConstants.job_constants.TASKMASTER_INPUT}.gz",
+                                f"/jsoninput/{tesk_k8s_constants.job_constants.TASKMASTER_INPUT}.gz",
                             ],
                             env=[
                                 V1EnvVar(
-                                    name=TeskK8sConstants.ftp_constants.FTP_SECRET_USERNAME_ENV,
+                                    name=tesk_k8s_constants.ftp_constants.FTP_SECRET_USERNAME_ENV,
                                     value_from=V1EnvVarSource(
                                         secret_key_ref=V1SecretKeySelector(
                                             name="ftp-secret",
@@ -94,7 +103,7 @@ def get_taskmaster_template() -> V1Job:
                                     ),
                                 ),
                                 V1EnvVar(
-                                    name=TeskK8sConstants.ftp_constants.FTP_SECRET_PASSWORD_ENV,
+                                    name=tesk_k8s_constants.ftp_constants.FTP_SECRET_PASSWORD_ENV,
                                     value_from=V1EnvVarSource(
                                         secret_key_ref=V1SecretKeySelector(
                                             name="ftp-secret",
@@ -118,8 +127,28 @@ def get_taskmaster_template() -> V1Job:
                             ],
                         )
                     ],
-                    volumes=[],
-                    restart_policy=TeskK8sConstants.k8s_constants.JOB_RESTART_POLICY,
+                    volumes=[
+                        V1Volume(
+                            name="podinfo",
+                            downward_api=V1DownwardAPIVolumeSource(
+                                items=[
+                                    V1DownwardAPIVolumeFile(
+                                        path="labels",
+                                        field_ref=V1ObjectFieldSelector(
+                                            field_path="metadata.labels"
+                                        ),
+                                    ),
+                                    V1DownwardAPIVolumeFile(
+                                        path="annotations",
+                                        field_ref=V1ObjectFieldSelector(
+                                            field_path="metadata.annotations"
+                                        ),
+                                    ),
+                                ]
+                            ),
+                        ),
+                    ],
+                    restart_policy=tesk_k8s_constants.k8s_constants.JOB_RESTART_POLICY,
                 ),
             )
         ),
@@ -127,7 +156,7 @@ def get_taskmaster_template() -> V1Job:
     return job
 
 
-def get_taskmaster_env_property() -> TaskmasterEnvProperties:
+def get_taskmaster_env_property() -> Taskmaster:
     """Get the taskmaster env property from the custom configuration.
 
     Returns:
@@ -135,10 +164,18 @@ def get_taskmaster_env_property() -> TaskmasterEnvProperties:
     """
     custom_conf = get_custom_config()
     try:
-        return custom_conf.taskmaster_env_properties
+        return custom_conf.taskmaster
     except AttributeError:
         raise ConfigNotFoundError(
             "Custom configuration doesn't seem to have taskmaster_env_properties in "
             "config file."
             f"Custom config:\n{custom_conf}"
         ) from None
+
+
+def pydantic_model_list_dict(model_list: Sequence[BaseModel]) -> List[str]:
+    """Convert a list of pydantic models to a list of dictionaries."""
+    json_list = []
+    for item in model_list:
+        json_list.append(json.loads(item.json()))
+    return json_list

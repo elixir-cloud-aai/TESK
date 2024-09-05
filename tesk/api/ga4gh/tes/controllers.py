@@ -3,9 +3,14 @@
 import logging
 
 # from connexion import request  # type: ignore
+from typing import Any
+
 from foca.utils.logging import log_traffic  # type: ignore
 
+from tesk.api.ga4gh.tes.models import TesTask
 from tesk.api.ga4gh.tes.service_info.service_info import ServiceInfo
+from tesk.api.ga4gh.tes.task.create_task import CreateTesTask
+from tesk.exceptions import InternalServerError
 
 # Get logger instance
 logger = logging.getLogger(__name__)
@@ -26,14 +31,19 @@ def CancelTask(id, *args, **kwargs) -> dict:  # type: ignore
 
 # POST /tasks
 @log_traffic
-def CreateTask(*args, **kwargs) -> dict:  # type: ignore
+def CreateTask(**kwargs) -> dict:  # type: ignore
     """Create task.
 
     Args:
-        *args: Variable length argument list.
         **kwargs: Arbitrary keyword arguments.
     """
-    pass
+    try:
+        request_body: Any = kwargs.get("body")
+        tes_task = TesTask(**request_body)
+        response = CreateTesTask(tes_task).response()
+        return response
+    except Exception as e:
+        raise InternalServerError from e
 
 
 # GET /tasks/service-info
