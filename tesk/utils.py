@@ -6,14 +6,18 @@ from pathlib import Path
 from foca import Foca
 from kubernetes.client.models import (
     V1Container,
+    V1DownwardAPIVolumeFile,
+    V1DownwardAPIVolumeSource,
     V1EnvVar,
     V1EnvVarSource,
     V1Job,
     V1JobSpec,
+    V1ObjectFieldSelector,
     V1ObjectMeta,
     V1PodSpec,
     V1PodTemplateSpec,
     V1SecretKeySelector,
+    V1Volume,
     V1VolumeMount,
 )
 
@@ -118,7 +122,27 @@ def get_taskmaster_template() -> V1Job:
                             ],
                         )
                     ],
-                    volumes=[],
+                    volumes=[
+                        V1Volume(
+                            name="podinfo",
+                            downward_api=V1DownwardAPIVolumeSource(
+                                items=[
+                                    V1DownwardAPIVolumeFile(
+                                        path="labels",
+                                        field_ref=V1ObjectFieldSelector(
+                                            field_path="metadata.labels"
+                                        ),
+                                    ),
+                                    V1DownwardAPIVolumeFile(
+                                        path="annotations",
+                                        field_ref=V1ObjectFieldSelector(
+                                            field_path="metadata.annotations"
+                                        ),
+                                    ),
+                                ]
+                            ),
+                        ),
+                    ],
                     restart_policy=TeskK8sConstants.k8s_constants.JOB_RESTART_POLICY,
                 ),
             )
