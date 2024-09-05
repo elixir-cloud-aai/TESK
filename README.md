@@ -66,3 +66,17 @@ and the taskmaster ends, completing the task.
   need either an FTP account or a PVC that can be accessed from within or from
   outside of the cluster by the workflow manager (more in the
   [deployment](deployment/documentation/deployment.md) page).
+
+### Environment Variables
+
+| **Environment Variable**                        | **Default Value**                                  | **Description**                                |
+|-------------------------------------------------|----------------------------------------------------|------------------------------------------------|
+| `TESK_API_TASKMASTER_FILER_IMAGE_NAME`          | `docker.io/elixircloud/tesk-core-filer`            | Name of the filer image                        |
+| `TESK_API_TASKMASTER_FILER_IMAGE_VERSION`       | `latest`                                           | Version of the filer image                     |
+| `TESK_API_TASKMASTER_IMAGE_NAME`                | `docker.io/elixircloud/tesk-core-taskmaster`       | Name of the taskmaster image                   |
+| `TESK_API_TASKMASTER_IMAGE_VERSION`             | `latest`                                           | Version of the taskmaster image                |
+| `TESK_API_K8S_NAMESPACE`                        | `tesk`                                             | Namespace in which TESK creates K8s resources  |
+| `TESK_API_TASKMASTER_SERVICE_ACCOUNT_NAME`      | `taskmaster`                                       | Taskmaster service account name                |
+| `ENVIRONMENT_EXECUTOR_BACKOFF_LIMIT`            | `6`                                                | Backoff limit for taskmaster execution         |
+| `FILER_BACKOFF_LIMIT`                           | `2`                                                | Backoff limit for filer job                    |
+| `EXECUTOR_BACKOFF_LIMIT`                        | `2`                                                | Backoff limit for executor job                 |
