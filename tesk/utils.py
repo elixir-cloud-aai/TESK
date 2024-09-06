@@ -24,7 +24,7 @@ from kubernetes.client.models import (
 from tesk.constants import TeskConstants
 from tesk.custom_config import (
     CustomConfig,
-    TaskmasterEnvProperties,
+    Taskmaster,
 )
 from tesk.exceptions import ConfigNotFoundError
 from tesk.k8s.constants import TeskK8sConstants
@@ -151,7 +151,7 @@ def get_taskmaster_template() -> V1Job:
     return job
 
 
-def get_taskmaster_env_property() -> TaskmasterEnvProperties:
+def get_taskmaster_env_property() -> Taskmaster:
     """Get the taskmaster env property from the custom configuration.
 
     Returns:
@@ -159,7 +159,7 @@ def get_taskmaster_env_property() -> TaskmasterEnvProperties:
     """
     custom_conf = get_custom_config()
     try:
-        return custom_conf.taskmaster_env_properties
+        return custom_conf.taskmaster
     except AttributeError:
         raise ConfigNotFoundError(
             "Custom configuration doesn't seem to have taskmaster_env_properties in "
