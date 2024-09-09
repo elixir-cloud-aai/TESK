@@ -21,13 +21,13 @@ from kubernetes.client.models import (
     V1VolumeMount,
 )
 
-from tesk.constants import TeskConstants
+from tesk.constants import tesk_constants
 from tesk.custom_config import (
     CustomConfig,
     Taskmaster,
 )
 from tesk.exceptions import ConfigNotFoundError
-from tesk.k8s.constants import TeskK8sConstants
+from tesk.k8s.constants import tesk_k8s_constants
 
 
 def get_config_path() -> Path:
@@ -68,27 +68,26 @@ def get_taskmaster_template() -> V1Job:
         api_version="batch/v1",
         kind="Job",
         metadata=V1ObjectMeta(
-            name=TeskK8sConstants.label_constants.LABEL_JOBTYPE_VALUE_TASKM,
-            labels={"app": TeskK8sConstants.label_constants.LABEL_JOBTYPE_VALUE_TASKM},
+            name=tesk_k8s_constants.label_constants.LABEL_JOBTYPE_VALUE_TASKM,
         ),
         spec=V1JobSpec(
             template=V1PodTemplateSpec(
                 metadata=V1ObjectMeta(
-                    name=TeskK8sConstants.label_constants.LABEL_JOBTYPE_VALUE_TASKM
+                    name=tesk_k8s_constants.label_constants.LABEL_JOBTYPE_VALUE_TASKM
                 ),
                 spec=V1PodSpec(
-                    service_account_name="default",
+                    service_account_name=tesk_constants.TASKMASTER_SERVICE_ACCOUNT_NAME,
                     containers=[
                         V1Container(
-                            name=TeskK8sConstants.label_constants.LABEL_JOBTYPE_VALUE_TASKM,
-                            image=f"{TeskConstants.TASKMASTER_IMAGE_NAME}:{TeskConstants.TASKMASTER_IMAGE_VERSION}",
+                            name=tesk_k8s_constants.label_constants.LABEL_JOBTYPE_VALUE_TASKM,
+                            image=f"{tesk_constants.TASKMASTER_IMAGE_NAME}:{tesk_constants.TASKMASTER_IMAGE_VERSION}",
                             args=[
                                 "-f",
-                                f"/jsoninput/{TeskK8sConstants.job_constants.TASKMASTER_INPUT}.gz",
+                                f"/jsoninput/{tesk_k8s_constants.job_constants.TASKMASTER_INPUT}.gz",
                             ],
                             env=[
                                 V1EnvVar(
-                                    name=TeskK8sConstants.ftp_constants.FTP_SECRET_USERNAME_ENV,
+                                    name=tesk_k8s_constants.ftp_constants.FTP_SECRET_USERNAME_ENV,
                                     value_from=V1EnvVarSource(
                                         secret_key_ref=V1SecretKeySelector(
                                             name="ftp-secret",
@@ -98,7 +97,7 @@ def get_taskmaster_template() -> V1Job:
                                     ),
                                 ),
                                 V1EnvVar(
-                                    name=TeskK8sConstants.ftp_constants.FTP_SECRET_PASSWORD_ENV,
+                                    name=tesk_k8s_constants.ftp_constants.FTP_SECRET_PASSWORD_ENV,
                                     value_from=V1EnvVarSource(
                                         secret_key_ref=V1SecretKeySelector(
                                             name="ftp-secret",
@@ -133,17 +132,11 @@ def get_taskmaster_template() -> V1Job:
                                             field_path="metadata.labels"
                                         ),
                                     ),
-                                    V1DownwardAPIVolumeFile(
-                                        path="annotations",
-                                        field_ref=V1ObjectFieldSelector(
-                                            field_path="metadata.annotations"
-                                        ),
-                                    ),
                                 ]
                             ),
                         ),
                     ],
-                    restart_policy=TeskK8sConstants.k8s_constants.JOB_RESTART_POLICY,
+                    restart_policy=tesk_k8s_constants.k8s_constants.JOB_RESTART_POLICY,
                 ),
             )
         ),
