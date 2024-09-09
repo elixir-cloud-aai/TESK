@@ -72,9 +72,6 @@ def get_taskmaster_template() -> V1Job:
         kind="Job",
         metadata=V1ObjectMeta(
             name=tesk_k8s_constants.label_constants.LABEL_JOBTYPE_VALUE_TASKM,
-            labels={
-                "app": tesk_k8s_constants.label_constants.LABEL_JOBTYPE_VALUE_TASKM
-            },
         ),
         spec=V1JobSpec(
             template=V1PodTemplateSpec(
@@ -82,7 +79,7 @@ def get_taskmaster_template() -> V1Job:
                     name=tesk_k8s_constants.label_constants.LABEL_JOBTYPE_VALUE_TASKM
                 ),
                 spec=V1PodSpec(
-                    service_account_name="default",
+                    service_account_name=tesk_constants.TASKMASTER_SERVICE_ACCOUNT_NAME,
                     containers=[
                         V1Container(
                             name=tesk_k8s_constants.label_constants.LABEL_JOBTYPE_VALUE_TASKM,
@@ -136,12 +133,6 @@ def get_taskmaster_template() -> V1Job:
                                         path="labels",
                                         field_ref=V1ObjectFieldSelector(
                                             field_path="metadata.labels"
-                                        ),
-                                    ),
-                                    V1DownwardAPIVolumeFile(
-                                        path="annotations",
-                                        field_ref=V1ObjectFieldSelector(
-                                            field_path="metadata.annotations"
                                         ),
                                     ),
                                 ]
