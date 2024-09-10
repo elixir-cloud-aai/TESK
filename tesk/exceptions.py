@@ -19,6 +19,10 @@ class ConfigNotFoundError(FileNotFoundError):
     """Configuration file not found error."""
 
 
+class ConfigInvalidError(ValueError):
+    """Configuration file is invalid."""
+
+
 class KubernetesError(ApiException):
     """Kubernetes error."""
 

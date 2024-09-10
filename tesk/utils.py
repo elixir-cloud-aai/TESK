@@ -21,12 +21,11 @@ from kubernetes.client.models import (
     V1VolumeMount,
 )
 
-from tesk.constants import tesk_constants
 from tesk.custom_config import (
     CustomConfig,
     Taskmaster,
 )
-from tesk.exceptions import ConfigNotFoundError
+from tesk.exceptions import ConfigInvalidError
 from tesk.k8s.constants import tesk_k8s_constants
 
 
@@ -34,7 +33,7 @@ def get_config_path() -> Path:
     """Get the configuration path.
 
     Returns:
-      The path of the config file.
+        The path of the config file.
     """
     # Determine the configuration path
     if config_path_env := os.getenv("TESK_FOCA_CONFIG_PATH"):
@@ -47,23 +46,45 @@ def get_custom_config() -> CustomConfig:
     """Get the custom configuration.
 
     Returns:
-      The custom configuration.
+        The custom configuration.
     """
     conf = Foca(config_file=get_config_path()).conf
     try:
         return CustomConfig(**conf.custom)
     except AttributeError:
-        raise ConfigNotFoundError(
+        raise ConfigInvalidError(
             "Custom configuration not found in config file."
+        ) from None
+
+
+def get_taskmaster_config() -> Taskmaster:
+    """Get the taskmaster env property from the custom configuration.
+
+    Returns:
+        The taskmaster env property.
+    """
+    custom_conf = get_custom_config()
+    try:
+        return custom_conf.taskmaster
+    except AttributeError:
+        raise ConfigInvalidError(
+            "Custom configuration doesn't seem to have taskmaster_env_properties in "
+            "config file."
+            f"Custom config:\n{custom_conf}"
         ) from None
 
 
 def get_taskmaster_template() -> V1Job:
     """Get the taskmaster template from the custom configuration.
 
+    This will be used to create the taskmaster job, API will inject values
+    into the template, depending upon the type of job and request.
+
     Returns:
-      The taskmaster template.
+        The taskmaster template.
     """
+    taskmaster_conf: Taskmaster = get_taskmaster_config()
+
     job = V1Job(
         api_version="batch/v1",
         kind="Job",
@@ -76,11 +97,11 @@ def get_taskmaster_template() -> V1Job:
                     name=tesk_k8s_constants.label_constants.LABEL_JOBTYPE_VALUE_TASKM
                 ),
                 spec=V1PodSpec(
-                    service_account_name=tesk_constants.TASKMASTER_SERVICE_ACCOUNT_NAME,
+                    service_account_name=taskmaster_conf.serviceAccountName,
                     containers=[
                         V1Container(
                             name=tesk_k8s_constants.label_constants.LABEL_JOBTYPE_VALUE_TASKM,
-                            image=f"{tesk_constants.TASKMASTER_IMAGE_NAME}:{tesk_constants.TASKMASTER_IMAGE_VERSION}",
+                            image=f"{taskmaster_conf.imageName}:{taskmaster_conf.imageVersion}",
                             args=[
                                 "-f",
                                 f"/jsoninput/{tesk_k8s_constants.job_constants.TASKMASTER_INPUT}.gz",
@@ -142,20 +163,3 @@ def get_taskmaster_template() -> V1Job:
         ),
     )
     return job
-
-
-def get_taskmaster_env_property() -> Taskmaster:
-    """Get the taskmaster env property from the custom configuration.
-
-    Returns:
-      The taskmaster env property.
-    """
-    custom_conf = get_custom_config()
-    try:
-        return custom_conf.taskmaster
-    except AttributeError:
-        raise ConfigNotFoundError(
-            "Custom configuration doesn't seem to have taskmaster_env_properties in "
-            "config file."
-            f"Custom config:\n{custom_conf}"
-        ) from None
