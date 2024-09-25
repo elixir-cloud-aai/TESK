@@ -60,6 +60,8 @@ class Taskmaster(BaseModel):
     environment: Optional[Dict[str, str]] = None
     serviceAccountName: str = tesk_constants.TASKMASTER_SERVICE_ACCOUNT_NAME
     executorSecret: Optional[ExecutorSecret] = None
+    filerBackoffLimit: int = tesk_constants.FILER_BACKOFF_LIMIT
+    executorBackoffLimit: int = tesk_constants.EXECUTOR_BACKOFF_LIMIT
 
 
 class CustomConfig(BaseModel):
