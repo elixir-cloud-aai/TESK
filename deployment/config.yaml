@@ -89,6 +89,8 @@ custom:
       key: value
     # Service Account name for taskmaster
     serviceAccountName: taskmaster
+    filerBackoffLimit: 2
+    executorBackoffLimit: 2
 
 # Logging configuration
 # Cf. https://foca.readthedocs.io/en/latest/modules/foca.models.html#foca.models.config.LogConfig

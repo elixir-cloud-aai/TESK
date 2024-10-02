@@ -19,55 +19,16 @@ class TeskConstants(BaseModel):
         TASKMASTER_ENVIRONMENT_EXECUTOR_BACKOFF_LIMIT:  Backoff limit for taskmaster env
         FILER_BACKOFF_LIMIT: Backoff limit got filer job
         EXECUTOR_BACKOFF_LIMIT: Backoff limit for executor job
-
-    Note:
-        Below are the mentioned environment variable with which these constants can be
-        configured, otherwise mentioned default will be assigned.
-
-        variable:
-            ENV_VARIABLE = default
-
-        FILER_IMAGE_NAME:
-            TESK_API_TASKMASTER_FILER_IMAGE_NAME = docker.io/elixircloud/tesk-core-filer
-        FILER_IMAGE_VERSION:
-            TESK_API_TASKMASTER_FILER_IMAGE_VERSION = latest
-        TASKMASTER_IMAGE_NAME:
-            TESK_API_TASKMASTER_IMAGE_NAME = docker.io/elixircloud/tesk-core-taskmaster
-        TASKMASTER_IMAGE_VERSION:
-            TESK_API_TASKMASTER_IMAGE_VERSION = latest
-        TESK_NAMESPACE:
-            TESK_API_K8S_NAMESPACE = tesk
-        TASKMASTER_SERVICE_ACCOUNT_NAME:
-            TESK_API_TASKMASTER_SERVICE_ACCOUNT_NAME = taskmaster
-        TASKMASTER_ENVIRONMENT_EXECUTOR_BACKOFF_LIMIT:
-            ENVIRONMENT_EXECUTOR_BACKOFF_LIMIT = 6
-        FILER_BACKOFF_LIMIT:
-            FILER_BACKOFF_LIMIT = 2
-        EXECUTOR_BACKOFF_LIMIT:
-            EXECUTOR_BACKOFF_LIMIT = 2
     """
 
-    FILER_IMAGE_NAME: str = os.getenv(
-        "TESK_API_TASKMASTER_FILER_IMAGE_NAME", "docker.io/elixircloud/tesk-core-filer"
-    )
-    FILER_IMAGE_VERSION: str = os.getenv(
-        "TESK_API_TASKMASTER_FILER_IMAGE_VERSION", "latest"
-    )
-    TASKMASTER_IMAGE_NAME: str = os.getenv(
-        "TESK_API_TASKMASTER_IMAGE_NAME", "docker.io/elixircloud/tesk-core-taskmaster"
-    )
-    TASKMASTER_IMAGE_VERSION: str = os.getenv(
-        "TESK_API_TASKMASTER_IMAGE_VERSION", "latest"
-    )
     TESK_NAMESPACE: str = os.getenv("TESK_API_K8S_NAMESPACE", "tesk")
-    TASKMASTER_SERVICE_ACCOUNT_NAME: str = os.getenv(
-        "TESK_API_TASKMASTER_SERVICE_ACCOUNT_NAME", "taskmaster"
-    )
-    TASKMASTER_ENVIRONMENT_EXECUTOR_BACKOFF_LIMIT: str = os.getenv(
-        "ENVIRONMENT_EXECUTOR_BACKOFF_LIMIT", "6"
-    )
-    FILER_BACKOFF_LIMIT: str = os.getenv("FILER_BACKOFF_LIMIT", "2")
-    EXECUTOR_BACKOFF_LIMIT: str = os.getenv("EXECUTOR_BACKOFF_LIMIT", "2")
+    FILER_IMAGE_NAME: str = "docker.io/elixircloud/tesk-core-filer"
+    FILER_IMAGE_VERSION: str = "latest"
+    TASKMASTER_IMAGE_NAME: str = "docker.io/elixircloud/tesk-core-taskmaster"
+    TASKMASTER_IMAGE_VERSION: str = "latest"
+    TASKMASTER_SERVICE_ACCOUNT_NAME: str = "taskmaster"
+    FILER_BACKOFF_LIMIT: int = 2
+    EXECUTOR_BACKOFF_LIMIT: int = 2
 
     class Config:
         """Configuration for class."""
