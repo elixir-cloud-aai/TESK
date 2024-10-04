@@ -27,8 +27,8 @@ class TeskConstants(BaseModel):
     TASKMASTER_IMAGE_NAME: str = "docker.io/elixircloud/tesk-core-taskmaster"
     TASKMASTER_IMAGE_VERSION: str = "latest"
     TASKMASTER_SERVICE_ACCOUNT_NAME: str = "taskmaster"
-    FILER_BACKOFF_LIMIT: int = 2
-    EXECUTOR_BACKOFF_LIMIT: int = 2
+    FILER_BACKOFF_LIMIT: str = "2"
+    EXECUTOR_BACKOFF_LIMIT: str = "2"
 
     class Config:
         """Configuration for class."""
