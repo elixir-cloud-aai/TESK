@@ -88,9 +88,9 @@ def get_taskmaster_template() -> V1Job:
     """
     taskmaster_conf: Taskmaster = get_taskmaster_config()
 
-    job = V1Job(
-        api_version="batch/v1",
-        kind="Job",
+    return V1Job(
+        api_version=tesk_k8s_constants.k8s_constants.K8S_BATCH_API_VERSION,
+        kind=tesk_k8s_constants.k8s_constants.K8S_BATCH_API_JOB_TYPE,
         metadata=V1ObjectMeta(
             name=tesk_k8s_constants.label_constants.LABEL_JOBTYPE_VALUE_TASKM,
         ),
@@ -165,7 +165,6 @@ def get_taskmaster_template() -> V1Job:
             )
         ),
     )
-    return job
 
 
 def get_taskmaster_env_property() -> Taskmaster:
