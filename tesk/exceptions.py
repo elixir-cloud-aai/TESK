@@ -1,7 +1,5 @@
 """App exceptions."""
 
-from http import HTTPStatus
-
 from connexion.exceptions import (
     BadRequestProblem,
     ExtraParameterProblem,
@@ -27,10 +25,6 @@ class ConfigInvalidError(ValueError):
 
 class KubernetesError(ApiException):
     """Kubernetes error."""
-
-    def is_object_name_duplicated(self) -> bool:
-        """Check if object name is duplicated."""
-        return self.status == HTTPStatus.CONFLICT
 
 
 # exceptions raised in app context

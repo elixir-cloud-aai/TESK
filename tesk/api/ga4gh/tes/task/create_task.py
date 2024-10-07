@@ -1,6 +1,7 @@
 """TESK API module for creating a task."""
 
 import logging
+from http import HTTPStatus
 
 from tesk.api.ga4gh.tes.models import TesCreateTaskResponse, TesResources, TesTask
 from tesk.api.ga4gh.tes.task.task_request import TesTaskRequest
@@ -26,18 +27,27 @@ class CreateTesTask(TesTaskRequest):
 
     def handle_request(self) -> TesCreateTaskResponse:
         """Create TES task."""
-        attempts_no = 0
+        attempts_no: int = 0
+        total_attempts_no: int = (
+            self.tesk_k8s_constants.job_constants.JOB_CREATE_ATTEMPTS_NO
+        )
+
         while (
             attempts_no < self.tesk_k8s_constants.job_constants.JOB_CREATE_ATTEMPTS_NO
         ):
             try:
+                logger.debug(
+                    f"Creating K8s job, attempt no: {attempts_no}/{total_attempts_no}."
+                )
                 attempts_no += 1
-                resources = self.task.resources
                 minimum_ram_gb = self.kubernetes_client_wrapper.minimum_ram_gb()
 
-                if not self.task.resources:
+                if self.task.resources is None:
                     self.task.resources = TesResources(cpu_cores=int(minimum_ram_gb))
-                if resources and resources.ram_gb and resources.ram_gb < minimum_ram_gb:
+                elif (
+                    self.task.resources.ram_gb is None
+                    or self.task.resources.ram_gb < minimum_ram_gb
+                ):
                     self.task.resources.ram_gb = minimum_ram_gb
 
                 taskmaster_job = self.tes_kubernetes_converter.from_tes_task_to_k8s_job(
@@ -62,14 +72,10 @@ class CreateTesTask(TesTaskRequest):
 
             except KubernetesError as e:
                 if (
-                    not e.is_object_name_duplicated()
+                    e.status != HTTPStatus.CONFLICT
                     or attempts_no
                     >= self.tesk_k8s_constants.job_constants.JOB_CREATE_ATTEMPTS_NO
                 ):
                     raise e
-
-            except Exception as exc:
-                logging.error("ERROR: In createTask", exc_info=True)
-                raise exc
 
         return TesCreateTaskResponse(id="")  # To silence mypy, should never be reached

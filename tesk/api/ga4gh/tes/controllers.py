@@ -1,16 +1,15 @@
 """Controllers for GA4GH TES API endpoints."""
 
 import logging
-
-# from connexion import request  # type: ignore
 from typing import Any
 
 from foca.utils.logging import log_traffic  # type: ignore
+from pydantic import ValidationError
 
 from tesk.api.ga4gh.tes.models import TesTask
 from tesk.api.ga4gh.tes.service_info.service_info import ServiceInfo
 from tesk.api.ga4gh.tes.task.create_task import CreateTesTask
-from tesk.exceptions import InternalServerError
+from tesk.exceptions import BadRequest, InternalServerError
 
 # Get logger instance
 logger = logging.getLogger(__name__)
@@ -31,7 +30,7 @@ def CancelTask(id, *args, **kwargs) -> dict:  # type: ignore
 
 # POST /tasks
 @log_traffic
-def CreateTask(**kwargs) -> dict:  # type: ignore
+def CreateTask(**kwargs) -> dict:
     """Create task.
 
     Args:
@@ -39,9 +38,11 @@ def CreateTask(**kwargs) -> dict:  # type: ignore
     """
     try:
         request_body: Any = kwargs.get("body")
-        tes_task = TesTask(**request_body)
-        response = CreateTesTask(tes_task).response()
-        return response
+        try:
+            tes_task = TesTask(**request_body)
+        except ValidationError as e:
+            raise BadRequest(str(e)) from e
+        return CreateTesTask(tes_task).response()
     except Exception as e:
         raise InternalServerError from e
 
