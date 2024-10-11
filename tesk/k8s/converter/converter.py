@@ -46,7 +46,7 @@ logger = logging.getLogger(__name__)
 
 class TesKubernetesConverter:
     """Convert TES requests to Kubernetes resources.
-    
+
     Attributes:
         taskmaster_env_properties: taskmaster environment properties
         template_supplier: Kubernetes template supplier
@@ -56,7 +56,7 @@ class TesKubernetesConverter:
 
     def __init__(self):
         """Initialize the converter.
-        
+
         Args:
             taskmaster_env_properties: taskmaster environment properties
             template_supplier: Kubernetes template supplier
@@ -70,10 +70,10 @@ class TesKubernetesConverter:
 
     def from_tes_task_to_k8s_job(self, task: TesTask) -> V1Job:
         """Convert TES task to Kubernetes job.
-        
+
         Args:
             task: TES task
-        
+
         Returns:
             V1Job: Kubernetes job, taskmaster job
         """
@@ -143,11 +143,11 @@ class TesKubernetesConverter:
         taskmaster_job: V1Job,
     ) -> V1ConfigMap:
         """Create a Kubernetes ConfigMap from a TES task.
-        
+
         Args:
             task: TES task
             taskmaster_job: Kubernetes job
-            
+
         Returns:
             V1ConfigMap: Kubernetes ConfigMap
         """
@@ -255,14 +255,14 @@ class TesKubernetesConverter:
         resources: TesResources,
     ) -> V1Job:
         """Create a Kubernetes job from a TES executor.
-        
+
         Args:
             generated_task_id: generated task ID
             tes_task_name: TES task name
             executor: TES executor
             executor_index: executor index
             resources: TES resources
-        
+
         Returns:
             V1Job: Kubernetes job, executor job
         """

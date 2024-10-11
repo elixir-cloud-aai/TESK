@@ -16,14 +16,14 @@ from tesk.api.ga4gh.tes.models import TesExecutor
 
 class ExecutorCommandWrapper:
     """Wraps executor's command.
-    
+
     Attributes:
         executor: executor to wrap
     """
 
     def __init__(self, executor: TesExecutor):
         """Initialize the wrapper.
-        
+
         Args:
             executor: executor to wrap
         """
@@ -31,7 +31,7 @@ class ExecutorCommandWrapper:
 
     def get_commands_with_stream_redirects(self) -> List[str]:
         """Get command with stream redirects.
-        
+
         Returns:
             List[str]: command to run by exector with stream redirects
         """

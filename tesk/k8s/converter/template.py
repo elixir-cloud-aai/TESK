@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 
 class KubernetesTemplateSupplier:
     """Templates for tasmaster's and executor's job object.
-    
+
     Attributes:
         taskmaster_template: template for the taskmaster job
         taskmaster: taskmaster environment properties
@@ -40,7 +40,7 @@ class KubernetesTemplateSupplier:
         self,
     ):
         """Initialize the converter.
-        
+
         Args:
             taskmaster_template: template for the taskmaster job
             taskmaster: taskmaster environment properties
@@ -61,7 +61,7 @@ class KubernetesTemplateSupplier:
 
     def get_taskmaster_template_with_value_from_config(self) -> V1Job:
         """Create a template for the taskmaster job.
-        
+
         Returns:
             V1Job: template for the taskmaster job with values from config
         """
@@ -155,7 +155,7 @@ class KubernetesTemplateSupplier:
 
     def get_executor_template_with_value_from_config(self) -> V1Job:
         """Create a template for the executor job.
-        
+
         Returns:
             V1Job: template for the executor job with values from config
         """

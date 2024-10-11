@@ -11,7 +11,12 @@ logger = logging.getLogger(__name__)
 
 
 class CreateTesTask(TesTaskRequest):
-    """Create TES task."""
+    """Create TES task.
+
+    Arguments:
+        TesTaskRequest: Base class for TES task request.
+        task: TES task to create.
+    """
 
     def __init__(
         self,
@@ -26,7 +31,12 @@ class CreateTesTask(TesTaskRequest):
         self.task = task
 
     def handle_request(self) -> TesCreateTaskResponse:
-        """Create TES task."""
+        """Create TES task.
+
+        Returns:
+            TesCreateTaskResponse: TES task response after creating corresponding K8s 
+                job.
+        """
         attempts_no: int = 0
         total_attempts_no: int = (
             self.tesk_k8s_constants.job_constants.JOB_CREATE_ATTEMPTS_NO

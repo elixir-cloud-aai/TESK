@@ -17,7 +17,7 @@ class Task:
     """Task is a composite.
 
     It represents Kubernetes object's graph of a single TES task.
-    
+
     Attributes:
         taskmaster: taskmaster job with its pods
         executors_by_name: executors jobs with its pods
@@ -29,7 +29,7 @@ class Task:
         self, taskmaster: Optional[Job] = None, taskmaster_name: Optional[str] = None
     ):
         """Initialize the Task.
-        
+
         Args:
             taskmaster: taskmaster job with its pods
             taskmaster_name: name of the taskmaster job

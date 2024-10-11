@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 class KubernetesClientWrapper:
     """Kubernetes client wrapper class.
-    
+
     Attributes:
         batch_api: Kubernetes batch API client
         core_api: Kubernetes core API client
@@ -33,7 +33,7 @@ class KubernetesClientWrapper:
 
     def __init__(self):
         """Initialize the Kubernetes client wrapper.
-        
+
         Args:
             batch_api: Kubernetes batch API client
             core_api: Kubernetes core API client

@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 class TesTaskRequest(ABC):
     """Base class for tesk request ecapsulating common methods and members.
-    
+
     Attributes:
         kubernetes_client_wrapper: kubernetes client wrapper
         tes_kubernetes_converter: TES Kubernetes converter, used to convert TES requests
