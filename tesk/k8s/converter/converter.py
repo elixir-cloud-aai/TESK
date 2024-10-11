@@ -45,17 +45,38 @@ logger = logging.getLogger(__name__)
 
 
 class TesKubernetesConverter:
-    """Convert TES requests to Kubernetes resources."""
+    """Convert TES requests to Kubernetes resources.
+    
+    Attributes:
+        taskmaster_env_properties: taskmaster environment properties
+        template_supplier: Kubernetes template supplier
+        tesk_k8s_constants: TESK Kubernetes constants
+        kubernetes_client_wrapper: Kubernetes client wrapper
+    """
 
     def __init__(self):
-        """Initialize the converter."""
+        """Initialize the converter.
+        
+        Args:
+            taskmaster_env_properties: taskmaster environment properties
+            template_supplier: Kubernetes template supplier
+            tesk_k8s_constants: TESK Kubernetes constants
+            kubernetes_client_wrapper: Kubernetes client wrapper
+        """
         self.taskmaster_env_properties: Taskmaster = get_taskmaster_env_property()
         self.template_supplier = KubernetesTemplateSupplier()
         self.tesk_k8s_constants = tesk_k8s_constants
         self.kubernetes_client_wrapper = KubernetesClientWrapper()
 
-    def from_tes_task_to_k8s_job(self, task: TesTask):
-        """Convert TES task to Kubernetes job."""
+    def from_tes_task_to_k8s_job(self, task: TesTask) -> V1Job:
+        """Convert TES task to Kubernetes job.
+        
+        Args:
+            task: TES task
+        
+        Returns:
+            V1Job: Kubernetes job, taskmaster job
+        """
         taskmaster_job: V1Job = (
             self.template_supplier.get_taskmaster_template_with_value_from_config()
         )
@@ -121,7 +142,15 @@ class TesKubernetesConverter:
         task: TesTask,
         taskmaster_job: V1Job,
     ) -> V1ConfigMap:
-        """Create a Kubernetes ConfigMap from a TES task."""
+        """Create a Kubernetes ConfigMap from a TES task.
+        
+        Args:
+            task: TES task
+            taskmaster_job: Kubernetes job
+            
+        Returns:
+            V1ConfigMap: Kubernetes ConfigMap
+        """
         assert taskmaster_job.metadata is not None, (
             "Taskmaster job metadata should have already been set while create"
             " taskmaster!"
@@ -225,7 +254,18 @@ class TesKubernetesConverter:
         executor_index: int,
         resources: TesResources,
     ) -> V1Job:
-        """Create a Kubernetes job from a TES executor."""
+        """Create a Kubernetes job from a TES executor.
+        
+        Args:
+            generated_task_id: generated task ID
+            tes_task_name: TES task name
+            executor: TES executor
+            executor_index: executor index
+            resources: TES resources
+        
+        Returns:
+            V1Job: Kubernetes job, executor job
+        """
         # Get new template executor Job object
         executor_job: V1Job = (
             self.template_supplier.get_executor_template_with_value_from_config()

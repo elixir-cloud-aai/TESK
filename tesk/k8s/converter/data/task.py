@@ -17,12 +17,23 @@ class Task:
     """Task is a composite.
 
     It represents Kubernetes object's graph of a single TES task.
+    
+    Attributes:
+        taskmaster: taskmaster job with its pods
+        executors_by_name: executors jobs with its pods
+        output_filer: output filer job with its pods
+        tesk_k8s_constants: TESK Kubernetes constants
     """
 
     def __init__(
         self, taskmaster: Optional[Job] = None, taskmaster_name: Optional[str] = None
     ):
-        """Initialize the Task."""
+        """Initialize the Task.
+        
+        Args:
+            taskmaster: taskmaster job with its pods
+            taskmaster_name: name of the taskmaster job
+        """
         if taskmaster:
             self.taskmaster = taskmaster
         elif taskmaster_name:
@@ -34,7 +45,6 @@ class Task:
         self.executors_by_name: Dict[str, Job] = {}
         self.output_filer: Optional[Job] = None
         self.tesk_k8s_constants = tesk_k8s_constants
-        self.MAX_INT = 2**31 - 1
 
     def add_executor(self, executor: Job) -> None:
         """Add executor to the task."""
@@ -77,16 +87,16 @@ class Task:
         prefix = (
             taskmaster_name + self.tesk_k8s_constants.job_constants.JOB_NAME_EXEC_PREFIX
         )
-        exec_name = executor.get_job_name()
 
-        if not exec_name:
-            return self.MAX_INT
+        inf = 2**31 - 1
 
-        match = re.match(f"{re.escape(prefix)}(\d+)", exec_name)
-        if match:
+        if not (exec_name := executor.get_job_name()):
+            return inf
+
+        if match := re.match(f"{re.escape(prefix)}(\d+)", exec_name):
             return int(match.group(1))
 
-        return self.MAX_INT
+        return inf
 
     def get_executor_name(self, executor_index: int) -> str:
         """Get executor name based on the taskmaster's job name and executor index."""

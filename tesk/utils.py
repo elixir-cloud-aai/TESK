@@ -186,7 +186,4 @@ def get_taskmaster_env_property() -> Taskmaster:
 
 def pydantic_model_list_dict(model_list: Sequence[BaseModel]) -> List[str]:
     """Convert a list of pydantic models to a list of dictionaries."""
-    json_list = []
-    for item in model_list:
-        json_list.append(json.loads(item.json()))
-    return json_list
+    return [json.loads(item.json()) for item in model_list]

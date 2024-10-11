@@ -74,9 +74,9 @@ custom:
       - ParamToRecogniseDataComingFromConfig
   taskmaster:
     imageName: docker.io/elixircloud/tesk-core-taskmaster
-    imageVersion: v0.10.2
+    imageVersion: v0.10.4
     filerImageName: docker.io/elixircloud/tesk-core-filer
-    filerImageVersion: v0.10.2
+    filerImageVersion: v0.10.4
     ftp:
       # Name of the secret with FTP account credentials
       secretName: account-secret

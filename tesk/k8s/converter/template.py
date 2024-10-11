@@ -27,12 +27,26 @@ logger = logging.getLogger(__name__)
 
 
 class KubernetesTemplateSupplier:
-    """Templates for tasmaster's and executor's job object.."""
+    """Templates for tasmaster's and executor's job object.
+    
+    Attributes:
+        taskmaster_template: template for the taskmaster job
+        taskmaster: taskmaster environment properties
+        tesk_k8s_constants: TESK Kubernetes constants
+        tesk_constants: TESK constants
+    """
 
     def __init__(
         self,
     ):
-        """Initialize the converter."""
+        """Initialize the converter.
+        
+        Args:
+            taskmaster_template: template for the taskmaster job
+            taskmaster: taskmaster environment properties
+            tesk_k8s_constants: TESK Kubernetes constants
+            tesk_constants: TESK constants
+        """
         self.taskmaster_template: V1Job = get_taskmaster_template()
         self.taskmaster: Taskmaster = get_taskmaster_env_property()
         self.tesk_k8s_constants = tesk_k8s_constants
@@ -46,7 +60,11 @@ class KubernetesTemplateSupplier:
         return name
 
     def get_taskmaster_template_with_value_from_config(self) -> V1Job:
-        """Create a template for the taskmaster job."""
+        """Create a template for the taskmaster job.
+        
+        Returns:
+            V1Job: template for the taskmaster job with values from config
+        """
         job: V1Job = self.taskmaster_template
 
         if job.spec is None:
@@ -136,7 +154,11 @@ class KubernetesTemplateSupplier:
         return job
 
     def get_executor_template_with_value_from_config(self) -> V1Job:
-        """Create a template for the executor job."""
+        """Create a template for the executor job.
+        
+        Returns:
+            V1Job: template for the executor job with values from config
+        """
         container = V1Container(
             name=self.tesk_k8s_constants.label_constants.LABEL_JOBTYPE_VALUE_EXEC,
             resources=V1ResourceRequirements(),

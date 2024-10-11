@@ -32,16 +32,16 @@ class CreateTesTask(TesTaskRequest):
             self.tesk_k8s_constants.job_constants.JOB_CREATE_ATTEMPTS_NO
         )
 
-        while (
-            attempts_no < self.tesk_k8s_constants.job_constants.JOB_CREATE_ATTEMPTS_NO
-        ):
+        while attempts_no < total_attempts_no:
             try:
                 logger.debug(
                     f"Creating K8s job, attempt no: {attempts_no}/{total_attempts_no}."
                 )
                 attempts_no += 1
+
                 minimum_ram_gb = self.kubernetes_client_wrapper.minimum_ram_gb()
 
+                # Setting task resources based on the minimum RAM
                 if self.task.resources is None:
                     self.task.resources = TesResources(cpu_cores=int(minimum_ram_gb))
                 elif (
@@ -50,6 +50,7 @@ class CreateTesTask(TesTaskRequest):
                 ):
                     self.task.resources.ram_gb = minimum_ram_gb
 
+                # Create the K8s job and config map
                 taskmaster_job = self.tes_kubernetes_converter.from_tes_task_to_k8s_job(
                     self.task,
                 )
@@ -59,7 +60,6 @@ class CreateTesTask(TesTaskRequest):
                         taskmaster_job,
                     )
                 )
-
                 _ = self.kubernetes_client_wrapper.create_config_map(
                     taskmaster_config_map
                 )
@@ -71,11 +71,12 @@ class CreateTesTask(TesTaskRequest):
                 return TesCreateTaskResponse(id=created_job.metadata.name)
 
             except KubernetesError as e:
-                if (
-                    e.status != HTTPStatus.CONFLICT
-                    or attempts_no
-                    >= self.tesk_k8s_constants.job_constants.JOB_CREATE_ATTEMPTS_NO
-                ):
-                    raise e
+                if e.status == HTTPStatus.CONFLICT:
+                    logger.debug(
+                        "Conflict while creating Kubernetes job, retrying...",
+                    )
+                    pass
 
-        return TesCreateTaskResponse(id="")  # To silence mypy, should never be reached
+        raise KubernetesError(
+            "Failed to create Kubernetes job after multiple attempts."
+        )

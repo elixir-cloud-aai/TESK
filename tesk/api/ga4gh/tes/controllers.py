@@ -9,7 +9,7 @@ from pydantic import ValidationError
 from tesk.api.ga4gh.tes.models import TesTask
 from tesk.api.ga4gh.tes.service_info.service_info import ServiceInfo
 from tesk.api.ga4gh.tes.task.create_task import CreateTesTask
-from tesk.exceptions import BadRequest, InternalServerError
+from tesk.exceptions import BadRequest
 
 # Get logger instance
 logger = logging.getLogger(__name__)
@@ -36,15 +36,12 @@ def CreateTask(**kwargs) -> dict:
     Args:
         **kwargs: Arbitrary keyword arguments.
     """
+    request_body: Any = kwargs.get("body")
     try:
-        request_body: Any = kwargs.get("body")
-        try:
-            tes_task = TesTask(**request_body)
-        except ValidationError as e:
-            raise BadRequest(str(e)) from e
-        return CreateTesTask(tes_task).response()
-    except Exception as e:
-        raise InternalServerError from e
+        tes_task = TesTask(**request_body)
+    except ValidationError as e:
+        raise BadRequest(str(e)) from e
+    return CreateTesTask(tes_task).response()
 
 
 # GET /tasks/service-info
