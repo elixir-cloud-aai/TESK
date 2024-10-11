@@ -88,5 +88,6 @@ class CreateTesTask(TesTaskRequest):
                     pass
 
         raise KubernetesError(
-            "Failed to create Kubernetes job after multiple attempts."
+            status=HTTPStatus.INTERNAL_SERVER_ERROR,
+            reason=f"Failed to create Kubernetes job after {attempts_no} attempts.",
         )
