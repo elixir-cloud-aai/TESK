@@ -34,7 +34,7 @@ class CreateTesTask(TesTaskRequest):
         """Create TES task.
 
         Returns:
-            TesCreateTaskResponse: TES task response after creating corresponding K8s 
+            TesCreateTaskResponse: TES task response after creating corresponding K8s
                 job.
         """
         attempts_no: int = 0
