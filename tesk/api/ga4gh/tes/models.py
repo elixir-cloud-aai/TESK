@@ -478,6 +478,13 @@ class TesServiceInfo(Service):
     type: Optional[TesServiceType] = None  # type: ignore
 
 
+class TesTaskMinimal(BaseModel):
+    """TaskMinimal describes a minimal task object."""
+
+    id: str = Field(..., description="Task identifier assigned by the server.")
+    state: TesState = TesState.UNKNOWN
+
+
 class TesTask(BaseModel):
     """Task describes a task to be run."""
 
@@ -568,3 +575,11 @@ class TesListTasksResponse(BaseModel):
         description="Token used to return the next page of results. This value can be "
         "used\nin the `page_token` field of the next ListTasks request.",
     )
+
+
+class TaskView(str, Enum):
+    """Task view type."""
+
+    BASIC = "basic"
+    MINIMAL = "minimal"
+    FULL = "full"

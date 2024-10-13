@@ -2,6 +2,7 @@
 
 import json
 import os
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import List, Sequence
 
@@ -187,3 +188,15 @@ def get_taskmaster_env_property() -> Taskmaster:
 def pydantic_model_list_dict(model_list: Sequence[BaseModel]) -> List[str]:
     """Convert a list of pydantic models to a list of dictionaries."""
     return [json.loads(item.json()) for item in model_list]
+
+
+def format_datetime(dt: datetime) -> str:
+    """Formats a datetime object into time with UTC timezone.
+
+    Args:
+        dt: The datetime object to format.
+
+    Returns:
+        str: The formatted datetime string.
+    """
+    return dt.astimezone(timezone.utc).isoformat()
