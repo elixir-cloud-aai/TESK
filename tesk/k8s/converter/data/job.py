@@ -75,6 +75,6 @@ class Job:
 class JobStatus(Enum):
     """State of job."""
 
-    ACTIVE = "Active"
-    SUCCEEDED = "Succeeded"
-    FAILED = "Failed"
+    ACTIVE = "active"
+    SUCCEEDED = "succeeded"
+    FAILED = "failed"
