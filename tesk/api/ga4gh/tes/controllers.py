@@ -1,7 +1,7 @@
 """Controllers for GA4GH TES API endpoints."""
 
 import logging
-from typing import Any
+from typing import Mapping
 
 from foca.utils.logging import log_traffic  # type: ignore
 from pydantic import ValidationError
@@ -36,7 +36,7 @@ def CreateTask(**kwargs) -> dict:
     Args:
         **kwargs: Arbitrary keyword arguments.
     """
-    request_body: Any = kwargs.get("body")
+    request_body: Mapping = kwargs.get("body", {})
     try:
         tes_task = TesTask(**request_body)
     except ValidationError as e:
