@@ -94,18 +94,6 @@ class TesKubernetesConverter:
             taskmaster_job.metadata.annotations[
                 self.tesk_k8s_constants.annotation_constants.ANN_TESTASK_NAME_KEY
             ] = task.name
-        # taskmaster_job.metadata.labels[self.constants.label_userid_key] = user[
-        #     "username"
-        # ]
-
-        # if task.tags and "GROUP_NAME" in task.tags:
-        #     taskmaster_job.metadata.labels[self.constants.label_userid_key] = task[
-        #         "tags"
-        #     ]["GROUP_NAME"]
-        # elif user["is_member"]:
-        #     taskmaster_job.metadata.labels[self.constants.label_groupname_key] = user[
-        #         "any_group"
-        #     ]
 
         json_input = json.dumps(
             task.dict(),
@@ -170,23 +158,16 @@ class TesKubernetesConverter:
         if taskmaster_config_map.metadata.annotations is None:
             taskmaster_config_map.metadata.annotations = {}
 
-        # FIXME: What if the task name is None?
-        task_name = task.name or "task-name-not-set"
+        task_name = task.name or "String"
 
         taskmaster_config_map.metadata.annotations[
             self.tesk_k8s_constants.annotation_constants.ANN_TESTASK_NAME_KEY
         ] = task_name
 
-        # taskmaster_config_map.metadata.labels[self.constants.label_userid_key]
-        # = user["username"]
-
         if task.tags and "GROUP_NAME" in task.tags:
             taskmaster_config_map.metadata.labels[
                 self.tesk_k8s_constants.label_constants.LABEL_GROUPNAME_KEY
             ] = task.tags["GROUP_NAME"]
-        # elif user["is_member"]:
-        #     taskmaster_config_map.metadata.labels[self.constants.label_groupname_key]
-        #       = user["any_group"]
 
         assert taskmaster_config_map.metadata.name is not None
         assert task.resources is not None
