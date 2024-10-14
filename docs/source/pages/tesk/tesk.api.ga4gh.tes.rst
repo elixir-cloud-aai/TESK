@@ -8,6 +8,7 @@ Subpackages
    :maxdepth: 4
 
    tesk.api.ga4gh.tes.service_info
+   tesk.api.ga4gh.tes.task
 
 Submodules
 ----------

@@ -22,10 +22,24 @@ logger = logging.getLogger(__name__)
 
 
 class KubernetesClientWrapper:
-    """Kubernetes client wrapper class."""
+    """Kubernetes client wrapper class.
+
+    Attributes:
+        batch_api: Kubernetes batch API client
+        core_api: Kubernetes core API client
+        namespace: Kubernetes namespace
+        tesk_k8s_constant: TESK Kubernetes constants
+    """
 
     def __init__(self):
-        """Initialize the Kubernetes client wrapper."""
+        """Initialize the Kubernetes client wrapper.
+
+        Args:
+            batch_api: Kubernetes batch API client
+            core_api: Kubernetes core API client
+            namespace: Kubernetes namespace
+            tesk_k8s_constant: TESK Kubernetes constants
+        """
         config.load_kube_config()
         self.batch_api = client.BatchV1Api()
         self.core_api = client.CoreV1Api()

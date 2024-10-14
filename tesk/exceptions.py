@@ -74,6 +74,11 @@ exceptions = {
         "detail": "An unexpected error occurred.",
         "status": 500,
     },
+    KubernetesError: {
+        "title": "Kubernetes error",
+        "detail": "An error occurred while interacting with Kubernetes.",
+        "status": 500,
+    },
 }
 
 

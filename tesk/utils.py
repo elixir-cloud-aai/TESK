@@ -1,7 +1,9 @@
 """Utility functions for the TESK package."""
 
+import json
 import os
 from pathlib import Path
+from typing import List, Sequence
 
 from foca import Foca
 from kubernetes.client.models import (
@@ -20,12 +22,13 @@ from kubernetes.client.models import (
     V1Volume,
     V1VolumeMount,
 )
+from pydantic import BaseModel
 
 from tesk.custom_config import (
     CustomConfig,
     Taskmaster,
 )
-from tesk.exceptions import ConfigInvalidError
+from tesk.exceptions import ConfigInvalidError, ConfigNotFoundError
 from tesk.k8s.constants import tesk_k8s_constants
 
 
@@ -162,3 +165,25 @@ def get_taskmaster_template() -> V1Job:
             )
         ),
     )
+
+
+def get_taskmaster_env_property() -> Taskmaster:
+    """Get the taskmaster env property from the custom configuration.
+
+    Returns:
+      The taskmaster env property.
+    """
+    custom_conf = get_custom_config()
+    try:
+        return custom_conf.taskmaster
+    except AttributeError:
+        raise ConfigNotFoundError(
+            "Custom configuration doesn't seem to have taskmaster_env_properties in "
+            "config file."
+            f"Custom config:\n{custom_conf}"
+        ) from None
+
+
+def pydantic_model_list_dict(model_list: Sequence[BaseModel]) -> List[str]:
+    """Convert a list of pydantic models to a list of dictionaries."""
+    return [json.loads(item.json()) for item in model_list]

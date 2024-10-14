@@ -1,6 +1,14 @@
 tesk.k8s package
 ================
 
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   tesk.k8s.converter
+
 Submodules
 ----------
 
