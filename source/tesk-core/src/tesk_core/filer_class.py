@@ -81,6 +81,8 @@ class Filer:
 
         env = self.getEnv()
         env.append({"name": "AWS_CONFIG_FILE", "value": "/aws/config"})
+        env.append({"name": "AWS_REQUEST_CHECKSUM_CALCULATION", "value": "WHEN_REQUIRED"})
+        env.append({"name": "AWS_RESPONSE_CHECKSUM_VALIDATION", "value": "WHEN_REQUIRED"})
         env.append(
             {
                 "name": "AWS_SHARED_CREDENTIALS_FILE",
