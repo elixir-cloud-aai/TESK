@@ -13,10 +13,12 @@ jobs:
         with:
           fetch-depth: 0
             
-      - name: Create k3s Cluster
-        uses: debianmaster/actions-k3s@v1.0.5
+      - name: Setup microk8s
+        uses: fenio/setup-microk8s@v5.0.1
         with:
-          version: 'latest'
+          version: 'latest/stable'
+          addons: 'dns,ingress'
+          wait-for-ready: true
             
       - name: Create namespace
         run: kubectl create ns tesk
@@ -44,7 +46,7 @@ jobs:
         run: helm list -n tesk && kubectl get all -n tesk
     
       - name: curl URL
-        run: curl localhost -vL
+        run: curl localhost/ga4gh/tes/v1/service-info
             
       - name: Configure Git
         run: |
