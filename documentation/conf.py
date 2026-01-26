@@ -18,7 +18,11 @@ source_suffix = {
     ".md": "markdown",
 }
 
-master_doc = "index"
+# Root document (Sphinx 2.0+)
+root_doc = "index"
+
+# Backwards compatibility for older Sphinx versions
+master_doc = root_doc
 
 # -- HTML output -------------------------------------------------------------
 
