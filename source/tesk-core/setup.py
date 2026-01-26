@@ -17,7 +17,7 @@ INSTALL_DEPS = ['kubernetes==9.0.0',
 
                 # boto3 constraint
                 'boto3<=1.28 ; python_version == "3.8"',
-                'boto3>=1.28 ; python_version >= "3.9"',
+                'boto3>=1.28,<2.0 ; python_version >= "3.9"',
                 ]
 TEST_DEPS = [ 'pytest',
             'pyfakefs',
