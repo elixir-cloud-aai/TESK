@@ -1,6 +1,0 @@
-
-
-wesBasePath='/home/tfga/workspace/cwl-tes'
-
-minikube start --mount --mount-string "$wesBasePath:/transferAtNode"
-
