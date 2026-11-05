@@ -74,6 +74,7 @@ See [`values.yaml`](values.yaml) for default values.
 | transfer.pvc_name | string | |
 | auth.mode | string | Can be 'noauth' to disable authentication, or 'auth' to enable it |
 | auth.env_subgroup | string | Can be 'EBI' or 'CSC' |
+| auth.service_info_public | boolean | With `auth.mode` 'auth': `true` (default) lets `GET /service-info` answer without a token, `false` requires a valid token for it. Needs tesk-api 1.2.0 or later (`tesk.image`); earlier versions ignore it and keep the endpoint public. No effect with 'noauth', where all endpoints are open. See [`auth.md`](https://github.com/elixir-cloud-aai/tesk-api/blob/master/auth.md#public-endpoints) |
 | service.type | string | Can be 'NodePort' or 'ClusterIp' or 'LoadBalancer' |
 | service.node_port | integer | Only used if service.type is 'NodePort', specifies the port |
 | ftp.classic_ftp_secret | String | The name of a secret to store FTP credentials as keys. If empty, the old-style FTP secret is not created |
