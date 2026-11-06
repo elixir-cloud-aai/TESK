@@ -1,6 +1,7 @@
 # Lint the chart (`helm lint --strict`) and render it with its default values
-# (`helm template`). Used by the `chart` job of `ci.yml`. The chart has no
-# dependencies to build. Needs a checkout of the repository.
+# (`helm template`). Used by the `chart` job of `ci.yml` and by
+# `release.yml`. The chart has no dependencies to build. Needs a checkout of
+# the repository.
 
 name: Test chart
 description: Lint and render the TESK chart
