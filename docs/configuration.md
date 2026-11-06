@@ -39,7 +39,7 @@ has the defaults) and with a few files in the chart directory. See
 | `tesk.requestsCpu` | `1` | CPU request of the API's container. |
 | `tesk.requestsMemory` | `2048Mi` | Memory request of the API's container. |
 | `tesk.securityContext.enabled` | `true` | Runs the API as a non-root user (UID 1000) with the `RuntimeDefault` seccomp profile, no privilege escalation and no capabilities. |
-| `tesk.swaggerUi.enabled` | `false` | `true` serves the Swagger UI (at `/` and `/swagger-ui/index.html`, see [Swagger UI](deployment.md#swagger-ui)). Turning it on serves the Swagger UI publicly, also with `auth.mode: auth`; enable it only where needed. `true` or `false` only (anything else fails the installation); null leaves tesk-api's default (off). Needs tesk-api 1.2.0 or later; earlier versions ignore it and always serve the Swagger UI. |
+| `tesk.swaggerUi.enabled` | `false` | `true` serves the Swagger UI (at `/` and `/swagger-ui/index.html`, see [Swagger UI](deployment.md#swagger-ui)). Turning it on serves the Swagger UI publicly; enable it only where needed. `true` or `false` only (also as strings, in any case; anything else fails the installation); null leaves tesk-api's default (off). Needs tesk-api 1.2.0 or later; earlier versions ignore it and always serve the Swagger UI. |
 
 ### Shared file system (`transfer`)
 

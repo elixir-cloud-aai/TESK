@@ -66,15 +66,21 @@ spec:
         - name: TESK_API_SERVICE_INFO_PUBLIC
           value: {{ .Values.auth.service_info_public | quote }}
         {{- end }}
-        {{- /* Null leaves tesk-api's default (off); tesk-api stops at
-        startup on anything but true or false, so fail here instead */}}
-        {{- $swaggerUiEnabled := (.Values.tesk.swaggerUi | default dict).enabled }}
+        {{- /* Null leaves tesk-api's default (off). tesk-api stops at
+        startup on anything but true or false (in any case), so fail here
+        instead; strings are accepted for tools that set only strings */}}
+        {{- $swaggerUi := .Values.tesk.swaggerUi }}
+        {{- if not (or (kindIs "invalid" $swaggerUi) (kindIs "map" $swaggerUi)) }}
+        {{- fail (printf "tesk.swaggerUi.enabled must be true or false; tesk.swaggerUi is %q, not a map" (toString $swaggerUi)) }}
+        {{- end }}
+        {{- $swaggerUiEnabled := (default dict $swaggerUi).enabled }}
         {{- if not (kindIs "invalid" $swaggerUiEnabled) }}
-        {{- if not (kindIs "bool" $swaggerUiEnabled) }}
+        {{- $swaggerUiValue := lower (toString $swaggerUiEnabled) }}
+        {{- if not (or (kindIs "bool" $swaggerUiEnabled) (and (kindIs "string" $swaggerUiEnabled) (has $swaggerUiValue (list "true" "false")))) }}
         {{- fail (printf "tesk.swaggerUi.enabled must be true or false, not %q" (toString $swaggerUiEnabled)) }}
         {{- end }}
         - name: TESK_API_SWAGGER_UI_ENABLED
-          value: {{ $swaggerUiEnabled | quote }}
+          value: {{ $swaggerUiValue | quote }}
         {{- end }}
 
         {{ if .Values.transfer.active }}

@@ -208,21 +208,26 @@ into `charts/tesk/s3-config/` (templates: `config-TEMPLATE`,
 By default (`auth.mode: noauth`), all endpoints are open. With `auth.mode:
 auth`, the API requires an OIDC access token (`Authorization: Bearer`) for
 every endpoint except `GET /service-info`, which stays public unless
-`auth.service_info_public` is `false` (tesk-api 1.2.0 or later). TESK works
-with any OIDC provider; authorisation follows the group model of LS Login
-(formerly ELIXIR AAI), configured with `auth.env_basegroup` and
+`auth.service_info_public` is `false` (tesk-api 1.2.0 or later), the API
+description (`GET /v2/api-docs`), and the [Swagger UI](#swagger-ui) if it is
+on. TESK works with any OIDC provider; authorisation follows the group model
+of LS Login (formerly ELIXIR AAI), configured with `auth.env_basegroup` and
 `auth.env_subgroup`. See the [tesk-api section](tesk-api/index.md) and the
 [authentication and authorisation
 guide](https://github.com/elixir-cloud-aai/tesk-api/blob/master/auth.md) of
 tesk-api.
+
+To let users log in from the Swagger UI, register an OIDC client with your
+provider and put its ID and secret into `auth.client_id` and
+`auth.client_secret` (in `secrets.yaml`).
 
 ## Swagger UI
 
 tesk-api can serve a Swagger UI, at the root path of the deployment (`/`
 redirects to `/swagger-ui/index.html`). It is off by default
 (`tesk.swaggerUi.enabled: false`); the API description (`/v2/api-docs`) is
-served either way. Turning it on serves the Swagger UI publicly, also with
-`auth.mode: auth`; enable it only where needed:
+served either way, without a token. Turning it on serves the Swagger UI
+publicly, also with `auth.mode: auth`; enable it only where needed:
 
 ```yaml
 tesk:
@@ -231,12 +236,12 @@ tesk:
 ```
 
 The value must be `true` or `false`: anything else fails the installation,
-as tesk-api wouldn't start with it. It needs tesk-api 1.2.0 or later
+as tesk-api wouldn't start with it (tools that set values only as strings
+can use `"true"` and `"false"`). It needs tesk-api 1.2.0 or later
 (`tesk.image`); earlier versions ignore it and always serve the Swagger UI.
-
-To let users log in from the Swagger UI, register an OIDC client with your
-provider and put its ID and secret into `auth.client_id` and
-`auth.client_secret` (in `secrets.yaml`).
+Users log in from the Swagger UI with the OIDC client of
+`auth.client_id` (see [Authentication and
+authorisation](#authentication-and-authorisation)).
 
 ## Resources
 

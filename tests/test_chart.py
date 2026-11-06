@@ -204,6 +204,8 @@ def test_service_info_public(args: tuple[str, ...], expected: str | None) -> Non
         (("--set", "tesk.swaggerUi.enabled=false"), "false"),
         (("--set", "tesk.swaggerUi.enabled=null"), None),
         (("--set", "tesk.swaggerUi=null"), None),
+        (("--set-string", "tesk.swaggerUi.enabled=TRUE"), "true"),
+        (("--set-string", "tesk.swaggerUi.enabled=False"), "false"),
     ],
 )
 def test_swagger_ui(args: tuple[str, ...], expected: str | None) -> None:
@@ -211,11 +213,22 @@ def test_swagger_ui(args: tuple[str, ...], expected: str | None) -> None:
     assert env(render(*args)).get("TESK_API_SWAGGER_UI_ENABLED") == expected
 
 
-@pytest.mark.parametrize("value", ["yes", "off", "1", "true"])
-def test_swagger_ui_invalid(value: str) -> None:
-    """`tesk.swaggerUi.enabled` must be a boolean, not a string."""
+@pytest.mark.parametrize(
+    "args",
+    [
+        ("--set-string", "tesk.swaggerUi.enabled=yes"),
+        ("--set-string", "tesk.swaggerUi.enabled=off"),
+        ("--set-string", "tesk.swaggerUi.enabled="),
+        ("--set", "tesk.swaggerUi.enabled=1"),
+        ("--set-json", "tesk.swaggerUi.enabled=[true]"),
+        ("--set-json", "tesk.swaggerUi=true"),
+        ("--set-json", "tesk.swaggerUi=false"),
+    ],
+)
+def test_swagger_ui_invalid(args: tuple[str, ...]) -> None:
+    """Anything but true or false (or null) fails, as it would stop tesk-api."""
     with pytest.raises(subprocess.CalledProcessError) as error:
-        render("--set-string", f"tesk.swaggerUi.enabled={value}")
+        render(*args)
     assert "tesk.swaggerUi.enabled must be true or false" in error.value.stderr
 
 

@@ -37,8 +37,8 @@ tesk:
     securityContext:
       enabled: true
 
-    # Swagger UI of the API (at `/` and `/swagger-ui/index.html`): true serves
-    # it publicly, also with `auth.mode: auth`; enable it only where needed.
+    # Swagger UI of the API (at `/` and `/swagger-ui/index.html`): turning it
+    # on serves the Swagger UI publicly; enable it only where needed.
     # true or false only; null leaves tesk-api's default (off). Needs tesk-api
     # 1.2.0 or later (`tesk.image`); earlier versions ignore this and always
     # serve the Swagger UI

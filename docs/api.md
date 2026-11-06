@@ -15,13 +15,15 @@ deployment (`ingress.path` + `tesk.tes_api_base_path`, see
 | Get a task | `GET /tasks/{id}` |
 | Cancel a task | `POST /tasks/{id}:cancel` |
 
-The API can also serve a Swagger UI, at the root path of the deployment,
-if `tesk.swaggerUi.enabled` is `true` (see [Swagger
-UI](deployment.md#swagger-ui)). With
-`auth.mode: auth`, requests need an OIDC access token (see [Authentication
-and authorisation](deployment.md#authentication-and-authorisation)), except
+With tesk-api 1.2.0 or later, the API serves a Swagger UI, at the root
+path of the deployment, only if `tesk.swaggerUi.enabled` is `true` (see
+[Swagger UI](deployment.md#swagger-ui)); earlier versions always serve it.
+With `auth.mode: auth`, requests need an OIDC access token (see
+[Authentication and
+authorisation](deployment.md#authentication-and-authorisation)), except
 `GET /service-info`, which stays public unless `auth.service_info_public` is
-`false` (see [Configuration](configuration.md)).
+`false` (see [Configuration](configuration.md)), the API description
+(`GET /v2/api-docs`), and the Swagger UI if it is on.
 
 For example, to create a task from a checkout of this repository and get
 its state:
