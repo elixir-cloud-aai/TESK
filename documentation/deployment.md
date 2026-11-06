@@ -103,8 +103,8 @@ transfer:
     wes_base_path: '/tmp'         # WesElixir locally
                                   # Change the value of $wesBasePath in minikubeStart accordingly
     tes_base_path: '/transfer'
-    pvc_name: 'transfer-pvc'  
-```    
+    pvc_name: 'transfer-pvc'
+```
 
 #### FTP
 TESK can exchange Inputs and Outputs with the external world using an FTP account. Currently TLS is not supported in TESK, but if you plan to use TESK with cwl-tes and FTP, cwl-tes requires TLS for FTP. The solution is to enable TLS on your FTP server, but not enforce it.

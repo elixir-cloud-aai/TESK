@@ -26,4 +26,3 @@ In this use case - as usually - TESK requires a dynamic storage class (not neces
 ### User and Site storage
 
 In our PoC [Caddy](https://caddyserver.com) server plays a role of both user and site storage. We used [this image](https://github.com/abiosoft/caddy-docker) with an additional [upload plugin](https://github.com/wmark/http.upload). When used as a [User Workspace](/deployment/wes-tes/userstorage/userworkspace.yaml) Caddy is exposed externally via Ingress, serves files from the shared storage and lets users upload files therein. When used as [Site Storage](/deployment/wes-tes/sitestorage/sitestorage.yaml), it has a separate file storage attached and the service is visible only internally.
-

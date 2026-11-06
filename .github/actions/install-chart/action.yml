@@ -1,0 +1,69 @@
+# Install the chart with its default values on a kind cluster, wait until
+# the API is ready and check that `GET /ga4gh/tes/v1/service-info` answers
+# (through a port forward; the default Ingress has no controller on kind).
+# Used by the `chart-install` job of `ci.yml`. Needs a checkout of the
+# repository.
+
+name: Install chart
+description: Install the TESK chart on a kind cluster and check the API
+
+inputs:
+  namespace:
+    description: Namespace of the release
+    default: tesk
+
+runs:
+  using: composite
+  steps:
+    # Same Helm version as in `.github/actions/test-chart`
+    - name: Set up Helm
+      uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
+      with:
+        version: v3.22.1
+    - name: Create kind cluster
+      uses: helm/kind-action@1544676c07bb3570fcb70166beaa07c4528fd4aa # v1.15.1
+      with:
+        version: v0.33.0
+        cluster_name: tesk
+    - name: Install chart
+      env:
+        NAMESPACE: ${{ inputs.namespace }}
+      shell: bash
+      run: |
+        helm install tesk charts/tesk --namespace "${NAMESPACE}" \
+            --create-namespace --wait --timeout 600s
+    - name: Check service info
+      env:
+        NAMESPACE: ${{ inputs.namespace }}
+      shell: bash
+      # The chart has no readiness probe, so the API may still be starting
+      # after `helm install --wait`; the port forward ends on a refused
+      # connection, so it is restarted until the API answers
+      run: |
+        body="${RUNNER_TEMP}/service-info.json"
+        log="${RUNNER_TEMP}/port-forward.log"
+        pid=""
+        trap '[[ -n "${pid}" ]] && kill "${pid}" 2> /dev/null || true' EXIT
+        for _ in $(seq 60); do
+          if [[ -z "${pid}" ]] || ! kill -0 "${pid}" 2> /dev/null; then
+            kubectl port-forward -n "${NAMESPACE}" service/tesk-api 8080:8080 \
+                >> "${log}" 2>&1 &
+            pid=$!
+            sleep 2
+          fi
+          if curl --fail --silent --show-error --max-time 10 --output "${body}" \
+              http://localhost:8080/ga4gh/tes/v1/service-info; then
+            if ! jq -e '(.id | type == "string" and length > 0) and .type.group == "org.ga4gh"' "${body}"; then
+              echo "::error::Unexpected service info"
+              cat "${body}"
+              exit 1
+            fi
+            exit 0
+          fi
+          sleep 5
+        done
+        echo "::error::GET /ga4gh/tes/v1/service-info did not answer"
+        cat "${log}"
+        kubectl get all -n "${NAMESPACE}"
+        kubectl logs -n "${NAMESPACE}" deployment/tesk-api --tail=100 || true
+        exit 1
