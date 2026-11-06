@@ -91,7 +91,11 @@ plugin](https://github.com/jdoiro3/mkdocs-multirepo-plugin), which imports
 the docs of other repositories by branch or tag: a branch moves (the site
 would change, or break, without a change in this repository), and tags of
 the other repositories exist only for releases. The hook needs no extra
-dependency and no `git`, and fails the build on any problem.
+dependency and no `git`, and fails the build on any problem. It refuses
+tarballs above 50 MB or with more than 10,000 files; the content of a pinned
+commit is otherwise trusted, so review the docs of the other repository
+before pinning a new commit. The pages are served at
+`https://tesk.readthedocs.io/en/latest/tesk-api/` and `.../tesk-core/`.
 
 The pulled pages are built with this site's `mkdocs.yml`, so in tesk-api and
 tesk-core:

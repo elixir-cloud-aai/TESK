@@ -7,7 +7,6 @@ import importlib.util
 import io
 from pathlib import Path
 import shutil
-import subprocess
 import sys
 import tarfile
 from types import ModuleType
@@ -67,13 +66,13 @@ def _clear_state() -> Iterator[None]:
         Nothing.
     """
     hooks._cache.clear()
-    hooks._pulled.clear()
+    hooks._current.clear()
     yield
     for pulled in hooks._cache.values():
         if pulled.root is not None:
             shutil.rmtree(pulled.root, ignore_errors=True)
     hooks._cache.clear()
-    hooks._pulled.clear()
+    hooks._current.clear()
 
 
 @pytest.fixture
@@ -87,7 +86,7 @@ def config(tmp_path: Path) -> MkDocsConfig:
         The configuration.
     """
     (tmp_path / "docs").mkdir()
-    cfg = MkDocsConfig()
+    cfg = MkDocsConfig(config_file_path=str(tmp_path / "mkdocs.yml"))
     cfg.load_dict(
         {
             "site_name": "Test",
@@ -327,20 +326,17 @@ def _pulled(tmp_path: Path, files: dict[str, str]) -> Any:
     return hooks.Pulled(source, root, ["tesk-core/index.md"])
 
 
-def test_on_config(
-    config: MkDocsConfig, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    """The nav gets the sections of all sources."""
-    monkeypatch.chdir(tmp_path)
+def test_on_config(config: MkDocsConfig, tmp_path: Path) -> None:
+    """The nav gets the sections of the sources next to `mkdocs.yml`."""
     _sources(tmp_path, "tesk-core:\n  repository: o/r\n  ref: ''\n")
     result = hooks.on_config(config)
     assert result.nav == ["index.md", {"tesk-core": ["tesk-core/index.md"]}]
-    assert [pulled.source.name for pulled in hooks._pulled] == ["tesk-core"]
+    assert [pulled.source.name for pulled in hooks._current] == ["tesk-core"]
 
 
 def test_on_files_placeholder(config: MkDocsConfig) -> None:
     """Placeholders are generated pages naming the repository."""
-    hooks._pulled.append(hooks.pull(hooks.Source("tesk-core", "o/r", "")))
+    hooks._current.append(hooks.pull(hooks.Source("tesk-core", "o/r", "")))
     files = hooks.on_files(Files([]), config)
     page = files.get_file_from_path("tesk-core/index.md")
     assert page is not None
@@ -349,7 +345,7 @@ def test_on_files_placeholder(config: MkDocsConfig) -> None:
 
 def test_on_files(config: MkDocsConfig, tmp_path: Path) -> None:
     """Pulled files are added, except Python files and bytecode."""
-    hooks._pulled.append(
+    hooks._current.append(
         _pulled(
             tmp_path,
             {
@@ -369,7 +365,7 @@ def test_on_files(config: MkDocsConfig, tmp_path: Path) -> None:
 
 def test_on_files_conflict(config: MkDocsConfig, tmp_path: Path) -> None:
     """Pulled files must not replace files of the site."""
-    hooks._pulled.append(_pulled(tmp_path, {"index.md": "# Core"}))
+    hooks._current.append(_pulled(tmp_path, {"index.md": "# Core"}))
     existing = File.generated(config, "tesk-core/index.md", content="# Mine")
     with pytest.raises(PluginError, match="also a file of the site"):
         hooks.on_files(Files([existing]), config)
@@ -392,7 +388,7 @@ def _page(config: MkDocsConfig, uri: str) -> Page:
 
 def test_on_page_markdown(config: MkDocsConfig, tmp_path: Path) -> None:
     """Pulled pages link to their repository for editing; others don't change."""
-    hooks._pulled.append(_pulled(tmp_path, {"index.md": "# Core"}))
+    hooks._current.append(_pulled(tmp_path, {"index.md": "# Core"}))
     pulled = _page(config, "tesk-core/sub/a.md")
     own = _page(config, "index.md")
     assert hooks.on_page_markdown("# X", pulled, config, Files([])) == "# X"
@@ -403,19 +399,100 @@ def test_on_page_markdown(config: MkDocsConfig, tmp_path: Path) -> None:
 
 def test_on_page_markdown_placeholder(config: MkDocsConfig) -> None:
     """Placeholder pages have no "Edit" link."""
-    hooks._pulled.append(hooks.pull(hooks.Source("tesk-core", "o/r", "")))
+    hooks._current.append(hooks.pull(hooks.Source("tesk-core", "o/r", "")))
     page = _page(config, "tesk-core/index.md")
     hooks.on_page_markdown("# X", page, config, Files([]))
     assert page.edit_url is None
 
 
-@pytest.mark.skipif(shutil.which("git") is None, reason="needs git")
-def test_site_builds(tmp_path: Path) -> None:
-    """The site builds strictly with the placeholders of `docs-sources.yml`."""
-    subprocess.run(  # noqa: S603
-        [sys.executable, "-m", "mkdocs", "build", "--strict", "-d", str(tmp_path)],
-        cwd=ROOT,
-        check=True,
-        capture_output=True,
+class _Response(io.BytesIO):
+    """Response of a fake `urlopen`, usable as a context manager."""
+
+
+def test_download_too_large(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Downloads larger than the limit fail the build."""
+    monkeypatch.setattr(hooks, "MAX_ARCHIVE_BYTES", 3)
+    monkeypatch.setattr(
+        hooks.urllib.request, "urlopen", lambda url, timeout: _Response(b"data")
     )
-    assert (tmp_path / "index.html").is_file()
+    with pytest.raises(PluginError, match="larger than 3 bytes"):
+        hooks.download("https://example.org/x", tmp_path / "x")
+
+
+def test_extract_docs_too_many_members(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Tarballs with more members than the limit fail the build."""
+    monkeypatch.setattr(hooks, "MAX_MEMBERS", 2)
+    archive = tmp_path / "a.tar.gz"
+    _tarball(archive, {"docs/a.md": b"a", "docs/b.md": b"b"})
+    with pytest.raises(PluginError, match="more than 2 files"):
+        hooks.extract_docs(archive, tmp_path / "out")
+
+
+def test_pull_failure_cleans_up(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A failed pull removes its temporary directory and caches nothing."""
+    monkeypatch.setattr(hooks.tempfile, "tempdir", str(tmp_path))
+
+    def fetch(url: str, target: Path) -> None:
+        raise PluginError("offline")
+
+    with pytest.raises(PluginError, match="offline"):
+        hooks.pull(hooks.Source("tesk-core", "o/r", SHA), fetch)
+    assert list(tmp_path.glob("tesk-docs-*")) == []
+    assert hooks._cache == {}
+
+
+def test_on_shutdown(tmp_path: Path) -> None:
+    """Shutting down removes the pulled docs and clears the cache."""
+
+    def fetch(url: str, target: Path) -> None:
+        _tarball(target, {"docs/index.md": b"# Core"})
+
+    source = hooks.Source("tesk-core", "o/r", SHA)
+    pulled = hooks.pull(source, fetch)
+    hooks._cache[hooks.Source("x", "a/b", "")] = hooks.pull(
+        hooks.Source("x", "a/b", "")
+    )
+    hooks._current.append(pulled)
+    assert pulled.root is not None
+    hooks.on_shutdown()
+    assert not pulled.root.exists()
+    assert hooks._cache == {}
+    assert hooks._current == []
+
+
+def test_build_with_pulled_docs(
+    config: MkDocsConfig, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The events together pull a source and add its nav, pages and links."""
+    _sources(tmp_path, f"tesk-core:\n  repository: o/r\n  ref: {SHA}\n")
+    tarball = tmp_path / "core.tar.gz"
+    _tarball(
+        tarball,
+        {
+            "mkdocs.yml": b"nav:\n  - Home: index.md\n  - sub/a.md\n",
+            "docs/index.md": b"# Core",
+            "docs/sub/a.md": b"# A",
+        },
+    )
+    monkeypatch.setattr(
+        hooks.urllib.request,
+        "urlopen",
+        lambda url, timeout: _Response(tarball.read_bytes()),
+    )
+    hooks.on_config(config)
+    assert config.nav == [
+        "index.md",
+        {"tesk-core": [{"Home": "tesk-core/index.md"}, "tesk-core/sub/a.md"]},
+    ]
+    files = hooks.on_files(Files([]), config)
+    assert sorted(file.src_uri for file in files) == [
+        "tesk-core/index.md",
+        "tesk-core/sub/a.md",
+    ]
+    page = _page(config, "tesk-core/sub/a.md")
+    hooks.on_page_markdown("# A", page, config, files)
+    assert page.edit_url == "https://github.com/o/r/edit/dev/docs/sub/a.md"

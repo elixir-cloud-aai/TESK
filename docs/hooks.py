@@ -39,11 +39,15 @@ import yaml
 
 LOGGER = logging.getLogger("mkdocs.hooks.external_docs")
 
-SOURCES = Path("docs-sources.yml")
+# Next to `mkdocs.yml`
+SOURCES = "docs-sources.yml"
 MARKER = "external:"
 ARCHIVE_URL = "https://codeload.github.com/{repository}/tar.gz/{ref}"
 EDIT_URL = "https://github.com/{repository}/edit/{branch}/docs/{path}"
 TIMEOUT = 60
+# Limits of a pulled tarball, against runaway downloads
+MAX_ARCHIVE_BYTES = 50 * 1024 * 1024
+MAX_MEMBERS = 10_000
 
 NAME = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 REPOSITORY = re.compile(r"^[A-Za-z0-9-]+/[A-Za-z0-9._-]+$")
@@ -89,12 +93,14 @@ class Pulled:
     nav: list[Any]
 
 
-# Pulled docs by source, kept across rebuilds of `mkdocs serve`
+# Pulled docs by source, kept across rebuilds of `mkdocs serve` and removed
+# when MkDocs shuts down (`on_shutdown`)
 _cache: dict[Source, Pulled] = {}
-_pulled: list[Pulled] = []
+# Pulled docs of the current build, in the order of the sources file
+_current: list[Pulled] = []
 
 
-def load_sources(path: Path = SOURCES) -> list[Source]:
+def load_sources(path: Path) -> list[Source]:
     """Read and check the list of sources.
 
     Args:
@@ -139,7 +145,8 @@ def download(url: str, target: Path) -> None:
         target: Where to save it.
 
     Raises:
-        PluginError: If the URL is not HTTPS or the download fails.
+        PluginError: If the URL is not HTTPS, the download fails or the file
+            is larger than `MAX_ARCHIVE_BYTES`.
     """
     if not url.startswith("https://"):
         raise PluginError(f"Refusing to download {url}: not HTTPS")
@@ -148,7 +155,10 @@ def download(url: str, target: Path) -> None:
             urllib.request.urlopen(url, timeout=TIMEOUT) as response,  # noqa: S310
             target.open("wb") as file,
         ):
-            shutil.copyfileobj(response, file)
+            while chunk := response.read(1024 * 1024):
+                if file.tell() + len(chunk) > MAX_ARCHIVE_BYTES:
+                    raise PluginError(f"{url}: larger than {MAX_ARCHIVE_BYTES} bytes")
+                file.write(chunk)
     except OSError as error:
         raise PluginError(f"Could not download {url}: {error}") from error
 
@@ -165,11 +175,14 @@ def extract_docs(archive: Path, target: Path) -> None:
         target: Directory to extract into.
 
     Raises:
-        PluginError: If the tarball has no `docs/`.
+        PluginError: If the tarball has more than `MAX_MEMBERS` members or
+            no `docs/`.
     """
     with tarfile.open(archive, "r:gz") as tar:
         members = []
-        for member in tar.getmembers():
+        for count, member in enumerate(tar, start=1):
+            if count > MAX_MEMBERS:
+                raise PluginError(f"{archive.name}: more than {MAX_MEMBERS} files")
             parts = member.name.split("/", 1)
             if len(parts) < 2 or not (member.isfile() or member.isdir()):
                 continue
@@ -261,7 +274,8 @@ def pull(source: Source, fetch: Callable[[str, Path], None] = download) -> Pulle
         fetch: Downloads a URL to a file (for tests).
 
     Returns:
-        The pulled docs.
+        The pulled docs, in a temporary directory that is removed on failure
+        or when MkDocs shuts down.
     """
     if not source.ref:
         LOGGER.info("%s: no `ref` in %s, adding a placeholder", source.name, SOURCES)
@@ -272,10 +286,14 @@ def pull(source: Source, fetch: Callable[[str, Path], None] = download) -> Pulle
     archive = root / "archive.tar.gz"
     url = ARCHIVE_URL.format(repository=source.repository, ref=source.ref)
     LOGGER.info("%s: pulling the docs of %s", source.name, url)
-    fetch(url, archive)
-    extract_docs(archive, root)
-    archive.unlink()
-    pulled = Pulled(source, root, section_nav(root, source.name))
+    try:
+        fetch(url, archive)
+        extract_docs(archive, root)
+        archive.unlink()
+        pulled = Pulled(source, root, section_nav(root, source.name))
+    except BaseException:
+        shutil.rmtree(root, ignore_errors=True)
+        raise
     _cache[source] = pulled
     return pulled
 
@@ -308,15 +326,18 @@ def replace_markers(nav: Any, sections: dict[str, list[Any]]) -> Any:
 def on_config(config: MkDocsConfig) -> MkDocsConfig:
     """Pull the docs of all sources and add their sections to the nav.
 
+    The sources file is read from the directory of `mkdocs.yml`.
+
     Args:
         config: The MkDocs configuration.
 
     Returns:
         The configuration, with the sections in its nav.
     """
-    _pulled.clear()
-    _pulled.extend(pull(source) for source in load_sources())
-    sections = {pulled.source.name: pulled.nav for pulled in _pulled}
+    sources = Path(config.config_file_path).parent / SOURCES
+    _current.clear()
+    _current.extend(pull(source) for source in load_sources(sources))
+    sections = {pulled.source.name: pulled.nav for pulled in _current}
     config.nav = replace_markers(config.nav, sections)
     return config
 
@@ -334,7 +355,7 @@ def on_files(files: Files, config: MkDocsConfig) -> Files:
     Raises:
         PluginError: If a pulled file is also a file of the site.
     """
-    for pulled in _pulled:
+    for pulled in _current:
         name = pulled.source.name
         if pulled.root is None:
             content = PLACEHOLDER.format(name=name, repository=pulled.source.repository)
@@ -371,7 +392,7 @@ def on_page_markdown(
     Returns:
         The Markdown, unchanged.
     """
-    for pulled in _pulled:
+    for pulled in _current:
         prefix = f"{pulled.source.name}/"
         if not page.file.src_uri.startswith(prefix):
             continue
@@ -384,3 +405,12 @@ def on_page_markdown(
                 path=page.file.src_uri.removeprefix(prefix),
             )
     return markdown
+
+
+def on_shutdown() -> None:
+    """Remove the temporary directories of the pulled docs."""
+    for pulled in _cache.values():
+        if pulled.root is not None:
+            shutil.rmtree(pulled.root, ignore_errors=True)
+    _cache.clear()
+    _current.clear()
