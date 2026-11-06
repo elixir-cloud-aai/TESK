@@ -53,7 +53,7 @@ runs:
           fi
           if curl --fail --silent --show-error --max-time 10 --output "${body}" \
               http://localhost:8080/ga4gh/tes/v1/service-info; then
-            if ! jq -e '.id and .type.group == "org.ga4gh"' "${body}"; then
+            if ! jq -e '(.id | type == "string" and length > 0) and .type.group == "org.ga4gh"' "${body}"; then
               echo "::error::Unexpected service info"
               cat "${body}"
               exit 1
