@@ -1,23 +1,103 @@
-# TESK has no Python package: this file holds the tools that its checks use
-# (dependency groups, locked in `uv.lock`), so that CI and local runs use the
-# same versions
+# TESK has no Python package: this file holds the tools that its checks and
+# its docs use (dependency groups, locked in `uv.lock`), so that CI, Read the
+# Docs and local runs use the same versions, and their settings
 [project]
 name = "tesk"
 version = "0.0.0"
 description = "GA4GH Task Execution Service on Kubernetes: Helm chart and docs"
-# The Python version of the tools only, as in CI (`.github/workflows/ci.yml`):
-# the newest Python in its security phase, as in the org's other repos
+# The Python version of the tools only, as in CI (`.github/workflows/ci.yml`)
+# and on Read the Docs (`.readthedocs.yaml`): the newest Python in its
+# security phase, as in the org's other repos
 requires-python = ">=3.13"
 license = "Apache-2.0"
 
 [dependency-groups]
-# Checks of `.pre-commit-config.yaml`
+# Checks of `.pre-commit-config.yaml` (the local hooks use these too) and the
+# tests in `tests/`, which build the docs too
 dev = [
+    "coverage>=7.10",
+    "mypy>=1.18",
     "pre-commit>=4.6",
+    "pytest>=8.4",
+    "types-PyYAML>=6.0.12",
     # Locks the version of uv that CI installs (`astral-sh/setup-uv`)
     "uv>=0.13",
+    {include-group = "docs"},
+]
+# Documentation (`mkdocs.yml`, with the hooks in `docs/hooks.py`), built by
+# Read the Docs (`.readthedocs.yaml`) and in CI, both from the lock. The
+# packages that add warnings, which fail the strict build, are bounded by
+# major version (new warnings of minor releases still fail it)
+docs = [
+    "mkdocs>=1.6.1,<2",
+    "mkdocs-material>=9.6,<10",
+    "mkdocs-redirects>=1.2,<2",
+    "pymdown-extensions>=10.16,<13",
+    "PyYAML>=6.0",
 ]
 
 [tool.uv]
 # Not a package: `uv sync` installs the dependency groups only
 package = false
+
+[tool.ruff]
+line-length = 88
+target-version = "py313"
+
+[tool.ruff.lint]
+# The rule set of the org's Python repos (as in cloud-registry); `D` applies
+# everywhere, also to the tests and docs hooks
+select = [
+    "B",    # flake8-bugbear
+    "C4",   # flake8-comprehensions
+    "D",    # pydocstyle (docstrings)
+    "E",    # pycodestyle errors
+    "F",    # Pyflakes
+    "G",    # flake8-logging-format
+    "I",    # isort
+    "PL",   # Pylint
+    "RUF",  # Ruff-specific rules
+    "S",    # flake8-bandit (security)
+    "SIM",  # flake8-simplify
+    "UP",   # pyupgrade
+    "W",    # pycodestyle warnings
+]
+ignore = [
+    # Complexity limits, as in cloud-registry
+    "PLR0912",  # too-many-branches
+    "PLR0913",  # too-many-arguments
+    "PLR0915",  # too-many-statements
+    "PLR0917",  # too-many-positional-arguments
+    # Flags literals (e.g., lengths), which are clear as is
+    "PLR2004",  # magic-value-comparison
+]
+
+[tool.ruff.lint.isort]
+force-sort-within-sections = true
+known-first-party = ["tests"]
+
+[tool.ruff.lint.per-file-ignores]
+# pytest checks with `assert`
+"tests/**" = ["S101"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.mypy]
+files = ["docs/hooks.py", "tests"]
+python_version = "3.13"
+# Complete type hints: all functions annotated, generic types parametrized
+disallow_untyped_defs = true
+disallow_any_generics = true
+warn_unused_ignores = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.coverage.run]
+source = ["docs"]
+
+[tool.coverage.report]
+# All code must be covered (see also `codecov.yml`)
+fail_under = 100
+show_missing = true

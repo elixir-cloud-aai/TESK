@@ -1,0 +1,13 @@
+# Docs pulled into TESK's site from other repositories (see `docs/hooks.py`
+# and "Docs of tesk-api and tesk-core" in `docs/development.md`): name (the
+# directory of the pages in the site, and the nav marker `external:<name>` in
+# `mkdocs.yml`), GitHub repository, and the full SHA of the commit to pull
+# (`ref`); an empty `ref` adds a placeholder page. Update a `ref` to publish
+# newer docs of that repository. The refs are set once the repositories have
+# docs (elixir-cloud-aai/tesk-core#65 and the docs of tesk-api)
+tesk-api:
+  repository: elixir-cloud-aai/tesk-api
+  ref: ""
+tesk-core:
+  repository: elixir-cloud-aai/tesk-core
+  ref: ""

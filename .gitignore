@@ -3,3 +3,7 @@
 #*.yaml
 !/deployment/wes-tes/**
 .venv/
+site/
+.coverage
+coverage.xml
+__pycache__/
