@@ -133,19 +133,18 @@ The workflow `Release` (`.github/workflows/release.yml`) runs on pushed
 1. **Prepare release:** checks that the tag is annotated, signed (verified by
    GitHub), on `main` and matches the chart's `version` and the `version` of
    `CITATION.cff`, and that `CI` passed for a push of the tagged commit;
-   finds the previous release; lints, renders and installs the chart as `CI`
-   does, and packages it.
+   lints, renders and installs the chart as `CI` does, and packages it.
 2. **Publish release**, after a maintainer approved it in the `release`
    environment: attests the provenance of the packaged chart (GitHub
    artifact attestation), signs it (Sigstore bundle `*.sigstore.json`), and
    creates the GitHub release, with the chart and its bundle attached and
-   generated notes, which list the pull requests since the previous release
-   (the most recent tag in the history of the release commit with a
-   published release; for the first release from this workflow, `v0.2`).
-   Releases are immutable once published: the release is created as a
-   draft, the files are uploaded, and then it is published. A stable
-   release becomes the latest release only if no published release has a
-   higher version.
+   generated notes, which list the pull requests since the previous release:
+   the most recent tag in the history of the release commit with a
+   published release, for a stable release the most recent stable one (for
+   the first release from this workflow, `v0.2`). Releases are immutable
+   once published: the release is created as a draft, the files are
+   uploaded, and then it is published. A stable release becomes the latest
+   release only if no stable release tag on `main` has a higher version.
 
 The workflow relies on these repository settings, which maintainers with
 admin rights keep: the `release` environment with required reviewers,
