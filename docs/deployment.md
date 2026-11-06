@@ -61,9 +61,8 @@ release per namespace.
 
 ### From a release
 
-Each [release](https://github.com/elixir-cloud-aai/TESK/releases) of the
-release workflow (from the next version, above 0.2) has the chart
-attached, with a GitHub artifact
+Each [release](https://github.com/elixir-cloud-aai/TESK/releases) from
+chart version 0.3.0 on has the chart attached, with a GitHub artifact
 attestation and a Sigstore bundle. Download the chart, check that TESK's
 release workflow built and signed it from the release tag (with the
 [GitHub CLI](https://cli.github.com/) and
@@ -85,6 +84,16 @@ helm upgrade --install tesk tesk-X.Y.Z.tgz \
     --namespace tesk --create-namespace \
     -f my-values.yaml -f secrets.yaml
 ```
+
+!!! note "Old Helm repository"
+
+    The Helm repository at `https://elixir-cloud-aai.github.io/TESK/`
+    (`helm repo add tesk https://elixir-cloud-aai.github.io/TESK/`) holds
+    only charts 0.1.0 and 0.1.1 and gets no new versions; it stays
+    available so that existing setups still resolve. Charts from 0.3.0 on
+    are only attached to the [GitHub
+    releases](https://github.com/elixir-cloud-aai/TESK/releases): install
+    them as shown above.
 
 Check the installation:
 
