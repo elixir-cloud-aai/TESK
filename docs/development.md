@@ -17,7 +17,7 @@ source .venv/bin/activate  # or `activate.fish` etc.
 pre-commit install  # run the checks on every commit
 pre-commit run --all-files  # whitespace, YAML/JSON, ruff, mypy, actionlint
 pre-commit run --all-files --hook-stage manual gitleaks-all  # secrets
-pytest  # the tests of the docs hooks
+pytest  # the tests of the docs hooks and, with helm, of the chart
 helm lint charts/tesk --strict
 mkdocs build --strict  # the docs, as CI and Read the Docs build them
 ```
@@ -36,8 +36,14 @@ The workflow `CI` (`.github/workflows/ci.yml`) runs on every pull request to
   Commits](https://www.conventionalcommits.org/) (squash merges use it as
   the commit message).
 - **Lint:** the pre-commit hooks above.
-- **Test:** the tests in `tests/`, with coverage.
-- **Chart:** `helm lint --strict` and `helm template` of the chart.
+- **Test:** the tests in `tests/`, with coverage (the chart tests only if
+  the runner happens to have Helm).
+- **Chart:** `helm lint --strict` and `helm template` of the chart, and the
+  chart tests (`tests/test_chart.py`), which render the chart with
+  `helm template` for the default values and the main options (ingress,
+  OpenShift route, storage backends, FTP, authentication, service info) and
+  check the rendered objects, with the pinned Helm version. They fail here if
+  Helm is missing (`REQUIRE_HELM`).
 - **Chart install:** installs the chart with its default values on a
   [kind](https://kind.sigs.k8s.io/) cluster and checks that
   `GET /ga4gh/tes/v1/service-info` answers.
