@@ -32,8 +32,7 @@ This page covers the installation and the most common setups;
 ## Installation
 
 Install the chart from a checkout of this repository, or from the chart
-attached to a [release](https://github.com/elixir-cloud-aai/TESK/releases)
-(see [Releases](development.md#releases) for how to verify it), into a
+attached to a release (see [From a release](#from-a-release)), into a
 namespace of its own:
 
 ```bash
@@ -58,6 +57,32 @@ helm upgrade --install tesk charts/tesk \
 
 The resources have fixed names (`tesk-api`, `taskmaster`, …), so install one
 release per namespace.
+
+### From a release
+
+Each [release](https://github.com/elixir-cloud-aai/TESK/releases) of the
+release workflow (from the next version, above 0.2) has the chart
+attached, with a GitHub artifact
+attestation and a Sigstore bundle. Download the chart, check that TESK's
+release workflow built and signed it from the release tag (with the
+[GitHub CLI](https://cli.github.com/) and
+[cosign](https://docs.sigstore.dev/cosign/system_config/installation/)),
+and install it with your values; the files of the chart directory
+mentioned above are inside the downloaded chart (`tar -xzf` it to edit
+them):
+
+```bash
+gh release download vX.Y.Z --repo elixir-cloud-aai/TESK --pattern 'tesk-*'
+gh attestation verify tesk-X.Y.Z.tgz --repo elixir-cloud-aai/TESK \
+    --signer-workflow elixir-cloud-aai/TESK/.github/workflows/release.yml \
+    --source-ref refs/tags/vX.Y.Z
+cosign verify-blob tesk-X.Y.Z.tgz --bundle tesk-X.Y.Z.tgz.sigstore.json \
+    --certificate-identity https://github.com/elixir-cloud-aai/TESK/.github/workflows/release.yml@refs/tags/vX.Y.Z \
+    --certificate-oidc-issuer https://token.actions.githubusercontent.com
+helm upgrade --install tesk tesk-X.Y.Z.tgz \
+    --namespace tesk --create-namespace \
+    -f my-values.yaml -f secrets.yaml
+```
 
 Check the installation:
 
