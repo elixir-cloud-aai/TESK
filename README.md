@@ -21,7 +21,10 @@ On-Cloud](https://elixir-on.cloud/). Workflow engines and Workflow Execution
 Service (WES) implementations send it tasks: one or more containers that run
 one after the other, with inputs and outputs. TESK runs each task as
 Kubernetes jobs in one namespace, staging inputs and outputs in a temporary
-volume, and needs no other services. It is deployed with a Helm chart.
+volume, and needs no database or other services of its own; where inputs
+come from and outputs go to (HTTP(S), FTP, S3 or a shared file system)
+depends on the storage that a deployment configures. It is deployed with a
+Helm chart.
 
 TESK is made of three repositories:
 
@@ -47,9 +50,11 @@ cd TESK
 helm install tesk charts/tesk --namespace tesk --create-namespace
 ```
 
-The API is then served by the service `tesk-api` in namespace `tesk`; see
-[Deployment][docs-deployment] for exposing it, storage backends and
-authentication.
+The API is then served by the service `tesk-api` in namespace `tesk`, without
+authentication (the chart's default), so anyone who can reach the service can
+run tasks: use this on a cluster that only you use, and enable
+authentication on shared clusters. See [Deployment][docs-deployment] for
+exposing the API, storage backends and authentication.
 
 ## Citation
 
