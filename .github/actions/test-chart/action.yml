@@ -1,8 +1,8 @@
 # Lint the chart (`helm lint --strict`), render it with its default values
 # (`helm template`), and run the chart tests (`tests/test_chart.py`, which
 # render it with other values and check the objects). Used by the `chart` job
-# of `ci.yml`. The chart has no dependencies to build. Needs a checkout of the
-# repository.
+# of `ci.yml` and by `release.yml`. The chart has no dependencies to build.
+# Needs a checkout of the repository.
 
 name: Test chart
 description: Lint, render and test the TESK chart

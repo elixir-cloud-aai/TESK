@@ -114,3 +114,75 @@ tesk-core:
 - Keep a `nav` in their `mkdocs.yml`, with their `index.md` first.
 - Keep no Python files in `docs/` that are meant as pages (`*.py` files,
   e.g., hooks, are not pulled).
+
+## Releases
+
+TESK's releases are releases of its Helm chart. The chart's `version` in
+`charts/tesk/Chart.yaml` and the release tag are kept in step: tag `vX.Y.Z`
+releases chart version X.Y.Z, and pre-release tags `vX.Y.Z-alpha.N`,
+`vX.Y.Z-beta.N` and `vX.Y.Z-rc.N` release chart versions `X.Y.Z-alpha.N`
+etc. (SemVer, as Helm requires). Tags `v0.0.1` to `v0.2` exist from before
+the chart and can't be reused (release tags are immutable), so chart
+versions continue above 0.2.
+
+Charts 0.1.0 and 0.1.1 were released under tags `tesk-0.1.0` and
+`tesk-0.1.1` and indexed in a Helm repository on the `gh-pages` branch
+(`helm repo add` with `https://elixir-cloud-aai.github.io/TESK/`). Those
+releases stay as they are, but this workflow doesn't update that index:
+releases from now on are only attached to their GitHub release, as in the
+org's other repositories.
+
+The workflow `Release` (`.github/workflows/release.yml`) runs on pushed
+`v*` tags:
+
+1. **Prepare release:** checks that the tag is annotated, signed (verified by
+   GitHub), on `main` and matches the chart's `version` and the `version` of
+   `CITATION.cff`, and that `CI` passed for a push of the tagged commit;
+   lints, renders and installs the chart as `CI` does, and packages it.
+2. **Publish release**, after a maintainer approved it in the `release`
+   environment: attests the provenance of the packaged chart (GitHub
+   artifact attestation), signs it (Sigstore bundle `*.sigstore.json`), and
+   creates the GitHub release, with the chart and its bundle attached and
+   generated notes, which list the pull requests since the previous release:
+   the highest version among the tags in the history of the release commit
+   with a published release, for a stable release among the stable ones
+   (for the first release from this workflow, `v0.2`). Releases are
+   immutable once published: the release is created as a draft, the files
+   are uploaded, and then it is published. A stable release becomes the
+   latest release only if no stable release tag on `main` has a higher
+   version. Publish jobs run one at a time; GitHub keeps one waiting job,
+   so if a third tag is pushed while one publishes and one waits, the
+   waiting one is cancelled: re-run it.
+
+The workflow relies on these repository settings, which maintainers with
+admin rights keep: the `release` environment with required reviewers,
+limited to `v*` tags; tag rulesets that allow only `v*` tags and make them
+immutable; and immutable releases.
+
+To release version X.Y.Z:
+
+1. In a pull request to `dev`, set `version` in `charts/tesk/Chart.yaml`, and
+   `version` and `date-released` in `CITATION.cff`, to X.Y.Z and the release
+   date; merge it once CI passed.
+2. Once `CI` passed for the push of that commit (`<sha>`) to `dev` (the
+   check needs a commit that was pushed to `dev`, not one only tested in a
+   pull request), move `main` forward to it (`main` only ever moves forward
+   to released commits of `dev`), then tag it with a signed, annotated tag
+   and push the tag:
+
+    ```bash
+    git push origin <sha>:main  # fails unless it is a fast-forward
+    git tag -s vX.Y.Z <sha> -m "vX.Y.Z"
+    git push origin vX.Y.Z
+    ```
+
+3. Approve the release in the `release` environment, then edit the notes of
+   the published release.
+
+If a run fails before publishing, fix the cause and re-run it: a re-run
+completes a draft that a failed run left. If the tagged commit is wrong,
+release a new version instead.
+
+To install a released chart, see [Installation from a
+release](deployment.md#from-a-release): it checks that this workflow built
+and signed the chart from the release tag.
