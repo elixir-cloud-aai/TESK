@@ -1,0 +1,39 @@
+version: 2
+# Every entry targets `dev` (`target-branch`), which takes all pull
+# requests whatever the default branch is (`main` only moves forward to
+# releases); security updates always target the default branch, though
+updates:
+  # The tools of the checks (dependency groups of `pyproject.toml`, locked in
+  # `uv.lock`), updated together
+  - package-ecosystem: uv
+    directory: /
+    schedule:
+      interval: monthly
+    target-branch: dev
+    versioning-strategy: increase-if-necessary
+    groups:
+      python-dependencies:
+        patterns: ["*"]
+  # Actions in the workflows and in the local composite actions, including
+  # the pins of the shared actions of `elixir-cloud-aai/.github` (to the
+  # commits of its releases, `@<commit> # vX.Y.Z`)
+  - package-ecosystem: github-actions
+    directories:
+      - /
+      - /.github/actions/install-chart
+      - /.github/actions/test-chart
+    schedule:
+      interval: monthly
+    target-branch: dev
+    groups:
+      github-actions:
+        patterns: ["*"]
+  # Hook revisions in `.pre-commit-config.yaml`
+  - package-ecosystem: pre-commit
+    directory: /
+    schedule:
+      interval: monthly
+    target-branch: dev
+    groups:
+      pre-commit:
+        patterns: ["*"]

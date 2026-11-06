@@ -1,0 +1,42 @@
+cff-version: 1.2.0
+message: >-
+  If you use this software, please cite it using the metadata from this file.
+  Authors are listed by the number of lines they committed, then by the
+  number of their commits; equal contributors, if any, are listed
+  alphabetically by family name and marked with an asterisk (*) after their
+  family names. See "Citation metadata" in the contributing guide of the
+  organization for who is an author and how to add or correct your entry.
+title: TESK
+abstract: >-
+  TESK is an implementation of the GA4GH Task Execution Service (TES) API on
+  Kubernetes: its API service (tesk-api) turns each task into Kubernetes jobs,
+  which a taskmaster runs, with a filer that stages inputs and outputs
+  (tesk-core). This repository holds the Helm chart that deploys TESK and the
+  documentation of all three components.
+type: software
+authors:
+  - given-names: Erik
+    family-names: van den Bergh
+  - given-names: Ania
+    family-names: Niewielska
+  - given-names: Alvaro
+    family-names: Gonzalez
+  - given-names: Gianni
+    family-names: Dalla Torre
+  - given-names: Pau
+    family-names: Ruiz i Safont
+  - given-names: Thiago
+    family-names: Albuquerque
+  - given-names: Tristan
+    family-names: Perard
+  - given-names: Susheel
+    family-names: Varma
+repository-code: "https://github.com/elixir-cloud-aai/TESK"
+url: "https://tesk.readthedocs.io/"
+keywords:
+  - GA4GH
+  - Task Execution Service
+  - TES
+  - Kubernetes
+  - Helm
+license: Apache-2.0
