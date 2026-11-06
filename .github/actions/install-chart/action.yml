@@ -1,8 +1,8 @@
 # Install the chart with its default values on a kind cluster, wait until
 # the API is ready and check that `GET /ga4gh/tes/v1/service-info` answers
 # (through a port forward; the default Ingress has no controller on kind).
-# Used by the `chart-install` job of `ci.yml`. Needs a checkout of the
-# repository.
+# Used by the `chart-install` job of `ci.yml` and by `release.yml`. Needs a
+# checkout of the repository.
 
 name: Install chart
 description: Install the TESK chart on a kind cluster and check the API

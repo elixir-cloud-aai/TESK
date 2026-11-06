@@ -1,0 +1,348 @@
+# Release the Helm chart when a release tag (`vX.Y.Z`, or a pre-release
+# `vX.Y.Z-alpha.N`, `-beta.N` or `-rc.N`: SemVer, as chart versions must be)
+# is pushed, as cloud-registry and proTES release their charts: check that
+# the tag is annotated, signed (verified by GitHub) and on `main`, that it
+# matches the chart's `version` (tag `vX.Y.Z` = chart X.Y.Z) and the version
+# of `CITATION.cff`, and that CI passed for its commit; lint, render and
+# install the chart as CI does (`.github/actions/test-chart` and
+# `install-chart`), and package it (`prepare`). After a maintainer approved
+# the release in the `release` environment (required reviewers, release tags
+# only), attest and sign the packaged chart (GitHub artifact attestation,
+# Sigstore bundle) and create the GitHub release with the chart and its
+# signature attached, with notes since the previous release (`publish`). Releases are immutable once published, so
+# the release is created as a draft, the files are uploaded, and only then is
+# it published; a re-run of a failed run picks up a draft it left. See
+# "Releases" in `docs/development.md`.
+
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+# One run per tag (e.g., a rerun waits for a running one); releases of
+# different versions run independently, so that none is dropped from the
+# queue
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  CHART: charts/tesk
+
+jobs:
+  prepare:
+    name: Prepare release
+    runs-on: ubuntu-latest
+    # CI's chart (15) and chart-install (30) jobs together
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      actions: read # read the CI runs of the release commit
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      prerelease: ${{ steps.version.outputs.prerelease }}
+      sha: ${{ steps.tag.outputs.sha }}
+      chart_file: ${{ steps.chart.outputs.file }}
+      chart_sha256: ${{ steps.chart.outputs.sha256 }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          # Full history with tags, to check that the release commit is on
+          # `main`
+          fetch-depth: 0
+      # First, before anything of the tagged commit is read or run: the tag
+      # is annotated, named as pushed, signed with a signature that GitHub
+      # verified, points to the checked-out commit, and that commit is on
+      # `main`. Only shell built-ins, git, jq and the GitHub API, no file of
+      # the checkout
+      - name: Check release tag and commit
+        id: tag
+        env:
+          TAG: ${{ github.ref_name }}
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          ref="$(gh api "repos/${GH_REPO}/git/ref/tags/${TAG}")"
+          if [[ "$(jq -r '.object.type' <<< "${ref}")" != "tag" ]]; then
+              echo "::error::Tag '${TAG}' is not annotated (git tag -s)"
+              exit 1
+          fi
+          tag="$(gh api "repos/${GH_REPO}/git/tags/$(jq -r '.object.sha' <<< "${ref}")")"
+          if [[ "$(jq -r '.verification.verified' <<< "${tag}")" != "true" ]]; then
+              echo "::error::Tag '${TAG}' has no signature verified by GitHub (git tag -s)"
+              exit 1
+          fi
+          if [[ "$(jq -r '.tag' <<< "${tag}")" != "${TAG}" ]]; then
+              echo "::error::Tag '${TAG}' points to a tag object of another name"
+              exit 1
+          fi
+          sha="$(git rev-parse HEAD)"
+          if [[ "$(jq -r '.object.sha' <<< "${tag}")" != "${sha}" ]]; then
+              echo "::error::Tag '${TAG}' does not point to the checked-out commit"
+              exit 1
+          fi
+          if ! git merge-base --is-ancestor HEAD origin/main; then
+              echo "::error::Release commit is not on 'main'"
+              exit 1
+          fi
+          echo "sha=${sha}" >> "${GITHUB_OUTPUT}"
+      # Then, without the token: SemVer versions only (the chart's `version`
+      # must be SemVer), X.Y.Z, or X.Y.Z-alpha.N, -beta.N or -rc.N for
+      # pre-releases, equal to the chart's `version`
+      - name: Derive release version
+        id: version
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          if [[ ! "${TAG}" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-(alpha|beta|rc)\.(0|[1-9][0-9]*))?$ ]]; then
+              echo "::error::Tag '${TAG}' is not a release version (e.g., v1.2.3 or v1.2.3-rc.1)"
+              exit 1
+          fi
+          version="${TAG#v}"
+          prerelease=false
+          if [[ -n "${BASH_REMATCH[4]}" ]]; then
+              prerelease=true
+          fi
+          chart_version="$(yq '.version' "${CHART}/Chart.yaml")"
+          if [[ "${chart_version}" != "${version}" ]]; then
+              echo "::error::Tag '${TAG}' does not match version ${chart_version} in ${CHART}/Chart.yaml"
+              exit 1
+          fi
+          {
+              echo "version=${version}"
+              echo "prerelease=${prerelease}"
+          } >> "${GITHUB_OUTPUT}"
+      # Set before the tag in a release-prep pull request (see "Releases" in
+      # `docs/development.md`)
+      - name: Check citation metadata
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          cited="$(yq '.version' CITATION.cff)"
+          if [[ "${cited}" != "${VERSION}" ]]; then
+              echo "::error::CITATION.cff has version '${cited}', expected '${VERSION}'"
+              exit 1
+          fi
+          if [[ ! "$(yq '."date-released"' CITATION.cff)" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
+              echo "::error::CITATION.cff has no date-released"
+              exit 1
+          fi
+      # The checks here don't run all of CI: require a successful run of the
+      # CI workflow for a push of the release commit (to `dev`, which `main`
+      # follows); runs for pull requests test merge commits, not the commit
+      # itself. A successful re-run of CI counts; the step also fails while
+      # CI is still running
+      - name: Check that CI passed for the release commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          SHA: ${{ steps.tag.outputs.sha }}
+        run: |
+          runs="$(gh api "repos/${REPOSITORY}/actions/workflows/ci.yml/runs?head_sha=${SHA}&event=push&status=success&per_page=1" \
+              --jq .total_count)"
+          if [[ ! "${runs}" =~ ^[0-9]+$ || "${runs}" -lt 1 ]]; then
+              echo "::error::No successful run of the CI workflow (ci.yml) for a push of ${SHA}; once CI passed for it, re-run this workflow"
+              exit 1
+          fi
+      - name: Test chart
+        uses: ./.github/actions/test-chart
+      - name: Install chart
+        uses: ./.github/actions/install-chart
+      - name: Package chart
+        id: chart
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          helm package "${CHART}" -d dist
+          package="dist/tesk-${VERSION}.tgz"
+          if [[ ! -f "${package}" ]]; then
+              echo "::error::Expected ${package}"
+              exit 1
+          fi
+          echo "file=${package#dist/}" >> "${GITHUB_OUTPUT}"
+          echo "sha256=$(sha256sum "${package}" | cut -d ' ' -f 1)" >> "${GITHUB_OUTPUT}"
+      - name: Upload chart
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: chart
+          path: dist/
+          if-no-files-found: error
+          # Re-runs of all jobs replace the chart of the earlier attempt
+          overwrite: true
+
+  # Waits for the approval in the `release` environment (required
+  # reviewers, release tags only): the environment's protection rules are
+  # what actually control publishing; the checks in `prepare` guard against
+  # mistakes
+  publish:
+    name: Publish release
+    needs: prepare
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # One publish job at a time across tags, so that each sees the releases
+    # published before it (previous release, `latest`). GitHub keeps one
+    # waiting job per group: if a third tag is pushed meanwhile, the job
+    # that waited is cancelled and needs a re-run
+    concurrency:
+      group: ${{ github.workflow }}-publish
+      cancel-in-progress: false
+    environment:
+      name: release
+      url: ${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ github.ref_name }}
+    permissions:
+      contents: write # create the GitHub release
+      id-token: write # Sigstore signing certificates
+      attestations: write # GitHub artifact attestations
+    env:
+      FILE: ${{ needs.prepare.outputs.chart_file }}
+    steps:
+      # Full history with tags, to find the previous release and the
+      # highest version on `main`
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      # Decided after the approval, as releases may have been published
+      # meanwhile (publish jobs of different tags run one at a time, see
+      # `concurrency`). The previous release is the highest version among
+      # the tags in the history of the release commit that have a published
+      # release: for a stable release, among the stable ones only (so that
+      # its notes cover its pre-releases too); for the first release of this
+      # workflow, `v0.2`. Without one, GitHub would pick an older tag of its
+      # choice (the repository has tags from before the chart). A stable
+      # release becomes `latest` only if its version is the highest of the
+      # stable release tags on `main` (tags exist from their push, unlike
+      # releases), so that a patch of an older version doesn't take it over.
+      # Versions are compared with `sort -V`, with the `-` of a pre-release
+      # as `~`, so that pre-releases sort before their release
+      - name: Determine the previous and latest release
+        id: releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+          PRERELEASE: ${{ needs.prepare.outputs.prerelease }}
+        run: |
+          set -o pipefail
+          git fetch --tags --force origin +refs/heads/main:refs/remotes/origin/main
+          published="$(mktemp)"
+          gh api --paginate "repos/${GH_REPO}/releases?per_page=100" \
+              --jq '.[] | select(.draft | not) | .tag_name' > "${published}"
+          # Tags of pre-releases; older tags such as `v0.2` count as stable
+          pre_re='-(alpha|beta|rc)\.'
+          highest() {
+              sed 's/-/~/' | sort -V | tail -n 1 | sed 's/~/-/'
+          }
+          candidates="$(git tag -l 'v*' --merged HEAD \
+              | { grep -vxF -- "${TAG}" || true; } \
+              | { grep -xF -f "${published}" || true; })"
+          if [[ "${PRERELEASE}" != "true" ]]; then
+              candidates="$(grep -vE -- "${pre_re}" <<< "${candidates}" || true)"
+          fi
+          previous="$(highest <<< "${candidates}")"
+          latest=false
+          if [[ "${PRERELEASE}" != "true" ]]; then
+              stable="$(git tag -l 'v*' --merged origin/main | { grep -vE -- "${pre_re}" || true; })"
+              if [[ "$(printf '%s\n%s\n' "${stable}" "${TAG}" | highest)" == "${TAG}" ]]; then
+                  latest=true
+              fi
+          fi
+          {
+              echo "previous=${previous}"
+              echo "latest=${latest}"
+          } >> "${GITHUB_OUTPUT}"
+      - name: Download chart
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: chart
+          path: dist/
+      - name: Check chart
+        env:
+          SHA256: ${{ needs.prepare.outputs.chart_sha256 }}
+        run: |
+          if [[ ! "${FILE}" =~ ^tesk-[0-9A-Za-z.+-]+\.tgz$ ]]; then
+              echo "::error::Invalid chart file name '${FILE}'"
+              exit 1
+          fi
+          if [[ ! "${SHA256}" =~ ^[0-9a-f]{64}$ ]]; then
+              echo "::error::Invalid chart checksum '${SHA256}'"
+              exit 1
+          fi
+          shopt -s nullglob dotglob
+          files=(dist/*)
+          if [[ "${#files[@]}" -ne 1 || "${files[0]}" != "dist/${FILE}" ]]; then
+              echo "::error::Expected one chart in dist/, found: ${files[*]}"
+              exit 1
+          fi
+          echo "${SHA256}  ${files[0]}" | sha256sum --check --strict
+      - name: Attest chart provenance
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: dist/${{ needs.prepare.outputs.chart_file }}
+      - name: Install cosign
+        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+      - name: Sign chart
+        run: cosign sign-blob --yes --bundle "dist/${FILE}.sigstore.json" "dist/${FILE}"
+      # Assets of a published immutable release (a repository setting) can't
+      # be added or replaced, so the release is created as a draft, gets its
+      # files, and is published last, with the notes generated since the
+      # previous release (on every run, so that a draft of an earlier run
+      # gets current ones), its title and flags. The release of the tag is
+      # looked up among all releases, drafts included: a re-run completes
+      # the draft of a failed run; a release that is already published
+      # (e.g., by hand) gets nothing, but must have both files, or the step
+      # fails
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+          PRERELEASE: ${{ needs.prepare.outputs.prerelease }}
+          PREVIOUS: ${{ steps.releases.outputs.previous }}
+          LATEST: ${{ steps.releases.outputs.latest }}
+        run: |
+          set -o pipefail
+          releases="$(gh api --paginate --slurp "repos/${GH_REPO}/releases?per_page=100" | jq -c 'add // []')"
+          mine="$(jq -c --arg tag "${TAG}" '[.[] | select(.tag_name == $tag)]' <<< "${releases}")"
+          count="$(jq length <<< "${mine}")"
+          if [[ "${count}" -gt 1 ]]; then
+              echo "::error::${count} releases exist for ${TAG}; delete the extra drafts and re-run"
+              exit 1
+          fi
+          if [[ "${count}" -eq 1 && "$(jq -r '.[0].draft' <<< "${mine}")" != "true" ]]; then
+              for name in "${FILE}" "${FILE}.sigstore.json"; do
+                  if ! jq -e --arg name "${name}" '.[0].assets | any(.name == $name)' <<< "${mine}" > /dev/null; then
+                      echo "::error::Release ${TAG} is published without ${name}, which can't be added any more; release a new version"
+                      exit 1
+                  fi
+              done
+              echo "::notice::Release ${TAG} is already published"
+              exit 0
+          fi
+          notes="$(mktemp)"
+          if [[ -n "${PREVIOUS}" ]]; then
+              gh api "repos/${GH_REPO}/releases/generate-notes" \
+                  -f "tag_name=${TAG}" -f "previous_tag_name=${PREVIOUS}" \
+                  --jq .body > "${notes}"
+          else
+              gh api "repos/${GH_REPO}/releases/generate-notes" \
+                  -f "tag_name=${TAG}" --jq .body > "${notes}"
+          fi
+          if [[ "${count}" -eq 0 ]]; then
+              gh release create "${TAG}" \
+                  --draft \
+                  --verify-tag \
+                  --title "${TAG}" \
+                  --notes-file "${notes}" \
+                  --prerelease="${PRERELEASE}"
+          fi
+          gh release upload "${TAG}" "dist/${FILE}" "dist/${FILE}.sigstore.json" --clobber
+          gh release edit "${TAG}" --draft=false --title "${TAG}" \
+              --notes-file "${notes}" --prerelease="${PRERELEASE}" --latest="${LATEST}"
