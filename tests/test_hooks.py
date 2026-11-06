@@ -272,6 +272,18 @@ def test_section_nav_without_config(tmp_path: Path) -> None:
     ]
 
 
+def test_section_nav_excluded(tmp_path: Path) -> None:
+    """Without a nav, excluded pages are not listed."""
+    docs = tmp_path / "docs"
+    (docs / "drafts").mkdir(parents=True)
+    for name in ("index.md", "a.md", "drafts/b.md", ".hidden.md"):
+        (docs / name).write_text("x", encoding="utf-8")
+    (tmp_path / "mkdocs.yml").write_text(
+        "exclude_docs: |\n  /drafts/\n", encoding="utf-8"
+    )
+    assert hooks.section_nav(tmp_path, "c") == ["c/index.md", "c/a.md"]
+
+
 def test_pull_placeholder() -> None:
     """Sources without `ref` get a placeholder page."""
     pulled = hooks.pull(hooks.Source("x", "a/b", ""))
@@ -398,13 +410,18 @@ def test_on_files_excluded(config: MkDocsConfig, tmp_path: Path) -> None:
     ]
 
 
-def test_exclusions_without_config(tmp_path: Path) -> None:
+@pytest.mark.parametrize(
+    "text", [None, "site_name: x\n", "exclude_docs:\n", "exclude_docs: ''\n", "[]\n"]
+)
+def test_exclusions_defaults(tmp_path: Path, text: str | None) -> None:
     """Without `mkdocs.yml` or `exclude_docs`, MkDocs' defaults apply."""
-    assert hooks.exclusions(tmp_path).match_file(".hidden.md")
-    assert not hooks.exclusions(tmp_path).match_file("requirements.txt")
-    (tmp_path / "mkdocs.yml").write_text("site_name: x\n", encoding="utf-8")
-    assert hooks.exclusions(tmp_path).match_file("templates/t.html")
-    assert not hooks.exclusions(tmp_path).match_file("requirements.txt")
+    if text is not None:
+        (tmp_path / "mkdocs.yml").write_text(text, encoding="utf-8")
+    exclude = hooks.exclusions(tmp_path)
+    assert exclude.match_file(".hidden.md")
+    assert exclude.match_file("templates/t.html")
+    assert not exclude.match_file("sub/templates/t.html")
+    assert not exclude.match_file("requirements.txt")
 
 
 @pytest.mark.parametrize("value", ["[requirements.txt]", "1", "{a: b}"])

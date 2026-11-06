@@ -269,29 +269,21 @@ def prefix_nav(nav: Any, prefix: str) -> Any:
     return nav
 
 
-def section_nav(root: Path, name: str) -> list[Any]:
-    """Get the nav of pulled docs.
+def load_config(root: Path) -> dict[str, Any]:
+    """Read the `mkdocs.yml` of pulled docs.
 
     Args:
         root: Directory with the pulled `docs/` and `mkdocs.yml`.
-        name: Name of the source, the directory of its pages in the site.
 
     Returns:
-        The nav from the repository's `mkdocs.yml`, or of all its pages
-        (alphabetically, `index.md` first) if it has none, with paths
-        relative to the site's docs.
+        The configuration, with MkDocs' tags ignored; empty if the file is
+        missing or not a mapping.
     """
     config = root / "mkdocs.yml"
-    if config.is_file():
-        data = yaml.load(config.read_text(encoding="utf-8"), Loader=_Loader)  # noqa: S506
-        if isinstance(data, dict) and data.get("nav"):
-            return cast(list[Any], prefix_nav(data["nav"], name))
-    docs = root / "docs"
-    pages = sorted(
-        (path.relative_to(docs).as_posix() for path in docs.rglob("*.md")),
-        key=lambda page: (page != "index.md", page),
-    )
-    return [f"{name}/{page}" for page in pages]
+    if not config.is_file():
+        return {}
+    data = yaml.load(config.read_text(encoding="utf-8"), Loader=_Loader)  # noqa: S506
+    return data if isinstance(data, dict) else {}
 
 
 def exclusions(root: Path) -> GitIgnoreSpec:
@@ -311,18 +303,43 @@ def exclusions(root: Path) -> GitIgnoreSpec:
     Raises:
         PluginError: If `exclude_docs` is not a string, as MkDocs requires.
     """
-    lines = list(DEFAULT_EXCLUDE)
-    config = root / "mkdocs.yml"
-    if config.is_file():
-        data = yaml.load(config.read_text(encoding="utf-8"), Loader=_Loader)  # noqa: S506
-        exclude = data.get("exclude_docs") if isinstance(data, dict) else None
-        if exclude is not None and not isinstance(exclude, str):
-            raise PluginError(
-                f"{config}: `exclude_docs` must be a string of patterns,"
-                f" not {type(exclude).__name__}"
+    exclude = load_config(root).get("exclude_docs")
+    if exclude is not None and not isinstance(exclude, str):
+        raise PluginError(
+            f"{root / 'mkdocs.yml'}: `exclude_docs` must be a string of patterns,"
+            f" not {type(exclude).__name__}"
+        )
+    return GitIgnoreSpec.from_lines([*DEFAULT_EXCLUDE, *(exclude or "").splitlines()])
+
+
+def section_nav(root: Path, name: str) -> list[Any]:
+    """Get the nav of pulled docs.
+
+    Args:
+        root: Directory with the pulled `docs/` and `mkdocs.yml`.
+        name: Name of the source, the directory of its pages in the site.
+
+    Returns:
+        The nav from the repository's `mkdocs.yml`, or of all its pages
+        that aren't excluded (`exclusions`; alphabetically, `index.md` first)
+        if it has none, with paths relative to the site's docs.
+    """
+    config = load_config(root)
+    if config.get("nav"):
+        return cast(list[Any], prefix_nav(config["nav"], name))
+    docs = root / "docs"
+    exclude = exclusions(root)
+    pages = sorted(
+        (
+            page
+            for page in (
+                path.relative_to(docs).as_posix() for path in docs.rglob("*.md")
             )
-        lines.extend((exclude or "").splitlines())
-    return GitIgnoreSpec.from_lines(lines)
+            if not exclude.match_file(page)
+        ),
+        key=lambda page: (page != "index.md", page),
+    )
+    return [f"{name}/{page}" for page in pages]
 
 
 def pull(source: Source, fetch: Callable[[str, Path], None] = download) -> Pulled:

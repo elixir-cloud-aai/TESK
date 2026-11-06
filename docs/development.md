@@ -97,8 +97,9 @@ We chose this over the [multirepo
 plugin](https://github.com/jdoiro3/mkdocs-multirepo-plugin), which imports
 the docs of other repositories by branch or tag: a branch moves (the site
 would change, or break, without a change in this repository), and tags of
-the other repositories exist only for releases. The hook needs no extra
-dependency and no `git`, and fails the build on any problem. It limits the
+the other repositories exist only for releases. The hook needs no
+dependency beyond MkDocs and PyYAML (`pathspec` comes with MkDocs) and no
+`git`, and fails the build on any problem. It limits the
 size of the compressed tarball, and the number and total size of the files
 it extracts (`MAX_ARCHIVE_BYTES`, `MAX_MEMBERS` and `MAX_EXTRACTED_BYTES` in
 `docs/hooks.py`); the content of a pinned commit is otherwise trusted, so
