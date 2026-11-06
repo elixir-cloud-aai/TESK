@@ -42,3 +42,14 @@ The new value `auth.service_info_public` (default `true`) controls whether
 1.2.0 or later; earlier versions ignore it and keep the endpoint public.
 The default keeps the endpoint public; set it to `false` to require a
 token.
+
+### Swagger UI with tesk-api 1.2.0
+
+The new value `tesk.swaggerUi.enabled` (default `false`) controls whether
+tesk-api serves the Swagger UI (see [Swagger UI](deployment.md#swagger-ui)).
+Upgrading the chart alone changes nothing: tesk-api before 1.2.0 (the
+chart's default `tesk.image` is still 1.1.0) ignores the value and always
+serves the Swagger UI. tesk-api 1.2.0 or later serves it only if the value
+is `true`. If you use the Swagger UI, set `tesk.swaggerUi.enabled: true`
+when you upgrade to tesk-api 1.2.0 or later. Turning it on serves the
+Swagger UI publicly; enable it only where needed.

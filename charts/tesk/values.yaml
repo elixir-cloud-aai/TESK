@@ -37,6 +37,14 @@ tesk:
     securityContext:
       enabled: true
 
+    # Swagger UI of the API (at `ingress.path`): turning it
+    # on serves the Swagger UI publicly; enable it only where needed.
+    # true or false only; null leaves tesk-api's default (off). Needs tesk-api
+    # 1.2.0 or later (`tesk.image`); earlier versions ignore this and always
+    # serve the Swagger UI
+    swaggerUi:
+      enabled: false
+
 transfer:
     # If you want local file systems support (i.e. 'file:' urls in inputs and outputs),
     # you have to define these 2 properties.
