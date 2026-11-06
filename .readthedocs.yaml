@@ -1,13 +1,28 @@
+# Read the Docs configuration file
+# See https://docs.readthedocs.io/en/stable/config-file/v2.html for details
+
 version: 2
 
 build:
   os: ubuntu-24.04
   tools:
-    python: "3.11"
+    # Python version of the tools (`requires-python` in `pyproject.toml`)
+    python: "3.13"
+  # The docs dependencies from the lock (`uv.lock`, dependency group
+  # `docs`), as CI's docs job installs them, with uv at the version of the
+  # lock; see "Install dependencies with uv" in Read the Docs' build
+  # customization docs
+  jobs:
+    pre_create_environment:
+      - asdf plugin add uv
+      - asdf install uv "$(sed -n '/^name = "uv"$/{n;s/^version = "\(.*\)"$/\1/p;}' uv.lock)"
+      - asdf global uv "$(sed -n '/^name = "uv"$/{n;s/^version = "\(.*\)"$/\1/p;}' uv.lock)"
+    create_environment:
+      - uv venv "${READTHEDOCS_VIRTUALENV_PATH}"
+    install:
+      - UV_PROJECT_ENVIRONMENT="${READTHEDOCS_VIRTUALENV_PATH}" uv sync --locked --only-group docs
 
-sphinx:
-  configuration: documentation/conf.py
-
-python:
-  install:
-    - requirements: documentation/requirements.txt
+mkdocs:
+  configuration: mkdocs.yml
+  # Fail on all warnings to avoid broken links and references
+  fail_on_warning: true

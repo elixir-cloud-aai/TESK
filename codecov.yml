@@ -1,0 +1,11 @@
+# Codecov settings (https://docs.codecov.com/docs/codecov-yaml): the whole
+# code and the changes of each pull request must be covered completely, as
+# `fail_under` in `pyproject.toml` requires
+coverage:
+  status:
+    project:
+      default:
+        target: 100%
+    patch:
+      default:
+        target: 100%

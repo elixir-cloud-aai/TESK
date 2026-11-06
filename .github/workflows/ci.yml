@@ -1,6 +1,6 @@
 # Everything that must pass on pull requests and pushes to `dev`: the pull
-# request title, lint, and the chart (lint, render, and install on a kind
-# cluster). The gate `passed` ("CI passed") is the only required check. No
+# request title, lint, the tests, the chart (lint, render, and install on a
+# kind cluster) and the docs. The gate `passed` ("CI passed") is the only required check. No
 # `paths:` filters, so that the gate always reports; skip jobs with `if:`
 # instead (and allow the skip in the gate). Runs also when a pull request is
 # edited, so that the title check follows the title; all jobs run then, as a
@@ -87,6 +87,41 @@ jobs:
       - name: Validate citation metadata
         run: pipx run --spec cffconvert==2.0.0 cffconvert --validate -i CITATION.cff
 
+  # The tests of `tests/` (the docs hooks), with coverage to Codecov
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.13"
+      - name: Set up uv
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version-file: uv.lock
+      - name: Install dependencies
+        run: |
+          uv sync --locked --group dev --python "$(which python)"
+          echo "${PWD}/.venv/bin" >> "$GITHUB_PATH"
+      - name: Calculate test coverage
+        run: |
+          coverage run -m pytest
+          coverage report
+          coverage xml
+      - name: Submit report to Codecov
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage.xml
+          fail_ci_if_error: ${{ github.event_name == 'push' }}
+          verbose: true
+
   # Lints and renders the chart (`.github/actions/test-chart`)
   chart:
     name: Chart
@@ -114,6 +149,32 @@ jobs:
       - name: Install chart
         uses: ./.github/actions/install-chart
 
+  # Builds the docs strictly, as Read the Docs does, with the docs of
+  # tesk-api and tesk-core pulled at the commits of `docs-sources.yml`
+  docs:
+    name: Docs
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.13"
+      - name: Set up uv
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version-file: uv.lock
+      - name: Install dependencies
+        run: |
+          uv sync --locked --only-group docs --python "$(which python)"
+          echo "${PWD}/.venv/bin" >> "$GITHUB_PATH"
+      - name: Build documentation
+        run: mkdocs build --strict
+
   # The only required check: fails if any job failed or was cancelled, or
   # was skipped where it must run (only `title` is skipped on pushes)
   passed:
@@ -121,7 +182,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     if: always()
-    needs: [title, lint, chart, chart-install]
+    needs: [title, lint, test, chart, chart-install, docs]
     permissions: {}
     steps:
       - name: Check results of all jobs

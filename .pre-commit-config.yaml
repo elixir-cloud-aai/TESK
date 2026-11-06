@@ -9,8 +9,9 @@ repos:
       - id: check-json
       - id: check-merge-conflict
       - id: check-yaml
-        # Helm templates are not valid YAML before rendering
-        exclude: ^charts/tesk/templates/
+        # Helm templates are not valid YAML before rendering; `mkdocs.yml`
+        # uses MkDocs' `!ENV` tag (the docs build checks it)
+        exclude: ^(charts/tesk/templates/|mkdocs\.yml$)
       # The copy of tesk-core in `source/` is left as it is (not maintained here)
       - id: end-of-file-fixer
         exclude: ^source/tesk-core/
@@ -18,6 +19,15 @@ repos:
       - id: trailing-whitespace
         args: [--markdown-linebreak-ext=md]
         exclude: ^source/tesk-core/
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: 25bcf95026b96e2dd3c0aec3090c3d6ef6ca2e6c  # frozen: v0.17.3
+    hooks:
+      # The Python code of this repository: the docs hooks and the tests
+      # (not the copy of tesk-core in `source/`)
+      - id: ruff-check
+        exclude: ^source/
+      - id: ruff-format
+        exclude: ^source/
   - repo: https://github.com/gitleaks/gitleaks
     rev: 83d9cd684c87d95d656c1458ef04895a7f1cbd8e  # frozen: v8.30.1
     hooks:
@@ -36,3 +46,14 @@ repos:
       # Workflows (`.github/workflows/`); also checks their scripts with
       # shellcheck if it is installed (as on GitHub-hosted runners)
       - id: actionlint
+  - repo: local
+    hooks:
+      # Uses the installed dev dependencies (dependency group `dev` of
+      # `pyproject.toml`), to check the imported packages; checks the files
+      # of `[tool.mypy]`
+      - id: mypy
+        name: mypy
+        entry: mypy
+        language: system
+        types: [python]
+        pass_filenames: false
