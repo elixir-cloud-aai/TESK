@@ -12,9 +12,11 @@ import tarfile
 from types import ModuleType
 from typing import Any
 
+from mkdocs.commands import build
+from mkdocs.config import load_config
 from mkdocs.config.defaults import MkDocsConfig
 from mkdocs.exceptions import PluginError
-from mkdocs.structure.files import File, Files
+from mkdocs.structure.files import File, Files, InclusionLevel
 from mkdocs.structure.pages import Page
 import pytest
 
@@ -381,8 +383,8 @@ def test_on_files(config: MkDocsConfig, tmp_path: Path) -> None:
     ]
 
 
-def test_on_files_excluded(config: MkDocsConfig, tmp_path: Path) -> None:
-    """The source's `exclude_docs` and MkDocs' default exclusions apply."""
+def test_on_files_inclusion(config: MkDocsConfig, tmp_path: Path) -> None:
+    """Pulled files get the inclusion levels of their own site."""
     pulled = _pulled(
         tmp_path,
         {
@@ -391,6 +393,8 @@ def test_on_files_excluded(config: MkDocsConfig, tmp_path: Path) -> None:
             "sub/requirements.txt": "mkdocs",
             "drafts/a.md": "# Draft",
             "sub/drafts/b.md": "# Kept",
+            "wip.md": "# Draft",
+            "orphan.md": "# Not in nav",
             ".hidden.md": "# Hidden",
             "templates/t.html": "<p>",
             "sub/templates/t.html": "<p>",
@@ -398,38 +402,102 @@ def test_on_files_excluded(config: MkDocsConfig, tmp_path: Path) -> None:
     )
     (tmp_path / "pulled/mkdocs.yml").write_text(
         "site_url: !ENV [X, 'https://x/']\n"
-        "exclude_docs: |\n  requirements.txt\n  /drafts/\n",
+        "exclude_docs: |\n  requirements.txt\n  /drafts/\n"
+        "draft_docs: |\n  wip.md\n"
+        "not_in_nav: |\n  orphan.md\n",
         encoding="utf-8",
     )
     hooks._current.append(pulled)
     files = hooks.on_files(Files([]), config)
-    assert sorted(file.src_uri for file in files) == [
-        "tesk-core/index.md",
-        "tesk-core/sub/drafts/b.md",
-        "tesk-core/sub/templates/t.html",
-    ]
+    excluded = InclusionLevel.EXCLUDED
+    assert {file.src_uri: file.inclusion for file in files} == {
+        "tesk-core/.hidden.md": excluded,
+        "tesk-core/drafts/a.md": excluded,
+        "tesk-core/index.md": InclusionLevel.INCLUDED,
+        "tesk-core/orphan.md": InclusionLevel.NOT_IN_NAV,
+        "tesk-core/requirements.txt": excluded,
+        "tesk-core/sub/drafts/b.md": InclusionLevel.INCLUDED,
+        "tesk-core/sub/requirements.txt": excluded,
+        "tesk-core/sub/templates/t.html": InclusionLevel.INCLUDED,
+        "tesk-core/templates/t.html": excluded,
+        "tesk-core/wip.md": InclusionLevel.DRAFT,
+    }
 
 
 @pytest.mark.parametrize(
     "text", [None, "site_name: x\n", "exclude_docs:\n", "exclude_docs: ''\n", "[]\n"]
 )
-def test_exclusions_defaults(tmp_path: Path, text: str | None) -> None:
-    """Without `mkdocs.yml` or `exclude_docs`, MkDocs' defaults apply."""
+def test_inclusion_defaults(tmp_path: Path, text: str | None) -> None:
+    """Without `mkdocs.yml` or its settings, MkDocs' defaults apply."""
     if text is not None:
         (tmp_path / "mkdocs.yml").write_text(text, encoding="utf-8")
-    exclude = hooks.exclusions(tmp_path)
-    assert exclude.match_file(".hidden.md")
-    assert exclude.match_file("templates/t.html")
-    assert not exclude.match_file("sub/templates/t.html")
-    assert not exclude.match_file("requirements.txt")
+    level = hooks.inclusion(tmp_path)
+    assert level(".hidden.md") == InclusionLevel.EXCLUDED
+    assert level("templates/t.html") == InclusionLevel.EXCLUDED
+    assert level("sub/templates/t.html") == InclusionLevel.INCLUDED
+    assert level("requirements.txt") == InclusionLevel.INCLUDED
 
 
-@pytest.mark.parametrize("value", ["[requirements.txt]", "1", "{a: b}"])
-def test_exclusions_invalid(tmp_path: Path, value: str) -> None:
-    """`exclude_docs` must be a string of patterns, as in MkDocs."""
-    (tmp_path / "mkdocs.yml").write_text(f"exclude_docs: {value}\n", encoding="utf-8")
-    with pytest.raises(PluginError, match="exclude_docs"):
-        hooks.exclusions(tmp_path)
+@pytest.mark.parametrize(
+    ("text", "message"),
+    [
+        ("exclude_docs: [requirements.txt]\n", "`exclude_docs` must be a string"),
+        ("draft_docs: 1\n", "`draft_docs` must be a string"),
+        ("not_in_nav: {a: b}\n", "`not_in_nav` must be a string"),
+        ("exclude_docs: !ENV [X, a.txt]\n", "`exclude_docs` must be a string"),
+        ("exclude_docs: '!'\n", "invalid `exclude_docs`"),
+    ],
+)
+def test_inclusion_invalid(tmp_path: Path, text: str, message: str) -> None:
+    """The settings must be strings of valid patterns, as in MkDocs."""
+    (tmp_path / "mkdocs.yml").write_text(text, encoding="utf-8")
+    with pytest.raises(PluginError, match=message):
+        hooks.inclusion(tmp_path)
+
+
+def test_strict_build_with_excluded_pages(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Links and nav entries to excluded pulled pages pass a strict build.
+
+    As in the pulled repository's own site, they give no warnings, and the
+    excluded files are not published.
+    """
+    tarball = tmp_path / "core.tar.gz"
+    _tarball(
+        tarball,
+        {
+            "mkdocs.yml": (
+                b"nav: [index.md, old.md]\nexclude_docs: |\n  old.md\n"
+                b"  requirements.txt\n"
+            ),
+            "docs/index.md": b"# Core\n\nSee [old](old.md).\n",
+            "docs/old.md": b"# Old",
+            "docs/requirements.txt": b"mkdocs",
+        },
+    )
+    monkeypatch.setattr(
+        hooks.urllib.request,
+        "urlopen",
+        lambda url, timeout: _Response(tarball.read_bytes()),
+    )
+    project = tmp_path / "project"
+    (project / "docs").mkdir(parents=True)
+    (project / "docs/index.md").write_text("# Home", encoding="utf-8")
+    (project / hooks.SOURCES).write_text(
+        f"tesk-core:\n  repository: o/r\n  ref: {SHA}\n", encoding="utf-8"
+    )
+    (project / "mkdocs.yml").write_text(
+        "site_name: Test\n"
+        f"hooks: [{ROOT / 'docs/hooks.py'}]\n"
+        "nav: [index.md, {tesk-core: 'external:tesk-core'}]\n",
+        encoding="utf-8",
+    )
+    build.build(load_config(str(project / "mkdocs.yml"), strict=True))
+    site = project / "site"
+    assert (site / "tesk-core/index.html").is_file()
+    assert not (site / "tesk-core/old/index.html").exists()
+    assert not (site / "tesk-core/requirements.txt").exists()
 
 
 def test_on_files_placeholder_conflict(config: MkDocsConfig) -> None:
