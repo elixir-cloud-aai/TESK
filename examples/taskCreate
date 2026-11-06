@@ -1,18 +1,18 @@
 
 
-# 
+#
 # Usage:
-# 
+#
 # 1. Update 'baseUrl' (below)
-# 
+#
 # 2. Call this script
-# 
+#
 #         taskCreate <JSON payload>
-# 
+#
 #     e.g.
-# 
+#
 #         taskCreate localftp/taskWithIO.json
-# 
+#
 
 # $ minikube service list
 # |-------------|----------------------|-----------------------------|
@@ -35,4 +35,3 @@ curl -iv                                    \
 --header 'Accept: application/json'         \
 -d "@${jsonFile}"                           \
 "$baseUrl/v1/tasks"
-

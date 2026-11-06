@@ -103,8 +103,8 @@ transfer:
     wes_base_path: '/tmp'         # WesElixir locally
                                   # Change the value of $wesBasePath in minikubeStart accordingly
     tes_base_path: '/transfer'
-    pvc_name: 'transfer-pvc'  
-```    
+    pvc_name: 'transfer-pvc'
+```
 
 #### FTP
 TESK can exchange Inputs and Outputs with the external world using an FTP account. Currently TLS is not supported in TESK, but if you plan to use TESK with cwl-tes and FTP, cwl-tes requires TLS for FTP. The solution is to enable TLS on your FTP server, but not enforce it.
@@ -134,7 +134,7 @@ To enable authentication set the following value in the chart:
 auth:
     mode: auth
 ```
-At the moment enabling authentication also enables authorisation. Consult [this document](https://github.com/EMBL-EBI-TSI/tesk-api/blob/master/auth.md) for details of authorisation.  
+At the moment enabling authentication also enables authorisation. Consult [this document](https://github.com/EMBL-EBI-TSI/tesk-api/blob/master/auth.md) for details of authorisation.
 The support for authorisation configuration in the chart and its documentation is in progress.
 ### Additional configuration
 The Helm chart has been a fairly recent addition to TESK and TESK owes its to its fantastic contributors. There might be more options that are available for configuration in TESK that have not been reflected in the chart, yet. Have a look [here](https://github.com/EMBL-EBI-TSI/tesk-api) for more configuration options.

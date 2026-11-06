@@ -101,7 +101,7 @@ minikube ssh "ping host.minikube.internal"
 127.0.0.1 ftp
 ```
 so that both cwl-tes and TESK see the local FTP at the same address.
-- You need a `.netrc` file.   
+- You need a `.netrc` file.
 ```
 machine ftp
 login tesk
@@ -129,4 +129,4 @@ input:
   class: File
   path: ftp://ftp/home/tesk/input.txt
 ```
-- Running the above workflow and passing a local file with `--input` parameter (so letting `cwl-tes` upload an input file to FTP) fails for the proposed FTP setup. Most probably this functionality works only with chroot enabled on FTP server. 
+- Running the above workflow and passing a local file with `--input` parameter (so letting `cwl-tes` upload an input file to FTP) fails for the proposed FTP setup. Most probably this functionality works only with chroot enabled on FTP server.

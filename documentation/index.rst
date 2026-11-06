@@ -15,4 +15,3 @@ options for TESK.
    deployment
    integrated_wes_tes
    local_ftp
-
