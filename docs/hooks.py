@@ -9,8 +9,10 @@ nav section that the marker `external:<name>` stands for in `mkdocs.yml`
 (e.g., `- tesk-core: external:tesk-core`). The section's pages and their
 order come from the `nav` of the repository's own `mkdocs.yml`; without one,
 its pages are listed in alphabetical order, `index.md` first. A source whose
-`ref` is empty gets a placeholder page instead. "Edit" links of pulled pages
-point to the page in its repository.
+`ref` is empty gets a placeholder page instead. The repository's own
+`exclude_docs`, `draft_docs` and `not_in_nav` (and MkDocs' default
+exclusions) apply to its files, as in its own site. "Edit" links of pulled
+pages point to the page in its repository.
 
 The pulled pages are built with TESK's `mkdocs.yml` (theme, Markdown
 extensions and plugins), so they must not need others, and must not link to
@@ -34,8 +36,9 @@ import urllib.request
 
 from mkdocs.config.defaults import MkDocsConfig
 from mkdocs.exceptions import PluginError
-from mkdocs.structure.files import File, Files
+from mkdocs.structure.files import File, Files, InclusionLevel
 from mkdocs.structure.pages import Page
+from pathspec.gitignore import GitIgnoreSpec
 import yaml
 
 LOGGER = logging.getLogger("mkdocs.hooks.external_docs")
@@ -58,6 +61,9 @@ MAX_EXTRACTED_BYTES = 200 * 1024 * 1024
 NAME = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 REPOSITORY = re.compile(r"^[A-Za-z0-9-]+/[A-Za-z0-9._-]+$")
 COMMIT = re.compile(r"^[0-9a-f]{40}$")
+# Files that MkDocs leaves out of every site, before a site's own
+# `exclude_docs` (as `mkdocs.structure.files`, which keeps them private)
+DEFAULT_EXCLUDE = (".*", "/templates/")
 
 PLACEHOLDER = """# {name}
 
@@ -263,6 +269,93 @@ def prefix_nav(nav: Any, prefix: str) -> Any:
     return nav
 
 
+def load_config(root: Path) -> dict[str, Any]:
+    """Read the `mkdocs.yml` of pulled docs.
+
+    Args:
+        root: Directory with the pulled `docs/` and `mkdocs.yml`.
+
+    Returns:
+        The configuration, with MkDocs' tags ignored; empty if the file is
+        missing or not a mapping.
+    """
+    config = root / "mkdocs.yml"
+    if not config.is_file():
+        return {}
+    data = yaml.load(config.read_text(encoding="utf-8"), Loader=_Loader)  # noqa: S506
+    return data if isinstance(data, dict) else {}
+
+
+def _patterns(root: Path, config: dict[str, Any], key: str) -> GitIgnoreSpec:
+    """Get the patterns of a setting of pulled docs, as MkDocs reads them.
+
+    Args:
+        root: Directory with the pulled `docs/` and `mkdocs.yml`.
+        config: The pulled `mkdocs.yml`.
+        key: The setting, e.g., `exclude_docs`.
+
+    Returns:
+        The patterns (gitignore syntax); none if the setting is missing.
+
+    Raises:
+        PluginError: If the setting is not a string of valid patterns, as
+            MkDocs requires.
+    """
+    value = config.get(key)
+    if value is not None and not isinstance(value, str):
+        raise PluginError(
+            f"{root / 'mkdocs.yml'}: `{key}` must be a string of patterns,"
+            f" not {type(value).__name__}"
+        )
+    try:
+        return GitIgnoreSpec.from_lines((value or "").splitlines())
+    except ValueError as error:
+        raise PluginError(f"{root / 'mkdocs.yml'}: invalid `{key}`: {error}") from error
+
+
+def inclusion(root: Path) -> Callable[[str], InclusionLevel]:
+    """Get how the site of pulled docs includes each of their files.
+
+    MkDocs applies only the site's settings to the files of the site, not
+    the ones of the pulled repository, whose patterns are relative to its own
+    `docs/` (e.g., `requirements.txt` of its Read the Docs build in
+    `exclude_docs`). This applies them as MkDocs does (as
+    `mkdocs.structure.files.set_exclusions`): MkDocs' default exclusions and
+    `exclude_docs`, then `draft_docs`, then `not_in_nav`.
+
+    Args:
+        root: Directory with the pulled `docs/` and `mkdocs.yml`.
+
+    Returns:
+        The inclusion level of a file, by its path relative to `docs/`.
+    """
+    config = load_config(root)
+    exclude = GitIgnoreSpec.from_lines(DEFAULT_EXCLUDE) + _patterns(
+        root, config, "exclude_docs"
+    )
+    drafts = _patterns(root, config, "draft_docs")
+    not_in_nav = _patterns(root, config, "not_in_nav")
+
+    def level(path: str) -> InclusionLevel:
+        """Get the inclusion level of a file.
+
+        Args:
+            path: Path of the file, relative to `docs/`.
+
+        Returns:
+            Its inclusion level.
+        """
+        if exclude.match_file(path):
+            return InclusionLevel.EXCLUDED
+        if drafts.match_file(path):
+            return InclusionLevel.DRAFT
+        if not_in_nav.match_file(path):
+            return InclusionLevel.NOT_IN_NAV
+        return InclusionLevel.INCLUDED
+
+    return level
+
+
 def section_nav(root: Path, name: str) -> list[Any]:
     """Get the nav of pulled docs.
 
@@ -272,17 +365,22 @@ def section_nav(root: Path, name: str) -> list[Any]:
 
     Returns:
         The nav from the repository's `mkdocs.yml`, or of all its pages
-        (alphabetically, `index.md` first) if it has none, with paths
-        relative to the site's docs.
+        that its site lists (`inclusion`; alphabetically, `index.md` first)
+        if it has none, with paths relative to the site's docs.
     """
-    config = root / "mkdocs.yml"
-    if config.is_file():
-        data = yaml.load(config.read_text(encoding="utf-8"), Loader=_Loader)  # noqa: S506
-        if isinstance(data, dict) and data.get("nav"):
-            return cast(list[Any], prefix_nav(data["nav"], name))
+    config = load_config(root)
+    if config.get("nav"):
+        return cast(list[Any], prefix_nav(config["nav"], name))
     docs = root / "docs"
+    level = inclusion(root)
     pages = sorted(
-        (path.relative_to(docs).as_posix() for path in docs.rglob("*.md")),
+        (
+            page
+            for page in (
+                path.relative_to(docs).as_posix() for path in docs.rglob("*.md")
+            )
+            if level(page) == InclusionLevel.INCLUDED
+        ),
         key=lambda page: (page != "index.md", page),
     )
     return [f"{name}/{page}" for page in pages]
@@ -388,6 +486,7 @@ def on_files(files: Files, config: MkDocsConfig) -> Files:
             files.append(File.generated(config, uri, content=content))
             continue
         docs = pulled.root / "docs"
+        level = inclusion(pulled.root)
         for path in sorted(docs.rglob("*")):
             if (
                 not path.is_file()
@@ -398,7 +497,16 @@ def on_files(files: Files, config: MkDocsConfig) -> Files:
             uri = f"{name}/{path.relative_to(docs).as_posix()}"
             if files.get_file_from_path(uri) is not None:
                 raise PluginError(f"{uri}: pulled file is also a file of the site")
-            files.append(File.generated(config, uri, abs_src_path=str(path)))
+            # Excluded files stay, as with MkDocs: links to them and nav
+            # entries give no warnings, which fail the strict build
+            files.append(
+                File.generated(
+                    config,
+                    uri,
+                    abs_src_path=str(path),
+                    inclusion=level(path.relative_to(docs).as_posix()),
+                )
+            )
     return files
 
 

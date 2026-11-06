@@ -97,8 +97,9 @@ We chose this over the [multirepo
 plugin](https://github.com/jdoiro3/mkdocs-multirepo-plugin), which imports
 the docs of other repositories by branch or tag: a branch moves (the site
 would change, or break, without a change in this repository), and tags of
-the other repositories exist only for releases. The hook needs no extra
-dependency and no `git`, and fails the build on any problem. It limits the
+the other repositories exist only for releases. The hook needs no `git`,
+and no dependency beyond MkDocs and the packages it uses itself (PyYAML,
+pathspec), and fails the build on any problem. It limits the
 size of the compressed tarball, and the number and total size of the files
 it extracts (`MAX_ARCHIVE_BYTES`, `MAX_MEMBERS` and `MAX_EXTRACTED_BYTES` in
 `docs/hooks.py`); the content of a pinned commit is otherwise trusted, so
@@ -114,6 +115,13 @@ tesk-core:
 - Keep a `nav` in their `mkdocs.yml`, with their `index.md` first.
 - Keep no Python files in `docs/` that are meant as pages (`*.py` files,
   e.g., hooks, are not pulled).
+- List files in `docs/` that aren't part of the site (e.g., the
+  `requirements.txt` of their Read the Docs build) in `exclude_docs` of
+  their `mkdocs.yml`. The hook applies their `exclude_docs`, `draft_docs`
+  and `not_in_nav` (patterns relative to their `docs/`; plain strings, not
+  `!ENV`) and MkDocs' default exclusions (hidden files and a top-level
+  `templates/`), as MkDocs does in their own site; settings from `INHERIT`
+  are not read.
 
 ## Releases
 
