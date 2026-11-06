@@ -15,10 +15,12 @@ Charts are now released from signed `vX.Y.Z` tags as files attached to
 [GitHub releases](https://github.com/elixir-cloud-aai/TESK/releases), with
 an attestation and a signature (see [Releases](development.md#releases)).
 The chart version equals the release version. As tags up to `v0.2` exist
-from earlier releases, the next chart version is higher than 0.2, although
-the last chart released to the Helm repository at
+from earlier releases, chart versions continue with 0.3.0, although the
+last chart released to the Helm repository at
 `https://elixir-cloud-aai.github.io/TESK/` was 0.1.1. That Helm repository
-gets no new versions.
+keeps charts 0.1.0 and 0.1.1, so existing `helm repo add` setups still
+resolve, but gets no new versions: install charts from 0.3.0 on from their
+GitHub release (see [From a release](deployment.md#from-a-release)).
 
 ### Taskmaster and filer v0.10.6
 
