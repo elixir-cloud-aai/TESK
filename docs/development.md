@@ -36,8 +36,7 @@ The workflow `CI` (`.github/workflows/ci.yml`) runs on every pull request to
   Commits](https://www.conventionalcommits.org/) (squash merges use it as
   the commit message).
 - **Lint:** the pre-commit hooks above.
-- **Test:** the tests in `tests/`, with coverage (the chart tests only if
-  the runner happens to have Helm).
+- **Test:** the tests in `tests/` except the chart tests, with coverage.
 - **Chart:** `helm lint --strict` and `helm template` of the chart, and the
   chart tests (`tests/test_chart.py`), which render the chart with
   `helm template` for the default values and the main options (ingress,

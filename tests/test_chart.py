@@ -1,114 +1,24 @@
 """Tests of the Helm chart (`charts/tesk`), rendered with `helm template`.
 
 They need `helm` on the `PATH` and are skipped without it, unless
-`REQUIRE_HELM` is set (as in CI's chart job, `.github/actions/test-chart`),
-so that a missing `helm` can't skip them unnoticed there.
+`REQUIRE_HELM` is `1`, `true` or `yes` (as in CI's chart job,
+`.github/actions/test-chart`), so that a missing `helm` can't skip them
+unnoticed there. CI's test job leaves them out, so that they run with the
+pinned Helm version only.
 """
 
 from __future__ import annotations
 
 import os
-from pathlib import Path
-import shutil
-import subprocess
-from typing import Any
 
 import pytest
-import yaml
 
-CHART = Path(__file__).parents[1] / "charts" / "tesk"
-HELM = shutil.which("helm")
-NAMESPACE = "tesk"
+from tests.helm import HELM, NAMESPACE, VALUES, container, env, find, get, render
 
 if HELM is None:
-    if os.environ.get("REQUIRE_HELM"):
+    if os.environ.get("REQUIRE_HELM", "").lower() in {"1", "true", "yes"}:
         raise RuntimeError("helm is required (REQUIRE_HELM is set) but not found")
     pytest.skip("helm is not installed", allow_module_level=True)
-
-# A rendered Kubernetes object
-Manifest = dict[str, Any]
-
-
-def render(*args: str) -> list[Manifest]:
-    """Render the chart with `helm template` arguments.
-
-    Args:
-        args: Further arguments of `helm template`, e.g., `--set` options.
-
-    Returns:
-        The rendered objects.
-    """
-    assert HELM is not None
-    output = subprocess.run(  # noqa: S603 (fixed executable and arguments)
-        [HELM, "template", "tesk", str(CHART), "--namespace", NAMESPACE, *args],
-        capture_output=True,
-        check=True,
-        text=True,
-    ).stdout
-    return [doc for doc in yaml.safe_load_all(output) if doc]
-
-
-def find(manifests: list[Manifest], kind: str, name: str) -> Manifest | None:
-    """Find a rendered object by kind and name.
-
-    Args:
-        manifests: The rendered objects.
-        kind: Kind of the object.
-        name: Name of the object.
-
-    Returns:
-        The object, or `None` if it isn't rendered.
-    """
-    for manifest in manifests:
-        if manifest["kind"] == kind and manifest["metadata"]["name"].strip() == name:
-            return manifest
-    return None
-
-
-def get(manifests: list[Manifest], kind: str, name: str) -> Manifest:
-    """Get a rendered object by kind and name.
-
-    Args:
-        manifests: The rendered objects.
-        kind: Kind of the object.
-        name: Name of the object.
-
-    Returns:
-        The object.
-    """
-    manifest = find(manifests, kind, name)
-    assert manifest is not None, f"{kind} {name} is not rendered"
-    return manifest
-
-
-def container(manifests: list[Manifest]) -> dict[str, Any]:
-    """Get the API container of the Deployment.
-
-    Args:
-        manifests: The rendered objects.
-
-    Returns:
-        The container.
-    """
-    pod = get(manifests, "Deployment", "tesk-api")["spec"]["template"]["spec"]
-    containers: list[dict[str, Any]] = pod["containers"]
-    assert [c["name"] for c in containers] == ["tesk-api"]
-    return containers[0]
-
-
-def env(manifests: list[Manifest]) -> dict[str, Any]:
-    """Get the environment of the API container.
-
-    Args:
-        manifests: The rendered objects.
-
-    Returns:
-        Values (or `valueFrom` sources) of the environment variables by name.
-    """
-    return {
-        var["name"]: var.get("value", var.get("valueFrom"))
-        for var in container(manifests)["env"]
-    }
 
 
 def test_defaults() -> None:
@@ -126,8 +36,17 @@ def test_defaults() -> None:
         ("ServiceAccount", "taskmaster"),
     ]
     variables = env(manifests)
-    assert variables["TESK_API_TASKMASTER_IMAGE_VERSION"] == "v0.10.6"
-    assert variables["TESK_API_TASKMASTER_FILER_IMAGE_VERSION"] == "v0.10.6"
+    tesk = VALUES["tesk"]
+    assert container(manifests)["image"] == tesk["image"]
+    assert (
+        variables["TESK_API_TASKMASTER_IMAGE_VERSION"]
+        == tesk["taskmaster_image_version"]
+    )
+    assert (
+        variables["TESK_API_TASKMASTER_FILER_IMAGE_VERSION"]
+        == tesk["taskmaster_filer_image_version"]
+    )
+    assert variables["SERVER_SERVLET_CONTEXT_PATH"] == "/"
     assert variables["TESK_API_K8S_NAMESPACE"] == NAMESPACE
     assert variables["SPRING_PROFILES_ACTIVE"] == "noauth"
     assert variables["TESK_API_SERVICE_INFO_PUBLIC"] == "true"
@@ -142,6 +61,41 @@ def test_defaults() -> None:
     service = get(manifests, "Service", "tesk-api")["spec"]
     assert service["type"] == "ClusterIP"
     assert service["ports"] == [{"port": 8080}]
+    assert find(manifests, "Endpoints", "ftp") is None
+    assert find(manifests, "Service", "ftp") is None
+
+
+def test_port() -> None:
+    """The API's port is used by its container, service and ingress."""
+    manifests = render("--set", "tesk.port=9000")
+    assert container(manifests)["ports"] == [{"containerPort": 9000}]
+    service = get(manifests, "Service", "tesk-api")["spec"]
+    assert service["ports"] == [{"port": 9000}]
+    spec = get(manifests, "Ingress", "ingress-rules")["spec"]
+    port = spec["rules"][0]["http"]["paths"][0]["backend"]["service"]["port"]
+    assert port == {"number": 9000}
+
+
+@pytest.mark.parametrize(
+    ("args", "expected"),
+    [
+        (("--set", "tesk.tes_api_base_path=/tes"), "/tes"),
+        (("--set", "tesk.tes_api_base_path="), None),
+    ],
+)
+def test_base_path(args: tuple[str, ...], expected: str | None) -> None:
+    """The TES API's base path is passed on, unless it is empty."""
+    assert env(render(*args)).get("OPENAPI_TASKEXECUTIONSERVICE_BASE_PATH") == expected
+
+
+def test_auth_groups() -> None:
+    """The groups that authorise users are passed on."""
+    manifests = render(
+        "--set", "auth.env_subgroup=EBI", "--set", "auth.env_basegroup=BASE"
+    )
+    variables = env(manifests)
+    assert variables["TESK_API_AUTHORISATION_ENV_SUBGROUP"] == "EBI"
+    assert variables["TESK_API_AUTHORISATION_BASE_GROUP"] == "BASE"
 
 
 def test_resources() -> None:
@@ -262,6 +216,24 @@ def test_ingress() -> None:
     assert spec["tls"] == [{"hosts": ["tes.example.org"], "secretName": "tls"}]
 
 
+def test_ingress_path_and_annotations() -> None:
+    """The ingress path is the API's context path; annotations are optional."""
+    manifests = render(
+        "--set",
+        "ingress.path=/tesk",
+        "--set-json",
+        'ingress.annotations={"a.example.org/b":"c"}',
+    )
+    ingress = get(manifests, "Ingress", "ingress-rules")
+    # Maps are merged with the default annotations
+    assert ingress["metadata"]["annotations"]["a.example.org/b"] == "c"
+    assert ingress["spec"]["rules"][0]["http"]["paths"][0]["path"] == "/tesk"
+    assert env(manifests)["SERVER_SERVLET_CONTEXT_PATH"] == "/tesk"
+    manifests = render("--set", "ingress.annotations=null")
+    ingress = get(manifests, "Ingress", "ingress-rules")
+    assert "annotations" not in ingress["metadata"]
+
+
 def test_ingress_disabled() -> None:
     """Without ingress rules, there is no ingress, nor a route outside OpenShift."""
     manifests = render("--set", "ingress.rules=false")
@@ -272,8 +244,11 @@ def test_ingress_disabled() -> None:
 def test_openshift_route() -> None:
     """On OpenShift, a route replaces the ingress, if its rules are disabled."""
     openshift = ("--api-versions", "route.openshift.io/v1")
-    manifests = render(*openshift, "--set", "ingress.rules=false")
+    manifests = render(
+        *openshift, "--set", "ingress.rules=false", "--set", "host_name=tes.example.org"
+    )
     route = get(manifests, "Route", "tesk-svc")
+    assert route["spec"]["host"] == "tes.example.org"
     assert route["spec"]["to"]["name"] == "tesk-api"
     assert route["spec"]["tls"]["termination"] == "edge"
     assert find(render(*openshift), "Route", "tesk-svc") is None
