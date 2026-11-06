@@ -20,7 +20,7 @@ As a diagram:
 
 ![TESK architecture](documentation/img/architecture.png)
 
-**Description**: The first pod in the task lifecycle is the API pod, a pod which runs a web server (`Tomcat`) and exposes the `TES` specified endpoints. It consumes `TES` requests, validates them and translates them to `Kubernetes` jobs. The API pod then creates a `task controller` pod, or `taskmaster`. 
+**Description**: The first pod in the task lifecycle is the API pod, a pod which runs a web server (`Tomcat`) and exposes the `TES` specified endpoints. It consumes `TES` requests, validates them and translates them to `Kubernetes` jobs. The API pod then creates a `task controller` pod, or `taskmaster`.
 
 The `taskmaster` consumes the executor jobs, inputs and outputs. It first creates `filer` pod, which creates a persistent volume claim (PVC) to mount as scratch space. All mounts are initialized and all files are downloaded into the locations specified in the TES request; the populated PVC can then be used by each executor pod one after the other. After the `filer` has finished, the taskmaster goes through the executors and executes them as pods one by one. **Note**: Each TES task has a separate taskmaster, PVC and executor pods belonging to it; the only 'singleton' pod across tasks is the API pod.
 

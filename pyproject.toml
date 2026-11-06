@@ -1,0 +1,23 @@
+# TESK has no Python package: this file holds the tools that its checks use
+# (dependency groups, locked in `uv.lock`), so that CI and local runs use the
+# same versions
+[project]
+name = "tesk"
+version = "0.0.0"
+description = "GA4GH Task Execution Service on Kubernetes: Helm chart and docs"
+# The Python version of the tools only, as in CI (`.github/workflows/ci.yml`):
+# the newest Python in its security phase, as in the org's other repos
+requires-python = ">=3.13"
+license = "Apache-2.0"
+
+[dependency-groups]
+# Checks of `.pre-commit-config.yaml`
+dev = [
+    "pre-commit>=4.6",
+    # Locks the version of uv that CI installs (`astral-sh/setup-uv`)
+    "uv>=0.13",
+]
+
+[tool.uv]
+# Not a package: `uv sync` installs the dependency groups only
+package = false
