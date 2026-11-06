@@ -33,7 +33,7 @@ To deploy the application:
    client_id: <client_id>
    client_secret: <client_secret>
  ```
- 
+
  * If you're using `s3` as your storage option, do not forget to add the necessary `config` and `credentials` files
  (see [here](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html)) under a folder named
  **s3-config** (*charts/tesk/s3-config*).
@@ -62,7 +62,7 @@ The first time running this command, the chart will be installed. Afterwards, it
 $ helm upgrade -n tesk --install tesk-release . -f secrets.yaml -f values.yaml
 ```
 *Note*: If you're running Helm 3, you might need to also use the `--create-namespace` option, as non-existent namespaces
-do not get created by default (see [this](https://github.com/helm/helm/issues/6794)). 
+do not get created by default (see [this](https://github.com/helm/helm/issues/6794)).
 
 ##  Description of values
 

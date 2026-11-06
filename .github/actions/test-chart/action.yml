@@ -1,0 +1,21 @@
+# Lint the chart (`helm lint --strict`) and render it with its default values
+# (`helm template`). Used by the `chart` job of `ci.yml`. The chart has no
+# dependencies to build. Needs a checkout of the repository.
+
+name: Test chart
+description: Lint and render the TESK chart
+
+runs:
+  using: composite
+  steps:
+    # Same Helm version as in `.github/actions/install-chart`
+    - name: Set up Helm
+      uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
+      with:
+        version: v3.22.1
+    - name: Lint chart
+      shell: bash
+      run: helm lint charts/tesk --strict
+    - name: Render chart
+      shell: bash
+      run: helm template tesk charts/tesk --namespace tesk > /dev/null
