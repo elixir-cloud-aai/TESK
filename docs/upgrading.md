@@ -48,7 +48,6 @@ tesk-api serves the Swagger UI (see [Swagger UI](deployment.md#swagger-ui)).
 Upgrading the chart alone changes nothing: tesk-api before 1.2.0 (the
 chart's default `tesk.image` is still 1.1.0) ignores the value and always
 serves the Swagger UI. tesk-api 1.2.0 or later serves it only if the value
-is `true`. If you use
-the Swagger UI, set `tesk.swaggerUi.enabled: true` when you upgrade to
-tesk-api 1.2.0 or later. Turning it on serves the Swagger UI publicly; enable
-it only where needed.
+is `true`. If you use the Swagger UI, set `tesk.swaggerUi.enabled: true`
+when you upgrade to tesk-api 1.2.0 or later. Turning it on serves the
+Swagger UI publicly; enable it only where needed.
