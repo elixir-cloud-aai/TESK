@@ -111,7 +111,8 @@ jobs:
           echo "${PWD}/.venv/bin" >> "$GITHUB_PATH"
       - name: Calculate test coverage
         run: |
-          coverage run -m pytest
+          # The chart tests run in the chart job, with the pinned Helm
+          coverage run -m pytest --ignore=tests/test_chart.py
           coverage report
           coverage xml
       - name: Submit report to Codecov
