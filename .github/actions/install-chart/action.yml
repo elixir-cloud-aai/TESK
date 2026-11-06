@@ -1,0 +1,56 @@
+# Install the chart with its default values on a kind cluster, wait until
+# the API is ready and check that `GET /ga4gh/tes/v1/service-info` answers
+# (through a port forward; the default Ingress has no controller on kind).
+# Used by the `chart-install` job of `ci.yml` and by `release.yml`. Needs a
+# checkout of the repository.
+
+name: Install chart
+description: Install the TESK chart on a kind cluster and check the API
+
+inputs:
+  namespace:
+    description: Namespace of the release
+    default: tesk
+
+runs:
+  using: composite
+  steps:
+    # Same Helm version as in `.github/actions/test-chart`
+    - name: Set up Helm
+      uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
+      with:
+        version: v3.22.1
+    - name: Create kind cluster
+      uses: helm/kind-action@1544676c07bb3570fcb70166beaa07c4528fd4aa # v1.15.1
+      with:
+        version: v0.33.0
+        cluster_name: chart-testing
+    - name: Install chart
+      env:
+        NAMESPACE: ${{ inputs.namespace }}
+      shell: bash
+      run: |
+        helm install tesk charts/tesk --namespace "${NAMESPACE}" \
+            --create-namespace --wait --timeout 600s
+    - name: Check service info
+      env:
+        NAMESPACE: ${{ inputs.namespace }}
+      shell: bash
+      run: |
+        kubectl port-forward -n "${NAMESPACE}" service/tesk-api 8080:8080 \
+            > "${RUNNER_TEMP}/port-forward.log" 2>&1 &
+        trap 'kill %1' EXIT
+        body="${RUNNER_TEMP}/service-info.json"
+        for _ in $(seq 30); do
+          if curl --fail --silent --show-error --output "${body}" \
+              http://localhost:8080/ga4gh/tes/v1/service-info; then
+            jq -e '.id and .type.group == "org.ga4gh"' "${body}"
+            exit 0
+          fi
+          sleep 5
+        done
+        echo "::error::GET /ga4gh/tes/v1/service-info did not answer"
+        cat "${RUNNER_TEMP}/port-forward.log"
+        kubectl get all -n "${NAMESPACE}"
+        kubectl logs -n "${NAMESPACE}" deployment/tesk-api --tail=100 || true
+        exit 1

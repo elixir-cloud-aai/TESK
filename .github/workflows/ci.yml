@@ -1,0 +1,128 @@
+# Everything that must pass on pull requests and pushes to `dev`: the pull
+# request title, lint, and the chart (lint, render, and install on a kind
+# cluster). The gate `passed` ("CI passed") is the only required check. No
+# `paths:` filters, so that the gate always reports; skip jobs with `if:`
+# instead (and allow the skip in the gate). Runs also when a pull request is
+# edited, so that the title check follows the title; all jobs run then, as a
+# run that skipped the checks would report "CI passed" for the commit.
+# Nothing is published from here: charts are released by `release.yml`
+
+name: CI
+on:
+  push:
+    branches: [dev]
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+    branches: [dev]
+
+permissions:
+  contents: read
+
+# Cancel superseded runs of a pull request; runs for pushes get their own
+# group, so that queued runs for successive pushes are not dropped. Runs for
+# edits that leave the title unchanged (e.g. of the description, also by
+# bots) get a group of their own, so that they don't cancel a run for new
+# commits
+concurrency:
+  group: >-
+    ${{ github.workflow }}-${{
+      github.event_name == 'push' && github.sha ||
+      github.event.action == 'edited' && !github.event.changes.title &&
+        format('{0}-edited', github.ref) ||
+      github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+
+  # Conventional Commits title (squash merges use it as the commit message);
+  # Dependabot's titles are its own, unless a person edits them
+  title:
+    name: PR title
+    if: >-
+      github.event_name == 'pull_request' && (
+        github.event.pull_request.user.login != 'dependabot[bot]' ||
+        github.event.changes.title &&
+        github.event.sender.login != 'dependabot[bot]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions: {}
+    steps:
+      - name: Check PR title
+        uses: elixir-cloud-aai/.github/actions/pr-title@743e82d290a53768454999e413756a924e383259 # v1.0.0
+
+  # The hooks of `.pre-commit-config.yaml`, with pre-commit from the lock
+  # (`uv.lock`, dependency group `dev`)
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.13"
+      - name: Set up uv
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+      - name: Check lock file
+        run: uv lock --check
+      - name: Install dependencies
+        run: |
+          uv sync --locked --group dev --python "$(which python)"
+          echo "${PWD}/.venv/bin" >> "$GITHUB_PATH"
+      - name: Cache pre-commit hook environments
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit-${{ runner.os }}-${{ hashFiles('.pre-commit-config.yaml') }}
+      - name: Run linters and security checks
+        run: |
+          pre-commit run --all-files --show-diff-on-failure
+          pre-commit run --all-files --hook-stage manual gitleaks-all
+
+  # Lints and renders the chart (`.github/actions/test-chart`, also run by
+  # `release.yml`)
+  chart:
+    name: Chart
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Test chart
+        uses: ./.github/actions/test-chart
+
+  # Installs the chart on a kind cluster and checks the API
+  # (`.github/actions/install-chart`, also run by `release.yml`)
+  chart-install:
+    name: Chart install
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install chart
+        uses: ./.github/actions/install-chart
+
+  # The only required check: fails if any job failed or was cancelled, or
+  # was skipped where it must run (only `title` is skipped on pushes)
+  passed:
+    name: CI passed
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: always()
+    needs: [title, lint, chart, chart-install]
+    permissions: {}
+    steps:
+      - name: Check results of all jobs
+        uses: elixir-cloud-aai/.github/actions/gate@743e82d290a53768454999e413756a924e383259 # v1.0.0
+        with:
+          needs: ${{ toJSON(needs) }}
+          allow-skipped: title

@@ -1,0 +1,19 @@
+# TESK has no Python package: this file holds the tools that its checks use
+# (dependency groups, locked in `uv.lock`), so that CI and local runs use the
+# same versions and Dependabot updates them (see "Development" in the docs)
+[project]
+name = "tesk"
+version = "0.0.0"
+description = "GA4GH Task Execution Service on Kubernetes: Helm chart and docs"
+requires-python = ">=3.13"
+license = "Apache-2.0"
+
+[dependency-groups]
+# Checks of `.pre-commit-config.yaml` and the tests in `tests/`
+dev = [
+    "pre-commit>=4.6",
+]
+
+[tool.uv]
+# Not a package: `uv sync` installs the dependency groups only
+package = false
