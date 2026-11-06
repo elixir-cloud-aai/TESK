@@ -17,9 +17,12 @@ deployment (`ingress.path` + `tesk.tes_api_base_path`, see
 
 The API also serves a Swagger UI, at the root path of the deployment. With
 `auth.mode: auth`, requests need an OIDC access token (see [Authentication
-and authorisation](deployment.md#authentication-and-authorisation)).
+and authorisation](deployment.md#authentication-and-authorisation)), except
+`GET /service-info`, which stays public unless `auth.service_info_public` is
+`false` (see [Configuration](configuration.md)).
 
-For example, to create a task and get its state:
+For example, to create a task from a checkout of this repository and get
+its state:
 
 ```bash
 TES=https://tes.example.org/ga4gh/tes/v1

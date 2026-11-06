@@ -21,9 +21,10 @@ repositories (see [Development](development.md#docs-of-tesk-api-and-tesk-core)).
 1. A client sends a task to the API (`POST /tasks`). The API validates it,
    and creates a **taskmaster** job for it, with the task (inputs, outputs,
    volumes, executors) as the job's input.
-2. The taskmaster creates a persistent volume claim (**PVC**) as the task's
-   scratch space, of the task's disk size, with the default storage class
-   (or `storageClass`).
+2. If the task has inputs, outputs or volumes, the taskmaster creates a
+   persistent volume claim (**PVC**) as the task's scratch space, of the
+   task's disk size, with the default storage class (or `storageClass`).
+   Tasks without them get no PVC and no filers.
 3. It runs the **filer** to download the inputs (HTTP(S), FTP, S3 or a
    shared file system) into the PVC, at the paths of the task.
 4. It runs the **executors** one after the other, each as a job with the
@@ -32,15 +33,18 @@ repositories (see [Development](development.md#docs-of-tesk-api-and-tesk-core)).
    `EXECUTOR_ERROR`, and later executors don't run.
 5. It runs the filer again to upload the outputs, deletes the PVC and ends.
 
-Each task has its own taskmaster, PVC, filers and executors; the API is the
+Each task has its own taskmaster and executors, and, with inputs, outputs
+or volumes, its own PVC and filers; the API is the
 only pod shared by all tasks. The API reads the state of a task (`GET
 /tasks/{id}`) from its jobs and pods, and cancels it (`POST
 /tasks/{id}:cancel`) by marking its taskmaster, which stops and deletes the
 task's jobs.
 
-The taskmasters use the service account `taskmaster`, which may create,
-read and delete jobs, pods and PVCs in the namespace; the API uses the same
-account.
+The taskmasters use the service account `taskmaster`, which the API uses
+too. Its role in the namespace allows creating, reading, changing and
+deleting jobs; creating, reading and deleting PVCs and ConfigMaps; listing
+and patching pods and reading their logs and status. Pods are created by the
+jobs, not directly.
 
 ## Storage
 

@@ -2,8 +2,8 @@
 
 TESK is deployed on Kubernetes with its Helm chart, `charts/tesk/`. The
 chart installs the API (tesk-api) as a Deployment with a Service, the
-service account and role that the API and the taskmasters use to create
-jobs, pods and PVCs, the service info, and, depending on the values, an
+service account and role that the API and the taskmasters use to manage
+jobs and PVCs, the service info, and, depending on the values, an
 Ingress or an OpenShift Route and the secrets of the storage backends. The
 taskmasters, filers and executors are created by the API and the
 taskmasters for each task (see [Architecture](architecture.md)).
@@ -48,7 +48,8 @@ helm upgrade --install tesk charts/tesk \
 - `secrets.yaml` holds the credentials that the chart puts into secrets: the
   FTP account (`ftp.username`, `ftp.password`) and the OIDC client of the
   Swagger UI (`auth.client_id`, `auth.client_secret`). Keep it out of version
-  control.
+  control. It is optional: leave out `-f secrets.yaml` if you need none of
+  these.
 - Some settings are files in the chart directory rather than values: the
   service info (`charts/tesk/service-info/service-info.yaml`, see [Service
   info](configuration.md#service-info)), the `.netrc` file for FTP
@@ -72,6 +73,7 @@ mentioned above are inside the downloaded chart (`tar -xzf` it to edit
 them):
 
 ```bash
+set -e  # stop if a check fails (Bash; in Fish, run the commands one by one)
 gh release download vX.Y.Z --repo elixir-cloud-aai/TESK --pattern 'tesk-*'
 gh attestation verify tesk-X.Y.Z.tgz --repo elixir-cloud-aai/TESK \
     --signer-workflow elixir-cloud-aai/TESK/.github/workflows/release.yml \
@@ -89,8 +91,10 @@ Check the installation:
 ```bash
 helm list -n tesk
 kubectl get all -n tesk
-kubectl port-forward -n tesk service/tesk-api 8080:8080
+kubectl port-forward -n tesk service/tesk-api 8080:8080 &
+sleep 2
 curl http://localhost:8080/ga4gh/tes/v1/service-info
+kill %1  # stop the port forward
 ```
 
 ## Exposing the API
