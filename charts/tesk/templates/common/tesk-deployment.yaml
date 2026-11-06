@@ -66,6 +66,16 @@ spec:
         - name: TESK_API_SERVICE_INFO_PUBLIC
           value: {{ .Values.auth.service_info_public | quote }}
         {{- end }}
+        {{- /* Null leaves tesk-api's default (off); tesk-api stops at
+        startup on anything but true or false, so fail here instead */}}
+        {{- $swaggerUiEnabled := (.Values.tesk.swaggerUi | default dict).enabled }}
+        {{- if not (kindIs "invalid" $swaggerUiEnabled) }}
+        {{- if not (kindIs "bool" $swaggerUiEnabled) }}
+        {{- fail (printf "tesk.swaggerUi.enabled must be true or false, not %q" (toString $swaggerUiEnabled)) }}
+        {{- end }}
+        - name: TESK_API_SWAGGER_UI_ENABLED
+          value: {{ $swaggerUiEnabled | quote }}
+        {{- end }}
 
         {{ if .Values.transfer.active }}
         - name: TESK_API_TASKMASTER_ENVIRONMENT_HOST_BASE_PATH

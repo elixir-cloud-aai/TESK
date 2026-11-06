@@ -15,7 +15,9 @@ deployment (`ingress.path` + `tesk.tes_api_base_path`, see
 | Get a task | `GET /tasks/{id}` |
 | Cancel a task | `POST /tasks/{id}:cancel` |
 
-The API also serves a Swagger UI, at the root path of the deployment. With
+The API can also serve a Swagger UI, at the root path of the deployment,
+if `tesk.swaggerUi.enabled` is `true` (see [Swagger
+UI](deployment.md#swagger-ui)). With
 `auth.mode: auth`, requests need an OIDC access token (see [Authentication
 and authorisation](deployment.md#authentication-and-authorisation)), except
 `GET /service-info`, which stays public unless `auth.service_info_public` is

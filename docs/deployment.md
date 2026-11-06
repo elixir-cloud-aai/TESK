@@ -216,6 +216,24 @@ with any OIDC provider; authorisation follows the group model of LS Login
 guide](https://github.com/elixir-cloud-aai/tesk-api/blob/master/auth.md) of
 tesk-api.
 
+## Swagger UI
+
+tesk-api can serve a Swagger UI, at the root path of the deployment (`/`
+redirects to `/swagger-ui/index.html`). It is off by default
+(`tesk.swaggerUi.enabled: false`); the API description (`/v2/api-docs`) is
+served either way. Turning it on serves the Swagger UI publicly, also with
+`auth.mode: auth`; enable it only where needed:
+
+```yaml
+tesk:
+  swaggerUi:
+    enabled: true
+```
+
+The value must be `true` or `false`: anything else fails the installation,
+as tesk-api wouldn't start with it. It needs tesk-api 1.2.0 or later
+(`tesk.image`); earlier versions ignore it and always serve the Swagger UI.
+
 To let users log in from the Swagger UI, register an OIDC client with your
 provider and put its ID and secret into `auth.client_id` and
 `auth.client_secret` (in `secrets.yaml`).

@@ -13,6 +13,7 @@ import base64
 import os
 from pathlib import Path
 import shutil
+import subprocess
 
 import pytest
 
@@ -193,6 +194,29 @@ def test_auth() -> None:
 def test_service_info_public(args: tuple[str, ...], expected: str | None) -> None:
     """`auth.service_info_public` is passed on, unless it is null."""
     assert env(render(*args)).get("TESK_API_SERVICE_INFO_PUBLIC") == expected
+
+
+@pytest.mark.parametrize(
+    ("args", "expected"),
+    [
+        ((), "false"),
+        (("--set", "tesk.swaggerUi.enabled=true"), "true"),
+        (("--set", "tesk.swaggerUi.enabled=false"), "false"),
+        (("--set", "tesk.swaggerUi.enabled=null"), None),
+        (("--set", "tesk.swaggerUi=null"), None),
+    ],
+)
+def test_swagger_ui(args: tuple[str, ...], expected: str | None) -> None:
+    """`tesk.swaggerUi.enabled` is passed on, unless it is null."""
+    assert env(render(*args)).get("TESK_API_SWAGGER_UI_ENABLED") == expected
+
+
+@pytest.mark.parametrize("value", ["yes", "off", "1", "true"])
+def test_swagger_ui_invalid(value: str) -> None:
+    """`tesk.swaggerUi.enabled` must be a boolean, not a string."""
+    with pytest.raises(subprocess.CalledProcessError) as error:
+        render("--set-string", f"tesk.swaggerUi.enabled={value}")
+    assert "tesk.swaggerUi.enabled must be true or false" in error.value.stderr
 
 
 def test_service_info() -> None:
