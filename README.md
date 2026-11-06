@@ -1,33 +1,84 @@
-<img src="docs/images/TESKlogowfont.png" height="200">
+<!-- markdownlint-disable MD033 MD041 -- logo first; <picture> for dark mode -->
+<a href="https://elixir-on.cloud/">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/logo_elixir_on_cloud_night.png">
+    <img src="docs/images/logo_elixir_on_cloud.png" alt="ELIXIR On-Cloud">
+  </picture>
+</a>
+<!-- markdownlint-enable MD033 MD041 -->
 
+# TESK
 
-An implementation of a task execution engine based on the [TES standard](https://github.com/ga4gh/task-execution-schemas) running on `Kubernetes`. For more details on `TES`, see the (very) brief [introduction to TES](docs/tesintro.md).
+[![License][badge-license]][badge-url-license]
+[![Build_status][badge-build-status]][badge-url-build-status]
+[![Docs][badge-docs]][badge-url-docs]
+[![Coverage][badge-coverage]][badge-url-coverage]
 
-For organisational reasons, this project is split into 3 repositories:
-- This one, which contains documentation and deployment files
-- [tesk-api](https://github.com/elixir-cloud-aai/tesk-api): Contains the service that implements the TES API and translates tasks into kubernetes batch calls
-- [tesk-core](https://github.com/elixir-cloud-aai/tesk-core):  Contains the code that is launched as images into the kubernetes cluster by tesk-api.
+An implementation of the [GA4GH Task Execution Service (TES)
+API](https://github.com/ga4gh/task-execution-schemas) on
+[Kubernetes](https://kubernetes.io/), brought to you by [ELIXIR
+On-Cloud](https://elixir-on.cloud/). Workflow engines and Workflow Execution
+Service (WES) implementations send it tasks: one or more containers that run
+one after the other, with inputs and outputs. TESK runs each task as
+Kubernetes jobs in one namespace, staging inputs and outputs in a temporary
+volume, and needs no other services. It is deployed with a Helm chart.
 
-If the API is running on your cluster it will pull the images from our `docker.io` repository automatically.
+TESK is made of three repositories:
 
-`TESK` is designed with the goal to support any `Kubernetes` cluster, for its deployment please refer to the [deployment](docs/deployment.md) page.
+- **TESK** (this one): the Helm chart in [`charts/tesk/`][chart] and the
+  documentation.
+- [tesk-api](https://github.com/elixir-cloud-aai/tesk-api): the service that
+  implements the TES API and turns tasks into Kubernetes jobs.
+- [tesk-core](https://github.com/elixir-cloud-aai/tesk-core): the taskmaster,
+  which runs the jobs of a task, and the filer, which stages its inputs and
+  outputs.
 
-The documentation is available on [Read the Docs](https://tesk.readthedocs.io/) (sources in [`docs/`](docs)).
+**Read the [documentation][docs]** for the architecture, the deployment with
+the Helm chart, its configuration, the API, upgrades and development.
 
+## Quick start
 
-## Architecture
-As a diagram:
+With a Kubernetes cluster with a default storage class, and
+[Helm](https://helm.sh/docs/intro/install/) 3 installed:
 
-![TESK architecture](docs/images/architecture.png)
+```bash
+git clone https://github.com/elixir-cloud-aai/TESK.git
+cd TESK
+helm install tesk charts/tesk --namespace tesk --create-namespace
+```
 
-**Description**: The first pod in the task lifecycle is the API pod, a pod which runs a web server (`Tomcat`) and exposes the `TES` specified endpoints. It consumes `TES` requests, validates them and translates them to `Kubernetes` jobs. The API pod then creates a `task controller` pod, or `taskmaster`.
+The API is then served by the service `tesk-api` in namespace `tesk`; see
+[Deployment][docs-deployment] for exposing it, storage backends and
+authentication.
 
-The `taskmaster` consumes the executor jobs, inputs and outputs. It first creates `filer` pod, which creates a persistent volume claim (PVC) to mount as scratch space. All mounts are initialized and all files are downloaded into the locations specified in the TES request; the populated PVC can then be used by each executor pod one after the other. After the `filer` has finished, the taskmaster goes through the executors and executes them as pods one by one. **Note**: Each TES task has a separate taskmaster, PVC and executor pods belonging to it; the only 'singleton' pod across tasks is the API pod.
+## Citation
 
-After the last executor, the `filer` is called once more to process the outputs and push them to remote locations from the PVC. The PVC is the scrubbed, deleted and the taskmaster ends, completing the task.
+The citation metadata is in [`CITATION.cff`](CITATION.cff): on GitHub, "Cite
+this repository" in the sidebar of the repository formats it as APA or
+BibTeX.
 
-## Requirements
--   A working [Kubernetes](https://kubernetes.io/) cluster. The Helm chart's defaults were tested on versions 1.30 and 1.36 (see the [chart's README](charts/tesk/README.md)).
--   If you want TESK to handle tasks with I/O (and you probably want), you additionally need:
--   A default storage class, which TESK will use to create temporary PVCs. It is enough that the storage class supports the RWO mode.
--   And, if you want TESK to integrate with workflow managers, you additionally need either an FTP account or a PVC that can be accessed from within or from outside of the cluster by the workflow manager (more in the [deployment](docs/deployment.md) page).
+## Contributing
+
+Contributions are welcome! See [Development][docs-development] in the
+documentation and the organisation's [contributing guide][contributing], and
+mind our [code of conduct][code-of-conduct].
+
+## License
+
+This project is covered by the [Apache License 2.0][badge-url-license], also
+[shipped with this repository](LICENSE).
+
+[badge-build-status]: <https://github.com/elixir-cloud-aai/TESK/actions/workflows/ci.yml/badge.svg?branch=dev>
+[badge-coverage]: <https://codecov.io/gh/elixir-cloud-aai/TESK/branch/dev/graph/badge.svg?branch=dev>
+[badge-docs]: <https://img.shields.io/readthedocs/tesk>
+[badge-license]: <https://img.shields.io/badge/license-Apache%202.0-blue.svg>
+[badge-url-build-status]: <https://github.com/elixir-cloud-aai/TESK/actions/workflows/ci.yml?query=branch%3Adev>
+[badge-url-coverage]: <https://codecov.io/gh/elixir-cloud-aai/TESK?branch=dev>
+[badge-url-docs]: <https://tesk.readthedocs.io/en/latest/>
+[badge-url-license]: <https://www.apache.org/licenses/LICENSE-2.0>
+[chart]: charts/tesk/
+[code-of-conduct]: <https://github.com/elixir-cloud-aai/.github/blob/main/CODE_OF_CONDUCT.md>
+[contributing]: <https://github.com/elixir-cloud-aai/.github/blob/main/CONTRIBUTING.md>
+[docs]: <https://tesk.readthedocs.io/en/latest/>
+[docs-deployment]: <https://tesk.readthedocs.io/en/latest/deployment/>
+[docs-development]: <https://tesk.readthedocs.io/en/latest/development/>
