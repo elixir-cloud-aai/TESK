@@ -22,9 +22,9 @@ tesk:
     image: docker.io/elixircloud/tesk-api:1.1.0
     port: 8080
     taskmaster_image_name:  docker.io/elixircloud/tesk-core-taskmaster
-    taskmaster_image_version: v0.10.2
+    taskmaster_image_version: v0.10.6
     taskmaster_filer_image_name: docker.io/elixircloud/tesk-core-filer
-    taskmaster_filer_image_version: v0.10.2
+    taskmaster_filer_image_version: v0.10.6
     debug: false
     executor_retries: 2
     filer_retries: 2
@@ -55,6 +55,11 @@ auth:
     # EBI/CSC
     env_subgroup: CSC
     env_basegroup: ECP_CLN
+    # With mode auth: true lets GET /service-info answer without a token, false
+    # requires a valid token for it. Needs tesk-api 1.2.0 or later (tesk.image);
+    # earlier versions ignore this and keep the endpoint public. No effect with
+    # mode noauth, where all endpoints are open.
+    service_info_public: true
 
 service:
     # the following variables are specific to each deployment

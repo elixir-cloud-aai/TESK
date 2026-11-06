@@ -27,7 +27,7 @@ The `taskmaster` consumes the executor jobs, inputs and outputs. It first create
 After the last executor, the `filer` is called once more to process the outputs and push them to remote locations from the PVC. The PVC is the scrubbed, deleted and the taskmaster ends, completing the task.
 
 ## Requirements
--   A working [Kubernetes](https://kubernetes.io/) cluster version 1.9 and later.
+-   A working [Kubernetes](https://kubernetes.io/) cluster. The Helm chart's defaults were tested on versions 1.30 and 1.36 (see the [chart's README](charts/tesk/README.md)).
 -   If you want TESK to handle tasks with I/O (and you probably want), you additionally need:
 -   A default storage class, which TESK will use to create temporary PVCs. It is enough that the storage class supports the RWO mode.
 -   And, if you want TESK to integrate with workflow managers, you additionally need either an FTP account or a PVC that can be accessed from within or from outside of the cluster by the workflow manager (more in the [deployment](documentation/deployment.md) page).

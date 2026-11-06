@@ -2,6 +2,18 @@
 
 Helm chart and config to deploy the TESK service. Tested with Helm v3.0.0.
 
+## Kubernetes versions
+
+The default taskmaster and filer, v0.10.6, were tested on Kubernetes 1.30 and 1.36
+(k3s); earlier versions of Kubernetes were not tested with them. Taskmaster
+v0.10.2 ends tasks in `SYSTEM_ERROR` on Kubernetes 1.31 or later, as it reads only
+the first condition of a job: if your values set
+`tesk.taskmaster_image_version`, use v0.10.6 or later.
+
+Moving from taskmaster v0.10.2: it now also sets the resources that an executor
+requests (`cpu_cores`, `ram_gb` of a task) as its limits, so a task that uses more
+memory than it asked for is killed, and its CPU is throttled.
+
 ## Usage
 
 First you must create a namespace in Kubernetes in which to deploy TESK. In development clusters such as Minikube it is fine to use the `default` namespace. The
@@ -74,6 +86,7 @@ See [`values.yaml`](values.yaml) for default values.
 | transfer.pvc_name | string | |
 | auth.mode | string | Can be 'noauth' to disable authentication, or 'auth' to enable it |
 | auth.env_subgroup | string | Can be 'EBI' or 'CSC' |
+| auth.service_info_public | boolean | With `auth.mode` 'auth': `true` (default) lets `GET /service-info` answer without a token, `false` requires a valid token for it. Needs tesk-api 1.2.0 or later (`tesk.image`); earlier versions ignore it and keep the endpoint public. No effect with 'noauth', where all endpoints are open. See [`auth.md`](https://github.com/elixir-cloud-aai/tesk-api/blob/master/auth.md#public-endpoints) |
 | service.type | string | Can be 'NodePort' or 'ClusterIp' or 'LoadBalancer' |
 | service.node_port | integer | Only used if service.type is 'NodePort', specifies the port |
 | ftp.classic_ftp_secret | String | The name of a secret to store FTP credentials as keys. If empty, the old-style FTP secret is not created |
