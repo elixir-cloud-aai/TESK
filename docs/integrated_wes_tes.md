@@ -1,4 +1,7 @@
-# Deployment of TESK integrated with WES-ELIXIR
+# Integration with WES
+
+!!! note "Proof of concept"
+    This page describes an early proof of concept with WES-ELIXIR (now [cwl-WES](https://github.com/elixir-cloud-aai/cwl-WES)). Its deployment descriptors were removed from this repository; the links point to their last version. The chart values for the shared file system are `transfer.*` (see [Shared file system](deployment.md#shared-file-system)).
 
 In this scenario TESK and a workflow engine are deployed together in one K8s cluster and exchange input/output/intermediate files via shared file system and not FTP. In this setting TESK is an internal service and is not exposed at a boundary of the system.
 

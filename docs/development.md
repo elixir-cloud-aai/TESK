@@ -178,16 +178,6 @@ If a run fails before publishing, fix the cause and re-run it: a re-run
 completes a draft that a failed run left. If the tagged commit is wrong,
 release a new version instead.
 
-To install a released chart, download it from the release, check that the
-release workflow built and signed it from the release tag, and install it:
-
-```bash
-gh release download vX.Y.Z --repo elixir-cloud-aai/TESK --pattern 'tesk-*'
-gh attestation verify tesk-X.Y.Z.tgz --repo elixir-cloud-aai/TESK \
-    --signer-workflow elixir-cloud-aai/TESK/.github/workflows/release.yml \
-    --source-ref refs/tags/vX.Y.Z
-cosign verify-blob tesk-X.Y.Z.tgz --bundle tesk-X.Y.Z.tgz.sigstore.json \
-    --certificate-identity https://github.com/elixir-cloud-aai/TESK/.github/workflows/release.yml@refs/tags/vX.Y.Z \
-    --certificate-oidc-issuer https://token.actions.githubusercontent.com
-helm install tesk tesk-X.Y.Z.tgz --namespace tesk --create-namespace
-```
+To install a released chart, see [Installation from a
+release](deployment.md#from-a-release): it checks that this workflow built
+and signed the chart from the release tag.

@@ -1,140 +1,231 @@
-# Deployment instructions for TESK
+# Deployment
+
+TESK is deployed on Kubernetes with its Helm chart, `charts/tesk/`. The
+chart installs the API (tesk-api) as a Deployment with a Service, the
+service account and role that the API and the taskmasters use to manage
+jobs and PVCs, the service info, and, depending on the values, an
+Ingress or an OpenShift Route and the secrets of the storage backends. The
+taskmasters, filers and executors are created by the API and the
+taskmasters for each task (see [Architecture](architecture.md)).
+
+This page covers the installation and the most common setups;
+[Configuration](configuration.md) lists all values of the chart.
+
 ## Requirements
-* **A Kubernetes cluster.** The Helm chart's default taskmaster and filer, v0.10.6, were tested on Kubernetes 1.30 and 1.36; earlier versions of Kubernetes were not tested with them. On 1.31 or later, the taskmaster must be v0.10.6 or later (see the [chart's README](https://github.com/elixir-cloud-aai/TESK/blob/dev/charts/tesk/README.md)). TESK works well in multi-tenancy clusters such as OpenShift and requires access to only one namespace.
-* **A default storage class.** To handle tasks with I/O TESK always requires a default storage class (regardless of the chosen storage backend). TESK uses the class to create temporary PVCs. It should be enough that the storage supports the RWO mode.
-* **A storage backend** to exchange I/O with the external world. At the moment TESK supports:
-  * FTP. R/W access to a single FTP account.
-  * Shared file system. This usually comes in the form of a RWX PVC.
-  * S3 (WiP). R/W access to one bucket in S3-like storage
 
-## Installing TESK
-### Helm
-TESK can be installed using Helm 3 (tested with v3.0.0) using [this chart](https://github.com/elixir-cloud-aai/TESK/tree/dev/charts/tesk). It is best to create a dedicated namespace for TESK, although for test or development clusters it is fine to use the `default` namespace.
-The documentation of the chart gives a desciption of all configuration options and below the most common installation scenarios have been described.
-TESK installation consists of a single API installed as a K8s deployment and exposed as a K8s service. Additionally, TESK API requires access to the K8s API in order to create K8s Jobs and PVCs. That is why the installation additionally creates objects such as service accounts, roles and role bindings.
-The chart does not provide a way to install the default storage class and that needs to be done independently by the cluster administrator.
+- **A Kubernetes cluster.** TESK needs access to one namespace only, and
+  works in multi-tenant clusters such as OpenShift. The chart's default
+  taskmaster and filer, v0.10.6, were tested on Kubernetes 1.30 and 1.36;
+  earlier versions of Kubernetes were not tested with them. On Kubernetes
+  1.31 or later, the taskmaster must be v0.10.6 or later (see
+  [Upgrading](upgrading.md#taskmaster-and-filer-v0106)).
+- **[Helm](https://helm.sh/) 3.**
+- **A default storage class.** TESK creates a temporary PVC for each task
+  with I/O, with the cluster's default storage class (or the one in
+  `storageClass`). ReadWriteOnce is enough. The chart doesn't install a
+  storage class.
+- **A storage backend** to exchange inputs and outputs with the outside
+  world, if tasks have I/O over anything but HTTP(S): an FTP account, a
+  shared file system (a ReadWriteMany PVC), or S3 (see [Storage
+  backends](#storage-backends)).
 
-### Exposing TESK API
-After executing the chart with the default values, TESK API will be installed, but will be accessible only inside the cluster. There is a number of options of exposing TESK externally and they depend on the type of the cluster.
+## Installation
 
-#### NodePort and LoadBalancer
-The most basic way of exposing TESK on self-managed clusters and a good option for development clusters such as Minikube is to use a NodePort type of service.
-In the chart set the values:
-```
-service.type="NodePort"
-## Any values in the range 30000-32767 is fine. 31567 is used as an example
-service.node_port: 31567
-```
-After installing the chart TESK API should be accessible under the external IP of any of your cluster nodes and the node port. For minikube you can obtain the IP by running:
-```
-minikube ip
-```
-or open Swagger UI of TESK directly in the browser with:
-```
-minikube service tesk-api
-```
-You should be able to see an empty list of tasks by calling
-```
-http://external_IP_of_a_node:31567/v1/tasks
+Install the chart from a checkout of this repository, or from the chart
+attached to a release (see [From a release](#from-a-release)), into a
+namespace of its own:
 
-{
-  "tasks" : [ ]
-}
-
+```bash
+git clone https://github.com/elixir-cloud-aai/TESK.git
+cd TESK
+helm upgrade --install tesk charts/tesk \
+    --namespace tesk --create-namespace \
+    -f my-values.yaml -f secrets.yaml
 ```
-If your cluster is provided by a Cloud Provider, you may be able to use a LoadBalancer type of service. In the chart set the value:
+
+- `my-values.yaml` holds your settings (see [Configuration](configuration.md)),
+  e.g., the host name and the Ingress.
+- `secrets.yaml` holds the credentials that the chart puts into secrets: the
+  FTP account (`ftp.username`, `ftp.password`) and the OIDC client of the
+  Swagger UI (`auth.client_id`, `auth.client_secret`). Keep it out of version
+  control. It is optional: leave out `-f secrets.yaml` if you need none of
+  these.
+- Some settings are files in the chart directory rather than values: the
+  service info (`charts/tesk/service-info/service-info.yaml`, see [Service
+  info](configuration.md#service-info)), the `.netrc` file for FTP
+  (`charts/tesk/ftp/.netrc`) and the S3 configuration
+  (`charts/tesk/s3-config/`). Edit or add them before installing.
+
+The resources have fixed names (`tesk-api`, `taskmaster`, …), so install one
+release per namespace.
+
+### From a release
+
+Each [release](https://github.com/elixir-cloud-aai/TESK/releases) of the
+release workflow (from the next version, above 0.2) has the chart
+attached, with a GitHub artifact
+attestation and a Sigstore bundle. Download the chart, check that TESK's
+release workflow built and signed it from the release tag (with the
+[GitHub CLI](https://cli.github.com/) and
+[cosign](https://docs.sigstore.dev/cosign/system_config/installation/)),
+and install it with your values; the files of the chart directory
+mentioned above are inside the downloaded chart (`tar -xzf` it to edit
+them):
+
+```bash
+set -e  # stop if a check fails (Bash; in Fish, run the commands one by one)
+gh release download vX.Y.Z --repo elixir-cloud-aai/TESK --pattern 'tesk-*'
+gh attestation verify tesk-X.Y.Z.tgz --repo elixir-cloud-aai/TESK \
+    --signer-workflow elixir-cloud-aai/TESK/.github/workflows/release.yml \
+    --source-ref refs/tags/vX.Y.Z
+cosign verify-blob tesk-X.Y.Z.tgz --bundle tesk-X.Y.Z.tgz.sigstore.json \
+    --certificate-identity https://github.com/elixir-cloud-aai/TESK/.github/workflows/release.yml@refs/tags/vX.Y.Z \
+    --certificate-oidc-issuer https://token.actions.githubusercontent.com
+helm upgrade --install tesk tesk-X.Y.Z.tgz \
+    --namespace tesk --create-namespace \
+    -f my-values.yaml -f secrets.yaml
 ```
-service.type="LoadBalancer"
+
+Check the installation:
+
+```bash
+helm list -n tesk
+kubectl get all -n tesk
+kubectl port-forward -n tesk service/tesk-api 8080:8080 &
+sleep 2
+curl http://localhost:8080/ga4gh/tes/v1/service-info
+kill %1  # stop the port forward
 ```
-and consult [K8s documentation](https://kubernetes.io/docs/tasks/access-application-cluster/create-external-load-balancer/) on how to find out the IP of your TESK service.
 
-#### OpenShift
-The chart handles exposing TESK API as OpenShift Route.
+## Exposing the API
 
-TESK API should be accessible under (Swagger UI):
-`https://project-name.openshift-host-name`
-and
-`https://project-name.openshift-host-name/v1/tasks`
-should return an empty list of tasks.
+With the default values, the chart creates an Ingress (`ingress.rules`), but
+without a host name and an Ingress class it isn't reachable from outside the
+cluster. Choose one of the following.
 
-#### Ingress
-Recommended way of exposing any public facing API from K8s cluster such as TESK API is to use Ingress.
-You need:
-* an **Ingress Controller**.
-* a **Hostname** - a DNS entry, where you will expose TESK. TESK can be installed at a subpath as well.
-* an **Ingress Resource**, which will instruct the Controller where to expose TESK.
-* A **TLS certificate** to serve TESK over https. You can obtain one from a certificate authority or automatically obtain one from [Let's Encrypt](https://letsencrypt.org/). The K8s way to do it is by installing [cert-manager](https://cert-manager.io/) and creating an ACME Issuer.
-The example values for TESK Helm chart to create Ingress Resource with annotations for cert-manager, but not to install the controller:
+### Ingress
+
+The recommended way to expose TESK. You need an [Ingress
+controller](https://kubernetes.io/docs/concepts/services-networking/ingress-controllers/),
+a host name (DNS entry) pointing to it, and a TLS certificate, e.g., from
+[Let's Encrypt](https://letsencrypt.org/) with
+[cert-manager](https://cert-manager.io/):
+
 ```yaml
-host_name: tes.ebi.ac.uk
+host_name: tes.example.org
 ingress:
   rules: true
-  ingressClassName: ""
+  ingressClassName: nginx
   path: /
-  # If no TLS secret name configured, TLS will be switched off
-  tls_secret_name:
-  # Annotations for Ingress Resource.
+  # The secret that cert-manager creates; empty switches TLS off
+  tls_secret_name: tesk-tls
   annotations:
-      kubernetes.io/tls-acme: "true"
-      # Choose one of the following depending on your setup
-      # cert-manager.io/issuer: letsencrypt-production
-      cert-manager.io/cluster-issuer: letsencrypt-production
-```
-List of tasks should be reachable under this URL:
-```
-https://tes.ebi.ac.uk/v1/tasks
+    cert-manager.io/cluster-issuer: letsencrypt-production
 ```
 
-### Storage backends
+The API is then served at `https://tes.example.org/ga4gh/tes/v1/`, e.g.,
+`https://tes.example.org/ga4gh/tes/v1/tasks`.
 
-#### Shared file system
-TESK can exchange Inputs and Outputs with the external world using the local/shared storage. You need to create a PVC that will be reachable for your workflow manager and for TESK at the same time.
-If the workflow manager (or anything else that produces paths to your inputs and outputs) is installed inside the same K8s cluster, you may use a PVC of a storage class providing RWX access and mount it to the pod where the workflow manager is installed in the directory where the manager will be creating/orchestrating inputs/outputs. Depending on the workflow manager, it may be a working directory of your workflow manager process.
-If the workflow manager is installed outside of the cluster, you may be able to use a volume mounting storage visible outside of the cluster (hostPath, NFS, etc) and a PVC bound to that volume. We used Minikube with the hostPath type of storage in this secenario successfuly.
-Creating the shared PVC is not handled by TESK Helm chart.
-Finally you have to setup following values in the chart:
+### NodePort and LoadBalancer
+
+On development clusters such as Minikube or kind, a NodePort Service is the
+simplest option:
+
+```yaml
+ingress:
+  rules: false
+service:
+  type: NodePort
+  # Any port in the range 30000-32767
+  node_port: 31567
+```
+
+The API is then served at port 31567 of every node, e.g.,
+`http://<node IP>:31567/ga4gh/tes/v1/tasks` (`minikube ip` prints the IP on
+Minikube). On clusters of cloud providers, `service.type: LoadBalancer` gets
+an external IP (see the [Kubernetes
+docs](https://kubernetes.io/docs/tasks/access-application-cluster/create-external-load-balancer/)).
+
+### OpenShift
+
+On OpenShift, set `ingress.rules: false`: the chart then creates a Route for
+`host_name`, with TLS terminated at the router.
+
+## Storage backends
+
+Inputs and outputs with `http://` and `https://` URLs need no backend. For
+the others, set up one or more of the following.
+
+### FTP
+
+TESK reads and writes `ftp://` URLs with the credentials of an FTP account.
+TLS is not supported by TESK; if you use it with cwl-tes, which requires TLS
+for FTP, enable TLS on the FTP server without enforcing it. Provide the
+credentials in one of two ways:
+
+- **Username and password** (default): the chart creates the secret named in
+  `ftp.classic_ftp_secret` (default `ftp-secret`) from `ftp.username` and
+  `ftp.password` (in `secrets.yaml`).
+- **`.netrc` file**, which can hold credentials for several servers: set
+  `ftp.netrc_secret` (e.g., `netrc-secret`) and `ftp.classic_ftp_secret: ""`,
+  and put the file at `charts/tesk/ftp/.netrc` (template:
+  `charts/tesk/ftp/.netrc-TEMPLATE`).
+
+With both names empty, FTP is off. For an FTP server on the host of a
+development cluster, see [Local FTP server](local_ftp.md).
+
+### Shared file system
+
+TESK can read and write `file://` URLs on a PVC that a workflow engine
+shares with it: e.g., a ReadWriteMany PVC that a workflow engine in the same
+cluster mounts too, or a volume that is visible outside the cluster
+(hostPath, NFS) for an engine outside of it. Create the PVC yourself, then
+set:
+
 ```yaml
 transfer:
-    # If you want local file systems support (i.e. 'file:' urls in inputs and outputs),
-    # you have to define these 2 properties.
-    active: false
-
-    # wes_base_path: '/data'      # WesElixir via docker-compose
-    wes_base_path: '/tmp'         # WesElixir locally
-                                  # Change the value of $wesBasePath in minikubeStart accordingly
-    tes_base_path: '/transfer'
-    pvc_name: 'transfer-pvc'
+  active: true
+  # Where the workflow engine sees the shared volume
+  wes_base_path: /data
+  # Where the filer mounts it
+  tes_base_path: /transfer
+  pvc_name: transfer-pvc
 ```
 
-#### FTP
-TESK can exchange Inputs and Outputs with the external world using an FTP account. Currently TLS is not supported in TESK, but if you plan to use TESK with cwl-tes and FTP, cwl-tes requires TLS for FTP. The solution is to enable TLS on your FTP server, but not enforce it.
-In the Helm chart provide your credentials in one of 2 ways. The old way has been in TESK for a long time, but will be finally superseded by `.netrc`. Provide a name for a secret, which will store credentials (you can keep the default). An empty name switches off the creation of the old-style credentials secret.
-```yaml
-ftp:
-    classic_ftp_secret: ftp-secret
-```
-and additionally provide your username and password in the `secrets.yaml`, as describe [here](https://github.com/elixir-cloud-aai/TESK/blob/dev/charts/tesk/README.md).
+See [Integration with WES](integrated_wes_tes.md) for an example.
 
-Alternatively, you can use a `.netrc` file, which will allow storing credentials for more than one FTP server.
-Provide a name for a secret, which will store .netrc file:
-```yaml
-ftp:
-    netrc_secret: ftp-secret
-```
-and additionally place a `.netrc` file in the folder `ftp` in the chart (the template of the file is already there).
-Keeping both secret names empty switches off FTP support altogether.
+### S3
 
-#### S3
-TESK can also utilize S3 object storage for exchanging Inputs & Outputs. If you have an S3 endpoint (AWS, minio, etc) that you want to use, simply add the necessary `config` and `credentials` files (see [here](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html)) under a folder named **s3-config**. You can use the templates provided in *charts/tesk/s3-config* as a point of reference.
+TESK reads and writes `s3://` URLs of S3-compatible object storage (AWS,
+MinIO, …). Set `storage: s3` and put the AWS CLI's [`config` and
+`credentials`
+files](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html)
+into `charts/tesk/s3-config/` (templates: `config-TEMPLATE`,
+`credentials-TEMPLATE`); the chart creates the secret `aws-secret` from them.
 
-### Authentication and Authorisation
-TESK supports OAuth2/OIDC to authorise API requests. Authentication and authorisation are optional and can be turned off completely. When turned on, TESK API expects an OIDC access token in Authorization Bearer header. TESK can be integrated with any standard OIDC provider, but the solution has been designed to support Elixir AAI in the first place and the authorisation part relies on Elixir's group model. For details, please see [Authentication and Authorisation document](https://github.com/EMBL-EBI-TSI/tesk-api/blob/master/auth.md).
-To enable authentication set the following value in the chart:
-```
-auth:
-    mode: auth
-```
-At the moment enabling authentication also enables authorisation. Consult [this document](https://github.com/EMBL-EBI-TSI/tesk-api/blob/master/auth.md) for details of authorisation.  
-The support for authorisation configuration in the chart and its documentation is in progress.
-### Additional configuration
-The Helm chart has been a fairly recent addition to TESK and TESK owes its to its fantastic contributors. There might be more options that are available for configuration in TESK that have not been reflected in the chart, yet. Have a look [here](https://github.com/EMBL-EBI-TSI/tesk-api) for more configuration options.
+## Authentication and authorisation
+
+By default (`auth.mode: noauth`), all endpoints are open. With `auth.mode:
+auth`, the API requires an OIDC access token (`Authorization: Bearer`) for
+every endpoint except `GET /service-info`, which stays public unless
+`auth.service_info_public` is `false` (tesk-api 1.2.0 or later). TESK works
+with any OIDC provider; authorisation follows the group model of LS Login
+(formerly ELIXIR AAI), configured with `auth.env_basegroup` and
+`auth.env_subgroup`. See the [tesk-api section](tesk-api/index.md) and the
+[authentication and authorisation
+guide](https://github.com/elixir-cloud-aai/tesk-api/blob/master/auth.md) of
+tesk-api.
+
+To let users log in from the Swagger UI, register an OIDC client with your
+provider and put its ID and secret into `auth.client_id` and
+`auth.client_secret` (in `secrets.yaml`).
+
+## Resources
+
+The API's container gets the requests and limits of `tesk.requestsCpu`,
+`tesk.requestsMemory`, `tesk.limitsCpu` and `tesk.limitsMemory`. The
+resources of the executors come from each task (`resources.cpu_cores`,
+`resources.ram_gb`); taskmaster v0.10.6 sets them as both requests and
+limits, so a task that uses more memory than it requested is killed (OOM),
+and its CPU is throttled. The disk space of a task (`resources.disk_gb`)
+sets the size of its PVC.

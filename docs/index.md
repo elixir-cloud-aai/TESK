@@ -4,8 +4,9 @@
 
 TESK is an implementation of the [GA4GH Task Execution Service
 (TES)](https://github.com/ga4gh/task-execution-schemas) API on
-[Kubernetes](https://kubernetes.io/). Each TES task runs as Kubernetes jobs,
-with the inputs and outputs staged in a temporary volume.
+[Kubernetes](https://kubernetes.io/). Each TES task runs as Kubernetes jobs
+in one namespace, with its inputs and outputs staged in a temporary volume.
+TESK is deployed with a Helm chart and needs no other services.
 
 TESK is made of three repositories:
 
@@ -17,30 +18,24 @@ TESK is made of three repositories:
   which runs the jobs of a task, and the filer, which stages its inputs and
   outputs.
 
-## Architecture
-
-![TESK architecture](images/architecture.png)
-
-The API (tesk-api) is the only long-running component: it accepts TES
-requests, validates them and creates a taskmaster job for each task. The
-taskmaster creates a persistent volume claim (PVC) as scratch space, runs the
-filer to download the inputs into it, runs the executors one after the other
-with the PVC mounted, and runs the filer again to upload the outputs. Then it
-deletes the PVC. Each task has its own taskmaster, PVC and executor pods.
-
 ## Contents
 
 - [Introduction to TES](tesintro.md): what a TES task looks like.
+- [Architecture](architecture.md): the components and the life of a task.
 - [Deployment](deployment.md): install TESK with its Helm chart, expose it,
-  and set up storage and authentication.
-- [Integration with WES](integrated_wes_tes.md): TESK next to a workflow
-  engine in the same cluster.
-- [Local FTP server](local_ftp.md): exchange files through an FTP server on
-  the host.
+  and set up storage backends and authentication.
+- [Configuration](configuration.md): all values of the chart, the service
+  info and the secrets.
+- [API](api.md): the endpoints and how to send tasks.
+- [Upgrading](upgrading.md): changes that affect existing deployments.
+- Guides: [Integration with WES](integrated_wes_tes.md) (TESK next to a
+  workflow engine in the same cluster) and [Local FTP
+  server](local_ftp.md) (an FTP server on the host of a development
+  cluster).
 - [tesk-api](tesk-api/index.md) and [tesk-core](tesk-core/index.md): the docs
   of these components, from their repositories.
-- [Development](development.md): development setup, checks and the
-  documentation.
+- [Development](development.md): development setup, checks, the
+  documentation and releases.
 
 ## License
 
