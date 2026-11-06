@@ -45,7 +45,7 @@ jobs:
     outputs:
       version: ${{ steps.version.outputs.version }}
       prerelease: ${{ steps.version.outputs.prerelease }}
-      sha: ${{ steps.version.outputs.sha }}
+      sha: ${{ steps.tag.outputs.sha }}
       chart_file: ${{ steps.chart.outputs.file }}
       chart_sha256: ${{ steps.chart.outputs.sha256 }}
     steps:
@@ -56,31 +56,18 @@ jobs:
           # Full history with tags, to check that the release commit is on
           # `main`
           fetch-depth: 0
-      # SemVer versions only (the chart's `version` must be SemVer): X.Y.Z,
-      # or X.Y.Z-alpha.N, -beta.N or -rc.N for pre-releases. Annotated tags
-      # only, named as the pushed tag, with a signature that GitHub
-      # verified, of the checked-out commit
+      # First, before anything of the tagged commit is read or run: the tag
+      # is annotated, named as pushed, signed with a signature that GitHub
+      # verified, points to the checked-out commit, and that commit is on
+      # `main`. Only shell built-ins, git, jq and the GitHub API, no file of
+      # the checkout
       - name: Check release tag and commit
-        id: version
+        id: tag
         env:
           TAG: ${{ github.ref_name }}
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
-          if [[ ! "${TAG}" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-(alpha|beta|rc)\.(0|[1-9][0-9]*))?$ ]]; then
-              echo "::error::Tag '${TAG}' is not a release version (e.g., v1.2.3 or v1.2.3-rc.1)"
-              exit 1
-          fi
-          version="${TAG#v}"
-          prerelease=false
-          if [[ -n "${BASH_REMATCH[4]}" ]]; then
-              prerelease=true
-          fi
-          chart_version="$(yq '.version' "${CHART}/Chart.yaml")"
-          if [[ "${chart_version}" != "${version}" ]]; then
-              echo "::error::Tag '${TAG}' does not match version ${chart_version} in ${CHART}/Chart.yaml"
-              exit 1
-          fi
           ref="$(gh api "repos/${GH_REPO}/git/ref/tags/${TAG}")"
           if [[ "$(jq -r '.object.type' <<< "${ref}")" != "tag" ]]; then
               echo "::error::Tag '${TAG}' is not annotated (git tag -s)"
@@ -104,10 +91,32 @@ jobs:
               echo "::error::Release commit is not on 'main'"
               exit 1
           fi
+          echo "sha=${sha}" >> "${GITHUB_OUTPUT}"
+      # Then, without the token: SemVer versions only (the chart's `version`
+      # must be SemVer), X.Y.Z, or X.Y.Z-alpha.N, -beta.N or -rc.N for
+      # pre-releases, equal to the chart's `version`
+      - name: Derive release version
+        id: version
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          if [[ ! "${TAG}" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-(alpha|beta|rc)\.(0|[1-9][0-9]*))?$ ]]; then
+              echo "::error::Tag '${TAG}' is not a release version (e.g., v1.2.3 or v1.2.3-rc.1)"
+              exit 1
+          fi
+          version="${TAG#v}"
+          prerelease=false
+          if [[ -n "${BASH_REMATCH[4]}" ]]; then
+              prerelease=true
+          fi
+          chart_version="$(yq '.version' "${CHART}/Chart.yaml")"
+          if [[ "${chart_version}" != "${version}" ]]; then
+              echo "::error::Tag '${TAG}' does not match version ${chart_version} in ${CHART}/Chart.yaml"
+              exit 1
+          fi
           {
               echo "version=${version}"
               echo "prerelease=${prerelease}"
-              echo "sha=${sha}"
           } >> "${GITHUB_OUTPUT}"
       # Set before the tag in a release-prep pull request (see "Releases" in
       # `docs/development.md`)
@@ -133,7 +142,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           REPOSITORY: ${{ github.repository }}
-          SHA: ${{ steps.version.outputs.sha }}
+          SHA: ${{ steps.tag.outputs.sha }}
         run: |
           runs="$(gh api "repos/${REPOSITORY}/actions/workflows/ci.yml/runs?head_sha=${SHA}&event=push&status=success&per_page=1" \
               --jq .total_count)"
@@ -176,6 +185,13 @@ jobs:
     needs: prepare
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    # One publish job at a time across tags, so that each sees the releases
+    # published before it (previous release, `latest`). GitHub keeps one
+    # waiting job per group: if a third tag is pushed meanwhile, the job
+    # that waited is cancelled and needs a re-run
+    concurrency:
+      group: ${{ github.workflow }}-publish
+      cancel-in-progress: false
     environment:
       name: release
       url: ${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ github.ref_name }}
@@ -194,16 +210,18 @@ jobs:
           persist-credentials: false
           fetch-depth: 0
       # Decided after the approval, as releases may have been published
-      # meanwhile. The previous release is the most recent tag in the
-      # history of the release commit with a published release: for a
-      # stable release, the most recent stable one (so that its notes cover
-      # its pre-releases too), else the most recent pre-release; for the
-      # first release of this workflow, `v0.2`. Without one, GitHub would
-      # pick an older tag of its choice (the repository has tags from before
-      # the chart). A stable release becomes `latest` only if its version is
-      # the highest of the stable release tags on `main` (tags exist from
-      # their push, unlike releases), so that a patch of an older version
-      # doesn't take it over
+      # meanwhile (publish jobs of different tags run one at a time, see
+      # `concurrency`). The previous release is the highest version among
+      # the tags in the history of the release commit that have a published
+      # release: for a stable release, among the stable ones only (so that
+      # its notes cover its pre-releases too); for the first release of this
+      # workflow, `v0.2`. Without one, GitHub would pick an older tag of its
+      # choice (the repository has tags from before the chart). A stable
+      # release becomes `latest` only if its version is the highest of the
+      # stable release tags on `main` (tags exist from their push, unlike
+      # releases), so that a patch of an older version doesn't take it over.
+      # Versions are compared with `sort -V`, with the `-` of a pre-release
+      # as `~`, so that pre-releases sort before their release
       - name: Determine the previous and latest release
         id: releases
         env:
@@ -213,37 +231,26 @@ jobs:
           PRERELEASE: ${{ needs.prepare.outputs.prerelease }}
         run: |
           set -o pipefail
-          git fetch --tags --force origin main
+          git fetch --tags --force origin +refs/heads/main:refs/remotes/origin/main
           published="$(mktemp)"
-          tags="$(mktemp)"
-          gh release list --limit 1000 --exclude-drafts --json tagName --jq '.[].tagName' > "${published}"
-          git tag -l 'v*' --merged HEAD --sort=-creatordate > "${tags}"
-          stable_re='^v[0-9]+\.[0-9]+\.[0-9]+$'
+          gh api --paginate "repos/${GH_REPO}/releases?per_page=100" \
+              --jq '.[] | select(.draft | not) | .tag_name' > "${published}"
           # Tags of pre-releases; older tags such as `v0.2` count as stable
           pre_re='-(alpha|beta|rc)\.'
-          previous=""
-          pre=""
-          while IFS= read -r tag; do
-              if [[ "${tag}" == "${TAG}" ]] || ! grep -qxF -- "${tag}" "${published}"; then
-                  continue
-              fi
-              if [[ "${PRERELEASE}" == "true" || ! "${tag}" =~ ${pre_re} ]]; then
-                  previous="${tag}"
-                  break
-              fi
-              if [[ -z "${pre}" ]]; then
-                  pre="${tag}"
-              fi
-          done < "${tags}"
-          if [[ -z "${previous}" ]]; then
-              previous="${pre}"
+          highest() {
+              sed 's/-/~/' | sort -V | tail -n 1 | sed 's/~/-/'
+          }
+          candidates="$(git tag -l 'v*' --merged HEAD \
+              | { grep -vxF -- "${TAG}" || true; } \
+              | { grep -xF -f "${published}" || true; })"
+          if [[ "${PRERELEASE}" != "true" ]]; then
+              candidates="$(grep -vE -- "${pre_re}" <<< "${candidates}" || true)"
           fi
+          previous="$(highest <<< "${candidates}")"
           latest=false
           if [[ "${PRERELEASE}" != "true" ]]; then
-              highest="$(git tag -l 'v*' --merged origin/main \
-                  | { grep -E "${stable_re}" || true; } \
-                  | { cat; echo "${TAG}"; } | sort -V | tail -n 1)"
-              if [[ "${highest}" == "${TAG}" ]]; then
+              stable="$(git tag -l 'v*' --merged origin/main | { grep -vE -- "${pre_re}" || true; })"
+              if [[ "$(printf '%s\n%s\n' "${stable}" "${TAG}" | highest)" == "${TAG}" ]]; then
                   latest=true
               fi
           fi

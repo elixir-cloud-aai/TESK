@@ -139,12 +139,15 @@ The workflow `Release` (`.github/workflows/release.yml`) runs on pushed
    artifact attestation), signs it (Sigstore bundle `*.sigstore.json`), and
    creates the GitHub release, with the chart and its bundle attached and
    generated notes, which list the pull requests since the previous release:
-   the most recent tag in the history of the release commit with a
-   published release, for a stable release the most recent stable one (for
-   the first release from this workflow, `v0.2`). Releases are immutable
-   once published: the release is created as a draft, the files are
-   uploaded, and then it is published. A stable release becomes the latest
-   release only if no stable release tag on `main` has a higher version.
+   the highest version among the tags in the history of the release commit
+   with a published release, for a stable release among the stable ones
+   (for the first release from this workflow, `v0.2`). Releases are
+   immutable once published: the release is created as a draft, the files
+   are uploaded, and then it is published. A stable release becomes the
+   latest release only if no stable release tag on `main` has a higher
+   version. Publish jobs run one at a time; GitHub keeps one waiting job,
+   so if a third tag is pushed while one publishes and one waits, the
+   waiting one is cancelled: re-run it.
 
 The workflow relies on these repository settings, which maintainers with
 admin rights keep: the `release` environment with required reviewers,
