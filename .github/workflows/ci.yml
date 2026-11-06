@@ -84,6 +84,8 @@ jobs:
         run: |
           pre-commit run --all-files --show-diff-on-failure
           pre-commit run --all-files --hook-stage manual gitleaks-all
+      - name: Validate citation metadata
+        run: pipx run --spec cffconvert==2.0.0 cffconvert --validate -i CITATION.cff
 
   # Lints and renders the chart (`.github/actions/test-chart`)
   chart:
