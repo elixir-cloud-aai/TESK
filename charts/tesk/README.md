@@ -1,99 +1,24 @@
-# Deployment instructions for TESK
+# TESK Helm chart
 
-Helm chart and config to deploy the TESK service. Tested with Helm v3.0.0.
+Helm chart that deploys [TESK](https://github.com/elixir-cloud-aai/TESK), the
+GA4GH Task Execution Service on Kubernetes.
 
-## Kubernetes versions
+The documentation is on [Read the Docs](https://tesk.readthedocs.io/):
 
-The default taskmaster and filer, v0.10.6, were tested on Kubernetes 1.30 and 1.36
-(k3s); earlier versions of Kubernetes were not tested with them. Taskmaster
-v0.10.2 ends tasks in `SYSTEM_ERROR` on Kubernetes 1.31 or later, as it reads only
-the first condition of a job: if your values set
-`tesk.taskmaster_image_version`, use v0.10.6 or later.
+- [Deployment](https://tesk.readthedocs.io/en/latest/deployment/): requirements
+  (including the tested Kubernetes versions), installation, exposing the API,
+  storage backends and authentication.
+- [Configuration](https://tesk.readthedocs.io/en/latest/configuration/): all
+  values of this chart, the service info, and the files and secrets it reads.
+- [Upgrading](https://tesk.readthedocs.io/en/latest/upgrading/): changes that
+  affect existing deployments (e.g., since taskmaster v0.10.6, a task that
+  uses more memory than it requested is killed).
 
-Moving from taskmaster v0.10.2: it now also sets the resources that an executor
-requests (`cpu_cores`, `ram_gb` of a task) as its limits, so a task that uses more
-memory than it asked for is killed, and its CPU is throttled.
-
-## Usage
-
-First you must create a namespace in Kubernetes in which to deploy TESK. In development clusters such as Minikube it is fine to use the `default` namespace. The
-command below creates all deployments in the context of this namespace. How
-the namespace is created depends on the cluster, so it is not documented here.
-
-To deploy the application:
- * modify [`values.yaml`](values.yaml)
- * If you are installing the FTP storage backend (and will not use .netrc file for FTP credentials) and/or OIDC client, create a `secrets.yaml` file. You need to fill up the `username` and `password` of the ftp account that will be potentially used to exchange I/O with a workflow manager such as cwl-tes. If you activated authentication (auth.mode == 'auth' in `values.yaml`), optionally you may activate the OICD client in the Swagger UI as well (you need to register the client by your OIDC provider). To do so, supply the `client_id` and `client_secret` values obtained during the client registration, otherwise the auth section must be removed.
-
- ```
- ftp:
-   username: <username>
-   password: <password>
-
- auth:
-   client_id: <client_id>
-   client_secret: <client_secret>
- ```
-
- * If you're using `s3` as your storage option, do not forget to add the necessary `config` and `credentials` files
- (see [here](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html)) under a folder named
- **s3-config** (*charts/tesk/s3-config*).
-
- * If you are installing the FTP storage backend and want to use .netrc file for FTP credentials, place the .netrc in the `ftp` folder. There is a template in the folder.
-
- * Finally execute:
+The default values are in [`values.yaml`](values.yaml). In short, from a
+checkout of the repository:
 
 ```bash
-$ helm upgrade --install tesk-release . -f secrets.yaml -f values.yaml
+helm upgrade --install tesk charts/tesk \
+    --namespace tesk --create-namespace \
+    -f my-values.yaml
 ```
-
-then you can check it all went as expected:
-
-```bash
-$ helm list -n tesk
-NAME	        NAMESPACE  REVISION	UPDATED                                 	STATUS  	CHART     	APP VERSION
-tesk-release	tesk	     16      	2020-05-14 11:38:45.521995325 +0300 EEST	deployed	tesk-0.1.0	dev
-```
-
-The first time running this command, the chart will be installed. Afterwards, it will apply any change in the chart.
-
-*IMPORTANT:* In kubernetes, if you want to install TESK in a namespace different than `default`, it must be specified by using `-n <namespace>`, so the final command would be something like this:
-
-```bash
-$ helm upgrade -n tesk --install tesk-release . -f secrets.yaml -f values.yaml
-```
-*Note*: If you're running Helm 3, you might need to also use the `--create-namespace` option, as non-existent namespaces
-do not get created by default (see [this](https://github.com/helm/helm/issues/6794)).
-
-##  Description of values
-
-See [`values.yaml`](values.yaml) for default values.
-
-| Key | Type | Description |
-| --- | --- | --- |
-| host_name | string | FQDN to expose the application |
-| storageClass | string | Name of a user preferred storage class (default is empty) |
-| storage | string | Can be either 'openstack' or 's3' |
-| tesk.image | string | container image (including the version) to be used to run TESK API |
-| tesk.port | integer | |
-| tesk.taskmaster_image_version | string | the version of the image to be used to run TESK Taskmaster Job |
-| tesk.taskmaster_filer_image_version | string | the version of the image to be used to run TESK Filer Job |
-| tesk.executor_retries| int | The number of retries on error - actual task compute (executor)|
-| tesk.filer_retries| int | The number of retries on error while handling I/O (filer)|
-| tesk.debug | boolean | Activates the debugging mode |
-| tesk.securityContext.enabled | boolean | Enable securityContext |
-| transfer.wes_base_path | string | |
-| transfer.tes_base_path | string | |
-| transfer.pvc_name | string | |
-| auth.mode | string | Can be 'noauth' to disable authentication, or 'auth' to enable it |
-| auth.env_subgroup | string | Can be 'EBI' or 'CSC' |
-| auth.service_info_public | boolean | With `auth.mode` 'auth': `true` (default) lets `GET /service-info` answer without a token, `false` requires a valid token for it. Needs tesk-api 1.2.0 or later (`tesk.image`); earlier versions ignore it and keep the endpoint public. No effect with 'noauth', where all endpoints are open. See [`auth.md`](https://github.com/elixir-cloud-aai/tesk-api/blob/master/auth.md#public-endpoints) |
-| service.type | string | Can be 'NodePort' or 'ClusterIp' or 'LoadBalancer' |
-| service.node_port | integer | Only used if service.type is 'NodePort', specifies the port |
-| ftp.classic_ftp_secret | String | The name of a secret to store FTP credentials as keys. If empty, the old-style FTP secret is not created |
-| ftp.netrc_secret | String | The name of a secret to store FTP credentials as a netrc file. If empty, the netrc FTP secret is not created |
-| ftp.hostip | string | IP of the endpoint of the ftp as seen by containers in K8s (only needed, if in need of a DNS entry for locally installed FTP server) |
-| ingress.rules| boolean | Apply or not the ingress rule |
-| ingress.ingressClassName | string | Name of the Ingress Class |
-| ingress.path | string |  |
-| ingress.tls_secret_name | string |  If no TLS secret name configured, TLS will be switched off. A template can be found at [deployment/tls_secret_name.yml-TEMPLATE](deployment/tls_secret_name.yml-TEMPLATE). If you are using cert-manager the secret will be created automatically.|
-| ingress.annotations | string | Annotations for the ingress rules |
