@@ -5,7 +5,7 @@
 # instead (and allow the skip in the gate). Runs also when a pull request is
 # edited, so that the title check follows the title; all jobs run then, as a
 # run that skipped the checks would report "CI passed" for the commit.
-# Nothing is published from here: charts are released by `release.yml`
+# Nothing is published from here
 
 name: CI
 on:
@@ -67,6 +67,8 @@ jobs:
           python-version: "3.13"
       - name: Set up uv
         uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version-file: uv.lock
       - name: Check lock file
         run: uv lock --check
       - name: Install dependencies
@@ -83,8 +85,7 @@ jobs:
           pre-commit run --all-files --show-diff-on-failure
           pre-commit run --all-files --hook-stage manual gitleaks-all
 
-  # Lints and renders the chart (`.github/actions/test-chart`, also run by
-  # `release.yml`)
+  # Lints and renders the chart (`.github/actions/test-chart`)
   chart:
     name: Chart
     runs-on: ubuntu-latest
@@ -98,7 +99,7 @@ jobs:
         uses: ./.github/actions/test-chart
 
   # Installs the chart on a kind cluster and checks the API
-  # (`.github/actions/install-chart`, also run by `release.yml`)
+  # (`.github/actions/install-chart`)
   chart-install:
     name: Chart install
     runs-on: ubuntu-latest

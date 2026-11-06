@@ -1,8 +1,6 @@
 # Checks run on commit (`pre-commit install`) and in CI (`pre-commit run
 # --all-files`, plus the manual-stage `gitleaks-all` hook); hook versions are
 # pinned to commits
-# The copy of tesk-core in `source/` is kept as in its repository
-exclude: ^source/tesk-core/
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: 3e8a8703264a2f4a69428a0aa4dcb512790b2c8c  # frozen: v6.0.0
@@ -11,11 +9,15 @@ repos:
       - id: check-json
       - id: check-merge-conflict
       - id: check-yaml
-        # Helm templates are not valid YAML before rendering; `mkdocs.yml`
-        # uses MkDocs' `!ENV` tag (the docs build checks it)
-        exclude: ^(charts/tesk/templates/|mkdocs\.yml$)
+        # Helm templates are not valid YAML before rendering
+        exclude: ^charts/tesk/templates/
+      # The copy of tesk-core in `source/` is left as it is (not maintained here)
       - id: end-of-file-fixer
+        exclude: ^source/tesk-core/
+      # Keeps Markdown hard line breaks (two trailing spaces)
       - id: trailing-whitespace
+        args: [--markdown-linebreak-ext=md]
+        exclude: ^source/tesk-core/
   - repo: https://github.com/gitleaks/gitleaks
     rev: 83d9cd684c87d95d656c1458ef04895a7f1cbd8e  # frozen: v8.30.1
     hooks:
