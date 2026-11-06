@@ -3,11 +3,12 @@
 # directory of the pages in the site, and the nav marker `external:<name>` in
 # `mkdocs.yml`), GitHub repository, and the full SHA of the commit to pull
 # (`ref`); an empty `ref` adds a placeholder page. Update a `ref` to publish
-# newer docs of that repository. The refs are set once the repositories have
-# docs (elixir-cloud-aai/tesk-core#65 and the docs of tesk-api)
+# newer docs of that repository
 tesk-api:
   repository: elixir-cloud-aai/tesk-api
-  ref: ""
+  # docs: add MkDocs docs and align the README (#77)
+  ref: "d60f1903c49383b09f055de48d51f94f38838988"
 tesk-core:
   repository: elixir-cloud-aai/tesk-core
-  ref: ""
+  # docs: add MkDocs docs for TESK's site (#71)
+  ref: "06dc67fdf8721c7de6c16a5044bdc1420c93d834"
