@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 import importlib.util
 import io
 from pathlib import Path
@@ -422,44 +422,84 @@ def test_download_too_large(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> 
 def test_extract_docs_too_many_members(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Tarballs with more members than the limit fail the build."""
+    """More docs files than the limit fail the build; others don't count."""
     monkeypatch.setattr(hooks, "MAX_MEMBERS", 2)
     archive = tmp_path / "a.tar.gz"
-    _tarball(archive, {"docs/a.md": b"a", "docs/b.md": b"b"})
-    with pytest.raises(PluginError, match="more than 2 files"):
+    _tarball(archive, {"src/x": b"x", "src/y": b"y", "docs/a.md": b"a"})
+    hooks.extract_docs(archive, tmp_path / "ok")
+    _tarball(archive, {"docs/a.md": b"a", "docs/b.md": b"b", "mkdocs.yml": b""})
+    with pytest.raises(PluginError, match="more than 2 docs files"):
         hooks.extract_docs(archive, tmp_path / "out")
 
 
-def test_pull_failure_cleans_up(
+def test_extract_docs_too_large(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Docs larger than the limit fail the build; other files don't count."""
+    monkeypatch.setattr(hooks, "MAX_EXTRACTED_BYTES", 3)
+    archive = tmp_path / "a.tar.gz"
+    _tarball(archive, {"src/big": b"0123456789", "docs/a.md": b"abc"})
+    hooks.extract_docs(archive, tmp_path / "ok")
+    _tarball(archive, {"docs/a.md": b"ab", "docs/b.md": b"cd"})
+    with pytest.raises(PluginError, match="larger than 3 bytes"):
+        hooks.extract_docs(archive, tmp_path / "out")
+
+
+def _fetch_offline(url: str, target: Path) -> None:
+    """Fail like a download without network.
+
+    Args:
+        url: Ignored.
+        target: Ignored.
+
+    Raises:
+        PluginError: Always.
+    """
+    raise PluginError("offline")
+
+
+def _fetch_without_docs(url: str, target: Path) -> None:
+    """Fetch a tarball of a repository without `docs/`.
+
+    Args:
+        url: Ignored.
+        target: Where to write the tarball.
+    """
+    _tarball(target, {"README.md": b"# Repo"})
+
+
+@pytest.mark.parametrize(
+    ("fetch", "error"),
+    [(_fetch_offline, "offline"), (_fetch_without_docs, "no `docs/`")],
+)
+def test_pull_failure_cleans_up(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    fetch: Callable[[str, Path], None],
+    error: str,
 ) -> None:
     """A failed pull removes its temporary directory and caches nothing."""
     monkeypatch.setattr(hooks.tempfile, "tempdir", str(tmp_path))
-
-    def fetch(url: str, target: Path) -> None:
-        raise PluginError("offline")
-
-    with pytest.raises(PluginError, match="offline"):
+    with pytest.raises(PluginError, match=error):
         hooks.pull(hooks.Source("tesk-core", "o/r", SHA), fetch)
     assert list(tmp_path.glob("tesk-docs-*")) == []
     assert hooks._cache == {}
 
 
 def test_on_shutdown(tmp_path: Path) -> None:
-    """Shutting down removes the pulled docs and clears the cache."""
+    """Shutting down removes all pulled docs, also those not in use."""
 
     def fetch(url: str, target: Path) -> None:
         _tarball(target, {"docs/index.md": b"# Core"})
 
-    source = hooks.Source("tesk-core", "o/r", SHA)
-    pulled = hooks.pull(source, fetch)
-    hooks._cache[hooks.Source("x", "a/b", "")] = hooks.pull(
-        hooks.Source("x", "a/b", "")
-    )
+    pulled = hooks.pull(hooks.Source("tesk-core", "o/r", SHA), fetch)
+    unused = hooks.pull(hooks.Source("tesk-core", "o/r", "0" * 40), fetch)
     hooks._current.append(pulled)
     assert pulled.root is not None
+    assert unused.root is not None
     hooks.on_shutdown()
     assert not pulled.root.exists()
+    assert not unused.root.exists()
     assert hooks._cache == {}
     assert hooks._current == []
 

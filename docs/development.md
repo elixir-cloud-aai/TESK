@@ -79,7 +79,9 @@ this site pulls them in at build time:
   as the nav sections that `external:tesk-api` and `external:tesk-core` mark
   in `mkdocs.yml`. The pages and their order come from the `nav` of the
   repository's own `mkdocs.yml`; "Edit" links point to the page in its
-  repository. A source without a `ref` gets a placeholder page.
+  repository. A source without a `ref` gets a placeholder page. The pages
+  are served at `https://tesk.readthedocs.io/en/latest/tesk-api/` and
+  `.../tesk-core/`.
 
 The commits are pinned, so that a build of this site is reproducible and a
 change in another repository can't break it unnoticed. To publish newer docs
@@ -91,11 +93,11 @@ plugin](https://github.com/jdoiro3/mkdocs-multirepo-plugin), which imports
 the docs of other repositories by branch or tag: a branch moves (the site
 would change, or break, without a change in this repository), and tags of
 the other repositories exist only for releases. The hook needs no extra
-dependency and no `git`, and fails the build on any problem. It refuses
-tarballs above 50 MB or with more than 10,000 files; the content of a pinned
-commit is otherwise trusted, so review the docs of the other repository
-before pinning a new commit. The pages are served at
-`https://tesk.readthedocs.io/en/latest/tesk-api/` and `.../tesk-core/`.
+dependency and no `git`, and fails the build on any problem. It limits the
+size of the compressed tarball, and the number and total size of the files
+it extracts (`MAX_ARCHIVE_BYTES`, `MAX_MEMBERS` and `MAX_EXTRACTED_BYTES` in
+`docs/hooks.py`); the content of a pinned commit is otherwise trusted, so
+review the docs of the other repository before pinning a new commit.
 
 The pulled pages are built with this site's `mkdocs.yml`, so in tesk-api and
 tesk-core:

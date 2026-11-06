@@ -45,9 +45,12 @@ MARKER = "external:"
 ARCHIVE_URL = "https://codeload.github.com/{repository}/tar.gz/{ref}"
 EDIT_URL = "https://github.com/{repository}/edit/{branch}/docs/{path}"
 TIMEOUT = 60
-# Limits of a pulled tarball, against runaway downloads
+# Limits of a pulled repository, against runaway downloads and extraction:
+# the size of the compressed tarball, and the number and total size of what
+# is extracted from it (`docs/` and `mkdocs.yml`)
 MAX_ARCHIVE_BYTES = 50 * 1024 * 1024
 MAX_MEMBERS = 10_000
+MAX_EXTRACTED_BYTES = 200 * 1024 * 1024
 
 NAME = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 REPOSITORY = re.compile(r"^[A-Za-z0-9-]+/[A-Za-z0-9._-]+$")
@@ -175,14 +178,14 @@ def extract_docs(archive: Path, target: Path) -> None:
         target: Directory to extract into.
 
     Raises:
-        PluginError: If the tarball has more than `MAX_MEMBERS` members or
-            no `docs/`.
+        PluginError: If the extracted files and directories are more than
+            `MAX_MEMBERS` or larger than `MAX_EXTRACTED_BYTES` in total, or
+            if the repository has no `docs/`.
     """
     with tarfile.open(archive, "r:gz") as tar:
         members = []
-        for count, member in enumerate(tar, start=1):
-            if count > MAX_MEMBERS:
-                raise PluginError(f"{archive.name}: more than {MAX_MEMBERS} files")
+        size = 0
+        for member in tar:
             parts = member.name.split("/", 1)
             if len(parts) < 2 or not (member.isfile() or member.isdir()):
                 continue
@@ -190,6 +193,15 @@ def extract_docs(archive: Path, target: Path) -> None:
             if path == "mkdocs.yml" or path.startswith("docs/"):
                 member.name = path
                 members.append(member)
+                size += member.size
+                if len(members) > MAX_MEMBERS:
+                    raise PluginError(
+                        f"{archive.name}: more than {MAX_MEMBERS} docs files"
+                    )
+                if size > MAX_EXTRACTED_BYTES:
+                    raise PluginError(
+                        f"{archive.name}: docs larger than {MAX_EXTRACTED_BYTES} bytes"
+                    )
         if not any(member.name.startswith("docs/") for member in members):
             raise PluginError(f"{archive.name}: no `docs/` in the repository")
         tar.extractall(target, members=members, filter="data")
@@ -410,6 +422,7 @@ def on_page_markdown(
 def on_shutdown() -> None:
     """Remove the temporary directories of the pulled docs."""
     for pulled in _cache.values():
+        # Only pulled docs are cached, but the type allows placeholders
         if pulled.root is not None:
             shutil.rmtree(pulled.root, ignore_errors=True)
     _cache.clear()
