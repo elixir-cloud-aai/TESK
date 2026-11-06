@@ -55,6 +55,11 @@ auth:
     # EBI/CSC
     env_subgroup: CSC
     env_basegroup: ECP_CLN
+    # With mode auth: true lets GET /service-info answer without a token, false
+    # requires a valid token for it. Needs tesk-api 1.2.0 or later (tesk.image);
+    # earlier versions ignore this and keep the endpoint public. No effect with
+    # mode noauth, where all endpoints are open.
+    service_info_public: true
 
 service:
     # the following variables are specific to each deployment
