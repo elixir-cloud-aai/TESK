@@ -28,6 +28,7 @@ import re
 import shutil
 import tarfile
 import tempfile
+import time
 from typing import Any, cast
 import urllib.request
 
@@ -44,7 +45,9 @@ SOURCES = "docs-sources.yml"
 MARKER = "external:"
 ARCHIVE_URL = "https://codeload.github.com/{repository}/tar.gz/{ref}"
 EDIT_URL = "https://github.com/{repository}/edit/{branch}/docs/{path}"
+# Seconds: of each network operation, and of a whole download
 TIMEOUT = 60
+DEADLINE = 300
 # Limits of a pulled repository, against runaway downloads and extraction:
 # the size of the compressed tarball, and the number and total size of what
 # is extracted from it (`docs/` and `mkdocs.yml`)
@@ -124,8 +127,11 @@ def load_sources(path: Path) -> list[Source]:
         if not isinstance(entry, dict):
             raise PluginError(f"{path}: {name}: expected a mapping")
         repository = entry.get("repository")
-        ref = entry.get("ref") or ""
-        branch = entry.get("branch") or "dev"
+        # Missing or null: no docs yet (`ref`), or the default branch
+        ref = entry.get("ref")
+        ref = "" if ref is None else ref
+        branch = entry.get("branch")
+        branch = "dev" if branch is None else branch
         if not isinstance(name, str) or not NAME.match(name):
             raise PluginError(f"{path}: invalid name {name!r}")
         if not isinstance(repository, str) or not REPOSITORY.match(repository):
@@ -148,11 +154,13 @@ def download(url: str, target: Path) -> None:
         target: Where to save it.
 
     Raises:
-        PluginError: If the URL is not HTTPS, the download fails or the file
-            is larger than `MAX_ARCHIVE_BYTES`.
+        PluginError: If the URL is not HTTPS, the download fails, takes
+            longer than `DEADLINE`, or the file is larger than
+            `MAX_ARCHIVE_BYTES`.
     """
     if not url.startswith("https://"):
         raise PluginError(f"Refusing to download {url}: not HTTPS")
+    deadline = time.monotonic() + DEADLINE
     try:
         with (
             urllib.request.urlopen(url, timeout=TIMEOUT) as response,  # noqa: S310
@@ -161,6 +169,8 @@ def download(url: str, target: Path) -> None:
             while chunk := response.read(1024 * 1024):
                 if file.tell() + len(chunk) > MAX_ARCHIVE_BYTES:
                     raise PluginError(f"{url}: larger than {MAX_ARCHIVE_BYTES} bytes")
+                if time.monotonic() > deadline:
+                    raise PluginError(f"{url}: took longer than {DEADLINE} s")
                 file.write(chunk)
     except OSError as error:
         raise PluginError(f"Could not download {url}: {error}") from error
@@ -365,13 +375,17 @@ def on_files(files: Files, config: MkDocsConfig) -> Files:
         The files, with the pulled ones.
 
     Raises:
-        PluginError: If a pulled file is also a file of the site.
+        PluginError: If a pulled file or placeholder page is also a file of
+            the site.
     """
     for pulled in _current:
         name = pulled.source.name
         if pulled.root is None:
+            uri = f"{name}/index.md"
+            if files.get_file_from_path(uri) is not None:
+                raise PluginError(f"{uri}: placeholder page is also a file of the site")
             content = PLACEHOLDER.format(name=name, repository=pulled.source.repository)
-            files.append(File.generated(config, f"{name}/index.md", content=content))
+            files.append(File.generated(config, uri, content=content))
             continue
         docs = pulled.root / "docs"
         for path in sorted(docs.rglob("*")):

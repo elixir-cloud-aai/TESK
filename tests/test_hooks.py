@@ -123,11 +123,13 @@ def test_load_sources(tmp_path: Path) -> None:
     path = _sources(
         tmp_path,
         f"tesk-api:\n  repository: a/b\n  ref: ''\n"
-        f"tesk-core:\n  repository: c/d\n  ref: {SHA}\n  branch: main\n",
+        f"tesk-core:\n  repository: c/d\n  ref: {SHA}\n  branch: main\n"
+        f"other:\n  repository: e/f\n  ref: null\n  branch: null\n",
     )
     assert hooks.load_sources(path) == [
         hooks.Source("tesk-api", "a/b", "", "dev"),
         hooks.Source("tesk-core", "c/d", SHA, "main"),
+        hooks.Source("other", "e/f", "", "dev"),
     ]
 
 
@@ -145,6 +147,10 @@ def test_load_sources_empty(tmp_path: Path) -> None:
         ("x:\n  repository: nope\n", "invalid repository"),
         ("x:\n  repository: a/b\n  ref: main\n", "full commit SHA"),
         ("x:\n  repository: a/b\n  branch: 1\n", "invalid branch"),
+        ("x:\n  repository: a/b\n  branch: 0\n", "invalid branch"),
+        ("x:\n  repository: a/b\n  branch: ''\n", "invalid branch"),
+        ("x:\n  repository: a/b\n  ref: 0\n", "full commit SHA"),
+        ("x:\n  repository: a/b\n  ref: false\n", "full commit SHA"),
     ],
 )
 def test_load_sources_invalid(tmp_path: Path, text: str, message: str) -> None:
@@ -363,6 +369,14 @@ def test_on_files(config: MkDocsConfig, tmp_path: Path) -> None:
     ]
 
 
+def test_on_files_placeholder_conflict(config: MkDocsConfig) -> None:
+    """Placeholders must not replace files of the site."""
+    hooks._current.append(hooks.pull(hooks.Source("tesk-core", "o/r", "")))
+    existing = File.generated(config, "tesk-core/index.md", content="# Mine")
+    with pytest.raises(PluginError, match="placeholder page is also a file"):
+        hooks.on_files(Files([existing]), config)
+
+
 def test_on_files_conflict(config: MkDocsConfig, tmp_path: Path) -> None:
     """Pulled files must not replace files of the site."""
     hooks._current.append(_pulled(tmp_path, {"index.md": "# Core"}))
@@ -407,6 +421,19 @@ def test_on_page_markdown_placeholder(config: MkDocsConfig) -> None:
 
 class _Response(io.BytesIO):
     """Response of a fake `urlopen`, usable as a context manager."""
+
+
+def test_download_too_slow(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Downloads that take longer than the deadline fail the build."""
+    clock = iter([0.0, 1.0, 1000.0])
+    monkeypatch.setattr(hooks.time, "monotonic", lambda: next(clock))
+    monkeypatch.setattr(
+        hooks.urllib.request,
+        "urlopen",
+        lambda url, timeout: _Response(b"x" * (3 * 1024 * 1024)),
+    )
+    with pytest.raises(PluginError, match="took longer than"):
+        hooks.download("https://example.org/x", tmp_path / "x")
 
 
 def test_download_too_large(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
