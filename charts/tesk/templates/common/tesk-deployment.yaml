@@ -62,6 +62,10 @@ spec:
           value: {{ .Values.auth.env_basegroup }}
         - name: SPRING_PROFILES_ACTIVE
           value: {{ .Values.auth.mode }}
+        {{- if not (kindIs "invalid" .Values.auth.service_info_public) }}
+        - name: TESK_API_SERVICE_INFO_PUBLIC
+          value: {{ .Values.auth.service_info_public | quote }}
+        {{- end }}
 
         {{ if .Values.transfer.active }}
         - name: TESK_API_TASKMASTER_ENVIRONMENT_HOST_BASE_PATH
