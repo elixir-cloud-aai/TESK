@@ -369,6 +369,52 @@ def test_on_files(config: MkDocsConfig, tmp_path: Path) -> None:
     ]
 
 
+def test_on_files_excluded(config: MkDocsConfig, tmp_path: Path) -> None:
+    """The source's `exclude_docs` and MkDocs' default exclusions apply."""
+    pulled = _pulled(
+        tmp_path,
+        {
+            "index.md": "# Core",
+            "requirements.txt": "mkdocs",
+            "sub/requirements.txt": "mkdocs",
+            "drafts/a.md": "# Draft",
+            "sub/drafts/b.md": "# Kept",
+            ".hidden.md": "# Hidden",
+            "templates/t.html": "<p>",
+            "sub/templates/t.html": "<p>",
+        },
+    )
+    (tmp_path / "pulled/mkdocs.yml").write_text(
+        "site_url: !ENV [X, 'https://x/']\n"
+        "exclude_docs: |\n  requirements.txt\n  /drafts/\n",
+        encoding="utf-8",
+    )
+    hooks._current.append(pulled)
+    files = hooks.on_files(Files([]), config)
+    assert sorted(file.src_uri for file in files) == [
+        "tesk-core/index.md",
+        "tesk-core/sub/drafts/b.md",
+        "tesk-core/sub/templates/t.html",
+    ]
+
+
+def test_exclusions_without_config(tmp_path: Path) -> None:
+    """Without `mkdocs.yml` or `exclude_docs`, MkDocs' defaults apply."""
+    assert hooks.exclusions(tmp_path).match_file(".hidden.md")
+    assert not hooks.exclusions(tmp_path).match_file("requirements.txt")
+    (tmp_path / "mkdocs.yml").write_text("site_name: x\n", encoding="utf-8")
+    assert hooks.exclusions(tmp_path).match_file("templates/t.html")
+    assert not hooks.exclusions(tmp_path).match_file("requirements.txt")
+
+
+@pytest.mark.parametrize("value", ["[requirements.txt]", "1", "{a: b}"])
+def test_exclusions_invalid(tmp_path: Path, value: str) -> None:
+    """`exclude_docs` must be a string of patterns, as in MkDocs."""
+    (tmp_path / "mkdocs.yml").write_text(f"exclude_docs: {value}\n", encoding="utf-8")
+    with pytest.raises(PluginError, match="exclude_docs"):
+        hooks.exclusions(tmp_path)
+
+
 def test_on_files_placeholder_conflict(config: MkDocsConfig) -> None:
     """Placeholders must not replace files of the site."""
     hooks._current.append(hooks.pull(hooks.Source("tesk-core", "o/r", "")))

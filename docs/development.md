@@ -114,6 +114,11 @@ tesk-core:
 - Keep a `nav` in their `mkdocs.yml`, with their `index.md` first.
 - Keep no Python files in `docs/` that are meant as pages (`*.py` files,
   e.g., hooks, are not pulled).
+- List files in `docs/` that aren't part of the site (e.g., the
+  `requirements.txt` of their Read the Docs build) in `exclude_docs` of
+  their `mkdocs.yml`: the hook leaves out what it matches (patterns relative
+  to their `docs/`), as well as MkDocs' default exclusions (hidden files and
+  a top-level `templates/`).
 
 ## Releases
 

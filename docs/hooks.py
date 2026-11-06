@@ -9,8 +9,10 @@ nav section that the marker `external:<name>` stands for in `mkdocs.yml`
 (e.g., `- tesk-core: external:tesk-core`). The section's pages and their
 order come from the `nav` of the repository's own `mkdocs.yml`; without one,
 its pages are listed in alphabetical order, `index.md` first. A source whose
-`ref` is empty gets a placeholder page instead. "Edit" links of pulled pages
-point to the page in its repository.
+`ref` is empty gets a placeholder page instead. Files that the repository's
+own site leaves out (its `exclude_docs`, and MkDocs' default exclusions) are
+not pulled into the site either. "Edit" links of pulled pages point to the
+page in its repository.
 
 The pulled pages are built with TESK's `mkdocs.yml` (theme, Markdown
 extensions and plugins), so they must not need others, and must not link to
@@ -36,6 +38,7 @@ from mkdocs.config.defaults import MkDocsConfig
 from mkdocs.exceptions import PluginError
 from mkdocs.structure.files import File, Files
 from mkdocs.structure.pages import Page
+from pathspec.gitignore import GitIgnoreSpec
 import yaml
 
 LOGGER = logging.getLogger("mkdocs.hooks.external_docs")
@@ -58,6 +61,9 @@ MAX_EXTRACTED_BYTES = 200 * 1024 * 1024
 NAME = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 REPOSITORY = re.compile(r"^[A-Za-z0-9-]+/[A-Za-z0-9._-]+$")
 COMMIT = re.compile(r"^[0-9a-f]{40}$")
+# Files that MkDocs leaves out of every site, before a site's own
+# `exclude_docs` (as `mkdocs.structure.files`, which keeps them private)
+DEFAULT_EXCLUDE = (".*", "/templates/")
 
 PLACEHOLDER = """# {name}
 
@@ -288,6 +294,37 @@ def section_nav(root: Path, name: str) -> list[Any]:
     return [f"{name}/{page}" for page in pages]
 
 
+def exclusions(root: Path) -> GitIgnoreSpec:
+    """Get the files of pulled docs that their own site leaves out.
+
+    MkDocs applies only the site's `exclude_docs` to the files of the site,
+    not the one of the pulled repository, whose patterns are relative to its
+    own `docs/` (e.g., `requirements.txt` of its Read the Docs build).
+
+    Args:
+        root: Directory with the pulled `docs/` and `mkdocs.yml`.
+
+    Returns:
+        MkDocs' default exclusions and the patterns of `exclude_docs` of the
+        repository's `mkdocs.yml`, if any, for paths relative to its `docs/`.
+
+    Raises:
+        PluginError: If `exclude_docs` is not a string, as MkDocs requires.
+    """
+    lines = list(DEFAULT_EXCLUDE)
+    config = root / "mkdocs.yml"
+    if config.is_file():
+        data = yaml.load(config.read_text(encoding="utf-8"), Loader=_Loader)  # noqa: S506
+        exclude = data.get("exclude_docs") if isinstance(data, dict) else None
+        if exclude is not None and not isinstance(exclude, str):
+            raise PluginError(
+                f"{config}: `exclude_docs` must be a string of patterns,"
+                f" not {type(exclude).__name__}"
+            )
+        lines.extend((exclude or "").splitlines())
+    return GitIgnoreSpec.from_lines(lines)
+
+
 def pull(source: Source, fetch: Callable[[str, Path], None] = download) -> Pulled:
     """Pull the docs of a source, or make its placeholder.
 
@@ -388,11 +425,13 @@ def on_files(files: Files, config: MkDocsConfig) -> Files:
             files.append(File.generated(config, uri, content=content))
             continue
         docs = pulled.root / "docs"
+        exclude = exclusions(pulled.root)
         for path in sorted(docs.rglob("*")):
             if (
                 not path.is_file()
                 or path.suffix == ".py"
                 or "__pycache__" in path.parts
+                or exclude.match_file(path.relative_to(docs).as_posix())
             ):
                 continue
             uri = f"{name}/{path.relative_to(docs).as_posix()}"
