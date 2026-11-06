@@ -15,7 +15,7 @@ license = "Apache-2.0"
 dev = [
     "pre-commit>=4.6",
     # Locks the version of uv that CI installs (`astral-sh/setup-uv`)
-    "uv>=0.12",
+    "uv>=0.13",
 ]
 
 [tool.uv]

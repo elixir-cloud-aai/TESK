@@ -51,9 +51,13 @@ runs:
             pid=$!
             sleep 2
           fi
-          if curl --fail --silent --show-error --output "${body}" \
+          if curl --fail --silent --show-error --max-time 10 --output "${body}" \
               http://localhost:8080/ga4gh/tes/v1/service-info; then
-            jq -e '.id and .type.group == "org.ga4gh"' "${body}"
+            if ! jq -e '.id and .type.group == "org.ga4gh"' "${body}"; then
+              echo "::error::Unexpected service info"
+              cat "${body}"
+              exit 1
+            fi
             exit 0
           fi
           sleep 5
