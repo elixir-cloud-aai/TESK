@@ -9,11 +9,24 @@ pinned Helm version only.
 
 from __future__ import annotations
 
+import base64
 import os
+from pathlib import Path
+import shutil
 
 import pytest
 
-from tests.helm import HELM, NAMESPACE, VALUES, container, env, find, get, render
+from tests.helm import (
+    CHART,
+    HELM,
+    NAMESPACE,
+    VALUES,
+    container,
+    env,
+    find,
+    get,
+    render,
+)
 
 if HELM is None:
     if os.environ.get("REQUIRE_HELM", "").lower() in {"1", "true", "yes"}:
@@ -264,14 +277,22 @@ def test_node_port() -> None:
     assert service["ports"] == [{"port": 8080, "nodePort": 31567}]
 
 
-def test_storage_s3() -> None:
-    """S3 storage renders the secret with the AWS configuration."""
-    manifests = render("--set", "storage=s3")
-    assert set(get(manifests, "Secret", "aws-secret")["data"]) == {
-        "config",
-        "credentials",
+def test_storage_s3(tmp_path: Path) -> None:
+    """S3 storage renders the secret from the files in `s3-config/`."""
+    chart = tmp_path / "tesk"
+    shutil.copytree(CHART, chart)
+    files = {
+        "config": "[default]\nregion = eu-north-1\n",
+        "credentials": "[default]\naws_access_key_id = test\n",
     }
-    assert find(render(), "Secret", "aws-secret") is None
+    for name, content in files.items():
+        (chart / "s3-config" / name).write_text(content)
+    manifests = render("--set", "storage=s3", chart=chart)
+    data = get(manifests, "Secret", "aws-secret")["data"]
+    assert {name: base64.b64decode(value).decode() for name, value in data.items()} == (
+        files
+    )
+    assert find(render(chart=chart), "Secret", "aws-secret") is None
 
 
 def test_storage_openstack() -> None:

@@ -19,18 +19,19 @@ VALUES: dict[str, Any] = yaml.safe_load((CHART / "values.yaml").read_text())
 Manifest = dict[str, Any]
 
 
-def render(*args: str) -> list[Manifest]:
+def render(*args: str, chart: Path = CHART) -> list[Manifest]:
     """Render the chart with `helm template` arguments.
 
     Args:
         args: Further arguments of `helm template`, e.g., `--set` options.
+        chart: The chart directory (e.g., a copy with added files).
 
     Returns:
         The rendered objects.
     """
     assert HELM is not None
     output = subprocess.run(  # noqa: S603 (fixed executable and arguments)
-        [HELM, "template", "tesk", str(CHART), "--namespace", NAMESPACE, *args],
+        [HELM, "template", "tesk", str(chart), "--namespace", NAMESPACE, *args],
         capture_output=True,
         check=True,
         text=True,
@@ -50,9 +51,7 @@ def find(manifests: list[Manifest], kind: str, name: str) -> Manifest | None:
         The object, or `None` if it isn't rendered.
     """
     for manifest in manifests:
-        # Some templates render names with trailing whitespace (e.g., the
-        # ingress), which YAML keeps in a plain scalar's value
-        if manifest["kind"] == kind and manifest["metadata"]["name"].strip() == name:
+        if manifest["kind"] == kind and manifest["metadata"]["name"] == name:
             return manifest
     return None
 
