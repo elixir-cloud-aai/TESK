@@ -114,10 +114,18 @@ tesk-core:
 
 TESK's releases are releases of its Helm chart. The chart's `version` in
 `charts/tesk/Chart.yaml` and the release tag are kept in step: tag `vX.Y.Z`
-releases chart version X.Y.Z (pre-releases: `vX.Y.Z-rc.N` etc., with the
-same chart version). Tags `v0.0.1` to `v0.2` exist from before the chart and
-can't be reused (release tags are immutable), so chart versions continue
-above 0.2.
+releases chart version X.Y.Z, and pre-release tags `vX.Y.Z-alpha.N`,
+`vX.Y.Z-beta.N` and `vX.Y.Z-rc.N` release chart versions `X.Y.Z-alpha.N`
+etc. (SemVer, as Helm requires). Tags `v0.0.1` to `v0.2` exist from before
+the chart and can't be reused (release tags are immutable), so chart
+versions continue above 0.2.
+
+Charts 0.1.0 and 0.1.1 were released under tags `tesk-0.1.0` and
+`tesk-0.1.1` and indexed in a Helm repository on the `gh-pages` branch
+(`helm repo add` with `https://elixir-cloud-aai.github.io/TESK/`). Those
+releases stay as they are, but this workflow doesn't update that index:
+releases from now on are only attached to their GitHub release, as in the
+org's other repositories.
 
 The workflow `Release` (`.github/workflows/release.yml`) runs on pushed
 `v*` tags:
@@ -125,22 +133,35 @@ The workflow `Release` (`.github/workflows/release.yml`) runs on pushed
 1. **Prepare release:** checks that the tag is annotated, signed (verified by
    GitHub), on `main` and matches the chart's `version` and the `version` of
    `CITATION.cff`, and that `CI` passed for a push of the tagged commit;
-   lints, renders and installs the chart as `CI` does, and packages it.
+   finds the previous release; lints, renders and installs the chart as `CI`
+   does, and packages it.
 2. **Publish release**, after a maintainer approved it in the `release`
    environment: attests the provenance of the packaged chart (GitHub
    artifact attestation), signs it (Sigstore bundle `*.sigstore.json`), and
-   creates the GitHub release, with generated notes and the chart and its
-   bundle attached. Releases are immutable once published: the release is
-   created as a draft, the files are uploaded, and then it is published.
+   creates the GitHub release, with the chart and its bundle attached and
+   generated notes, which list the pull requests since the previous release
+   (the most recent tag in the history of the release commit with a
+   published release; for the first release from this workflow, `v0.2`).
+   Releases are immutable once published: the release is created as a
+   draft, the files are uploaded, and then it is published. A stable
+   release becomes the latest release only if no published release has a
+   higher version.
+
+The workflow relies on these repository settings, which maintainers with
+admin rights keep: the `release` environment with required reviewers,
+limited to `v*` tags; tag rulesets that allow only `v*` tags and make them
+immutable; and immutable releases.
 
 To release version X.Y.Z:
 
 1. In a pull request to `dev`, set `version` in `charts/tesk/Chart.yaml`, and
    `version` and `date-released` in `CITATION.cff`, to X.Y.Z and the release
    date; merge it once CI passed.
-2. Once `CI` passed for the push of that commit (`<sha>`) to `dev`, move
-   `main` forward to it (`main` only ever moves forward to released commits
-   of `dev`), then tag it with a signed, annotated tag and push the tag:
+2. Once `CI` passed for the push of that commit (`<sha>`) to `dev` (the
+   check needs a commit that was pushed to `dev`, not one only tested in a
+   pull request), move `main` forward to it (`main` only ever moves forward
+   to released commits of `dev`), then tag it with a signed, annotated tag
+   and push the tag:
 
     ```bash
     git push origin <sha>:main  # fails unless it is a fast-forward
@@ -155,14 +176,16 @@ If a run fails before publishing, fix the cause and re-run it: a re-run
 completes a draft that a failed run left. If the tagged commit is wrong,
 release a new version instead.
 
-To install a released chart, download it from the release, check it, and
-install it:
+To install a released chart, download it from the release, check that the
+release workflow built and signed it from the release tag, and install it:
 
 ```bash
 gh release download vX.Y.Z --repo elixir-cloud-aai/TESK --pattern 'tesk-*'
-gh attestation verify tesk-X.Y.Z.tgz --repo elixir-cloud-aai/TESK
+gh attestation verify tesk-X.Y.Z.tgz --repo elixir-cloud-aai/TESK \
+    --signer-workflow elixir-cloud-aai/TESK/.github/workflows/release.yml \
+    --source-ref refs/tags/vX.Y.Z
 cosign verify-blob tesk-X.Y.Z.tgz --bundle tesk-X.Y.Z.tgz.sigstore.json \
-    --certificate-identity-regexp '^https://github.com/elixir-cloud-aai/TESK/' \
+    --certificate-identity https://github.com/elixir-cloud-aai/TESK/.github/workflows/release.yml@refs/tags/vX.Y.Z \
     --certificate-oidc-issuer https://token.actions.githubusercontent.com
 helm install tesk tesk-X.Y.Z.tgz --namespace tesk --create-namespace
 ```

@@ -1,5 +1,6 @@
-# Release the Helm chart when a release tag (`vX.Y.Z`, or a pre-release such
-# as `vX.Y.Z-rc.1`) is pushed, as cloud-registry and proTES do: check that
+# Release the Helm chart when a release tag (`vX.Y.Z`, or a pre-release
+# `vX.Y.Z-alpha.N`, `-beta.N` or `-rc.N`: SemVer, as chart versions must be)
+# is pushed, as cloud-registry and proTES release their charts: check that
 # the tag is annotated, signed (verified by GitHub) and on `main`, that it
 # matches the chart's `version` (tag `vX.Y.Z` = chart X.Y.Z) and the version
 # of `CITATION.cff`, and that CI passed for its commit; lint, render and
@@ -36,7 +37,8 @@ jobs:
   prepare:
     name: Prepare release
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    # As CI's chart-install job, which takes most of the time
+    timeout-minutes: 30
     permissions:
       contents: read
       actions: read # read the CI runs of the release commit
@@ -44,6 +46,7 @@ jobs:
       version: ${{ steps.version.outputs.version }}
       prerelease: ${{ steps.version.outputs.prerelease }}
       sha: ${{ steps.version.outputs.sha }}
+      previous: ${{ steps.previous.outputs.previous }}
       chart_file: ${{ steps.chart.outputs.file }}
       chart_sha256: ${{ steps.chart.outputs.sha256 }}
     steps:
@@ -139,6 +142,29 @@ jobs:
               echo "::error::No successful run of the CI workflow (ci.yml) for a push of ${SHA}; once CI passed for it, re-run this workflow"
               exit 1
           fi
+      # The generated notes list the pull requests since the previous
+      # release: the most recent tag in the history of the release commit
+      # with a published GitHub release (`v*`, or `tesk-*` of the chart
+      # releases before this workflow). Without one, GitHub would pick an
+      # older tag of its choice (the repository has tags from before the
+      # chart). Process substitution, so that leaving the loop early doesn't
+      # fail the step on SIGPIPE
+      - name: Determine the previous release
+        id: previous
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          published="$(gh release list --limit 1000 --exclude-drafts --json tagName --jq '.[].tagName')"
+          previous=""
+          while IFS= read -r tag; do
+              if [[ "${tag}" != "${TAG}" ]] && grep -qxF -- "${tag}" <<< "${published}"; then
+                  previous="${tag}"
+                  break
+              fi
+          done < <(git tag -l 'v*' 'tesk-*' --merged HEAD --sort=-creatordate)
+          echo "previous=${previous}" >> "${GITHUB_OUTPUT}"
       - name: Test chart
         uses: ./.github/actions/test-chart
       - name: Install chart
@@ -216,29 +242,67 @@ jobs:
         uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
       - name: Sign chart
         run: cosign sign-blob --yes --bundle "dist/${FILE}.sigstore.json" "dist/${FILE}"
-      # Created as a draft with the generated notes, then the files are
-      # uploaded and the release published: published releases are
-      # immutable. A re-run finds the draft of a failed run and completes
-      # it; a published release is left as it is
+      # Assets of a published immutable release (a repository setting) can't
+      # be added or replaced, so the release is created as a draft with the
+      # generated notes (since the previous release, see "Determine the
+      # previous release"), gets its files, and is published last. The
+      # release of the tag is looked up among all releases, drafts included:
+      # a re-run completes the draft of a failed run; a release that is
+      # already published (e.g., by hand) gets nothing, but must have both
+      # files, or the step fails. A stable release becomes `latest` only if
+      # its version is the highest of the published stable releases, so that
+      # a patch of an older version doesn't take it over
       - name: Create release
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           TAG: ${{ github.ref_name }}
           PRERELEASE: ${{ needs.prepare.outputs.prerelease }}
+          PREVIOUS: ${{ needs.prepare.outputs.previous }}
         run: |
-          if state="$(gh release view "${TAG}" --json isDraft --jq .isDraft 2> /dev/null)"; then
-              if [[ "${state}" != "true" ]]; then
-                  echo "::notice::Release ${TAG} is already published"
-                  exit 0
+          set -o pipefail
+          releases="$(gh api --paginate --slurp "repos/${GH_REPO}/releases?per_page=100" | jq -c 'add // []')"
+          mine="$(jq -c --arg tag "${TAG}" '[.[] | select(.tag_name == $tag)]' <<< "${releases}")"
+          count="$(jq length <<< "${mine}")"
+          if [[ "${count}" -gt 1 ]]; then
+              echo "::error::${count} releases exist for ${TAG}; delete the extra drafts and re-run"
+              exit 1
+          fi
+          if [[ "${count}" -eq 1 && "$(jq -r '.[0].draft' <<< "${mine}")" != "true" ]]; then
+              for name in "${FILE}" "${FILE}.sigstore.json"; do
+                  if ! jq -e --arg name "${name}" '.[0].assets | any(.name == $name)' <<< "${mine}" > /dev/null; then
+                      echo "::error::Release ${TAG} is published without ${name}, which can't be added any more; release a new version"
+                      exit 1
+                  fi
+              done
+              echo "::notice::Release ${TAG} is already published"
+              exit 0
+          fi
+          latest=false
+          if [[ "${PRERELEASE}" != "true" ]]; then
+              highest="$(jq -r '.[] | select(.draft | not) | select(.prerelease | not) | .tag_name' <<< "${releases}" \
+                  | { grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' || true; } \
+                  | { cat; echo "${TAG}"; } | sort -V | tail -n 1)"
+              if [[ "${highest}" == "${TAG}" ]]; then
+                  latest=true
               fi
-          else
+          fi
+          if [[ "${count}" -eq 0 ]]; then
+              notes="$(mktemp)"
+              if [[ -n "${PREVIOUS}" ]]; then
+                  gh api "repos/${GH_REPO}/releases/generate-notes" \
+                      -f "tag_name=${TAG}" -f "previous_tag_name=${PREVIOUS}" \
+                      --jq .body > "${notes}"
+              else
+                  gh api "repos/${GH_REPO}/releases/generate-notes" \
+                      -f "tag_name=${TAG}" --jq .body > "${notes}"
+              fi
               gh release create "${TAG}" \
                   --draft \
                   --verify-tag \
                   --title "${TAG}" \
-                  --generate-notes \
+                  --notes-file "${notes}" \
                   --prerelease="${PRERELEASE}"
           fi
           gh release upload "${TAG}" "dist/${FILE}" "dist/${FILE}.sigstore.json" --clobber
-          gh release edit "${TAG}" --draft=false
+          gh release edit "${TAG}" --draft=false --latest="${latest}"
