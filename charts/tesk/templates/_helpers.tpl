@@ -80,6 +80,9 @@ files as floats, which YAML would render as, e.g., 1e+06), and
 {{- $lines = append $lines (printf "%s: %d" $key (index $context $key | int64)) -}}
 {{- end -}}
 {{- end -}}
+{{- if and (hasKey $context "runAsUser") (eq (index $context "runAsUser" | int64) 0) (eq (toString (index $context "runAsNonRoot")) "true") -}}
+{{- fail "tesk.executor.securityContext: runAsUser 0 contradicts runAsNonRoot true; Kubernetes wouldn't start the executors" -}}
+{{- end -}}
 {{- if hasKey $context "runAsNonRoot" -}}
 {{- $lines = append $lines (printf "nonRoot: %t" (index $context "runAsNonRoot")) -}}
 {{- end -}}

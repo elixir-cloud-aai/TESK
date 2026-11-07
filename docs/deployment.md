@@ -311,7 +311,9 @@ tesk:
 The chart puts these fields into a ConfigMap (`<prefix>-executor`), which
 tesk-api reads at startup and applies to the pods of the executors it
 creates; changing them restarts the API's pod, and applies to tasks created
-afterwards. tesk-api reads only these four fields. The taskmasters and the
+afterwards. While the new pod starts, the old one keeps creating tasks with
+the old settings. `runAsUser: 0` with `runAsNonRoot: true` fails the chart,
+as Kubernetes wouldn't start such executors. tesk-api reads only these four fields. The taskmasters and the
 filers aren't affected: their images run them as UID 100. The API's own
 pod has a separate security context (`tesk.securityContext`).
 

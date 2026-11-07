@@ -434,6 +434,24 @@ def test_executor_security_context_values_file(tmp_path: Path) -> None:
 @pytest.mark.parametrize(
     "value",
     [
+        '{"runAsUser": 0, "runAsNonRoot": true}',
+        '{"runAsUser": 0.0, "runAsNonRoot": true}',
+    ],
+)
+def test_executor_security_context_root_and_non_root(value: str) -> None:
+    """Root with `runAsNonRoot` fails, as Kubernetes wouldn't start executors.
+
+    Args:
+        value: The security context, as JSON.
+    """
+    with pytest.raises(subprocess.CalledProcessError) as error:
+        render("--set-json", f"tesk.executor.securityContext={value}")
+    assert "runAsUser 0 contradicts runAsNonRoot" in error.value.stderr
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
         '{"runAsUser": -1}',
         '{"runAsUser": 2147483648}',
         '{"fsGroup": 2147483648}',
