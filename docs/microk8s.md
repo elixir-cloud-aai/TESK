@@ -86,7 +86,7 @@ Ingress of MicroK8s without a host name or TLS:
 
 ```bash
 helm upgrade --install tesk charts/tesk \
-    --namespace tesk --create-namespace -f - <<'YAML'
+    --namespace tesk --create-namespace --wait --timeout 10m -f - <<'YAML'
 ingress:
   rules: true
   ingressClassName: public
@@ -103,10 +103,17 @@ The storage backend of the chart is `none` by default, which is enough for
 tasks without inputs and outputs, and for those with `http://` and
 `https://` URLs (see [Storage backends](deployment.md#storage-backends)).
 
-Wait until the API runs. It needs about a minute to start, and until it has
-started, the Ingress answers `502 Bad Gateway` (the pod shows as ready
-earlier, as the chart has no readiness probe). Poll the service info until
-it answers:
+With `--wait`, the command returns once the API answers (it needs about a
+minute to start): the chart's readiness probe requests the service info (see
+[Probes](configuration.md#probes)). Check it:
+
+```bash
+curl -s http://localhost/ga4gh/tes/v1/service-info
+```
+
+If the Ingress still answers `502 Bad Gateway` (e.g., if you installed
+without `--wait`, or with a chart from before the probes), wait until the API
+answers:
 
 ```bash
 until curl -sf http://localhost/ga4gh/tes/v1/service-info; do sleep 5; done

@@ -57,6 +57,22 @@ tesk:
       cpu: 1
       memory: 2048Mi
 
+  # Probes of the API's container: `startupProbe` (holds off the others
+  # while the API starts, which takes about a minute), `readinessProbe` (the
+  # Service and Ingress send requests to the pod, and `helm install --wait`
+  # returns, once it succeeds) and `livenessProbe` (restarts the container if
+  # it fails). Each takes the fields of a Kubernetes probe, merged with the
+  # defaults of the chart (startup: every 5 s, up to 60 failures; readiness:
+  # every 10 s; liveness: every 20 s; timeout 5 s, 3 failures for both), and
+  # `enabled: false` leaves it out. By default, they request
+  # `GET <ingress.path><tesApiBasePath>/service-info`; with `auth.mode: auth`
+  # and `auth.serviceInfoPublic: false` (the endpoint needs a token), they
+  # check the port. An `httpGet`, `tcpSocket`, `exec` or `grpc` of your own
+  # replaces that.
+  startupProbe: {}
+  readinessProbe: {}
+  livenessProbe: {}
+
   securityContext:
     enabled: true
 

@@ -46,8 +46,40 @@ image. It accepts unknown keys, and the deprecated names.
 | `tesk.executorRetries` | `2` | Retries of an executor's job on errors (its `backoffLimit`). |
 | `tesk.filerRetries` | `2` | Retries of a filer's job on errors, while staging inputs or outputs. |
 | `tesk.resources` | 1 CPU and `2048Mi` memory, as requests and limits | Resources of the API's container (`requests` and `limits`, as in Kubernetes; further resources, e.g., `ephemeral-storage`, are passed on too). |
+| `tesk.startupProbe` | every 5 s, 5 s timeout, up to 60 failures (5 minutes) | Startup probe of the API's container: it holds off the other probes while the API starts, which takes about a minute (see [Probes](#probes)). |
+| `tesk.readinessProbe` | every 10 s, 5 s timeout, 3 failures | Readiness probe: the Service and Ingress send requests to the pod, and `helm install --wait` returns, once it succeeds (see [Probes](#probes)). |
+| `tesk.livenessProbe` | every 20 s, 5 s timeout, 3 failures | Liveness probe: Kubernetes restarts the container if it fails (see [Probes](#probes)). |
 | `tesk.securityContext.enabled` | `true` | Runs the API as a non-root user (UID 1000) with the `RuntimeDefault` seccomp profile, no privilege escalation and no capabilities. |
 | `tesk.swaggerUi.enabled` | `false` | `true` serves the Swagger UI (at the root path of the deployment, `ingress.path`, see [Swagger UI](deployment.md#swagger-ui)). Turning it on serves the Swagger UI publicly; enable it only where needed. `true` or `false` only (also as strings, in any case; anything else fails the installation); null leaves tesk-api's default (off). Needs tesk-api 1.2.0 or later; earlier versions ignore it and always serve the Swagger UI. |
+
+#### Probes
+
+`tesk.startupProbe`, `tesk.readinessProbe` and `tesk.livenessProbe` take the
+fields of a [Kubernetes
+probe](https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/)
+(e.g., `periodSeconds`, `timeoutSeconds`, `failureThreshold`,
+`initialDelaySeconds`), which are merged with the defaults listed above.
+`enabled: false` leaves a probe out:
+
+```yaml
+tesk:
+  readinessProbe:
+    periodSeconds: 5
+  livenessProbe:
+    enabled: false
+```
+
+By default, the probes request `GET <ingress.path><tesk.tesApiBasePath>/service-info`
+on the API's port (`/ga4gh/tes/v1/service-info` with the default values). The
+API answers it from a local file, so it doesn't need the Kubernetes API or a
+token. If you set `auth.mode: auth` and `auth.serviceInfoPublic: false`, the
+endpoint needs a token, so the probes check that the port accepts connections
+instead. An `httpGet`, `tcpSocket`, `exec` or `grpc` field of your own
+replaces the default request.
+
+As the readiness probe fails until the API answers, `helm install --wait`
+(and `helm upgrade --wait`) returns only then, and the Ingress doesn't send
+requests to a pod that isn't ready.
 
 ### Shared file system (`transfer`)
 

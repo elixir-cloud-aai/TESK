@@ -37,6 +37,7 @@ from tests.helm import (
     notes,
     render,
     without_labels,
+    without_probes,
 )
 
 # The deprecated keys (as `--set` options with values other than the
@@ -375,6 +376,155 @@ def test_security_context() -> None:
     pod = get(manifests, "Deployment", "tesk-api")["spec"]["template"]["spec"]
     assert "securityContext" not in pod
     assert "securityContext" not in container(manifests)
+
+
+PROBES = ("startupProbe", "readinessProbe", "livenessProbe")
+SERVICE_INFO = "/ga4gh/tes/v1/service-info"
+
+
+def test_probes_defaults() -> None:
+    """The API container has probes that wait for the API to answer."""
+    api = container(render())
+    http_get = {"path": SERVICE_INFO, "port": 8080}
+    for name in PROBES:
+        assert api[name]["httpGet"] == http_get
+    # The slow start (about a minute) is covered by the startup probe, which
+    # holds off the others
+    startup = api["startupProbe"]
+    assert startup["periodSeconds"] * startup["failureThreshold"] >= 300
+    assert api["readinessProbe"]["periodSeconds"] <= 10
+    assert api["livenessProbe"]["failureThreshold"] >= 3
+
+
+def test_probes_pod_unchanged() -> None:
+    """The probes change neither the selector nor the names."""
+    manifests = render()
+    deployment = get(manifests, "Deployment", "tesk-api")
+    assert deployment["spec"]["selector"] == {"matchLabels": {"app": "tesk-api"}}
+    assert deployment["spec"]["template"]["metadata"]["labels"]["app"] == "tesk-api"
+    assert container(manifests)["name"] == "tesk-api"
+
+
+@pytest.mark.parametrize(
+    ("args", "path"),
+    [
+        (("--set", "ingress.path=/tesk"), "/tesk" + SERVICE_INFO),
+        (("--set", "ingress.path=/tesk/"), "/tesk" + SERVICE_INFO),
+        (("--set", "tesk.tesApiBasePath=/tes"), "/tes/service-info"),
+        (("--set", "tesk.tesApiBasePath="), SERVICE_INFO),
+        (
+            ("--set", "ingress.path=/tesk", "--set", "tesk.tesApiBasePath=/tes"),
+            "/tesk/tes/service-info",
+        ),
+    ],
+)
+def test_probes_path(args: tuple[str, ...], path: str) -> None:
+    """The probes follow the context path and the base path of the API."""
+    api = container(render(*args))
+    for name in PROBES:
+        assert api[name]["httpGet"]["path"] == path
+
+
+def test_probes_port() -> None:
+    """The probes use the API's port."""
+    api = container(render("--set", "tesk.port=9000"))
+    for name in PROBES:
+        assert api[name]["httpGet"]["port"] == 9000
+
+
+@pytest.mark.parametrize(
+    ("args", "http"),
+    [
+        ((), True),
+        (("--set", "auth.mode=auth"), True),
+        (("--set", "auth.mode=auth", "--set", "auth.serviceInfoPublic=null"), True),
+        (("--set", "auth.mode=noauth", "--set", "auth.serviceInfoPublic=false"), True),
+        (("--set", "auth.mode=auth", "--set", "auth.serviceInfoPublic=false"), False),
+        (
+            ("--set", "auth.mode=auth", "--set-string", "auth.serviceInfoPublic=false"),
+            False,
+        ),
+    ],
+)
+def test_probes_auth(args: tuple[str, ...], http: bool) -> None:
+    """The probes check the port if the service info needs a token."""
+    api = container(render(*args))
+    for name in PROBES:
+        if http:
+            assert "httpGet" in api[name]
+            assert "tcpSocket" not in api[name]
+        else:
+            assert api[name]["tcpSocket"] == {"port": 8080}
+            assert "httpGet" not in api[name]
+
+
+def test_probes_values() -> None:
+    """Values of a probe are merged with its defaults."""
+    default = container(render())
+    api = container(
+        render(
+            "--set",
+            "tesk.readinessProbe.periodSeconds=3",
+            "--set",
+            "tesk.livenessProbe.initialDelaySeconds=30",
+            "--set",
+            "tesk.startupProbe.failureThreshold=7",
+        )
+    )
+    assert api["readinessProbe"]["periodSeconds"] == 3
+    assert (
+        api["readinessProbe"]["timeoutSeconds"]
+        == (default["readinessProbe"]["timeoutSeconds"])
+    )
+    assert api["livenessProbe"]["initialDelaySeconds"] == 30
+    assert api["startupProbe"]["failureThreshold"] == 7
+    assert (
+        api["startupProbe"]["periodSeconds"]
+        == (default["startupProbe"]["periodSeconds"])
+    )
+    assert api["readinessProbe"]["httpGet"] == default["readinessProbe"]["httpGet"]
+
+
+def test_probes_action() -> None:
+    """A probe's own action replaces the default one."""
+    api = container(
+        render(
+            "--set-json",
+            'tesk.livenessProbe.exec={"command": ["true"]}',
+            "--set",
+            "tesk.readinessProbe.tcpSocket.port=8080",
+        )
+    )
+    assert api["livenessProbe"]["exec"] == {"command": ["true"]}
+    assert "httpGet" not in api["livenessProbe"]
+    assert api["readinessProbe"]["tcpSocket"] == {"port": 8080}
+    assert "httpGet" not in api["readinessProbe"]
+    assert api["startupProbe"]["httpGet"]["path"] == SERVICE_INFO
+
+
+@pytest.mark.parametrize("name", PROBES)
+def test_probes_disabled(name: str) -> None:
+    """Each probe can be disabled."""
+    api = container(render("--set", f"tesk.{name}.enabled=false"))
+    assert name not in api
+    assert {other for other in PROBES if other in api} == set(PROBES) - {name}
+
+
+def test_probes_reuse_values(tmp_path: Path) -> None:
+    """With the earlier defaults (`--reuse-values`), the probes are set too."""
+    chart = copy_chart(tmp_path, LEGACY_VALUES)
+    api = container(render(chart=chart))
+    default = container(render())
+    for name in PROBES:
+        assert api[name] == default[name]
+
+
+@pytest.mark.parametrize("name", PROBES)
+def test_probes_schema_invalid(name: str) -> None:
+    """The schema rejects probes of the wrong type."""
+    with pytest.raises(subprocess.CalledProcessError) as error:
+        render("--set-json", f"tesk.{name}=[]")
+    assert "values don't meet the specifications of the schema" in error.value.stderr
 
 
 def test_auth() -> None:
@@ -783,7 +933,7 @@ LEGACY_CASES: list[tuple[str, ...]] = [
 @pytest.mark.parametrize("args", LEGACY_CASES)
 def test_legacy_chart(args: tuple[str, ...]) -> None:
     """Values of the earlier chart render its objects, apart from labels."""
-    assert _sorted(without_labels(render(*args))) == _sorted(
+    assert _sorted(without_probes(without_labels(render(*args)))) == _sorted(
         render(*args, chart=LEGACY_CHART)
     )
 
@@ -805,9 +955,9 @@ def test_reuse_values(args: tuple[str, ...], tmp_path: Path) -> None:
     those of the installed chart, so the templates get the old keys only.
     """
     chart = copy_chart(tmp_path, LEGACY_VALUES)
-    assert _sorted(without_labels(render(*args, chart=chart))) == _sorted(
-        render(*args, chart=LEGACY_CHART)
-    )
+    assert _sorted(
+        without_probes(without_labels(render(*args, chart=chart)))
+    ) == _sorted(render(*args, chart=LEGACY_CHART))
 
 
 def test_reuse_values_null_resource(tmp_path: Path) -> None:

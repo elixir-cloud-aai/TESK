@@ -126,6 +126,26 @@ def without_labels(manifests: list[Manifest]) -> list[Manifest]:
     return manifests
 
 
+def without_probes(manifests: list[Manifest]) -> list[Manifest]:
+    """Remove the probes of the API container from rendered objects.
+
+    Args:
+        manifests: The rendered objects (not changed).
+
+    Returns:
+        Copies of the objects without the container probes, to compare them
+        with the objects of earlier versions of the chart, which had none.
+    """
+    manifests = copy.deepcopy(manifests)
+    for manifest in manifests:
+        if manifest["kind"] != "Deployment":
+            continue
+        for item in manifest["spec"]["template"]["spec"]["containers"]:
+            for probe in ("startupProbe", "readinessProbe", "livenessProbe"):
+                item.pop(probe, None)
+    return manifests
+
+
 def find(manifests: list[Manifest], kind: str, name: str) -> Manifest | None:
     """Find a rendered object by kind and name.
 
