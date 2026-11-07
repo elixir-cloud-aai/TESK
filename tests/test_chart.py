@@ -1109,6 +1109,9 @@ def test_filer_http_timeout(args: tuple[str, ...], expected: str | None) -> None
         ("--set-string", "tesk.filerHttpTimeout=abc"),
         ("--set-string", "tesk.filerHttpTimeout=1e3"),
         ("--set-json", "tesk.filerHttpTimeout=[]"),
+        ("--set", "tesk.filerHttpTimeout=1000001"),
+        ("--set-string", "tesk.filerHttpTimeout=1000000.5"),
+        ("--set-json", "tesk.filerHttpTimeout=1e10"),
     ],
 )
 def test_filer_http_timeout_invalid(args: tuple[str, ...]) -> None:
@@ -1120,6 +1123,22 @@ def test_filer_http_timeout_invalid(args: tuple[str, ...]) -> None:
     with pytest.raises(subprocess.CalledProcessError) as error:
         render(*args)
     assert "values don't meet the specifications of the schema" in error.value.stderr
+
+
+def test_filer_http_timeout_values_file(tmp_path: Path) -> None:
+    """Numbers in a values file are passed on in a form the filer reads.
+
+    Helm reads them as floats, which Go renders in scientific notation from
+    1e6 on; the filer parses that as a number too.
+
+    Args:
+        tmp_path: A directory for the values file.
+    """
+    values = tmp_path / "values.yaml"
+    values.write_text("tesk:\n  filerHttpTimeout: 1000000\n")
+    variables = env(render("-f", str(values)))
+    value = variables["TESK_API_TASKMASTER_ENVIRONMENT_FILER_HTTP_TIMEOUT"]
+    assert float(value) == 1_000_000
 
 
 def _sorted(manifests: list[Manifest]) -> list[Manifest]:

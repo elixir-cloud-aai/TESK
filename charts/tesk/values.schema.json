@@ -164,8 +164,9 @@
             "null"
           ],
           "exclusiveMinimum": 0,
-          "pattern": "^(|0*[1-9][0-9]*(\\.[0-9]+)?|0*\\.[0-9]*[1-9][0-9]*)$",
-          "description": "Timeout of the filer's HTTP(S) requests, in seconds (connecting and each read); empty uses the filer's default"
+          "maximum": 1000000,
+          "pattern": "^(|0*[1-9][0-9]{0,5}(\\.[0-9]+)?|0*1000000(\\.0+)?|0*\\.[0-9]*[1-9][0-9]*)$",
+          "description": "Timeout of the filer's HTTP(S) requests, in seconds (connecting and each read), up to 1000000; empty uses the filer's default"
         },
         "resources": {
           "type": [
