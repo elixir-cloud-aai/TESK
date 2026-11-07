@@ -31,6 +31,9 @@ TESK or for a small test setup, not for production; for the latter, see
   cd TESK
   ```
 
+The commands are for Bash or Zsh (not Fish, which has no here-documents or
+subshells with `( )`).
+
 ## Install MicroK8s
 
 Install MicroK8s, and let your user run it without `sudo`:
@@ -58,12 +61,16 @@ microk8s enable dns hostpath-storage ingress
   node, with the Ingress class `public`.
 
 Give Helm and `kubectl` access to the cluster through a kubeconfig file of
-its own, so that your other clusters stay untouched, and check that the node
-and the storage class are ready:
+its own, outside the checkout and readable only by you (it holds the
+credentials of the cluster's administrator), so that your other clusters stay
+untouched. Do this in a terminal that you close at the end of the guide, as
+`KUBECONFIG` replaces your own setting in it, and check that the node and
+the storage class are ready:
 
 ```bash
-microk8s config > microk8s-kubeconfig
-export KUBECONFIG=$PWD/microk8s-kubeconfig  # in Fish: set -x KUBECONFIG $PWD/microk8s-kubeconfig
+mkdir -p ~/.kube
+(umask 077; microk8s config > ~/.kube/microk8s-tesk)
+export KUBECONFIG=~/.kube/microk8s-tesk
 microk8s kubectl get nodes
 microk8s kubectl get storageclass
 ```
@@ -73,36 +80,36 @@ Use `microk8s kubectl` where this guide says `kubectl` if you don't have
 
 ## Install TESK
 
-Create a values file, `microk8s-values.yaml`, that serves the API on the
+Install the chart from the checkout, into its own namespace, with a minimal
+values file (read from the standard input here) that serves the API on the
 Ingress of MicroK8s without a host name or TLS:
 
-```yaml
+```bash
+helm upgrade --install tesk charts/tesk \
+    --namespace tesk --create-namespace -f - <<'YAML'
 ingress:
   rules: true
   ingressClassName: public
   # The chart's defaults ask cert-manager for a certificate, which MicroK8s
   # doesn't have; `null` removes them
   annotations: null
+YAML
 ```
 
-Install the chart from the checkout, into its own namespace:
-
-```bash
-helm upgrade --install tesk charts/tesk \
-    --namespace tesk --create-namespace \
-    -f microk8s-values.yaml
-```
+To keep the values, save the YAML in a file of your choice and pass it with
+`-f <file>`.
 
 The storage backend of the chart is `none` by default, which is enough for
 tasks without inputs and outputs, and for those with `http://` and
 `https://` URLs (see [Storage backends](deployment.md#storage-backends)).
 
 Wait until the API runs. It needs about a minute to start, and until it has
-started, the Ingress answers `502 Bad Gateway`:
+started, the Ingress answers `502 Bad Gateway` (the pod shows as ready
+earlier, as the chart has no readiness probe). Poll the service info until
+it answers:
 
 ```bash
-kubectl get pods -n tesk  # the pod of tesk-api is Running and READY 1/1
-curl http://localhost/ga4gh/tes/v1/service-info
+until curl -sf http://localhost/ga4gh/tes/v1/service-info; do sleep 5; done
 ```
 
 The service info shows that the API is up. The API is served at
@@ -121,15 +128,9 @@ Submit a hello-world task, which runs `echo` in an Alpine container, and
 note its ID:
 
 ```bash
-cat > hello.json <<'JSON'
-{
-  "executors": [
-    {"image": "alpine", "command": ["echo", "Hello, TESK!"]}
-  ]
-}
-JSON
 curl -s -X POST http://localhost/ga4gh/tes/v1/tasks \
-    -H 'Content-Type: application/json' -d @hello.json
+    -H 'Content-Type: application/json' \
+    -d '{"executors": [{"image": "alpine", "command": ["echo", "Hello, TESK!"]}]}'
 ```
 
 The response is `{"id": "task-…"}`. Poll the task with its ID until the state
@@ -166,10 +167,10 @@ Remove TESK, with the namespace of the tasks, and then MicroK8s:
 ```bash
 helm uninstall tesk --namespace tesk
 kubectl delete namespace tesk
-unset KUBECONFIG  # in Fish: set -e KUBECONFIG
-rm microk8s-kubeconfig microk8s-values.yaml hello.json
+rm ~/.kube/microk8s-tesk
 sudo snap remove microk8s --purge
 ```
 
 `snap remove --purge` deletes the cluster and all its data, including the
-volumes of the tasks. To keep MicroK8s but stop it, use `microk8s stop`.
+volumes of the tasks. Close the terminal in which you set `KUBECONFIG`, or
+restore its previous value. To keep MicroK8s but stop it, use `microk8s stop`.
