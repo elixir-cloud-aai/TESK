@@ -1,22 +1,30 @@
-{{ if .Values.ingress.rules }}
+{{- if .Values.ingress.rules }}
+{{- $values := dict }}
+{{- include "tesk.resolveValues" (dict "root" . "out" $values) }}
+{{- $hostName := index $values "hostName" }}
+{{- $tlsSecretName := index $values "ingress.tlsSecretName" }}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: ingress-rules {{ if .Values.ingress.annotations }}
+  name: ingress-rules
+  labels:
+    {{- include "tesk.labels" . | nindent 4 }}
+  {{- with .Values.ingress.annotations }}
   annotations:
-  {{- range $key, $value := .Values.ingress.annotations }}
+    {{- range $key, $value := . }}
     {{ $key }}: {{ $value | quote }}
-  {{- end }} {{ end }}
+    {{- end }}
+  {{- end }}
 spec:
   ingressClassName: {{ .Values.ingress.ingressClassName }}
-  {{ if .Values.ingress.tls_secret_name }}
+  {{- if $tlsSecretName }}
   tls:
   - hosts:
-    - {{ .Values.host_name }}
-    secretName: {{ .Values.ingress.tls_secret_name }}
-  {{ end }}
+    - {{ $hostName }}
+    secretName: {{ $tlsSecretName }}
+  {{- end }}
   rules:
-  - host: {{ .Values.host_name }}
+  - host: {{ $hostName }}
     http:
       paths:
       - path: {{ .Values.ingress.path }}
@@ -26,4 +34,4 @@ spec:
             name: tesk-api
             port:
               number: {{ .Values.tesk.port }}
-{{ end }}
+{{- end }}

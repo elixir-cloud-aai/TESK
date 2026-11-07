@@ -41,8 +41,23 @@ The workflow `CI` (`.github/workflows/ci.yml`) runs on every pull request to
   chart tests (`tests/test_chart.py`), which render the chart with
   `helm template` for the default values and the main options (ingress,
   OpenShift route, storage backends, FTP, authentication, service info) and
-  check the rendered objects, with the pinned Helm version. They fail here if
-  Helm is missing (`REQUIRE_HELM`).
+  check the rendered objects, with the pinned Helm version. They fail here
+  if Helm is missing (`REQUIRE_HELM`).
+
+  The chart tests also check that the deprecated names of values still work
+  (see [Upgrading](upgrading.md#values-renamed-to-camelcase)):
+
+  - The default values and the deprecated names, also with empty, null or
+    string values, render the same objects as a copy of the chart before the
+    renaming (`tests/data/legacy-chart/`), apart from the standard labels.
+  - So do the old defaults, as `helm upgrade --reuse-values` uses them.
+  - Each deprecated name has the same effect as its new name, and takes
+    precedence over it.
+
+  When a release removes the deprecated names, remove these tests with them:
+  `tests/data/legacy-chart/` and its excludes in `.pre-commit-config.yaml`,
+  `LEGACY_*` in `tests/helm.py`, and the tests that use them, `RENAMED` and
+  `DEPRECATED` in `tests/test_chart.py`.
 - **Chart install:** installs the chart with its default values on a
   [kind](https://kind.sigs.k8s.io/) cluster and checks that
   `GET /ga4gh/tes/v1/service-info` answers.
@@ -171,7 +186,9 @@ To release version X.Y.Z:
 
 1. In a pull request to `dev`, set `version` in `charts/tesk/Chart.yaml`, and
    `version` and `date-released` in `CITATION.cff`, to X.Y.Z and the release
-   date; merge it once CI passed.
+   date; merge it once CI passed. (`appVersion` in `Chart.yaml` is not the
+   release version: it is the version of tesk-api that the chart deploys,
+   the default tag of its image.)
 2. Once `CI` passed for the push of that commit (`<sha>`) to `dev` (the
    check needs a commit that was pushed to `dev`, not one only tested in a
    pull request), move `main` forward to it (`main` only ever moves forward

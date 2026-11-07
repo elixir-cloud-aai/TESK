@@ -1,11 +1,14 @@
-{{ if .Values.ftp.hostip }}
-kind: Endpoints
+{{- if .Values.ftp.hostip }}
 apiVersion: v1
+kind: Endpoints
 metadata:
-    name: ftp
+  name: ftp
+  labels:
+    {{- include "tesk.labels" . | nindent 4 }}
 subsets:
-    - addresses:
-        - ip: {{ .Values.ftp.hostip }}  # ipv4 address from vboxnet0
-      ports:
-        - port: 21
-{{ end }}
+- addresses:
+  # IP of the host as pods see it (e.g., IPv4 address from vboxnet0)
+  - ip: {{ .Values.ftp.hostip }}
+  ports:
+  - port: 21
+{{- end }}

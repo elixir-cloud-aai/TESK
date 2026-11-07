@@ -10,24 +10,167 @@ pinned Helm version only.
 from __future__ import annotations
 
 import base64
+import json
 import os
 from pathlib import Path
 import shutil
 import subprocess
+from typing import Any
 
 import pytest
 
 from tests.helm import (
     CHART,
     HELM,
+    LEGACY_CHART,
+    LEGACY_VALUES,
+    METADATA,
     NAMESPACE,
     VALUES,
+    Manifest,
     container,
+    copy_chart,
     env,
     find,
     get,
+    notes,
     render,
+    without_labels,
 )
+
+# The deprecated keys (as `--set` options with values other than the
+# defaults; the last option sets the key) and the same settings with their
+# new keys
+RENAMED: list[tuple[tuple[str, ...], tuple[str, ...]]] = [
+    (("--set", "host_name=a.example.org"), ("--set", "hostName=a.example.org")),
+    (
+        ("--set", "tesk.image=example.org/api:2"),
+        (
+            "--set",
+            "tesk.image.repository=example.org/api",
+            "--set",
+            "tesk.image.tag=2",
+        ),
+    ),
+    (("--set", "tesk.tes_api_base_path=/tes"), ("--set", "tesk.tesApiBasePath=/tes")),
+    (("--set", "tesk.tes_api_base_path="), ("--set", "tesk.tesApiBasePath=")),
+    (
+        ("--set", "tesk.taskmaster_image_name=example.org/taskmaster"),
+        ("--set", "tesk.taskmaster.image.repository=example.org/taskmaster"),
+    ),
+    (
+        ("--set", "tesk.taskmaster_image_version=v1"),
+        ("--set", "tesk.taskmaster.image.tag=v1"),
+    ),
+    (
+        ("--set", "tesk.taskmaster_filer_image_name=example.org/filer"),
+        ("--set", "tesk.filer.image.repository=example.org/filer"),
+    ),
+    (
+        ("--set", "tesk.taskmaster_filer_image_version=v2"),
+        ("--set", "tesk.filer.image.tag=v2"),
+    ),
+    (("--set", "tesk.executor_retries=5"), ("--set", "tesk.executorRetries=5")),
+    (("--set", "tesk.filer_retries=3"), ("--set", "tesk.filerRetries=3")),
+    (("--set", "tesk.limitsCpu=2"), ("--set", "tesk.resources.limits.cpu=2")),
+    (
+        ("--set", "tesk.limitsMemory=4Gi"),
+        ("--set", "tesk.resources.limits.memory=4Gi"),
+    ),
+    (
+        ("--set", "tesk.requestsCpu=500m"),
+        ("--set", "tesk.resources.requests.cpu=500m"),
+    ),
+    (
+        ("--set", "tesk.requestsMemory=1Gi"),
+        ("--set", "tesk.resources.requests.memory=1Gi"),
+    ),
+    (
+        ("--set", "transfer.active=true", "--set", "transfer.wes_base_path=/data"),
+        ("--set", "transfer.active=true", "--set", "transfer.wesBasePath=/data"),
+    ),
+    (
+        ("--set", "transfer.active=true", "--set", "transfer.tes_base_path=/t"),
+        ("--set", "transfer.active=true", "--set", "transfer.tesBasePath=/t"),
+    ),
+    (
+        ("--set", "transfer.active=true", "--set", "transfer.pvc_name=shared"),
+        ("--set", "transfer.active=true", "--set", "transfer.pvcName=shared"),
+    ),
+    (("--set", "auth.env_subgroup=EBI"), ("--set", "auth.envSubgroup=EBI")),
+    (("--set", "auth.env_basegroup=BASE"), ("--set", "auth.envBasegroup=BASE")),
+    (
+        ("--set", "auth.service_info_public=false"),
+        ("--set", "auth.serviceInfoPublic=false"),
+    ),
+    (
+        ("--set", "auth.service_info_public=null"),
+        ("--set", "auth.serviceInfoPublic=null"),
+    ),
+    (
+        ("--set", "auth.mode=auth", "--set", "auth.client_id=client"),
+        ("--set", "auth.mode=auth", "--set", "auth.clientId=client"),
+    ),
+    (
+        ("--set", "auth.mode=auth", "--set", "auth.client_secret=secret"),
+        ("--set", "auth.mode=auth", "--set", "auth.clientSecret=secret"),
+    ),
+    (
+        ("--set", "service.type=NodePort", "--set", "service.node_port=31567"),
+        ("--set", "service.type=NodePort", "--set", "service.nodePort=31567"),
+    ),
+    (("--set", "ftp.classic_ftp_secret="), ("--set", "ftp.classicFtpSecret=")),
+    (
+        ("--set", "ftp.classic_ftp_secret=null"),
+        ("--set", "ftp.classicFtpSecret=null"),
+    ),
+    (
+        ("--set", "ftp.classic_ftp_secret=other"),
+        ("--set", "ftp.classicFtpSecret=other"),
+    ),
+    (("--set", "ftp.netrc_secret=netrc"), ("--set", "ftp.netrcSecret=netrc")),
+    (
+        ("--set", "ingress.tls_secret_name=tls"),
+        ("--set", "ingress.tlsSecretName=tls"),
+    ),
+]
+
+# The deprecated keys (as in `NOTES.txt`) and their new keys
+DEPRECATED: dict[str, str] = {
+    "host_name": "hostName",
+    "tesk.image (a string)": "tesk.image.repository and tesk.image.tag",
+    "tesk.tes_api_base_path": "tesk.tesApiBasePath",
+    "tesk.taskmaster_image_name": "tesk.taskmaster.image.repository",
+    "tesk.taskmaster_image_version": "tesk.taskmaster.image.tag",
+    "tesk.taskmaster_filer_image_name": "tesk.filer.image.repository",
+    "tesk.taskmaster_filer_image_version": "tesk.filer.image.tag",
+    "tesk.executor_retries": "tesk.executorRetries",
+    "tesk.filer_retries": "tesk.filerRetries",
+    "tesk.limitsCpu": "tesk.resources.limits.cpu",
+    "tesk.limitsMemory": "tesk.resources.limits.memory",
+    "tesk.requestsCpu": "tesk.resources.requests.cpu",
+    "tesk.requestsMemory": "tesk.resources.requests.memory",
+    "transfer.wes_base_path": "transfer.wesBasePath",
+    "transfer.tes_base_path": "transfer.tesBasePath",
+    "transfer.pvc_name": "transfer.pvcName",
+    "auth.env_subgroup": "auth.envSubgroup",
+    "auth.env_basegroup": "auth.envBasegroup",
+    "auth.service_info_public": "auth.serviceInfoPublic",
+    "auth.client_id": "auth.clientId",
+    "auth.client_secret": "auth.clientSecret",
+    "service.node_port": "service.nodePort",
+    "ftp.classic_ftp_secret": "ftp.classicFtpSecret",
+    "ftp.netrc_secret": "ftp.netrcSecret",
+    "ingress.tls_secret_name": "ingress.tlsSecretName",
+}
+
+STANDARD_LABELS = {
+    "app.kubernetes.io/name": "tesk",
+    "app.kubernetes.io/instance": "tesk",
+    "app.kubernetes.io/version": str(METADATA["appVersion"]),
+    "app.kubernetes.io/managed-by": "Helm",
+    "helm.sh/chart": f"tesk-{METADATA['version']}",
+}
 
 if HELM is None:
     if os.environ.get("REQUIRE_HELM", "").lower() in {"1", "true", "yes"}:
@@ -51,14 +194,27 @@ def test_defaults() -> None:
     ]
     variables = env(manifests)
     tesk = VALUES["tesk"]
-    assert container(manifests)["image"] == tesk["image"]
+    # The tag of the API's image defaults to the chart's `appVersion`
+    assert tesk["image"]["tag"] == ""
+    assert container(manifests)["image"] == (
+        f"{tesk['image']['repository']}:{METADATA['appVersion']}"
+    )
+    assert "imagePullPolicy" not in container(manifests)
+    assert (
+        variables["TESK_API_TASKMASTER_IMAGE_NAME"]
+        == tesk["taskmaster"]["image"]["repository"]
+    )
     assert (
         variables["TESK_API_TASKMASTER_IMAGE_VERSION"]
-        == tesk["taskmaster_image_version"]
+        == tesk["taskmaster"]["image"]["tag"]
+    )
+    assert (
+        variables["TESK_API_TASKMASTER_FILER_IMAGE_NAME"]
+        == tesk["filer"]["image"]["repository"]
     )
     assert (
         variables["TESK_API_TASKMASTER_FILER_IMAGE_VERSION"]
-        == tesk["taskmaster_filer_image_version"]
+        == tesk["filer"]["image"]["tag"]
     )
     assert variables["SERVER_SERVLET_CONTEXT_PATH"] == "/"
     assert variables["TESK_API_K8S_NAMESPACE"] == NAMESPACE
@@ -93,8 +249,8 @@ def test_port() -> None:
 @pytest.mark.parametrize(
     ("args", "expected"),
     [
-        (("--set", "tesk.tes_api_base_path=/tes"), "/tes"),
-        (("--set", "tesk.tes_api_base_path="), None),
+        (("--set", "tesk.tesApiBasePath=/tes"), "/tes"),
+        (("--set", "tesk.tesApiBasePath="), None),
     ],
 )
 def test_base_path(args: tuple[str, ...], expected: str | None) -> None:
@@ -105,7 +261,7 @@ def test_base_path(args: tuple[str, ...], expected: str | None) -> None:
 def test_auth_groups() -> None:
     """The groups that authorise users are passed on."""
     manifests = render(
-        "--set", "auth.env_subgroup=EBI", "--set", "auth.env_basegroup=BASE"
+        "--set", "auth.envSubgroup=EBI", "--set", "auth.envBasegroup=BASE"
     )
     variables = env(manifests)
     assert variables["TESK_API_AUTHORISATION_ENV_SUBGROUP"] == "EBI"
@@ -116,13 +272,13 @@ def test_resources() -> None:
     """The API container's resources come from the values."""
     manifests = render(
         "--set",
-        "tesk.limitsCpu=2",
+        "tesk.resources.limits.cpu=2",
         "--set",
-        "tesk.limitsMemory=4Gi",
+        "tesk.resources.limits.memory=4Gi",
         "--set",
-        "tesk.requestsCpu=500m",
+        "tesk.resources.requests.cpu=500m",
         "--set",
-        "tesk.requestsMemory=1Gi",
+        "tesk.resources.requests.memory=1Gi",
     )
     assert container(manifests)["resources"] == {
         "limits": {"cpu": 2, "memory": "4Gi"},
@@ -130,19 +286,72 @@ def test_resources() -> None:
     }
 
 
+def test_resources_block() -> None:
+    """The `resources` block is passed on as is, e.g., with further resources."""
+    resources = {
+        "limits": {"memory": "4Gi", "ephemeral-storage": "1Gi"},
+        "requests": {"cpu": "250m"},
+    }
+    manifests = render("--set-json", f"tesk.resources={json.dumps(resources)}")
+    # Maps are merged with the default resources
+    assert container(manifests)["resources"] == {
+        "limits": {"cpu": 1, "memory": "4Gi", "ephemeral-storage": "1Gi"},
+        "requests": {"cpu": "250m", "memory": "2048Mi"},
+    }
+
+
+def test_resources_old_keys() -> None:
+    """The old keys of the resources take precedence over the block."""
+    manifests = render(
+        "--set",
+        "tesk.limitsCpu=3",
+        "--set",
+        "tesk.requestsMemory=1Gi",
+        "--set",
+        "tesk.resources.limits.cpu=2",
+        "--set-string",
+        "tesk.resources.limits.ephemeral-storage=1Gi",
+    )
+    assert container(manifests)["resources"] == {
+        "limits": {"cpu": 3, "memory": "2048Mi", "ephemeral-storage": "1Gi"},
+        "requests": {"cpu": 1, "memory": "1Gi"},
+    }
+
+
+def test_image_block() -> None:
+    """The API's image is built from repository and tag, with a pull policy."""
+    manifests = render(
+        "--set",
+        "tesk.image.repository=example.org/api",
+        "--set",
+        "tesk.image.tag=2.0.0",
+        "--set",
+        "tesk.image.pullPolicy=Always",
+    )
+    assert container(manifests)["image"] == "example.org/api:2.0.0"
+    assert container(manifests)["imagePullPolicy"] == "Always"
+
+
+def test_image_tag_zero() -> None:
+    """A tag that is falsy but set (0) is used, not the chart's `appVersion`."""
+    manifests = render("--set", "tesk.image.tag=0")
+    assert container(manifests)["image"].endswith(":0")
+
+
 def test_images() -> None:
     """The images of the API, taskmaster and filer come from the values."""
     manifests = render(
+        # The old form of `tesk.image`, with the tag
         "--set",
         "tesk.image=example.org/api:1",
         "--set",
-        "tesk.taskmaster_image_name=example.org/taskmaster",
+        "tesk.taskmaster.image.repository=example.org/taskmaster",
         "--set",
-        "tesk.taskmaster_image_version=v1",
+        "tesk.taskmaster.image.tag=v1",
         "--set",
-        "tesk.taskmaster_filer_image_name=example.org/filer",
+        "tesk.filer.image.repository=example.org/filer",
         "--set",
-        "tesk.taskmaster_filer_image_version=v2",
+        "tesk.filer.image.tag=v2",
     )
     assert container(manifests)["image"] == "example.org/api:1"
     variables = env(manifests)
@@ -173,9 +382,9 @@ def test_auth() -> None:
         "--set",
         "auth.mode=auth",
         "--set",
-        "auth.client_id=client",
+        "auth.clientId=client",
         "--set",
-        "auth.client_secret=secret",
+        "auth.clientSecret=secret",
     )
     assert env(manifests)["SPRING_PROFILES_ACTIVE"] == "auth"
     secret = get(manifests, "Secret", "oauth-client-secret")
@@ -187,12 +396,12 @@ def test_auth() -> None:
     ("args", "expected"),
     [
         ((), "true"),
-        (("--set", "auth.service_info_public=false"), "false"),
-        (("--set", "auth.service_info_public=null"), None),
+        (("--set", "auth.serviceInfoPublic=false"), "false"),
+        (("--set", "auth.serviceInfoPublic=null"), None),
     ],
 )
 def test_service_info_public(args: tuple[str, ...], expected: str | None) -> None:
-    """`auth.service_info_public` is passed on, unless it is null."""
+    """`auth.serviceInfoPublic` is passed on, unless it is null."""
     assert env(render(*args)).get("TESK_API_SERVICE_INFO_PUBLIC") == expected
 
 
@@ -246,7 +455,7 @@ def test_ingress() -> None:
     """The ingress routes the host to the API, with TLS if a secret is set."""
     manifests = render(
         "--set",
-        "host_name=tes.example.org",
+        "hostName=tes.example.org",
         "--set",
         "ingress.ingressClassName=nginx",
     )
@@ -258,9 +467,9 @@ def test_ingress() -> None:
     assert backend == {"name": "tesk-api", "port": {"number": 8080}}
     manifests = render(
         "--set",
-        "host_name=tes.example.org",
+        "hostName=tes.example.org",
         "--set",
-        "ingress.tls_secret_name=tls",
+        "ingress.tlsSecretName=tls",
     )
     spec = get(manifests, "Ingress", "ingress-rules")["spec"]
     assert spec["tls"] == [{"hosts": ["tes.example.org"], "secretName": "tls"}]
@@ -295,7 +504,7 @@ def test_openshift_route() -> None:
     """On OpenShift, a route replaces the ingress, if its rules are disabled."""
     openshift = ("--api-versions", "route.openshift.io/v1")
     manifests = render(
-        *openshift, "--set", "ingress.rules=false", "--set", "host_name=tes.example.org"
+        *openshift, "--set", "ingress.rules=false", "--set", "hostName=tes.example.org"
     )
     route = get(manifests, "Route", "tesk-svc")
     assert route["spec"]["host"] == "tes.example.org"
@@ -307,7 +516,7 @@ def test_openshift_route() -> None:
 def test_node_port() -> None:
     """A NodePort service gets its port from the values."""
     manifests = render(
-        "--set", "service.type=NodePort", "--set", "service.node_port=31567"
+        "--set", "service.type=NodePort", "--set", "service.nodePort=31567"
     )
     service = get(manifests, "Service", "tesk-api")["spec"]
     assert service["type"] == "NodePort"
@@ -350,9 +559,9 @@ def test_ftp() -> None:
     """FTP credentials, a netrc secret and a host FTP server are optional."""
     manifests = render(
         "--set",
-        "ftp.classic_ftp_secret=",
+        "ftp.classicFtpSecret=",
         "--set",
-        "ftp.netrc_secret=netrc",
+        "ftp.netrcSecret=netrc",
         "--set",
         "ftp.hostip=10.0.0.1",
     )
@@ -379,7 +588,7 @@ def test_transfer() -> None:
         "--set",
         "transfer.active=true",
         "--set",
-        "transfer.pvc_name=shared",
+        "transfer.pvcName=shared",
     )
     variables = env(manifests)
     assert variables["TESK_API_TASKMASTER_ENVIRONMENT_TRANSFER_PVC_NAME"] == "shared"
@@ -393,9 +602,9 @@ def test_retries_and_debug() -> None:
     """Retries and debugging are passed on as strings."""
     manifests = render(
         "--set",
-        "tesk.executor_retries=5",
+        "tesk.executorRetries=5",
         "--set",
-        "tesk.filer_retries=3",
+        "tesk.filerRetries=3",
         "--set",
         "tesk.debug=true",
     )
@@ -403,3 +612,308 @@ def test_retries_and_debug() -> None:
     assert variables["TESK_API_TASKMASTER_ENVIRONMENT_EXECUTOR_BACKOFF_LIMIT"] == "5"
     assert variables["TESK_API_TASKMASTER_ENVIRONMENT_FILER_BACKOFF_LIMIT"] == "3"
     assert variables["TESK_API_TASKMASTER_DEBUG"] == "true"
+
+
+def _sorted(manifests: list[Manifest]) -> list[Manifest]:
+    """Sort rendered objects by kind and name, to compare renderings.
+
+    Args:
+        manifests: The rendered objects.
+
+    Returns:
+        The objects, sorted.
+    """
+    return sorted(manifests, key=lambda m: (m["kind"], m["metadata"]["name"]))
+
+
+# Values that render the same objects with the earlier chart (see
+# `LEGACY_CHART`), apart from the standard labels: the deprecated keys, also
+# with empty, null or string values, and values that the schema must accept
+LEGACY_CASES: list[tuple[str, ...]] = [
+    (),
+    ("--values", str(LEGACY_VALUES)),
+    *(old for old, _ in RENAMED),
+    ("--set", "tesk.limitsCpu="),
+    ("--set-json", 'tesk={"limitsCpu": "", "requestsMemory": null}'),
+    ("--set", "tesk.limitsCpu=0.5"),
+    ("--set-string", "tesk.limitsCpu=1"),
+    ("--set", "tesk.limitsMemory=2147483648"),
+    ("--set", "tesk.executor_retries=1000000"),
+    ("--set", "tesk.port=9000"),
+    ("--set", "tesk.debug=1"),
+    ("--set", "storageClass=5"),
+    ("--set", "ingress.annotations="),
+    ("--set", "service.type=NodePort"),
+    ("--set", "transfer.active=true"),
+    ("--set", "storage=openstack"),
+    ("--set", "ftp.hostip=10.0.0.1"),
+    ("--set", "auth.mode=auth", "--set", "auth.client_id=c"),
+    (
+        "--api-versions",
+        "route.openshift.io/v1",
+        "--set",
+        "ingress.rules=false",
+        "--set",
+        "host_name=tes.example.org",
+    ),
+]
+
+
+@pytest.mark.parametrize("args", LEGACY_CASES)
+def test_legacy_chart(args: tuple[str, ...]) -> None:
+    """Values of the earlier chart render its objects, apart from labels."""
+    assert _sorted(without_labels(render(*args))) == _sorted(
+        render(*args, chart=LEGACY_CHART)
+    )
+
+
+@pytest.mark.parametrize(
+    "args",
+    [
+        (),
+        ("--set", "host_name=tes.example.org"),
+        ("--set", "tesk.limitsCpu="),
+        # Null removes the old default, so the new key (missing) is read
+        ("--set", "tesk.taskmaster_image_version=null"),
+    ],
+)
+def test_reuse_values(args: tuple[str, ...], tmp_path: Path) -> None:
+    """With the earlier defaults, the chart renders the earlier objects.
+
+    `helm upgrade --reuse-values` replaces the chart's default values with
+    those of the installed chart, so the templates get the old keys only.
+    """
+    chart = copy_chart(tmp_path, LEGACY_VALUES)
+    assert _sorted(without_labels(render(*args, chart=chart))) == _sorted(
+        render(*args, chart=LEGACY_CHART)
+    )
+
+
+def test_reuse_values_null_resource(tmp_path: Path) -> None:
+    """With the earlier defaults, a null resource drops it, as before.
+
+    The earlier chart rendered `cpu: null`; the chart leaves it out, which
+    Kubernetes reads the same way.
+    """
+    chart = copy_chart(tmp_path, LEGACY_VALUES)
+    resources = container(render("--set", "tesk.limitsCpu=null", chart=chart))[
+        "resources"
+    ]
+    assert resources == {
+        "limits": {"memory": "2048Mi"},
+        "requests": {"cpu": 1, "memory": "2048Mi"},
+    }
+
+
+@pytest.mark.parametrize(
+    ("args", "image", "pull_policy"),
+    [
+        (("--set", "tesk.image.tag=1.2.0"), "tesk-api:1.2.0", None),
+        (
+            ("--set", "tesk.image.pullPolicy=Always"),
+            f"tesk-api:{METADATA['appVersion']}",
+            "Always",
+        ),
+    ],
+)
+def test_reuse_values_image(
+    args: tuple[str, ...], image: str, pull_policy: str | None, tmp_path: Path
+) -> None:
+    """With the earlier defaults, the new image block works on its own.
+
+    The earlier default of `tesk.image` is a string, which a map set with
+    `--reuse-values` replaces, so the repository comes from the template.
+    """
+    chart = copy_chart(tmp_path, LEGACY_VALUES)
+    api = container(render(*args, chart=chart))
+    repository = VALUES["tesk"]["image"]["repository"].rsplit("/", 1)[0]
+    assert api["image"] == f"{repository}/{image}"
+    assert api.get("imagePullPolicy") == pull_policy
+
+
+@pytest.mark.parametrize(
+    ("args", "expected"),
+    [
+        (("--set-json", "tesk.resources=null"), {}),
+        (
+            ("--set-json", "tesk.resources.limits=null"),
+            {"requests": {"cpu": 1, "memory": "2048Mi"}},
+        ),
+    ],
+)
+def test_resources_null(args: tuple[str, ...], expected: dict[str, Any]) -> None:
+    """Null resources (or limits) render without them."""
+    assert container(render(*args))["resources"] == expected
+
+
+@pytest.mark.parametrize(
+    ("args", "variable"),
+    [
+        (("--set-json", "tesk.taskmaster=null"), "TESK_API_TASKMASTER_IMAGE_NAME"),
+        (
+            ("--set-json", "tesk.filer.image=null"),
+            "TESK_API_TASKMASTER_FILER_IMAGE_NAME",
+        ),
+    ],
+)
+def test_images_null(args: tuple[str, ...], variable: str) -> None:
+    """A null taskmaster or filer image renders an empty image name."""
+    assert env(render(*args))[variable] is None
+
+
+def test_resources_old_keys_invalid() -> None:
+    """An old resource value that isn't valid YAML fails, as before."""
+    with pytest.raises(subprocess.CalledProcessError) as error:
+        render("--set", "tesk.limitsMemory=a: b")
+    assert "tesk.limitsMemory" in error.value.stderr
+
+
+def test_renamed_lists() -> None:
+    """`RENAMED` and `DEPRECATED` cover the same deprecated keys."""
+    keys = {old[-1].split("=")[0] for old, _ in RENAMED}
+    keys = {"tesk.image (a string)" if k == "tesk.image" else k for k in keys}
+    assert keys == set(DEPRECATED)
+
+
+@pytest.mark.parametrize(("old", "new"), RENAMED)
+def test_renamed(old: tuple[str, ...], new: tuple[str, ...]) -> None:
+    """A deprecated key has the same effect as its new key."""
+    manifests = render(*old)
+    assert manifests == render(*new)
+    assert manifests != render(*old[:-2])
+
+
+@pytest.mark.parametrize(("old", "new"), RENAMED)
+def test_renamed_precedence(old: tuple[str, ...], new: tuple[str, ...]) -> None:
+    """A deprecated key takes precedence over its new key, even if empty."""
+    # The new key (the last option) with another value
+    other = (*new[:-1], f"{new[-1]}x")
+    assert render(*other, *old) == render(*old)
+
+
+def test_labels() -> None:
+    """All objects have the standard labels; the selectors are unchanged."""
+    manifests = render(
+        "--set",
+        "ftp.hostip=10.0.0.1",
+        "--set",
+        "storage=openstack",
+        "--set",
+        "auth.mode=auth",
+    )
+    for manifest in manifests:
+        labels = manifest["metadata"]["labels"]
+        assert labels.items() >= STANDARD_LABELS.items(), manifest["kind"]
+    deployment = get(manifests, "Deployment", "tesk-api")["spec"]
+    assert deployment["selector"] == {"matchLabels": {"app": "tesk-api"}}
+    pod_labels = deployment["template"]["metadata"]["labels"]
+    assert pod_labels == {
+        "app": "tesk-api",
+        "app.kubernetes.io/name": "tesk",
+        "app.kubernetes.io/instance": "tesk",
+    }
+    service = get(manifests, "Service", "tesk-api")
+    assert service["spec"]["selector"] == {"app": "tesk-api"}
+    assert service["metadata"]["labels"]["app"] == "tesk-api"
+
+
+def test_labels_numeric_release() -> None:
+    """A release name that looks like a number is a string label."""
+    for manifest in render(release="123"):
+        assert manifest["metadata"]["labels"]["app.kubernetes.io/instance"] == "123"
+
+
+def test_labels_openshift() -> None:
+    """The OpenShift route has the standard labels too."""
+    manifests = render(
+        "--api-versions", "route.openshift.io/v1", "--set", "ingress.rules=false"
+    )
+    labels = get(manifests, "Route", "tesk-svc")["metadata"]["labels"]
+    assert labels.items() >= STANDARD_LABELS.items()
+
+
+def test_notes_template() -> None:
+    """`NOTES.txt` only includes the template that `notes` renders."""
+    text = (CHART / "templates" / "NOTES.txt").read_text()
+    assert text.strip() == '{{- include "tesk.notes" . -}}'
+
+
+def test_notes(tmp_path: Path) -> None:
+    """The notes name the release, without warnings for the defaults."""
+    text = notes(tmp_path=tmp_path)
+    assert f"release tesk in namespace {NAMESPACE}" in text
+    assert "deprecated" not in text
+
+
+def test_notes_deprecated(tmp_path: Path) -> None:
+    """The notes list the deprecated keys in use, with their new keys."""
+    text = notes("--values", str(LEGACY_VALUES), tmp_path=tmp_path)
+    assert "WARNING" in text
+    listed = dict(
+        line.removeprefix("  - ").split(": use ")
+        for line in text.splitlines()
+        if line.startswith("  - ")
+    )
+    # All but those that the earlier defaults left unset
+    unset = {"auth.client_id", "auth.client_secret"}
+    assert listed == {k: v for k, v in DEPRECATED.items() if k not in unset}
+    text = notes(
+        "--set", "auth.client_id=a", "--set", "auth.client_secret=b", tmp_path=tmp_path
+    )
+    assert "  - auth.client_id: use auth.clientId" in text
+    assert "  - auth.client_secret: use auth.clientSecret" in text
+    assert "host_name" not in text
+
+
+def test_chart_metadata() -> None:
+    """`Chart.yaml` has the metadata that Helm recommends."""
+    assert "EXILIR" not in METADATA["description"]
+    assert METADATA["home"] == "https://tesk.readthedocs.io/"
+    assert METADATA["sources"]
+    assert METADATA["maintainers"]
+    assert METADATA["keywords"]
+    assert METADATA["icon"].startswith("https://")
+    assert METADATA["appVersion"] != "dev"
+
+
+@pytest.mark.parametrize(
+    "args",
+    [
+        ("--set-json", "tesk=[]"),
+        ("--set-json", "tesk.resources=[]"),
+        ("--set-json", "tesk.image=[]"),
+        ("--set-json", "tesk.port=[]"),
+        ("--set-json", "hostName={}"),
+        ("--set-json", "auth.serviceInfoPublic=[]"),
+        ("--set", "tesk.image.pullPolicy=Sometimes"),
+    ],
+)
+def test_schema_invalid(args: tuple[str, ...]) -> None:
+    """The schema rejects values of the wrong type."""
+    with pytest.raises(subprocess.CalledProcessError) as error:
+        render(*args)
+    assert "values don't meet the specifications of the schema" in error.value.stderr
+
+
+@pytest.mark.parametrize(
+    "values",
+    [
+        {"tesk": {"port": "8080", "debug": "true", "executorRetries": "2"}},
+        {"service": {"nodePort": "31567", "type": "NodePort"}},
+        {"tesk": {"image": {"tag": 1.2}}},
+        {"auth": {"serviceInfoPublic": "false"}},
+        {"extra": {"anything": True}, "tesk": {"extra": 1}},
+    ],
+)
+def test_schema_permissive(values: dict[str, Any], tmp_path: Path) -> None:
+    """The schema accepts strings for scalars, and unknown keys."""
+    path = tmp_path / "values.yaml"
+    path.write_text(json.dumps(values))
+    assert render("--values", str(path))
+
+
+def test_notes_reuse_values(tmp_path: Path) -> None:
+    """The notes explain warnings for the earlier defaults (`--reuse-values`)."""
+    text = notes(tmp_path=tmp_path, values=LEGACY_VALUES)
+    assert "  - host_name: use hostName" in text
+    assert "--reuse-values" in text

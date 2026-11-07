@@ -47,7 +47,7 @@ helm upgrade --install tesk charts/tesk \
   e.g., the host name and the Ingress.
 - `secrets.yaml` holds the credentials that the chart puts into secrets: the
   FTP account (`ftp.username`, `ftp.password`) and the OIDC client of the
-  Swagger UI (`auth.client_id`, `auth.client_secret`). Keep it out of version
+  Swagger UI (`auth.clientId`, `auth.clientSecret`). Keep it out of version
   control. It is optional: leave out `-f secrets.yaml` if you need none of
   these.
 - Some settings are files in the chart directory rather than values: the
@@ -57,7 +57,11 @@ helm upgrade --install tesk charts/tesk \
   (`charts/tesk/s3-config/`). Edit or add them before installing.
 
 The resources have fixed names (`tesk-api`, `taskmaster`, …), so install one
-release per namespace.
+release per namespace. They have the standard labels of Helm charts
+(`app.kubernetes.io/name: tesk`, `app.kubernetes.io/instance: <release>`,
+…), e.g., to list them with `kubectl get all -n tesk -l
+app.kubernetes.io/instance=tesk`; the selectors of the Deployment and the
+Service still use only `app: tesk-api`.
 
 ### From a release
 
@@ -121,13 +125,13 @@ a host name (DNS entry) pointing to it, and a TLS certificate, e.g., from
 [cert-manager](https://cert-manager.io/):
 
 ```yaml
-host_name: tes.example.org
+hostName: tes.example.org
 ingress:
   rules: true
   ingressClassName: nginx
   path: /
   # The secret that cert-manager creates; empty switches TLS off
-  tls_secret_name: tesk-tls
+  tlsSecretName: tesk-tls
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-production
 ```
@@ -146,7 +150,7 @@ ingress:
 service:
   type: NodePort
   # Any port in the range 30000-32767
-  node_port: 31567
+  nodePort: 31567
 ```
 
 The API is then served at port 31567 of every node, e.g.,
@@ -158,7 +162,7 @@ docs](https://kubernetes.io/docs/tasks/access-application-cluster/create-externa
 ### OpenShift
 
 On OpenShift, set `ingress.rules: false`: the chart then creates a Route for
-`host_name`, with TLS terminated at the router.
+`hostName`, with TLS terminated at the router.
 
 ## Storage backends
 
@@ -173,10 +177,10 @@ for FTP, enable TLS on the FTP server without enforcing it. Provide the
 credentials in one of two ways:
 
 - **Username and password** (default): the chart creates the secret named in
-  `ftp.classic_ftp_secret` (default `ftp-secret`) from `ftp.username` and
+  `ftp.classicFtpSecret` (default `ftp-secret`) from `ftp.username` and
   `ftp.password` (in `secrets.yaml`).
 - **`.netrc` file**, which can hold credentials for several servers: set
-  `ftp.netrc_secret` (e.g., `netrc-secret`) and `ftp.classic_ftp_secret: ""`,
+  `ftp.netrcSecret` (e.g., `netrc-secret`) and `ftp.classicFtpSecret: ""`,
   and put the file at `charts/tesk/ftp/.netrc` (template:
   `charts/tesk/ftp/.netrc-TEMPLATE`).
 
@@ -195,10 +199,10 @@ set:
 transfer:
   active: true
   # Where the workflow engine sees the shared volume
-  wes_base_path: /data
+  wesBasePath: /data
   # Where the filer mounts it
-  tes_base_path: /transfer
-  pvc_name: transfer-pvc
+  tesBasePath: /transfer
+  pvcName: transfer-pvc
 ```
 
 See [Integration with WES](integrated_wes_tes.md) for an example.
@@ -217,18 +221,18 @@ into `charts/tesk/s3-config/` (templates: `config-TEMPLATE`,
 By default (`auth.mode: noauth`), all endpoints are open. With `auth.mode:
 auth`, the API requires an OIDC access token (`Authorization: Bearer`) for
 every endpoint except `GET /service-info`, which stays public unless
-`auth.service_info_public` is `false` (tesk-api 1.2.0 or later), the API
+`auth.serviceInfoPublic` is `false` (tesk-api 1.2.0 or later), the API
 description (`GET /v2/api-docs`), and the [Swagger UI](#swagger-ui) if it is
 on. TESK works with any OIDC provider; authorisation follows the group model
-of LS Login (formerly ELIXIR AAI), configured with `auth.env_basegroup` and
-`auth.env_subgroup`. See the [tesk-api section](tesk-api/index.md) and the
+of LS Login (formerly ELIXIR AAI), configured with `auth.envBasegroup` and
+`auth.envSubgroup`. See the [tesk-api section](tesk-api/index.md) and the
 [authentication and authorisation
 guide](https://github.com/elixir-cloud-aai/tesk-api/blob/master/auth.md) of
 tesk-api.
 
 To let users log in from the Swagger UI, register an OIDC client with your
-provider and put its ID and secret into `auth.client_id` and
-`auth.client_secret` (in `secrets.yaml`).
+provider and put its ID and secret into `auth.clientId` and
+`auth.clientSecret` (in `secrets.yaml`).
 
 ## Swagger UI
 
@@ -247,16 +251,28 @@ tesk:
 The value must be `true` or `false`: anything else fails the installation,
 as tesk-api wouldn't start with it (tools that set values only as strings
 can use `"true"` and `"false"`). It needs tesk-api 1.2.0 or later
-(`tesk.image`); earlier versions ignore it and always serve the Swagger UI.
+(`tesk.image.tag`); earlier versions ignore it and always serve the Swagger UI.
 Users log in from the Swagger UI with the OIDC client of
-`auth.client_id` (see [Authentication and
+`auth.clientId` (see [Authentication and
 authorisation](#authentication-and-authorisation)).
 
 ## Resources
 
-The API's container gets the requests and limits of `tesk.requestsCpu`,
-`tesk.requestsMemory`, `tesk.limitsCpu` and `tesk.limitsMemory`. The
-resources of the executors come from each task (`resources.cpu_cores`,
+The API's container gets the requests and limits of `tesk.resources`
+(default: 1 CPU and 2048 MiB of memory, as both requests and limits):
+
+```yaml
+tesk:
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 1
+      memory: 2Gi
+```
+
+The resources of the executors come from each task (`resources.cpu_cores`,
 `resources.ram_gb`); taskmaster v0.10.6 sets them as both requests and
 limits, so a task that uses more memory than it requested is killed (OOM),
 and its CPU is throttled. The disk space of a task (`resources.disk_gb`)
