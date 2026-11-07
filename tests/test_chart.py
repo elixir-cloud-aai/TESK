@@ -1077,6 +1077,51 @@ def test_retries_and_debug() -> None:
     assert variables["TESK_API_TASKMASTER_DEBUG"] == "true"
 
 
+@pytest.mark.parametrize(
+    ("args", "expected"),
+    [
+        ((), None),
+        (("--set", "tesk.filerHttpTimeout="), None),
+        (("--set", "tesk.filerHttpTimeout=null"), None),
+        (("--set", "tesk.filerHttpTimeout=600"), "600"),
+        (("--set", "tesk.filerHttpTimeout=0.5"), "0.5"),
+        (("--set-string", "tesk.filerHttpTimeout=120"), "120"),
+    ],
+)
+def test_filer_http_timeout(args: tuple[str, ...], expected: str | None) -> None:
+    """The filer's HTTP timeout is passed on as a string, if it is set.
+
+    Args:
+        args: The `helm template` arguments.
+        expected: The value of the environment variable; `None` if unset.
+    """
+    variables = env(render(*args))
+    key = "TESK_API_TASKMASTER_ENVIRONMENT_FILER_HTTP_TIMEOUT"
+    assert variables.get(key) == expected
+
+
+@pytest.mark.parametrize(
+    "args",
+    [
+        ("--set", "tesk.filerHttpTimeout=0"),
+        ("--set", "tesk.filerHttpTimeout=-5"),
+        ("--set-string", "tesk.filerHttpTimeout=0"),
+        ("--set-string", "tesk.filerHttpTimeout=abc"),
+        ("--set-string", "tesk.filerHttpTimeout=1e3"),
+        ("--set-json", "tesk.filerHttpTimeout=[]"),
+    ],
+)
+def test_filer_http_timeout_invalid(args: tuple[str, ...]) -> None:
+    """The schema rejects timeouts that aren't positive numbers.
+
+    Args:
+        args: The `helm template` arguments.
+    """
+    with pytest.raises(subprocess.CalledProcessError) as error:
+        render(*args)
+    assert "values don't meet the specifications of the schema" in error.value.stderr
+
+
 def _sorted(manifests: list[Manifest]) -> list[Manifest]:
     """Sort rendered objects by kind and name, to compare renderings.
 

@@ -157,6 +157,16 @@
           "$ref": "#/$defs/scalar",
           "description": "Deprecated: use tesk.filerRetries"
         },
+        "filerHttpTimeout": {
+          "type": [
+            "number",
+            "string",
+            "null"
+          ],
+          "exclusiveMinimum": 0,
+          "pattern": "^(|0*[1-9][0-9]*(\\.[0-9]+)?|0*\\.[0-9]*[1-9][0-9]*)$",
+          "description": "Timeout of the filer's HTTP(S) requests, in seconds (connecting and each read); empty uses the filer's default"
+        },
         "resources": {
           "type": [
             "object",

@@ -9,6 +9,16 @@ helm upgrade tesk charts/tesk --namespace tesk -f my-values.yaml -f secrets.yaml
 
 ## Unreleased
 
+### Timeout of the filer's HTTP(S) requests
+
+With taskmaster and filer images newer than v0.10.6, the filer's HTTP(S)
+requests time out after 300 seconds without progress (connecting, or
+waiting for the next part of a response or upload); before, they could wait
+forever. Large files still work: the timeout doesn't limit the whole
+transfer. If your HTTP(S) servers take longer to answer, e.g., after large
+uploads, raise it with the new value `tesk.filerHttpTimeout` (see
+[Configuration](configuration.md)).
+
 ### FTP credentials go only to configured hosts
 
 **Act on this if your tasks use FTP with `ftp.username` and
