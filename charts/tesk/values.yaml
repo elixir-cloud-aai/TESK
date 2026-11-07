@@ -51,6 +51,18 @@ tesk:
     image:
       repository: docker.io/elixircloud/tesk-core-filer
       tag: v0.10.6
+  # The executors, which run the task's commands
+  executor:
+    # Security context of the executors' pods, e.g., to run them as non-root
+    # users: `runAsUser`, `runAsGroup`, `fsGroup` (integers) and
+    # `runAsNonRoot` (true or false); tesk-api reads no other fields. Empty
+    # leaves the executors as their images say (often root). `fsGroup` also
+    # gives executors access to the files that the filer stages on the
+    # task's PVC, on volume types whose ownership Kubernetes manages. Not
+    # applied to the API (see `securityContext`), the taskmaster and the
+    # filer. tesk-api reads it at startup, so a change restarts the API's
+    # pod
+    securityContext: {}
   # Debug logging in the taskmasters
   debug: false
   # Retries of an executor's job, and of a filer's job, on errors

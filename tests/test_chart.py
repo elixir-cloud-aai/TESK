@@ -10,6 +10,7 @@ pinned Helm version only.
 from __future__ import annotations
 
 import base64
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -320,6 +321,156 @@ def test_security_context() -> None:
     pod = deployment(manifests)["spec"]["template"]["spec"]
     assert "securityContext" not in pod
     assert "securityContext" not in container(manifests)
+
+
+@pytest.mark.parametrize(
+    "args",
+    [
+        (),
+        ("--set-json", "tesk.executor.securityContext={}"),
+        ("--set-json", "tesk.executor.securityContext=null"),
+        ("--set-json", "tesk.executor=null"),
+    ],
+)
+def test_executor_security_context_default(args: tuple[str, ...]) -> None:
+    """Without a security context, executors run as before.
+
+    No ConfigMap, no `CONFIGMAP`, and no checksum annotation.
+
+    Args:
+        args: The `helm template` arguments.
+    """
+    manifests = render(*args)
+    assert find(manifests, "ConfigMap", "tesk-executor") is None
+    assert "CONFIGMAP" not in env(manifests)
+    annotations = deployment(manifests)["spec"]["template"]["metadata"]
+    assert "annotations" not in annotations
+
+
+@pytest.mark.parametrize(
+    ("args", "expected"),
+    [
+        (
+            (
+                "--set",
+                "tesk.executor.securityContext.runAsUser=1000",
+                "--set",
+                "tesk.executor.securityContext.runAsGroup=3000",
+                "--set",
+                "tesk.executor.securityContext.fsGroup=2000",
+                "--set",
+                "tesk.executor.securityContext.runAsNonRoot=true",
+            ),
+            {"runAsUser": 1000, "runAsGroup": 3000, "fsGroup": 2000, "nonRoot": True},
+        ),
+        (
+            ("--set", "tesk.executor.securityContext.fsGroup=2000"),
+            {"fsGroup": 2000},
+        ),
+        (
+            ("--set", "tesk.executor.securityContext.runAsNonRoot=false"),
+            {"nonRoot": False},
+        ),
+        (
+            ("--set", "tesk.executor.securityContext.runAsUser=0"),
+            {"runAsUser": 0},
+        ),
+    ],
+)
+def test_executor_security_context(
+    args: tuple[str, ...], expected: dict[str, Any]
+) -> None:
+    """The executors' security context reaches tesk-api through a ConfigMap.
+
+    tesk-api reads the ConfigMap named in `CONFIGMAP` at startup (key
+    `securityContext`, with `nonRoot` for `runAsNonRoot`).
+
+    Args:
+        args: The `helm template` arguments.
+        expected: The fields that tesk-api reads.
+    """
+    manifests = render(*args, release="prod")
+    config = get(manifests, "ConfigMap", "prod-tesk-executor")
+    assert yaml.safe_load(config["data"]["securityContext"]) == expected
+    assert env(manifests)["CONFIGMAP"] == "prod-tesk-executor"
+
+
+def test_executor_security_context_checksum() -> None:
+    """A checksum of the ConfigMap's data restarts the API's pod on changes.
+
+    tesk-api reads the ConfigMap only at startup.
+    """
+    checksums = []
+    for group in (1, 2):
+        manifests = render("--set", f"tesk.executor.securityContext.fsGroup={group}")
+        data = get(manifests, "ConfigMap", "tesk-executor")["data"]["securityContext"]
+        metadata = deployment(manifests)["spec"]["template"]["metadata"]
+        checksum = metadata["annotations"]["checksum/executor-config"]
+        # The block scalar adds a final newline that the checksum leaves out
+        assert checksum == hashlib.sha256(data.rstrip("\n").encode()).hexdigest()
+        checksums.append(checksum)
+    assert checksums[0] != checksums[1]
+
+
+def test_executor_security_context_values_file(tmp_path: Path) -> None:
+    """Numbers in a values file (floats to Helm) are rendered as integers.
+
+    Args:
+        tmp_path: A directory for the values file.
+    """
+    values = tmp_path / "values.yaml"
+    values.write_text(
+        "tesk:\n  executor:\n    securityContext:\n"
+        "      runAsUser: 1000000\n      fsGroup: 2000\n"
+    )
+    config = get(render("-f", str(values)), "ConfigMap", "tesk-executor")
+    # Without a conversion, Helm would render 1000000 as 1e+06
+    assert yaml.safe_load(config["data"]["securityContext"]) == {
+        "fsGroup": 2000,
+        "runAsUser": 1000000,
+    }
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        '{"runAsUser": 0, "runAsNonRoot": true}',
+        '{"runAsUser": 0.0, "runAsNonRoot": true}',
+    ],
+)
+def test_executor_security_context_root_and_non_root(value: str) -> None:
+    """Root with `runAsNonRoot` fails, as Kubernetes wouldn't start executors.
+
+    Args:
+        value: The security context, as JSON.
+    """
+    with pytest.raises(subprocess.CalledProcessError) as error:
+        render("--set-json", f"tesk.executor.securityContext={value}")
+    assert "runAsUser 0 contradicts runAsNonRoot" in error.value.stderr
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        '{"runAsUser": -1}',
+        '{"runAsUser": 2147483648}',
+        '{"fsGroup": 2147483648}',
+        '{"runAsUser": 1.5}',
+        '{"runAsUser": "1000"}',
+        '{"runAsNonRoot": "yes"}',
+        '{"privileged": true}',
+        "[]",
+    ],
+)
+def test_executor_security_context_invalid(value: str) -> None:
+    """The schema accepts only the fields that tesk-api reads, as numbers.
+
+    Args:
+        value: The security context, as JSON.
+    """
+    with pytest.raises(subprocess.CalledProcessError) as error:
+        render("--set-json", f"tesk.executor.securityContext={value}")
+    assert "values don't meet the specifications of the schema" in error.value.stderr
 
 
 PROBES = ("startupProbe", "readinessProbe", "livenessProbe")
@@ -1385,6 +1536,8 @@ ALL_OBJECTS = (
     "storage=openstack",
     "--set",
     "auth.mode=auth",
+    "--set",
+    "tesk.executor.securityContext.fsGroup=1",
 )
 
 
@@ -1439,6 +1592,7 @@ def test_names_from_release(tmp_path: Path) -> None:
         "--api-versions", "route.openshift.io/v1", "--set", "ingress.rules=false"
     )
     assert _names(manifests) == {
+        ("ConfigMap", "tesk-executor"),
         ("ConfigMap", "tesk-service-info"),
         ("Deployment", "tesk-api"),
         ("Endpoints", "ftp"),

@@ -10,6 +10,7 @@ whole chart */ -}}
 {{- $tag = .Chart.AppVersion -}}
 {{- end -}}
 {{- $ftpSecretName := include "tesk.ftpSecretName" . -}}
+{{- $executorSecurityContext := include "tesk.executorSecurityContext" . -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -25,6 +26,11 @@ spec:
     metadata:
       labels:
         {{- include "tesk.selectorLabels" . | nindent 8 }}
+      {{- /* tesk-api reads the ConfigMap only at startup */}}
+      {{- with $executorSecurityContext }}
+      annotations:
+        checksum/executor-config: {{ sha256sum . }}
+      {{- end }}
     spec:
       serviceAccountName: {{ include "tesk.taskmasterName" . }}
       containers:
@@ -46,6 +52,10 @@ spec:
           value: {{ dig "filer" "image" "tag" "" $tesk }}
         - name: TESK_API_K8S_NAMESPACE
           value: {{ .Release.Namespace }}
+        {{- if $executorSecurityContext }}
+        - name: CONFIGMAP
+          value: {{ include "tesk.executorConfigName" . }}
+        {{- end }}
         {{- /* The taskmasters' jobs run with this service account */}}
         - name: TESK_API_TASKMASTER_SERVICE_ACCOUNT_NAME
           value: {{ include "tesk.taskmasterName" . }}

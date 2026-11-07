@@ -40,9 +40,10 @@ lowercase letters, digits and dashes), e.g. for the release names `123` or
 {{/*
 Names of the chart's objects, derived from `tesk.fullname`: the API's
 Deployment and Service, the taskmasters' ServiceAccount, Role and
-RoleBinding, the ConfigMap with the service info, and the secret with the
-OAuth client. tesk-api gets the names that it passes on to the taskmasters
-(service account, FTP secret) from its environment.
+RoleBinding, the ConfigMaps with the service info and the executors'
+security context, and the secret with the OAuth client. tesk-api gets
+the names that it passes on to the taskmasters (service account, FTP
+secret) from its environment.
 */}}
 {{- define "tesk.apiName" -}}
 {{- include "tesk.fullname" . }}-api
@@ -58,6 +59,34 @@ OAuth client. tesk-api gets the names that it passes on to the taskmasters
 
 {{- define "tesk.oauthClientName" -}}
 {{- include "tesk.fullname" . }}-oauth-client
+{{- end -}}
+
+{{- define "tesk.executorConfigName" -}}
+{{- include "tesk.fullname" . }}-executor
+{{- end -}}
+
+{{/*
+The executors' security context (`tesk.executor.securityContext`) as
+tesk-api reads it (`KubernetesObjectsSupplier`): the fields `fsGroup`,
+`runAsGroup` and `runAsUser` as integers (Helm reads numbers in values
+files as floats, which YAML would render as, e.g., 1e+06), and
+`runAsNonRoot` as `nonRoot`; empty if none is set.
+*/}}
+{{- define "tesk.executorSecurityContext" -}}
+{{- $context := dig "executor" "securityContext" dict .Values.tesk | default dict -}}
+{{- $lines := list -}}
+{{- range $key := list "fsGroup" "runAsGroup" "runAsUser" -}}
+{{- if hasKey $context $key -}}
+{{- $lines = append $lines (printf "%s: %d" $key (index $context $key | int64)) -}}
+{{- end -}}
+{{- end -}}
+{{- if and (hasKey $context "runAsUser") (eq (index $context "runAsUser" | int64) 0) (eq (toString (index $context "runAsNonRoot")) "true") -}}
+{{- fail "tesk.executor.securityContext: runAsUser 0 contradicts runAsNonRoot true; Kubernetes wouldn't start the executors" -}}
+{{- end -}}
+{{- if hasKey $context "runAsNonRoot" -}}
+{{- $lines = append $lines (printf "nonRoot: %t" (index $context "runAsNonRoot")) -}}
+{{- end -}}
+{{- join "\n" $lines -}}
 {{- end -}}
 
 {{/*
