@@ -78,6 +78,12 @@ spec:
         - name: TESK_API_TASKMASTER_ENVIRONMENT_FILER_HTTP_TIMEOUT
           value: {{ toString . | quote }}
         {{- end }}
+        {{- /* Only true (also as a string) keeps them; the taskmaster
+        deletes them by default */}}
+        {{- if eq (lower (toString $tesk.keepFailedPvcs)) "true" }}
+        - name: TESK_API_TASKMASTER_ENVIRONMENT_KEEP_FAILED_PVC
+          value: "true"
+        {{- end }}
         - name: SERVER_SERVLET_CONTEXT_PATH
           value: {{ .Values.ingress.path }}
         {{- if index $values "tesk.tesApiBasePath" }}

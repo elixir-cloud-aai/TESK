@@ -9,6 +9,19 @@ helm upgrade tesk charts/tesk --namespace tesk -f my-values.yaml -f secrets.yaml
 
 ## Unreleased
 
+### PVCs of failed and cancelled tasks are deleted
+
+With taskmaster images newer than v0.10.6, the taskmaster also deletes the
+PVC of a task that fails or is cancelled; before, only tasks that completed
+deleted theirs, and the others stayed until someone deleted them by hand. As
+for completed tasks, Kubernetes frees the storage once the task's jobs are
+deleted (see [#123](https://github.com/elixir-cloud-aai/TESK/issues/123)).
+To keep them, e.g. to inspect the files of failed tasks, set the new value
+`tesk.keepFailedPvcs` to `true` (see [Configuration](configuration.md)).
+PVCs that earlier releases left behind stay: list them with
+`kubectl get pvc --namespace tesk`, and delete those of tasks that have
+ended (`<task>-pvc`, where `<task>` is the task's ID).
+
 ### Timeout of the filer's HTTP(S) requests
 
 With taskmaster and filer images newer than v0.10.6, the filer's HTTP(S)

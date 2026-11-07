@@ -1226,6 +1226,48 @@ def test_filer_http_timeout_values_file(tmp_path: Path) -> None:
     assert float(value) == 1_000_000
 
 
+@pytest.mark.parametrize(
+    ("args", "expected"),
+    [
+        ((), None),
+        (("--set", "tesk.keepFailedPvcs=false"), None),
+        (("--set", "tesk.keepFailedPvcs=null"), None),
+        (("--set", "tesk.keepFailedPvcs=true"), "true"),
+        (("--set-string", "tesk.keepFailedPvcs=true"), "true"),
+        (("--set-string", "tesk.keepFailedPvcs=false"), None),
+    ],
+)
+def test_keep_failed_pvcs(args: tuple[str, ...], expected: str | None) -> None:
+    """Keeping the PVCs of failed tasks sets the taskmaster's setting.
+
+    Unset or false leaves the setting out, so that the taskmaster deletes
+    them (its default). Strings are accepted for tools that set only
+    strings.
+
+    Args:
+        args: The `helm template` arguments.
+        expected: The value of the environment variable; `None` if unset.
+    """
+    variables = env(render(*args))
+    key = "TESK_API_TASKMASTER_ENVIRONMENT_KEEP_FAILED_PVC"
+    if expected is None:
+        assert key not in variables
+    else:
+        assert variables[key] == expected
+
+
+@pytest.mark.parametrize("value", ['"yes"', '"True"', "1", "[]"])
+def test_keep_failed_pvcs_invalid(value: str) -> None:
+    """The schema accepts only true, false (also as strings) or null.
+
+    Args:
+        value: The value, as JSON.
+    """
+    with pytest.raises(subprocess.CalledProcessError) as error:
+        render("--set-json", f"tesk.keepFailedPvcs={value}")
+    assert "values don't meet the specifications of the schema" in error.value.stderr
+
+
 def _sorted(manifests: list[Manifest]) -> list[Manifest]:
     """Sort rendered objects by kind and name, to compare renderings.
 

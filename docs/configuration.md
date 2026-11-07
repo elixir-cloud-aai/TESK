@@ -46,6 +46,7 @@ image. It accepts unknown keys, and the deprecated names.
 | `tesk.executorRetries` | `2` | Retries of an executor's job on errors (its `backoffLimit`). |
 | `tesk.filerRetries` | `2` | Retries of a filer's job on errors, while staging inputs or outputs. |
 | `tesk.filerHttpTimeout` | empty | Timeout of the filer's HTTP(S) requests, in seconds, a positive number up to 1000000 (strings as plain decimals, e.g. `"600"`): for connecting and for each read, not for the whole transfer. Empty uses the filer's default, 300 seconds. Takes effect with taskmaster and filer images newer than v0.10.6 (see [Filer](tesk-core/filer.md#https)). |
+| `tesk.keepFailedPvcs` | `false` | `true` keeps the PVCs of tasks that fail or are cancelled, e.g. to inspect their files; delete them by hand then. `false` lets the taskmaster delete them; taskmaster images up to v0.10.6 always keep them. `true` and `false` also as strings. |
 | `tesk.resources` | 1 CPU and `2048Mi` memory, as requests and limits | Resources of the API's container (`requests` and `limits`, as in Kubernetes; further resources, e.g., `ephemeral-storage`, are passed on too). |
 | `tesk.startupProbe` | every 5 s, 5 s timeout, up to 60 failures (5 minutes) | Startup probe of the API's container: it holds off the other probes while the API starts, which takes about a minute (see [Probes](#probes)). |
 | `tesk.readinessProbe` | every 10 s, 5 s timeout, 3 failures | Readiness probe: the Service and Ingress send requests to the pod, and `helm install --wait` returns, once it succeeds (see [Probes](#probes)). |

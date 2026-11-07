@@ -51,6 +51,10 @@ tesk:
   # for each read (not the whole transfer); empty uses the filer's default
   # (300). Takes effect with taskmaster and filer images newer than v0.10.6
   filerHttpTimeout: ""
+  # Keep the PVCs of tasks that fail or are cancelled, e.g. to inspect their
+  # files (delete them by hand then); false lets the taskmaster delete them.
+  # Taskmaster images up to v0.10.6 always keep them
+  keepFailedPvcs: false
 
   # Resources of the API's container
   resources:
