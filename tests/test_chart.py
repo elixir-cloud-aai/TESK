@@ -14,6 +14,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import re
 import shutil
 import subprocess
 from typing import Any
@@ -1941,3 +1942,252 @@ def test_schema_permissive(values: dict[str, Any], tmp_path: Path) -> None:
     path = tmp_path / "values.yaml"
     path.write_text(json.dumps(values))
     assert render("--values", str(path))
+
+
+# Without a tag, tesk-api's version is the chart's appVersion (major and
+# minor; (0, 0) if it isn't a version)
+_APP_VERSION = re.match(r"v?(\d+)\.(\d+)", str(METADATA["appVersion"]))
+APP_VERSION = (int(_APP_VERSION[1]), int(_APP_VERSION[2])) if _APP_VERSION else (0, 0)
+SECONDS = {
+    "taskTtlSeconds": "TESK_API_TASKMASTER_ENVIRONMENT_TASK_TTL_SECONDS",
+    "maxQueueSeconds": "TESK_API_TASKMASTER_ENVIRONMENT_TESK_MAX_QUEUE_SECONDS",
+}
+
+
+@pytest.mark.parametrize("key", list(SECONDS))
+@pytest.mark.parametrize(
+    "args",
+    [(), ("--set", "{}="), ("--set", "{}=null"), ("--set-string", "{}=")],
+)
+def test_seconds_unset(key: str, args: tuple[str, ...]) -> None:
+    """Unset or empty, the taskmasters get no variable (keep, wait forever).
+
+    Args:
+        key: The value under `tesk`.
+        args: The `helm template` arguments, with `{}` for the value's path.
+    """
+    variables = env(render(*(arg.format(f"tesk.{key}") for arg in args)))
+    assert SECONDS[key] not in variables
+
+
+@pytest.mark.parametrize(
+    ("key", "args", "expected"),
+    [
+        ("taskTtlSeconds", ("--set", "tesk.taskTtlSeconds=86400"), "86400"),
+        ("taskTtlSeconds", ("--set", "tesk.taskTtlSeconds=0"), "0"),
+        ("taskTtlSeconds", ("--set-string", "tesk.taskTtlSeconds=3600"), "3600"),
+        (
+            "taskTtlSeconds",
+            ("--set", "tesk.taskTtlSeconds=2147483647"),
+            "2147483647",
+        ),
+        ("maxQueueSeconds", ("--set", "tesk.maxQueueSeconds=3600"), "3600"),
+        ("maxQueueSeconds", ("--set", "tesk.maxQueueSeconds=1"), "1"),
+        ("maxQueueSeconds", ("--set-string", "tesk.maxQueueSeconds=0600"), "600"),
+        (
+            "taskTtlSeconds",
+            ("--set-string", "tesk.taskTtlSeconds=0000000000086400"),
+            "86400",
+        ),
+        ("taskTtlSeconds", ("--set-string", "tesk.taskTtlSeconds=000"), "0"),
+    ],
+)
+def test_seconds(key: str, args: tuple[str, ...], expected: str) -> None:
+    """Set, the value is passed on to the taskmasters as whole seconds.
+
+    Args:
+        key: The value under `tesk`.
+        args: The `helm template` arguments.
+        expected: The value of the environment variable.
+    """
+    assert env(render(*args))[SECONDS[key]] == expected
+
+
+def test_seconds_values_file(tmp_path: Path) -> None:
+    """Numbers in a values file (floats to Helm) are passed on as integers.
+
+    Args:
+        tmp_path: A directory for the values file.
+    """
+    values = tmp_path / "values.yaml"
+    values.write_text(
+        "tesk:\n  taskTtlSeconds: 2592000\n  maxQueueSeconds: 2147483647\n"
+    )
+    variables = env(render("-f", str(values)))
+    assert variables[SECONDS["taskTtlSeconds"]] == "2592000"
+    assert variables[SECONDS["maxQueueSeconds"]] == "2147483647"
+
+
+@pytest.mark.parametrize(
+    "value",
+    ["true", "1.5", "-0.5", '{"a": 1}', "[1]"],
+)
+def test_seconds_invalid_without_schema(value: str) -> None:
+    """Without the schema, the chart still fails on values that aren't seconds.
+
+    Otherwise, e.g., `-0.5` would become a TTL of 0, which deletes every task
+    as soon as it finishes.
+
+    Args:
+        value: The TTL, as JSON.
+    """
+    with pytest.raises(subprocess.CalledProcessError) as error:
+        render("--skip-schema-validation", "--set-json", f"tesk.taskTtlSeconds={value}")
+    assert "tesk.taskTtlSeconds must be whole seconds" in error.value.stderr
+
+
+@pytest.mark.parametrize(
+    "args",
+    [
+        ("--set", "tesk.taskTtlSeconds=-1"),
+        ("--set", "tesk.taskTtlSeconds=1.5"),
+        ("--set", "tesk.taskTtlSeconds=2147483648"),
+        ("--set-string", "tesk.taskTtlSeconds=1h"),
+        ("--set-string", "tesk.taskTtlSeconds=-1"),
+        ("--set-json", "tesk.taskTtlSeconds=[]"),
+        ("--set", "tesk.taskTtlSeconds=true"),
+        ("--set", "tesk.maxQueueSeconds=0"),
+        ("--set", "tesk.maxQueueSeconds=2147483648"),
+        ("--set-string", "tesk.maxQueueSeconds=3600s"),
+    ],
+)
+def test_seconds_invalid_schema(args: tuple[str, ...]) -> None:
+    """The schema rejects values that aren't whole seconds in range.
+
+    Args:
+        args: The `helm template` arguments.
+    """
+    with pytest.raises(subprocess.CalledProcessError) as error:
+        render(*args)
+    assert "values don't meet the specifications of the schema" in error.value.stderr
+
+
+@pytest.mark.parametrize(
+    ("args", "message"),
+    [
+        (
+            ("--set-string", "tesk.taskTtlSeconds=2147483648"),
+            "tesk.taskTtlSeconds must be whole seconds from 0 to 2147483647",
+        ),
+        (
+            ("--set-string", "tesk.maxQueueSeconds=0"),
+            "tesk.maxQueueSeconds must be whole seconds from 1 to 2147483647",
+        ),
+        (
+            ("--set-string", "tesk.maxQueueSeconds=9999999999"),
+            "tesk.maxQueueSeconds must be whole seconds from 1 to 2147483647",
+        ),
+        (
+            ("--set-string", "tesk.taskTtlSeconds=99999999999999999999"),
+            "tesk.taskTtlSeconds must be whole seconds from 0 to 2147483647",
+        ),
+        (
+            ("--set-string", "tesk.maxQueueSeconds=0000"),
+            "tesk.maxQueueSeconds must be whole seconds from 1 to 2147483647",
+        ),
+    ],
+)
+def test_seconds_invalid_range(args: tuple[str, ...], message: str) -> None:
+    """Strings of digits out of range fail, as the taskmaster would ignore them.
+
+    Args:
+        args: The `helm template` arguments.
+        message: The expected error.
+    """
+    with pytest.raises(subprocess.CalledProcessError) as error:
+        render(*args)
+    assert message in error.value.stderr
+
+
+@pytest.mark.parametrize("key", list(SECONDS))
+@pytest.mark.parametrize(
+    ("args", "warned"),
+    [
+        ((), True),
+        (("--set", "tesk.taskmaster.image.tag=v0.10.6"), True),
+        (("--set", "tesk.taskmaster.image.tag=v0.11.0"), False),
+        (("--set", "tesk.taskmaster.image.tag=dev"), False),
+    ],
+)
+def test_notes_seconds_old_taskmaster(
+    tmp_path: Path, key: str, args: tuple[str, ...], warned: bool
+) -> None:
+    """The notes warn if a value is set, but the taskmaster ignores it.
+
+    Args:
+        tmp_path: A directory for a copy of the chart.
+        key: The value under `tesk`.
+        args: Further `helm template` arguments (image tags).
+        warned: Whether the notes warn.
+    """
+    text = notes("--set", f"tesk.{key}=3600", *args, tmp_path=tmp_path)
+    assert (f"tesk.{key} is set, but tesk.taskmaster.image.tag" in text) is warned
+    # Only the max queue time depends on the version of tesk-api
+    if key == "taskTtlSeconds":
+        assert "but tesk-api" not in text
+    assert f"tesk.{key} is set" not in notes(tmp_path=tmp_path)
+
+
+@pytest.mark.parametrize(
+    ("args", "warned"),
+    [
+        ((), APP_VERSION < (1, 2)),
+        (("--set", "tesk.image.tag=1.1.0"), True),
+        (("--set", "tesk.image.tag=v1.1"), True),
+        (("--set", "tesk.image.tag=1.1.1-rc.1"), True),
+        (("--set", "tesk.image.tag=1.2.0-rc.1"), False),
+        (("--set", "tesk.image.tag=1.2.0"), False),
+        (("--set", "tesk.image.tag=dev"), False),
+    ],
+)
+def test_notes_max_queue_old_api(
+    tmp_path: Path, args: tuple[str, ...], warned: bool
+) -> None:
+    """The notes warn if the max queue time is set with tesk-api 1.1 or older.
+
+    These report a task whose executor was deleted as `COMPLETE`.
+
+    Args:
+        tmp_path: A directory for a copy of the chart.
+        args: Further `helm template` arguments (image tags).
+        warned: Whether the notes warn.
+    """
+    new_taskmaster = ("--set", "tesk.taskmaster.image.tag=v0.11.0")
+    text = notes(
+        "--set", "tesk.maxQueueSeconds=3600", *new_taskmaster, *args, tmp_path=tmp_path
+    )
+    assert ("tesk.maxQueueSeconds is set, but tesk-api" in text) is warned
+
+
+@pytest.mark.parametrize(
+    ("group", "resource", "verbs"),
+    [
+        ("batch", "jobs", {"create", "delete", "get", "list", "patch"}),
+        ("", "configmaps", {"create", "delete", "get"}),
+    ],
+)
+def test_role_rights(group: str, resource: str, verbs: set[str]) -> None:
+    """The API and the taskmasters (one service account) may manage their objects.
+
+    tesk-api creates a task's job and then its ConfigMap, owned by the job,
+    and deletes the job if the ConfigMap fails (tesk-api#117); deleting the
+    ConfigMap needs `delete` where OwnerReferencesPermissionEnforcement is
+    on. The taskmaster patches its own job with the TTL.
+
+    Args:
+        group: The API group.
+        resource: The resource.
+        verbs: The verbs that the role must grant.
+    """
+    manifests = render()
+    assert (
+        deployment(manifests)["spec"]["template"]["spec"]["serviceAccountName"]
+        == "tesk-taskmaster"
+    )
+    granted = {
+        verb
+        for rule in get(manifests, "Role", "tesk-taskmaster")["rules"]
+        if group in rule["apiGroups"] and resource in rule["resources"]
+        for verb in rule["verbs"]
+    }
+    assert verbs <= granted

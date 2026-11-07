@@ -193,6 +193,22 @@ e.g., a map where the chart expects a scalar fails the installation, as
 does a pull policy other than `Always`, `IfNotPresent` or `Never`. It
 accepts scalars of any type and unknown keys.
 
+### Deleting finished tasks and a max queue time
+
+Two new values, empty by default, so upgrading changes nothing:
+
+- `tesk.taskTtlSeconds` lets Kubernetes delete a finished task's jobs and
+  pods after that many seconds (see [Deleting finished
+  tasks](deployment.md#deleting-finished-tasks)).
+- `tesk.maxQueueSeconds` ends a task whose pods can't be scheduled within
+  that many seconds (see [Tasks that can't be
+  scheduled](deployment.md#tasks-that-cant-be-scheduled)). Set it only with
+  tesk-api newer than 1.1; older versions report such tasks as `COMPLETE`.
+
+Both take effect with taskmaster images newer than v0.10.6, for tasks
+created after the upgrade; `helm install` and `helm upgrade` print a warning
+if the taskmaster or tesk-api image is too old for a value that is set.
+
 ### Newer taskmaster images delete the PVCs of failed tasks
 
 With taskmaster images newer than v0.10.6, the taskmaster also deletes the

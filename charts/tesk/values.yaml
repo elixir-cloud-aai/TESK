@@ -76,6 +76,19 @@ tesk:
   # files (delete them by hand then); false lets the taskmaster delete them.
   # Taskmaster images up to v0.10.6 always keep them
   keepFailedPvcs: false
+  # Seconds after which Kubernetes deletes a finished task's jobs and pods
+  # (0 to 2147483647). The task is then gone from the API, so leave clients
+  # (e.g., workflow engines) hours to read it: e.g., 86400 (a day) or 604800
+  # (a week). Empty keeps finished tasks. Takes effect with taskmaster images
+  # newer than v0.10.6, for tasks created after the API's pod restarted
+  # with it
+  taskTtlSeconds: ""
+  # Seconds that a pod of a task may wait for a node (1 to 2147483647) before
+  # the task fails with SYSTEM_ERROR, e.g., 3600 (an hour) or 86400 (a day).
+  # Empty waits forever. Needs taskmaster images newer than v0.10.6 and a
+  # tesk-api image newer than 1.1 (`tesk.image.tag`), which reports such
+  # tasks correctly; older ones report them as COMPLETE
+  maxQueueSeconds: ""
 
   # Resources of the API's container
   resources:

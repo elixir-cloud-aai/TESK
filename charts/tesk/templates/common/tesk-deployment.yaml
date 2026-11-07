@@ -74,6 +74,16 @@ spec:
         - name: TESK_API_TASKMASTER_ENVIRONMENT_KEEP_FAILED_PVC
           value: "true"
         {{- end }}
+        {{- /* Optional: unset keeps finished tasks, and lets pods wait
+        forever to be scheduled */}}
+        {{- with include "tesk.seconds" (dict "root" . "name" "taskTtlSeconds" "minimum" 0) }}
+        - name: TESK_API_TASKMASTER_ENVIRONMENT_TASK_TTL_SECONDS
+          value: {{ . | quote }}
+        {{- end }}
+        {{- with include "tesk.seconds" (dict "root" . "name" "maxQueueSeconds" "minimum" 1) }}
+        - name: TESK_API_TASKMASTER_ENVIRONMENT_TESK_MAX_QUEUE_SECONDS
+          value: {{ . | quote }}
+        {{- end }}
         - name: SERVER_SERVLET_CONTEXT_PATH
           value: {{ .Values.ingress.path }}
         {{- if $tesk.tesApiBasePath }}
