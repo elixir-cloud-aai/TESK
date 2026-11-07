@@ -18,6 +18,7 @@ import subprocess
 from typing import Any
 
 import pytest
+import yaml
 
 from tests.helm import (
     CHART,
@@ -580,6 +581,78 @@ def test_ftp_secret() -> None:
     manifests = render("--set", "ftp.username=user", "--set", "ftp.password=pass")
     secret = get(manifests, "Secret", "ftp-secret")
     assert secret["stringData"] == {"username": "user", "password": "pass"}
+
+
+TRICKY_VALUES = [
+    "pa#ss",
+    "a: b",
+    "123456",
+    "-",
+    "true",
+    "null",
+    "0123",
+    '"quoted" \\ back',
+    "{braces}",
+    "x #y: z",
+]
+
+
+@pytest.mark.parametrize("value", TRICKY_VALUES)
+def test_ftp_secret_quoting(value: str, tmp_path: Path) -> None:
+    """The FTP credentials are strings, whatever they contain."""
+    values = tmp_path / "secrets.yaml"
+    values.write_text(yaml.safe_dump({"ftp": {"username": value, "password": value}}))
+    manifests = render("-f", str(values))
+    secret = get(manifests, "Secret", "ftp-secret")
+    assert secret["stringData"] == {"username": value, "password": value}
+
+
+def test_ftp_secret_numeric() -> None:
+    """Numbers set with `--set` are rendered as strings."""
+    manifests = render("--set", "ftp.username=123", "--set", "ftp.password=456")
+    secret = get(manifests, "Secret", "ftp-secret")
+    assert secret["stringData"] == {"username": "123", "password": "456"}
+
+
+@pytest.mark.parametrize("value", TRICKY_VALUES)
+@pytest.mark.parametrize(
+    ("id_key", "secret_key"),
+    [
+        ("auth.clientId", "auth.clientSecret"),
+        ("auth.client_id", "auth.client_secret"),
+    ],
+)
+def test_auth_quoting(value: str, id_key: str, secret_key: str, tmp_path: Path) -> None:
+    """The OAuth client ID and secret are strings (new and old keys)."""
+    values = tmp_path / "secrets.yaml"
+    values.write_text(
+        yaml.safe_dump(
+            {
+                "auth": {
+                    "mode": "auth",
+                    id_key.split(".")[1]: value,
+                    secret_key.split(".")[1]: value,
+                }
+            }
+        )
+    )
+    manifests = render("-f", str(values))
+    secret = get(manifests, "Secret", "oauth-client-secret")
+    assert secret["stringData"] == {"id": value, "secret": value}
+
+
+def test_auth_numeric() -> None:
+    """A numeric client ID set with `--set` is rendered as a string."""
+    manifests = render(
+        "--set",
+        "auth.mode=auth",
+        "--set",
+        "auth.clientId=123",
+        "--set",
+        "auth.client_secret=456",
+    )
+    secret = get(manifests, "Secret", "oauth-client-secret")
+    assert secret["stringData"] == {"id": "123", "secret": "456"}
 
 
 def test_transfer() -> None:

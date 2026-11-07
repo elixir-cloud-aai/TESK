@@ -112,7 +112,7 @@ fields.
 
 | File | For |
 | --- | --- |
-| `secrets.yaml` (passed with `-f`) | `ftp.username`, `ftp.password`, `auth.clientId`, `auth.clientSecret`. |
+| `secrets.yaml` (passed with `-f`) | `ftp.username`, `ftp.password`, `auth.clientId`, `auth.clientSecret`. The chart quotes them, so any character is allowed and a numeric value (e.g., a numeric client ID) becomes a string. |
 | `charts/tesk/ftp/.netrc` | FTP credentials as a `.netrc` file, with `ftp.netrcSecret`. |
 | `charts/tesk/s3-config/config`, `credentials` | S3 configuration and credentials, with `storage: s3`. |
 | `charts/tesk/tls_secret_name.yml-TEMPLATE` | Template of a TLS secret, if you create it yourself. |
