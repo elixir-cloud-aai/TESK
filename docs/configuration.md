@@ -105,7 +105,7 @@ requests to a pod that isn't ready.
 | `auth.envSubgroup` | `CSC` | Subgroup of the base group for this deployment. |
 | `auth.serviceInfoPublic` | `true` | With `auth.mode: auth`: `true` lets `GET /service-info` answer without a token, `false` requires a valid token for it. Needs tesk-api 1.2.0 or later; earlier versions ignore it and keep the endpoint public. No effect with `noauth`. |
 | `auth.clientId` | none | ID of the OIDC client of the Swagger UI (with `auth.mode: auth`; put it into `secrets.yaml`). |
-| `auth.clientSecret` | none | Deprecated: tesk-api 1.2.0 and later ignore it, as the Swagger UI is a public client; register its client as a public client and leave this unset (see [Upgrading](upgrading.md#swagger-ui-client-secret-deprecated)). Only passed on to older tesk-api images. |
+| `auth.clientSecret` | none | Deprecated: the Swagger UI is a public client, which needs no secret, and tesk-api 1.2.0 and later ignore it; register its client as a public client and leave this unset (see [Upgrading](upgrading.md#swagger-ui-client-secret-deprecated)). |
 
 ### Service (`service`)
 

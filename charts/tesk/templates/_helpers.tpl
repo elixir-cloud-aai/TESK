@@ -136,7 +136,7 @@ with all of these keys: upgrade once with your values files (-f) instead.
 {{- include "tesk.resolveValues" (dict "root" . "out" $values) -}}
 {{- /* Any user name, also one that YAML reads as 0 or false */ -}}
 {{- $username := .Values.ftp.username -}}
-{{- $hasUsername := and (not (kindIs "invalid" $username)) (ne (toString $username) "") -}}
+{{- $hasUsername := include "tesk.isSet" $username -}}
 {{- if and (index $values "ftp.classicFtpSecret") (not (index $values "ftp.netrcSecret")) $hasUsername (not .Values.ftp.hosts) }}
 
 WARNING: ftp.username is set, but ftp.hosts is empty. With taskmaster and
@@ -146,12 +146,12 @@ account, or use a .netrc file (ftp.netrcSecret); see
 https://tesk.readthedocs.io/en/latest/upgrading/#ftp-credentials-go-only-to-configured-hosts
 {{- end }}
 {{- /* Any client secret, also one that YAML reads as 0 or false */ -}}
-{{- $clientSecret := index $values "auth.clientSecret" -}}
-{{- if and (not (kindIs "invalid" $clientSecret)) (ne (toString $clientSecret) "") }}
+{{- if include "tesk.isSet" (index $values "auth.clientSecret") }}
 
-WARNING: auth.clientSecret is deprecated: tesk-api 1.2.0 and later ignore it,
-as the Swagger UI is a public client. Remove it from your values, and rotate
-the secret at your identity provider; see
+WARNING: auth.clientSecret is deprecated: the Swagger UI is a public client,
+which needs no secret, and tesk-api 1.2.0 and later ignore it. Register the
+Swagger UI's client as a public client, remove auth.clientSecret from your
+values, and rotate the secret at your identity provider; see
 https://tesk.readthedocs.io/en/latest/upgrading/#swagger-ui-client-secret-deprecated
 {{- end }}
 {{- /* Release tags (vX.Y.Z) up to v0.10.6 ignore ftp.hosts; others (e.g.,
@@ -169,6 +169,16 @@ WARNING: ftp.hosts is set, but {{ join " and " $oldImages }} {{ ternary "is" "ar
 v0.10.6 or older, which ignores ftp.hosts: the filer sends the FTP
 credentials to every FTP host, as before. Use images newer than v0.10.6.
 {{- end }}
+{{- end -}}
+
+{{/*
+"true" if a value is set: not null and not empty, also if YAML reads it as
+0 or false; empty otherwise.
+*/}}
+{{- define "tesk.isSet" -}}
+{{- if and (not (kindIs "invalid" .)) (ne (toString .) "") -}}
+true
+{{- end -}}
 {{- end -}}
 
 {{/*

@@ -10,6 +10,7 @@ pinned Helm version only.
 from __future__ import annotations
 
 import base64
+import copy
 import json
 import os
 from pathlib import Path
@@ -598,9 +599,9 @@ def test_auth() -> None:
     "args", [(), ("--set", "auth.clientSecret="), ("--set", "auth.clientSecret=null")]
 )
 def test_auth_without_client_secret(args: tuple[str, ...]) -> None:
-    """Without `auth.clientSecret` (deprecated), the secret has no `secret`.
+    """Without `auth.clientSecret` (deprecated), the secret's `secret` is empty.
 
-    The deployment's environment variable is optional, so it stays.
+    Empty, not left out, so that an upgrade also clears a value set before.
 
     Args:
         args: More `helm template` arguments.
@@ -609,8 +610,7 @@ def test_auth_without_client_secret(args: tuple[str, ...]) -> None:
         "--set", "auth.mode=auth", "--set", "auth.clientId=client", *args
     )
     secret = get(manifests, "Secret", "oauth-client-secret")
-    assert secret["stringData"] == {"id": "client"}
-    assert "TESK_API_SWAGGER_OAUTH_CLIENT_SECRET" in env(manifests)
+    assert secret["stringData"] == {"id": "client", "secret": ""}
 
 
 @pytest.mark.parametrize(
@@ -1074,7 +1074,10 @@ def test_secret_unset() -> None:
         "username": None,
         "password": None,
     }
-    assert get(manifests, "Secret", "oauth-client-secret")["stringData"] == {"id": None}
+    assert get(manifests, "Secret", "oauth-client-secret")["stringData"] == {
+        "id": None,
+        "secret": "",
+    }
 
 
 def test_secret_number_too_large(tmp_path: Path) -> None:
@@ -1166,36 +1169,37 @@ LEGACY_CASES: list[tuple[str, ...]] = [
 ]
 
 
-def _without_null_client_secret(manifests: list[Manifest]) -> list[Manifest]:
-    """Drop the null `secret` of the OAuth client secret of the earlier chart.
+def _with_empty_client_secret(manifests: list[Manifest]) -> list[Manifest]:
+    """Read the null `secret` of the earlier chart's OAuth secret as empty.
 
-    The chart leaves out the key of the deprecated `auth.clientSecret` if
-    it is unset; the earlier chart rendered it as null.
+    The chart renders the deprecated `auth.clientSecret` as empty if it is
+    unset; the earlier chart rendered null, which Kubernetes stores as empty.
 
     Args:
-        manifests: The rendered objects (changed in place).
+        manifests: The rendered objects (not changed).
 
     Returns:
-        The objects.
+        Copies of the objects.
     """
+    manifests = copy.deepcopy(manifests)
     for manifest in manifests:
         if manifest["kind"] == "Secret" and manifest["metadata"]["name"] == (
             "oauth-client-secret"
         ):
             data = manifest["stringData"]
             if data.get("secret", "") is None:
-                del data["secret"]
+                data["secret"] = ""
     return manifests
 
 
 @pytest.mark.parametrize("args", LEGACY_CASES)
 def test_legacy_chart(args: tuple[str, ...]) -> None:
-    """Values of the earlier chart render its objects, apart from labels.
+    """Values of the earlier chart render its objects.
 
-    Apart from the key of an unset `auth.clientSecret`, too.
+    Apart from labels and an unset `auth.clientSecret` (empty, not null).
     """
     assert _sorted(without_probes(without_labels(render(*args)))) == _sorted(
-        _without_null_client_secret(render(*args, chart=LEGACY_CHART))
+        _with_empty_client_secret(render(*args, chart=LEGACY_CHART))
     )
 
 

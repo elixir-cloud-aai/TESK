@@ -114,8 +114,8 @@ auth:
   serviceInfoPublic: true
   # The OIDC client of the Swagger UI (`clientId`): put it into a separate
   # values file (secrets.yaml), not into this one. The Swagger UI is a public
-  # client: `clientSecret` is deprecated and ignored by tesk-api 1.2.0 and
-  # later; it is only passed on to older tesk-api images
+  # client, which needs no secret: `clientSecret` is deprecated, and
+  # ignored by tesk-api 1.2.0 and later; leave it unset
 
 service:
   # Type of the API's Service: `NodePort` to expose the API directly,
