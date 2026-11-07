@@ -589,7 +589,7 @@ def test_auth_claim_off(args: tuple[str, ...]) -> None:
 
 
 @pytest.mark.parametrize(
-    ("args", "values"),
+    ("args", "name", "values"),
     [
         (
             (
@@ -597,6 +597,7 @@ def test_auth_claim_off(args: tuple[str, ...]) -> None:
                 'auth.claim={"enabled": true, "name": "eduperson_entitlement",'
                 ' "values": ["urn:geant:example.org:group:tesk#example.org"]}',
             ),
+            "eduperson_entitlement",
             "urn:geant:example.org:group:tesk#example.org",
         ),
         (
@@ -604,23 +605,25 @@ def test_auth_claim_off(args: tuple[str, ...]) -> None:
                 "--set-string",
                 "auth.claim.enabled=true",
                 "--set",
-                "auth.claim.name=eduperson_entitlement",
+                "auth.claim.name=eduperson_assurance",
                 "--set-json",
                 'auth.claim.values=["a", "b c", "d"]',
             ),
+            "eduperson_assurance",
             "a,b c,d",
         ),
         (
             (
                 "--set-json",
-                'auth.claim={"enabled": true, "name": " eduperson_entitlement ",'
+                'auth.claim={"enabled": true, "name": " entitlements ",'
                 ' "values": [" a ", "\\u000b", "b"]}',
             ),
+            "entitlements",
             "a,b",
         ),
     ],
 )
-def test_auth_claim(args: tuple[str, ...], values: str) -> None:
+def test_auth_claim(args: tuple[str, ...], name: str, values: str) -> None:
     """With `auth.claim.enabled`, the claim's name and values are passed on.
 
     The values are trimmed, blank ones left out, and joined with commas,
@@ -628,11 +631,12 @@ def test_auth_claim(args: tuple[str, ...], values: str) -> None:
 
     Args:
         args: The `helm template` arguments.
+        name: The expected `TESK_API_AUTHORISATION_CLAIM_NAME`.
         values: The expected `TESK_API_AUTHORISATION_CLAIM_VALUES`.
     """
     variables = env(render("--set", "auth.mode=auth", *args))
     assert variables["TESK_API_AUTHORISATION_CLAIM_ENABLED"] == "true"
-    assert variables["TESK_API_AUTHORISATION_CLAIM_NAME"] == "eduperson_entitlement"
+    assert variables["TESK_API_AUTHORISATION_CLAIM_NAME"] == name
     assert variables["TESK_API_AUTHORISATION_CLAIM_VALUES"] == values
 
 
