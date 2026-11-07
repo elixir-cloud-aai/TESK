@@ -128,15 +128,14 @@ auth:
   # (`tesk.image.tag`); earlier versions ignore this and keep the endpoint
   # public. No effect with mode noauth, where all endpoints are open.
   serviceInfoPublic: true
-  # With mode auth: authorisation without groups, by a claim of the user
-  # info, for providers whose groups don't fit the group model above (e.g.,
-  # LS Login). Off by default, and ignored with mode noauth. With
-  # `enabled: true`, users with one of
-  # `values` (compared exactly) in the claim `name` may run tasks and see
-  # their own; group rules still apply first. Everyone who has one of the
-  # values can run any image on the cluster: choose an entitlement that an
-  # administrator grants, not a value that every account has. Needs a
-  # tesk-api 1.2.0 or later (`tesk.image.tag`); see
+  # With mode auth: authorisation without groups, by a claim of the user info,
+  # for providers whose groups don't fit the group model above (e.g., LS
+  # Login). Off by default, and ignored with mode noauth. With `enabled:
+  # true`, users with one of `values` (compared exactly) in the claim `name`
+  # may run tasks and see their own; group rules still apply first. Everyone
+  # who has one of the values can run any image on the cluster: choose an
+  # entitlement that an administrator grants, not a value that every account
+  # has. Needs tesk-api 1.2.0 or later (`tesk.image.tag`); see
   # https://github.com/elixir-cloud-aai/tesk-api/blob/dev/docs/access-control.md#authorisation-without-groups
   claim:
     enabled: false

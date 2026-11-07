@@ -578,12 +578,13 @@ CLAIM = (
 def test_auth_claim_off(args: tuple[str, ...]) -> None:
     """Off by default, and with mode noauth: none of the claim's variables.
 
-    With mode noauth, all endpoints are open, so the claim isn't checked.
+    Rendered with mode auth, unless the arguments set noauth: with mode
+    noauth, all endpoints are open, so the claim isn't checked.
 
     Args:
         args: The `helm template` arguments.
     """
-    variables = env(render(*args))
+    variables = env(render("--set", "auth.mode=auth", *args))
     assert not set(CLAIM) & set(variables)
 
 
