@@ -120,6 +120,7 @@ requests to a pod that isn't ready.
 | --- | --- | --- |
 | `ftp.classicFtpSecret` | `ftp-secret` | Name of the secret with the FTP username and password, created from `ftp.username` and `ftp.password`; empty creates none. |
 | `ftp.netrcSecret` | empty | Name of the secret with a `.netrc` file, created from `charts/tesk/ftp/.netrc`; empty creates none. |
+| `ftp.hosts` | `[]` | Hosts that the filer sends the credentials of `ftp.classicFtpSecret` to: a list of `host` or `host:port` entries (IPv6 addresses in brackets), e.g. `[ftp.example.org, "data.example.org:2121"]`. Hosts match exactly, ignoring case; an entry without a port matches any port. Empty: the credentials are sent to no host, and the filer logs in anonymously (see [Filer](tesk-core/filer.md#ftp)). Not needed for `.netrc`. Takes effect with taskmaster and filer images newer than v0.10.6 (`tesk.taskmaster.image.tag`, `tesk.filer.image.tag`); earlier ones ignore it. |
 | `ftp.username` | none | FTP username (put it into `secrets.yaml`). |
 | `ftp.password` | none | FTP password (put it into `secrets.yaml`). |
 | `ftp.hostip` | empty | IP of an FTP server outside the cluster, as pods see the host; creates a Service `ftp` for it, so that tasks can use `ftp://ftp/...` (see [Local FTP server](local_ftp.md)). |
