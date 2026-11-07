@@ -10,5 +10,5 @@ tesk-api:
   ref: "d60f1903c49383b09f055de48d51f94f38838988"
 tesk-core:
   repository: elixir-cloud-aai/tesk-core
-  # feat: harden filer HTTP handling and logging (#102)
-  ref: "8f827e04c485988799c79db44112e280d72386b6"
+  # fix: delete the PVC when the taskmaster stops (#106)
+  ref: "dfdf4ddaa778c5486e6cc89a6aa07f6f66880de3"
