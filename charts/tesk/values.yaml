@@ -47,6 +47,10 @@ tesk:
   # Retries of an executor's job, and of a filer's job, on errors
   executorRetries: 2
   filerRetries: 2
+  # Timeout of the filer's HTTP(S) requests, in seconds, for connecting and
+  # for each read (not the whole transfer); empty uses the filer's default
+  # (300). Takes effect with taskmaster and filer images newer than v0.10.6
+  filerHttpTimeout: ""
 
   # Resources of the API's container
   resources:
