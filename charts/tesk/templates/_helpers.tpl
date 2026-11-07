@@ -24,9 +24,9 @@ lowercase letters, digits and dashes), e.g. for the release names `123` or
 {{- else if contains $name .Release.Name -}}
 {{- $fullname = .Release.Name -}}
 {{- end -}}
-{{- $fullname = $fullname | trunc 50 | trimSuffix "-" -}}
+{{- $fullname = regexReplaceAll "-+$" ($fullname | trunc 50) "" -}}
 {{- if not (regexMatch "^[a-z]([-a-z0-9]*[a-z0-9])?$" $fullname) -}}
-{{- fail (printf "the names of the objects would start with %q, which isn't a valid Service name (a lowercase letter first, then lowercase letters, digits and dashes): use another release name, or set fullnameOverride" $fullname) -}}
+{{- fail (printf "the names of the objects would start with %q, which isn't a valid Service name (a lowercase letter first, then lowercase letters, digits and dashes): use another release name or nameOverride, or set fullnameOverride" $fullname) -}}
 {{- end -}}
 {{- $fullname -}}
 {{- end -}}

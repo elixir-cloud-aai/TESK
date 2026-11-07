@@ -1329,6 +1329,7 @@ def test_names_from_release(tmp_path: Path) -> None:
         ("prod", ("--set", "fullnameOverride=tes"), "tes", "tesk"),
         ("x" * 53, (), "x" * 50, "tesk"),
         ("prod", ("--set", "fullnameOverride=" + "y" * 49 + "-z"), "y" * 49, "tesk"),
+        ("prod", ("--set", "fullnameOverride=" + "y" * 48 + "--z"), "y" * 48, "tesk"),
     ],
 )
 def test_fullname(release: str, args: tuple[str, ...], prefix: str, name: str) -> None:
@@ -1474,6 +1475,8 @@ def test_removed_keys_all() -> None:
         line for line in error.value.stderr.splitlines() if line.startswith("  - ")
     ]
     assert len(listed) == len(REMOVED)
+    for _, message in REMOVED:
+        assert f"  - {message}" in error.value.stderr
 
 
 def _removed_keys_of_chart() -> set[str]:
@@ -1532,6 +1535,7 @@ def test_labels_numeric_release() -> None:
         ("123", ()),
         ("tesk.prod", ()),
         ("prod", ("--set", "fullnameOverride=Prod")),
+        ("prod", ("--set", "nameOverride=TESK")),
     ],
 )
 def test_invalid_prefix(release: str, args: tuple[str, ...]) -> None:

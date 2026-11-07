@@ -19,7 +19,8 @@ conventions now. Its objects get new names and its Deployment a new
 selector, which Kubernetes doesn't allow changing: `helm upgrade` fails
 for a release named `tesk` (whose Deployment keeps the name `tesk-api`),
 and for other release names it would replace all objects at once, with the
-problems of an uninstallation (see below) but without a clean state. The
+problems of an uninstallation (see below) but without a clean state, or
+fail on the new Ingress, whose host and path clash with the old one. The
 changes:
 
 - **Names:** the names of the chart's objects start with the release name
@@ -93,14 +94,17 @@ to this chart:
     The API is unavailable from the uninstallation until the new pod is
     ready (`helm install --wait` waits for it).
 
-If you (or a GitOps tool such as Argo CD or Flux) already ran `helm upgrade`
+If you (or a tool that runs Helm, such as Flux) already ran `helm upgrade`
 with this chart, the failed upgrade created some of the new objects and
 recorded their names, so `helm uninstall` leaves the objects with the old
 names behind (e.g., the Ingress `ingress-rules`, whose host and path then
 clash with the new Ingress). Before step 4, roll back to the last revision
 that worked (`helm history tesk --namespace tesk`, then
 `helm rollback tesk <revision> --namespace tesk`), or delete the objects
-with the old names (see the table above) after the uninstallation.
+with the old names (see the table above) after the uninstallation. Argo
+CD applies the rendered objects itself, without a Helm release: delete the
+Application with its objects (cascading), then create it again with the
+new values.
 
 Things to check:
 

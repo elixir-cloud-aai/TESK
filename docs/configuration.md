@@ -159,7 +159,8 @@ name in it. The prefix is cut to 50 characters, so that all names fit the
 63 characters that Kubernetes allows. It must be a valid start of a Service
 name (a lowercase letter first, then lowercase letters, digits and dashes):
 release names that start with a digit or contain dots, which Helm accepts,
-fail the installation unless `fullnameOverride` is set.
+and a `nameOverride` with capital letters, fail the installation unless
+`fullnameOverride` is set.
 
 | Object | Name | Release `tesk` | Release `prod` |
 | --- | --- | --- | --- |
