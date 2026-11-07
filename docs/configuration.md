@@ -14,9 +14,10 @@ has the defaults) and with a few files in the chart directory. See
     [Upgrading](upgrading.md#values-renamed-to-camelcase) for the old and new
     names.
 
-The chart checks the types of the values with a JSON schema
-(`charts/tesk/values.schema.json`); it accepts strings for all scalars, and
-unknown keys.
+The chart checks the structure of the values with a JSON schema
+(`charts/tesk/values.schema.json`): maps where the chart expects maps,
+scalars (of any type) where it expects scalars, and the pull policy of the
+image. It accepts unknown keys, and the deprecated names.
 
 ## Values
 
@@ -34,7 +35,7 @@ unknown keys.
 | --- | --- | --- |
 | `tesk.image.repository` | `docker.io/elixircloud/tesk-api` | Image of the API (tesk-api), without its tag. |
 | `tesk.image.tag` | `""` | Tag of the API's image; empty uses the chart's `appVersion` (`1.1.0`). |
-| `tesk.image.pullPolicy` | `""` | Pull policy of the API's image (`Always`, `IfNotPresent` or `Never`); empty leaves Kubernetes' default. |
+| `tesk.image.pullPolicy` | `""` | Pull policy of the API's image: `Always`, `IfNotPresent` or `Never` (anything else fails the installation); empty leaves Kubernetes' default. |
 | `tesk.port` | `8080` | Port of the API's container and Service. |
 | `tesk.tesApiBasePath` | `/ga4gh/tes/v1` | Base path of the TES API; empty uses tesk-api's default. |
 | `tesk.taskmaster.image.repository` | `docker.io/elixircloud/tesk-core-taskmaster` | Image of the taskmaster (tesk-core), without its tag. |

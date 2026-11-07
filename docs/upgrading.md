@@ -74,22 +74,25 @@ ingress:
 Things to know:
 
 - **An old name takes precedence** over its new name if a values file sets
-  both. Remove the old names when you add the new ones.
+  both, even if the old one is empty or null. Remove the old names when you
+  add the new ones.
 - **`--reuse-values`:** `helm upgrade --reuse-values` keeps the values of
   the installed release, including the defaults of the earlier chart with
   the old names, which then take precedence over new names set with
-  `--set`. Upgrade with your values files (`-f`) instead, without
-  `--reuse-values`, once you have renamed the values.
+  `--set` (except `tesk.image.tag` and `tesk.image.pullPolicy`), and which
+  the notes list as deprecated. Upgrade with your values files (`-f`)
+  instead, without `--reuse-values`, once you have renamed the values.
 - **Labels:** all objects get the standard labels of Helm charts
   (`app.kubernetes.io/name`, `app.kubernetes.io/instance`,
   `app.kubernetes.io/version`, `app.kubernetes.io/managed-by`,
   `helm.sh/chart`); the API's pods get the first two. The selectors are
   unchanged (`app: tesk-api`), so `helm upgrade` works as before; the new
   pod labels restart the API's pod once.
-- **Schema:** the chart checks the types of the values
-  (`values.schema.json`): e.g., a map where a string is expected fails the
-  installation. It accepts strings for all scalars, unknown keys and the old
-  names.
+- **Schema:** the chart checks the structure of the values
+  (`values.schema.json`): e.g., a map where the chart expects a scalar fails
+  the installation, as does a pull policy other than `Always`,
+  `IfNotPresent` or `Never`. It accepts scalars of any type, unknown keys
+  and the old names, so values that worked before still pass.
 - The resource names don't change. Names derived from the release name, so
   that several releases can share a namespace, will follow in a release of
   their own

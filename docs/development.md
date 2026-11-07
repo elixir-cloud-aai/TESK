@@ -44,10 +44,11 @@ The workflow `CI` (`.github/workflows/ci.yml`) runs on every pull request to
   check the rendered objects, with the pinned Helm version. They also check
   that the deprecated names of values still work (see
   [Upgrading](upgrading.md#values-renamed-to-camelcase)): the default values
-  and the old defaults (`tests/data/legacy-values.yaml`) must render the
-  objects of the chart before the renaming (`tests/data/legacy-manifests.yaml`),
-  apart from the standard labels. Remove these files with the deprecated
-  names. They fail here if Helm is missing (`REQUIRE_HELM`).
+  and the deprecated names, also with empty, null or string values, must
+  render the same objects as a copy of the chart before the renaming
+  (`tests/data/legacy-chart/`), apart from the standard labels, also with
+  the old defaults as with `helm upgrade --reuse-values`. Remove the copy
+  with the deprecated names. They fail here if Helm is missing (`REQUIRE_HELM`).
 - **Chart install:** installs the chart with its default values on a
   [kind](https://kind.sigs.k8s.io/) cluster and checks that
   `GET /ga4gh/tes/v1/service-info` answers.
@@ -176,7 +177,9 @@ To release version X.Y.Z:
 
 1. In a pull request to `dev`, set `version` in `charts/tesk/Chart.yaml`, and
    `version` and `date-released` in `CITATION.cff`, to X.Y.Z and the release
-   date; merge it once CI passed.
+   date; merge it once CI passed. (`appVersion` in `Chart.yaml` is not the
+   release version: it is the version of tesk-api that the chart deploys,
+   the default tag of its image.)
 2. Once `CI` passed for the push of that commit (`<sha>`) to `dev` (the
    check needs a commit that was pushed to `dev`, not one only tested in a
    pull request), move `main` forward to it (`main` only ever moves forward
