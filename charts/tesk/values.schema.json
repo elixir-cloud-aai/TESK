@@ -188,6 +188,27 @@
           "$ref": "#/$defs/scalar",
           "description": "Deprecated: use tesk.resources.requests.memory"
         },
+        "startupProbe": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "description": "The startup probe of the API's container (fields of a Kubernetes probe, and enabled), merged with the chart's defaults"
+        },
+        "readinessProbe": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "description": "The readiness probe of the API's container (fields of a Kubernetes probe, and enabled), merged with the chart's defaults"
+        },
+        "livenessProbe": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "description": "The liveness probe of the API's container (fields of a Kubernetes probe, and enabled), merged with the chart's defaults"
+        },
         "securityContext": {
           "type": "object",
           "description": "Security context of the API (enabled)"

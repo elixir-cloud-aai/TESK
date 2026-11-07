@@ -150,6 +150,11 @@ spec:
             drop:
             - ALL
         {{- end }}
+        {{- range $name := list "startupProbe" "readinessProbe" "livenessProbe" }}
+        {{- with include "tesk.probe" (dict "root" $ "values" $values "name" $name) }}
+        {{- . | nindent 8 }}
+        {{- end }}
+        {{- end }}
         volumeMounts:
         - name: service-info-config
           mountPath: /etc/tesk/service-info

@@ -152,3 +152,53 @@ or set them with `--set-string`.
 {{- quote . -}}
 {{- end -}}
 {{- end -}}
+
+{{/*
+A probe of the API's container, as YAML, or nothing if it is disabled
+(`enabled: false`): the values of the probe (`tesk.startupProbe`,
+`tesk.readinessProbe` or `tesk.livenessProbe`) on top of the defaults. The
+defaults are set here, not in `values.yaml`, so that they also apply with
+`helm upgrade --reuse-values` from an earlier chart. The default action of
+the probe is `GET <ingress.path><tesk.tesApiBasePath>/service-info`: the API
+answers it from a local file, without a backend. It is a check of the port
+instead if the endpoint needs a token (`auth.mode: auth` with
+`auth.serviceInfoPublic: false`). A probe with an action of its own
+(`httpGet`, `tcpSocket`, `exec` or `grpc`) keeps that one.
+
+Takes the root context (`root`), the resolved values (`values`, see
+`tesk.resolveValues`) and the key of the probe (`name`).
+*/}}
+{{- define "tesk.probe" -}}
+{{- $root := .root -}}
+{{- $defaults := dict
+  "startupProbe" (dict "periodSeconds" 5 "timeoutSeconds" 5 "failureThreshold" 60)
+  "readinessProbe" (dict "periodSeconds" 10 "timeoutSeconds" 5 "failureThreshold" 3)
+  "livenessProbe" (dict "periodSeconds" 20 "timeoutSeconds" 5 "failureThreshold" 3)
+-}}
+{{- $user := deepCopy (dig .name dict $root.Values.tesk | default dict) -}}
+{{- if ne (toString (dig "enabled" true $user)) "false" -}}
+{{- $_ := unset $user "enabled" -}}
+{{- $probe := mergeOverwrite (deepCopy (index $defaults .name)) $user -}}
+{{- $port := $root.Values.tesk.port | int -}}
+{{- $needsToken := and (eq (toString $root.Values.auth.mode) "auth") (eq (lower (toString (index .values "auth.serviceInfoPublic"))) "false") -}}
+{{- $key := "httpGet" -}}
+{{- $action := dict "path" (printf "%s%s/service-info" (trimSuffix "/" (toString $root.Values.ingress.path)) (trimSuffix "/" ((index .values "tesk.tesApiBasePath") | default "/ga4gh/tes/v1"))) "port" $port -}}
+{{- if $needsToken -}}
+{{- $key = "tcpSocket" -}}
+{{- $action = dict "port" $port -}}
+{{- end -}}
+{{- $own := false -}}
+{{- range $candidate := list "httpGet" "tcpSocket" "exec" "grpc" -}}
+{{- if hasKey $user $candidate -}}
+{{- $own = true -}}
+{{- end -}}
+{{- end -}}
+{{- if not $own -}}
+{{- $_ := set $probe $key $action -}}
+{{- else if hasKey $user $key -}}
+{{- $_ := set $probe $key (mergeOverwrite $action (index $user $key)) -}}
+{{- end -}}
+{{ .name }}:
+  {{- toYaml $probe | nindent 2 }}
+{{- end -}}
+{{- end -}}

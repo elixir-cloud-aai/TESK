@@ -9,6 +9,17 @@ helm upgrade tesk charts/tesk --namespace tesk -f my-values.yaml -f secrets.yaml
 
 ## Unreleased
 
+### Probes of the API
+
+The API's container has a startup, a readiness and a liveness probe now (see
+[Probes](configuration.md#probes)), which request the service info. After
+`helm install --wait` or `helm upgrade --wait`, the API answers, and the
+Ingress no longer returns `502 Bad Gateway` while it starts. The pod's
+selector and names are unchanged, so `helm upgrade` works as before, and
+restarts the pod once. A container that doesn't start within 5 minutes is
+restarted (raise `tesk.startupProbe.failureThreshold` on slow nodes). The probes work with your existing values; to turn
+one off, set `tesk.<name>Probe.enabled` to `false`.
+
 ### Values renamed to camelCase
 
 The values of the chart follow Helm's conventions now: camelCase names,
