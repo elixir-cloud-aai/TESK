@@ -777,6 +777,64 @@ def test_ftp() -> None:
     assert get(manifests, "Service", "ftp")["spec"]["ports"][0]["port"] == 21
 
 
+@pytest.mark.parametrize(
+    ("args", "expected"),
+    [
+        ((), None),
+        (("--set-json", "ftp.hosts=[]"), None),
+        (("--set", "ftp.hosts=null"), None),
+        (("--set", "ftp.hosts={ftp.example.org}"), "ftp.example.org"),
+        (
+            ("--set", "ftp.hosts={ftp.example.org,data.example.org:2121}"),
+            "ftp.example.org,data.example.org:2121",
+        ),
+        (("--set-json", 'ftp.hosts=["[2001:db8::1]:21"]'), "[2001:db8::1]:21"),
+    ],
+)
+def test_ftp_hosts(args: tuple[str, ...], expected: str | None) -> None:
+    """`ftp.hosts` reaches the taskmaster as `TESK_FTP_HOSTS`, if not empty.
+
+    Args:
+        args: The `helm template` arguments.
+        expected: The value of the variable, or `None` if it is not set.
+    """
+    variables = env(render(*args))
+    assert variables.get("TESK_API_TASKMASTER_ENVIRONMENT_TESK_FTP_HOSTS") == expected
+
+
+@pytest.mark.parametrize(
+    "args",
+    [
+        ("--set", "ftp.hosts=ftp.example.org"),
+        ("--set-json", "ftp.hosts=[1]"),
+        ("--set-json", 'ftp.hosts=["a,b"]'),
+        ("--set-json", 'ftp.hosts=[""]'),
+    ],
+)
+def test_ftp_hosts_invalid(args: tuple[str, ...]) -> None:
+    """`ftp.hosts` is a list of non-empty strings without commas.
+
+    Args:
+        args: The `helm template` arguments.
+    """
+    with pytest.raises(subprocess.CalledProcessError):
+        render(*args)
+
+
+def test_notes_ftp_hosts(tmp_path: Path) -> None:
+    """The notes warn about FTP credentials without `ftp.hosts`."""
+    credentials = ("--set", "ftp.username=user", "--set", "ftp.password=s3cr3t")
+    text = notes(*credentials, tmp_path=tmp_path)
+    assert "ftp.hosts" in text
+    assert "s3cr3t" not in text
+    text = notes(
+        *credentials, "--set", "ftp.hosts={ftp.example.org}", tmp_path=tmp_path
+    )
+    assert "ftp.hosts" not in text
+    text = notes(*credentials, "--set", "ftp.classicFtpSecret=", tmp_path=tmp_path)
+    assert "ftp.hosts" not in text
+
+
 def test_ftp_secret() -> None:
     """The FTP secret holds the credentials from the values."""
     manifests = render("--set", "ftp.username=user", "--set", "ftp.password=pass")

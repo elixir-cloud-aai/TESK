@@ -336,6 +336,17 @@
           "$ref": "#/$defs/scalar",
           "description": "Deprecated: use ftp.netrcSecret"
         },
+        "hosts": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string",
+            "pattern": "^[^,]+$"
+          },
+          "description": "Hosts (host or host:port) that the FTP credentials of classicFtpSecret are sent to; empty sends them to no host"
+        },
         "username": {
           "$ref": "#/$defs/scalar",
           "description": "FTP username"
