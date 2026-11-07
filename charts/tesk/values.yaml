@@ -132,7 +132,7 @@ ftp:
   # The hosts that the filer sends the credentials of `classicFtpSecret` to,
   # e.g., [ftp.example.org]: `host` or `host:port` (IPv6 addresses in
   # brackets), matched exactly, ignoring case; an entry without a port
-  # matches any port. Empty: the credentials are sent to no host, and the
+  # matches port 21 only. Empty: the credentials are sent to no host, and the
   # filer logs in anonymously. Not needed for `.netrc`. Takes effect with
   # taskmaster and filer images newer than v0.10.6
   hosts: []

@@ -127,10 +127,10 @@ requests to a pod that isn't ready.
 
 Each entry of `ftp.hosts` is `host` or `host:port`, with IPv6 addresses in
 brackets. Hosts match exactly, ignoring case, without wildcards; an entry
-without a port matches any port of the host (the filer can't connect to
-FTP URLs with a port yet, though). With `ftp.hosts` empty, the filer sends
-the credentials of `ftp.classicFtpSecret` to no host, and logs in
-anonymously unless a `.netrc` file has credentials for the host (see
+without a port matches port 21 only (and URLs without a port), so list other
+ports explicitly, e.g. `data.example.org:2121`. With `ftp.hosts` empty, the
+filer sends the credentials of `ftp.classicFtpSecret` to no host, and logs
+in anonymously unless a `.netrc` file has credentials for the host (see
 [Filer](tesk-core/filer.md#ftp)). `ftp.hosts` takes effect with taskmaster
 and filer images newer than v0.10.6 (`tesk.taskmaster.image.tag`,
 `tesk.filer.image.tag`); earlier ones ignore it and send the credentials to
