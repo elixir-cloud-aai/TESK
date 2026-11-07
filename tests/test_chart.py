@@ -461,6 +461,7 @@ def test_probes_pod_unchanged() -> None:
         (("--set", "ingress.path=/tesk"), "/tesk" + SERVICE_INFO),
         (("--set", "ingress.path=/tesk/"), "/tesk" + SERVICE_INFO),
         (("--set", "tesk.tesApiBasePath=/tes"), "/tes/service-info"),
+        (("--set", "tesk.tesApiBasePath=/tes/"), "/tes/service-info"),
         (("--set", "tesk.tesApiBasePath="), SERVICE_INFO),
         (
             ("--set", "ingress.path=/tesk", "--set", "tesk.tesApiBasePath=/tes"),

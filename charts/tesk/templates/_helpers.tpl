@@ -182,7 +182,7 @@ Takes the root context (`root`), the resolved values (`values`, see
 {{- $port := $root.Values.tesk.port | int -}}
 {{- $needsToken := and (eq (toString $root.Values.auth.mode) "auth") (eq (lower (toString (index .values "auth.serviceInfoPublic"))) "false") -}}
 {{- $key := "httpGet" -}}
-{{- $action := dict "path" (printf "%s%s/service-info" (trimSuffix "/" (toString $root.Values.ingress.path)) ((index .values "tesk.tesApiBasePath") | default "/ga4gh/tes/v1")) "port" $port -}}
+{{- $action := dict "path" (printf "%s%s/service-info" (trimSuffix "/" (toString $root.Values.ingress.path)) (trimSuffix "/" ((index .values "tesk.tesApiBasePath") | default "/ga4gh/tes/v1"))) "port" $port -}}
 {{- if $needsToken -}}
 {{- $key = "tcpSocket" -}}
 {{- $action = dict "port" $port -}}
