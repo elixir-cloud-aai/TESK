@@ -154,8 +154,8 @@ Swagger UI's client as a public client, remove auth.clientSecret from your
 values, and rotate the secret at your identity provider; see
 https://tesk.readthedocs.io/en/latest/upgrading/#swagger-ui-client-secret-deprecated
 {{- end }}
-{{- /* Release tags (vX.Y.Z) up to v0.10.6 ignore ftp.hosts; others (e.g.,
-dev) are assumed to support it */ -}}
+{{- /* Release tags (vX.Y.Z) up to v0.10.6 ignore ftp.hosts and
+tesk.filerHttpTimeout; others (e.g., dev) are assumed to support them */ -}}
 {{- $oldImages := list -}}
 {{- range $key := list "tesk.taskmaster.image.tag" "tesk.filer.image.tag" -}}
 {{- $tag := toString (index $values $key) | trimPrefix "v" -}}
@@ -168,6 +168,12 @@ dev) are assumed to support it */ -}}
 WARNING: ftp.hosts is set, but {{ join " and " $oldImages }} {{ ternary "is" "are" (eq (len $oldImages) 1) }}
 v0.10.6 or older, which ignores ftp.hosts: the filer sends the FTP
 credentials to every FTP host, as before. Use images newer than v0.10.6.
+{{- end }}
+{{- if and (kindIs "map" .Values.tesk) .Values.tesk.filerHttpTimeout $oldImages }}
+
+WARNING: tesk.filerHttpTimeout is set, but {{ join " and " $oldImages }} {{ ternary "is" "are" (eq (len $oldImages) 1) }}
+v0.10.6 or older, which ignores it: HTTP(S) requests of the filer have no
+timeout, as before. Use images newer than v0.10.6.
 {{- end }}
 {{- end -}}
 

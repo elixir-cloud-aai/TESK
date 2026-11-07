@@ -1148,7 +1148,10 @@ def test_filer_http_timeout(args: tuple[str, ...], expected: str | None) -> None
     """
     variables = env(render(*args))
     key = "TESK_API_TASKMASTER_ENVIRONMENT_FILER_HTTP_TIMEOUT"
-    assert variables.get(key) == expected
+    if expected is None:
+        assert key not in variables
+    else:
+        assert variables[key] == expected
 
 
 @pytest.mark.parametrize(
@@ -1174,6 +1177,37 @@ def test_filer_http_timeout_invalid(args: tuple[str, ...]) -> None:
     with pytest.raises(subprocess.CalledProcessError) as error:
         render(*args)
     assert "values don't meet the specifications of the schema" in error.value.stderr
+
+
+@pytest.mark.parametrize(
+    ("args", "warned"),
+    [
+        ((), True),
+        (("--set", "tesk.filer.image.tag=v0.11.0"), True),
+        (
+            (
+                "--set",
+                "tesk.taskmaster.image.tag=v0.11.0",
+                "--set",
+                "tesk.filer.image.tag=dev",
+            ),
+            False,
+        ),
+    ],
+)
+def test_notes_filer_http_timeout_old_images(
+    tmp_path: Path, args: tuple[str, ...], warned: bool
+) -> None:
+    """The notes warn if the timeout is set, but images are too old for it.
+
+    Args:
+        tmp_path: A directory for a copy of the chart.
+        args: Further `helm template` arguments (image tags).
+        warned: Whether the notes warn.
+    """
+    text = notes("--set", "tesk.filerHttpTimeout=600", *args, tmp_path=tmp_path)
+    assert ("tesk.filerHttpTimeout is set" in text) is warned
+    assert "tesk.filerHttpTimeout is set" not in notes(tmp_path=tmp_path)
 
 
 def test_filer_http_timeout_values_file(tmp_path: Path) -> None:
