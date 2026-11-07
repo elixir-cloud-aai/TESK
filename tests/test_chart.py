@@ -1226,6 +1226,63 @@ def test_filer_http_timeout_values_file(tmp_path: Path) -> None:
     assert float(value) == 1_000_000
 
 
+@pytest.mark.parametrize(
+    ("args", "expected"),
+    [
+        ((), None),
+        (("--set", "tesk.keepFailedPvcs=false"), None),
+        (("--set", "tesk.keepFailedPvcs=null"), None),
+        (("--set", "tesk.keepFailedPvcs=true"), "true"),
+        (("--set-string", "tesk.keepFailedPvcs=true"), "true"),
+        (("--set-string", "tesk.keepFailedPvcs=false"), None),
+        (("--set-string", "tesk.keepFailedPvcs="), None),
+    ],
+)
+def test_keep_failed_pvcs(args: tuple[str, ...], expected: str | None) -> None:
+    """Keeping the PVCs of failed tasks sets the taskmaster's setting.
+
+    Unset or false leaves the setting out, so that the taskmaster deletes
+    them (its default). Strings are accepted for tools that set only
+    strings.
+
+    Args:
+        args: The `helm template` arguments.
+        expected: The value of the environment variable; `None` if unset.
+    """
+    variables = env(render(*args))
+    key = "TESK_API_TASKMASTER_ENVIRONMENT_KEEP_FAILED_PVC"
+    if expected is None:
+        assert key not in variables
+    else:
+        assert variables[key] == expected
+
+
+@pytest.mark.parametrize("value", ['"yes"', '"True"', "1", "[]"])
+def test_keep_failed_pvcs_invalid(value: str) -> None:
+    """The schema rejects values other than true, false, empty or null.
+
+    The strings "true" and "false" pass too, in lowercase only.
+
+    Args:
+        value: The value, as JSON.
+    """
+    with pytest.raises(subprocess.CalledProcessError) as error:
+        render("--set-json", f"tesk.keepFailedPvcs={value}")
+    assert "values don't meet the specifications of the schema" in error.value.stderr
+
+
+def test_keep_failed_pvcs_values_file(tmp_path: Path) -> None:
+    """A YAML boolean in a values file keeps the PVCs too.
+
+    Args:
+        tmp_path: A directory for the values file.
+    """
+    values = tmp_path / "values.yaml"
+    values.write_text("tesk:\n  keepFailedPvcs: true\n")
+    variables = env(render("-f", str(values)))
+    assert variables["TESK_API_TASKMASTER_ENVIRONMENT_KEEP_FAILED_PVC"] == "true"
+
+
 def _sorted(manifests: list[Manifest]) -> list[Manifest]:
     """Sort rendered objects by kind and name, to compare renderings.
 
