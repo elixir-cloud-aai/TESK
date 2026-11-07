@@ -820,6 +820,8 @@ def test_ftp_hosts(args: tuple[str, ...], expected: str | None) -> None:
         ("--set-json", 'ftp.hosts=["ftp.example.org:abc"]'),
         ("--set-json", 'ftp.hosts=["ftp.example.org:0"]'),
         ("--set-json", 'ftp.hosts=["ftp.example.org\\u000b"]'),
+        ("--set-json", 'ftp.hosts=["*.example.org"]'),
+        ("--set-json", 'ftp.hosts=["ftp.example.org:65536"]'),
     ],
 )
 def test_ftp_hosts_invalid(args: tuple[str, ...]) -> None:
@@ -832,31 +834,88 @@ def test_ftp_hosts_invalid(args: tuple[str, ...]) -> None:
         render(*args)
 
 
+USER = ("--set", "ftp.username=user")
+PASSWORD = ("--set", "ftp.password=s3cr3t")
+
+
 @pytest.mark.parametrize(
     ("args", "warned"),
     [
-        ((), True),
-        (("--set", "ftp.hosts={ftp.example.org}"), False),
-        (("--set", "ftp.classicFtpSecret="), False),
-        (("--set", "ftp.netrcSecret=netrc"), False),
+        ((*USER, *PASSWORD), True),
+        (USER, True),
+        (("--set", "ftp.username=0", *PASSWORD), True),
+        (("--set", "ftp.username=false", *PASSWORD), True),
+        (PASSWORD, False),
+        ((), False),
+        ((*USER, *PASSWORD, "--set", "ftp.hosts={ftp.example.org}"), False),
+        ((*USER, *PASSWORD, "--set", "ftp.classicFtpSecret="), False),
+        ((*USER, *PASSWORD, "--set", "ftp.netrcSecret=netrc"), False),
     ],
 )
 def test_notes_ftp_hosts(tmp_path: Path, args: tuple[str, ...], warned: bool) -> None:
-    """The notes warn about FTP credentials without `ftp.hosts`.
+    """The notes warn about an FTP user name without `ftp.hosts`.
 
-    Only if the credentials are used: with `ftp.classicFtpSecret` and
-    without `.netrc`.
+    Any user name, also one that YAML reads as 0 or false, but only if the
+    credentials are used: with `ftp.classicFtpSecret` and without `.netrc`.
 
     Args:
         tmp_path: A directory for a copy of the chart.
-        args: Further `helm template` arguments.
+        args: The `helm template` arguments.
         warned: Whether the notes warn.
     """
-    credentials = ("--set", "ftp.username=user", "--set", "ftp.password=s3cr3t")
-    text = notes(*credentials, *args, tmp_path=tmp_path)
+    text = notes(*args, tmp_path=tmp_path)
     assert f"release tesk in namespace {NAMESPACE}" in text
     assert ("ftp.hosts is empty" in text) is warned
     assert "s3cr3t" not in text
+
+
+@pytest.mark.parametrize(
+    ("args", "keys"),
+    [
+        ((), ["tesk.taskmaster.image.tag", "tesk.filer.image.tag"]),
+        (("--set", "tesk.filer.image.tag=v0.11.0"), ["tesk.taskmaster.image.tag"]),
+        (("--set", "tesk.taskmaster.image.tag=0.9.0"), None),
+        (
+            (
+                "--set",
+                "tesk.taskmaster.image.tag=v0.10.7",
+                "--set",
+                "tesk.filer.image.tag=dev",
+            ),
+            [],
+        ),
+    ],
+)
+def test_notes_ftp_hosts_old_images(
+    tmp_path: Path, args: tuple[str, ...], keys: list[str] | None
+) -> None:
+    """The notes warn if `ftp.hosts` is set, but images are too old for it.
+
+    Release tags up to v0.10.6 ignore `ftp.hosts`; other tags (e.g., `dev`)
+    are assumed to support it.
+
+    Args:
+        tmp_path: A directory for a copy of the chart.
+        args: Further `helm template` arguments (image tags).
+        keys: The keys of the old image tags that the warning names, or
+            `None` for both keys (the taskmaster's tag set to an old one
+            without the `v`).
+    """
+    hosts = ("--set", "ftp.hosts={ftp.example.org}")
+    text = notes(*hosts, *args, tmp_path=tmp_path)
+    expected = (
+        keys
+        if keys is not None
+        else [
+            "tesk.taskmaster.image.tag",
+            "tesk.filer.image.tag",
+        ]
+    )
+    if expected:
+        assert f"WARNING: ftp.hosts is set, but {' and '.join(expected)} " in text
+    else:
+        assert "ftp.hosts is set" not in text
+    assert "ftp.hosts is set" not in notes(*args, tmp_path=tmp_path)
 
 
 def test_ftp_secret() -> None:
