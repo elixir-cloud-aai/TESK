@@ -99,6 +99,8 @@ helm upgrade --install tesk tesk-X.Y.Z.tgz \
     releases](https://github.com/elixir-cloud-aai/TESK/releases): install
     them as shown above.
 
+For a single machine, see [TESK on a single node with MicroK8s](microk8s.md).
+
 Check the installation:
 
 ```bash
