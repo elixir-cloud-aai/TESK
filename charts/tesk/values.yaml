@@ -112,8 +112,10 @@ auth:
   # (`tesk.image.tag`); earlier versions ignore this and keep the endpoint
   # public. No effect with mode noauth, where all endpoints are open.
   serviceInfoPublic: true
-  # The OIDC client of the Swagger UI (`clientId`, `clientSecret`): put them
-  # into a separate values file (secrets.yaml), not into this one
+  # The OIDC client of the Swagger UI (`clientId`): put it into a separate
+  # values file (secrets.yaml), not into this one. The Swagger UI is a public
+  # client: `clientSecret` is deprecated and ignored by tesk-api 1.2.0 and
+  # later; it is only passed on to older tesk-api images
 
 service:
   # Type of the API's Service: `NodePort` to expose the API directly,

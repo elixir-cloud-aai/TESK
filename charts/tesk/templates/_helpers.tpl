@@ -145,6 +145,15 @@ host, and logs in anonymously. Set ftp.hosts to the hosts of the FTP
 account, or use a .netrc file (ftp.netrcSecret); see
 https://tesk.readthedocs.io/en/latest/upgrading/#ftp-credentials-go-only-to-configured-hosts
 {{- end }}
+{{- /* Any client secret, also one that YAML reads as 0 or false */ -}}
+{{- $clientSecret := index $values "auth.clientSecret" -}}
+{{- if and (not (kindIs "invalid" $clientSecret)) (ne (toString $clientSecret) "") }}
+
+WARNING: auth.clientSecret is deprecated: tesk-api 1.2.0 and later ignore it,
+as the Swagger UI is a public client. Remove it from your values, and rotate
+the secret at your identity provider; see
+https://tesk.readthedocs.io/en/latest/upgrading/#swagger-ui-client-secret-deprecated
+{{- end }}
 {{- /* Release tags (vX.Y.Z) up to v0.10.6 ignore ftp.hosts; others (e.g.,
 dev) are assumed to support it */ -}}
 {{- $oldImages := list -}}

@@ -595,6 +595,25 @@ def test_auth() -> None:
 
 
 @pytest.mark.parametrize(
+    "args", [(), ("--set", "auth.clientSecret="), ("--set", "auth.clientSecret=null")]
+)
+def test_auth_without_client_secret(args: tuple[str, ...]) -> None:
+    """Without `auth.clientSecret` (deprecated), the secret has no `secret`.
+
+    The deployment's environment variable is optional, so it stays.
+
+    Args:
+        args: More `helm template` arguments.
+    """
+    manifests = render(
+        "--set", "auth.mode=auth", "--set", "auth.clientId=client", *args
+    )
+    secret = get(manifests, "Secret", "oauth-client-secret")
+    assert secret["stringData"] == {"id": "client"}
+    assert "TESK_API_SWAGGER_OAUTH_CLIENT_SECRET" in env(manifests)
+
+
+@pytest.mark.parametrize(
     ("args", "expected"),
     [
         ((), "true"),
@@ -870,6 +889,34 @@ def test_notes_ftp_hosts(tmp_path: Path, args: tuple[str, ...], warned: bool) ->
 
 
 @pytest.mark.parametrize(
+    ("args", "warned"),
+    [
+        ((), False),
+        (("--set", "auth.clientSecret="), False),
+        (("--set", "auth.clientSecret=s3cr3t"), True),
+        (("--set", "auth.clientSecret=0"), True),
+        (("--set", "auth.client_secret=s3cr3t"), True),
+        (("--set", "auth.mode=auth", "--set", "auth.clientSecret=s3cr3t"), True),
+    ],
+)
+def test_notes_client_secret(
+    tmp_path: Path, args: tuple[str, ...], warned: bool
+) -> None:
+    """The notes warn that `auth.clientSecret` is deprecated, if it is set.
+
+    Also with the old key, and with any value, also one that YAML reads as 0.
+
+    Args:
+        tmp_path: A directory for a copy of the chart.
+        args: The `helm template` arguments.
+        warned: Whether the notes warn.
+    """
+    text = notes(*args, tmp_path=tmp_path)
+    assert ("auth.clientSecret is deprecated" in text) is warned
+    assert "s3cr3t" not in text
+
+
+@pytest.mark.parametrize(
     ("args", "keys"),
     [
         ((), ["tesk.taskmaster.image.tag", "tesk.filer.image.tag"]),
@@ -1027,10 +1074,7 @@ def test_secret_unset() -> None:
         "username": None,
         "password": None,
     }
-    assert get(manifests, "Secret", "oauth-client-secret")["stringData"] == {
-        "id": None,
-        "secret": None,
-    }
+    assert get(manifests, "Secret", "oauth-client-secret")["stringData"] == {"id": None}
 
 
 def test_secret_number_too_large(tmp_path: Path) -> None:
@@ -1122,11 +1166,36 @@ LEGACY_CASES: list[tuple[str, ...]] = [
 ]
 
 
+def _without_null_client_secret(manifests: list[Manifest]) -> list[Manifest]:
+    """Drop the null `secret` of the OAuth client secret of the earlier chart.
+
+    The chart leaves out the key of the deprecated `auth.clientSecret` if
+    it is unset; the earlier chart rendered it as null.
+
+    Args:
+        manifests: The rendered objects (changed in place).
+
+    Returns:
+        The objects.
+    """
+    for manifest in manifests:
+        if manifest["kind"] == "Secret" and manifest["metadata"]["name"] == (
+            "oauth-client-secret"
+        ):
+            data = manifest["stringData"]
+            if data.get("secret", "") is None:
+                del data["secret"]
+    return manifests
+
+
 @pytest.mark.parametrize("args", LEGACY_CASES)
 def test_legacy_chart(args: tuple[str, ...]) -> None:
-    """Values of the earlier chart render its objects, apart from labels."""
+    """Values of the earlier chart render its objects, apart from labels.
+
+    Apart from the key of an unset `auth.clientSecret`, too.
+    """
     assert _sorted(without_probes(without_labels(render(*args)))) == _sorted(
-        render(*args, chart=LEGACY_CHART)
+        _without_null_client_secret(render(*args, chart=LEGACY_CHART))
     )
 
 

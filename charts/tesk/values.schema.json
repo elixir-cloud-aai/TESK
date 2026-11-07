@@ -292,11 +292,11 @@
         },
         "clientSecret": {
           "$ref": "#/$defs/scalar",
-          "description": "Secret of the OIDC client of the Swagger UI"
+          "description": "Deprecated: ignored by tesk-api 1.2.0 and later (the Swagger UI is a public client)"
         },
         "client_secret": {
           "$ref": "#/$defs/scalar",
-          "description": "Deprecated: use auth.clientSecret"
+          "description": "Deprecated: ignored by tesk-api 1.2.0 and later (see auth.clientSecret)"
         }
       }
     },

@@ -9,6 +9,20 @@ helm upgrade tesk charts/tesk --namespace tesk -f my-values.yaml -f secrets.yaml
 
 ## Unreleased
 
+### Swagger UI client secret deprecated
+
+tesk-api 1.2.0 and later treat the Swagger UI as a public client and ignore
+`auth.clientSecret`; the chart still passes it on to older tesk-api images,
+and its notes warn when it is set. A later major version of the chart
+removes it. When you upgrade to tesk-api 1.2.0 or later:
+
+- Remove `auth.clientSecret` (or `auth.client_secret`) from your values
+  (e.g., `secrets.yaml`).
+- Register the Swagger UI's client with your identity provider as a public
+  client (implicit grant, or authorisation code if your provider allows it
+  for public clients).
+- If a client secret was configured, rotate it at your identity provider.
+
 ### FTP credentials go only to configured hosts
 
 **Act on this if your tasks use FTP with `ftp.username` and

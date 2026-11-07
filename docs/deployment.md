@@ -47,7 +47,7 @@ helm upgrade --install tesk charts/tesk \
   e.g., the host name and the Ingress.
 - `secrets.yaml` holds the credentials that the chart puts into secrets: the
   FTP account (`ftp.username`, `ftp.password`) and the OIDC client of the
-  Swagger UI (`auth.clientId`, `auth.clientSecret`). Keep it out of version
+  Swagger UI (`auth.clientId`). Keep it out of version
   control. It is optional: leave out `-f secrets.yaml` if you need none of
   these.
 - Some settings are files in the chart directory rather than values: the
@@ -234,9 +234,10 @@ of LS Login (formerly ELIXIR AAI), configured with `auth.envBasegroup` and
 guide](https://github.com/elixir-cloud-aai/tesk-api/blob/master/auth.md) of
 tesk-api.
 
-To let users log in from the Swagger UI, register an OIDC client with your
-provider and put its ID and secret into `auth.clientId` and
-`auth.clientSecret` (in `secrets.yaml`).
+To let users log in from the Swagger UI, register a public OIDC client
+(without a secret) with your provider and put its ID into `auth.clientId`
+(in `secrets.yaml`). `auth.clientSecret` is deprecated: tesk-api 1.2.0
+and later ignore it.
 
 ## Swagger UI
 
