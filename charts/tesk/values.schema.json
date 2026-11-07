@@ -277,6 +277,44 @@
           "$ref": "#/$defs/scalar",
           "description": "With mode auth, whether GET /service-info answers without a token"
         },
+        "claim": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "description": "With mode auth: authorisation without groups, by a claim of the user info (tesk-api docs/access-control.md)",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "enum": [
+                true,
+                false,
+                "true",
+                "false",
+                null
+              ],
+              "description": "Whether users with one of the values in the claim are authorised without groups"
+            },
+            "name": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Name of the claim in the user info, e.g., eduperson_entitlement"
+            },
+            "values": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string",
+                "pattern": "^[^,]*[^,\\s][^,]*$"
+              },
+              "description": "Values of the claim, one of which a user needs (compared exactly); non-blank, without commas"
+            }
+          }
+        },
         "clientId": {
           "$ref": "#/$defs/scalar",
           "description": "ID of the OIDC client of the Swagger UI"

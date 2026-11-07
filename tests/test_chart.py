@@ -702,6 +702,144 @@ def test_service_info_public(args: tuple[str, ...], expected: str | None) -> Non
     assert env(render(*args)).get("TESK_API_SERVICE_INFO_PUBLIC") == expected
 
 
+CLAIM = (
+    "TESK_API_AUTHORISATION_CLAIM_ENABLED",
+    "TESK_API_AUTHORISATION_CLAIM_NAME",
+    "TESK_API_AUTHORISATION_CLAIM_VALUES",
+)
+
+
+@pytest.mark.parametrize(
+    "args",
+    [
+        (),
+        ("--set", "auth.claim.enabled=false", "--set", "auth.claim.name=x"),
+        ("--set-string", "auth.claim.enabled=false"),
+        ("--set-json", "auth.claim=null"),
+        ("--set-json", "auth.claim.enabled=null"),
+        (
+            "--set",
+            "auth.mode=noauth",
+            "--set-json",
+            'auth.claim={"enabled": true, "name": "x", "values": ["a"]}',
+        ),
+        ("--set", "auth.mode=noauth", "--set", "auth.claim.enabled=true"),
+    ],
+)
+def test_auth_claim_off(args: tuple[str, ...]) -> None:
+    """Off by default, and with mode noauth: none of the claim's variables.
+
+    Rendered with mode auth, unless the arguments set noauth: with mode
+    noauth, all endpoints are open, so the claim isn't checked.
+
+    Args:
+        args: The `helm template` arguments.
+    """
+    variables = env(render("--set", "auth.mode=auth", *args))
+    assert not set(CLAIM) & set(variables)
+
+
+@pytest.mark.parametrize(
+    ("args", "name", "values"),
+    [
+        (
+            (
+                "--set-json",
+                'auth.claim={"enabled": true, "name": "eduperson_entitlement",'
+                ' "values": ["urn:geant:example.org:group:tesk#example.org"]}',
+            ),
+            "eduperson_entitlement",
+            "urn:geant:example.org:group:tesk#example.org",
+        ),
+        (
+            (
+                "--set-string",
+                "auth.claim.enabled=true",
+                "--set",
+                "auth.claim.name=eduperson_assurance",
+                "--set-json",
+                'auth.claim.values=["a", "b c", "d"]',
+            ),
+            "eduperson_assurance",
+            "a,b c,d",
+        ),
+        (
+            (
+                "--set-json",
+                'auth.claim={"enabled": true, "name": " entitlements ",'
+                ' "values": [" a ", "\\u000b", "b"]}',
+            ),
+            "entitlements",
+            "a,b",
+        ),
+    ],
+)
+def test_auth_claim(args: tuple[str, ...], name: str, values: str) -> None:
+    """With `auth.claim.enabled`, the claim's name and values are passed on.
+
+    The values are trimmed, blank ones left out, and joined with commas,
+    as tesk-api splits them.
+
+    Args:
+        args: The `helm template` arguments.
+        name: The expected `TESK_API_AUTHORISATION_CLAIM_NAME`.
+        values: The expected `TESK_API_AUTHORISATION_CLAIM_VALUES`.
+    """
+    variables = env(render("--set", "auth.mode=auth", *args))
+    assert variables["TESK_API_AUTHORISATION_CLAIM_ENABLED"] == "true"
+    assert variables["TESK_API_AUTHORISATION_CLAIM_NAME"] == name
+    assert variables["TESK_API_AUTHORISATION_CLAIM_VALUES"] == values
+
+
+@pytest.mark.parametrize(
+    "claim",
+    [
+        '{"enabled": true, "values": ["a"]}',
+        '{"enabled": true, "name": "", "values": ["a"]}',
+        '{"enabled": true, "name": "  ", "values": ["a"]}',
+        '{"enabled": true, "name": "x"}',
+        '{"enabled": true, "name": "x", "values": []}',
+        '{"enabled": true, "name": "x", "values": null}',
+        '{"enabled": true, "name": "x", "values": ["\\u000b"]}',
+        '{"enabled": true, "name": "x", "values": ["\\u00a0"]}',
+    ],
+)
+def test_auth_claim_incomplete(claim: str) -> None:
+    """Turned on without a name or values, the chart fails, as tesk-api would.
+
+    Args:
+        claim: `auth.claim`, as JSON.
+    """
+    with pytest.raises(subprocess.CalledProcessError) as error:
+        render("--set", "auth.mode=auth", "--set-json", f"auth.claim={claim}")
+    assert "auth.claim.enabled needs auth.claim.name and" in error.value.stderr
+
+
+@pytest.mark.parametrize(
+    "claim",
+    [
+        '{"enabled": "yes", "name": "x", "values": ["a"]}',
+        '{"enabled": 1, "name": "x", "values": ["a"]}',
+        '{"enabled": true, "name": "x", "values": ["a,b"]}',
+        '{"enabled": true, "name": "x", "values": [""]}',
+        '{"enabled": true, "name": "x", "values": [" "]}',
+        '{"enabled": true, "name": "x", "values": "a"}',
+        '{"enabled": true, "name": "x", "values": [1]}',
+        '{"enabled": true, "name": ["x"], "values": ["a"]}',
+        '{"enabled": true, "name": "x", "values": ["a"], "value": "b"}',
+    ],
+)
+def test_auth_claim_invalid(claim: str) -> None:
+    """The schema rejects values that tesk-api would split or ignore.
+
+    Args:
+        claim: `auth.claim`, as JSON.
+    """
+    with pytest.raises(subprocess.CalledProcessError) as error:
+        render("--set-json", f"auth.claim={claim}")
+    assert "values don't meet the specifications of the schema" in error.value.stderr
+
+
 @pytest.mark.parametrize(
     ("args", "expected"),
     [
