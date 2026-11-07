@@ -1,124 +1,103 @@
-{{- /* The renamed values, also by their deprecated keys (see `tesk.resolveValues` in `_helpers.tpl`) */ -}}
-{{- $values := dict -}}
-{{- include "tesk.resolveValues" (dict "root" . "out" $values) -}}
+{{- /* Keys of earlier versions of the chart fail the installation. The
+check is here because the Deployment is always rendered; it applies to the
+whole chart */ -}}
+{{- include "tesk.checkRemovedValues" . -}}
 {{- $tesk := .Values.tesk -}}
-{{- /*
-`tesk.image` as a string is the old form, with the tag. The default
-repository is needed with `helm upgrade --reuse-values` from an earlier
-chart, where the default of `tesk.image` is a string, which a map set by
-the user replaces.
-*/ -}}
-{{- $image := $tesk.image -}}
-{{- $pullPolicy := "" -}}
-{{- if kindIs "map" $tesk.image -}}
-{{- $repository := $tesk.image.repository | default "docker.io/elixircloud/tesk-api" -}}
-{{- $tag := $tesk.image.tag -}}
+{{- $repository := dig "image" "repository" "" $tesk | default "docker.io/elixircloud/tesk-api" -}}
+{{- $tag := dig "image" "tag" "" $tesk -}}
 {{- /* Not `default`, which would replace a tag of 0 */ -}}
 {{- if or (kindIs "invalid" $tag) (eq (toString $tag) "") -}}
 {{- $tag = .Chart.AppVersion -}}
 {{- end -}}
-{{- $image = printf "%s:%s" $repository (toString $tag) -}}
-{{- $pullPolicy = $tesk.image.pullPolicy -}}
-{{- end -}}
-{{- /* The old keys of resources replace those of the block, if set */ -}}
-{{- $resources := deepCopy (dig "resources" dict $tesk) -}}
-{{- range $old, $path := dict "limitsCpu" (list "limits" "cpu") "limitsMemory" (list "limits" "memory") "requestsCpu" (list "requests" "cpu") "requestsMemory" (list "requests" "memory") -}}
-{{- if hasKey $tesk $old -}}
-{{- if not (kindIs "map" (index $resources (index $path 0))) -}}
-{{- $_ := set $resources (index $path 0) dict -}}
-{{- end -}}
-{{- $_ := set (index $resources (index $path 0)) (index $path 1) (index $values (printf "tesk.resources.%s" (join "." $path))) -}}
-{{- end -}}
-{{- end -}}
+{{- $ftpSecretName := include "tesk.ftpSecretName" . -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: tesk-api
+  name: {{ include "tesk.apiName" . }}
   labels:
     {{- include "tesk.labels" . | nindent 4 }}
 spec:
   selector:
     matchLabels:
-      app: tesk-api
+      {{- include "tesk.selectorLabels" . | nindent 6 }}
   replicas: 1
   template:
     metadata:
       labels:
-        app: tesk-api
-        {{- include "tesk.podLabels" . | nindent 8 }}
+        {{- include "tesk.selectorLabels" . | nindent 8 }}
     spec:
-      serviceAccountName: taskmaster
+      serviceAccountName: {{ include "tesk.taskmasterName" . }}
       containers:
       - name: tesk-api
-        image: {{ $image }}
-        {{- with $pullPolicy }}
+        image: {{ printf "%s:%s" $repository (toString $tag) }}
+        {{- with dig "image" "pullPolicy" "" $tesk }}
         imagePullPolicy: {{ . }}
         {{- end }}
         resources:
-          {{- toYaml $resources | nindent 10 }}
+          {{- toYaml ($tesk.resources | default dict) | nindent 10 }}
         env:
         - name: TESK_API_TASKMASTER_IMAGE_NAME
-          value: {{ index $values "tesk.taskmaster.image.repository" }}
+          value: {{ dig "taskmaster" "image" "repository" "" $tesk }}
         - name: TESK_API_TASKMASTER_IMAGE_VERSION
-          value: {{ index $values "tesk.taskmaster.image.tag" }}
+          value: {{ dig "taskmaster" "image" "tag" "" $tesk }}
         - name: TESK_API_TASKMASTER_FILER_IMAGE_NAME
-          value: {{ index $values "tesk.filer.image.repository" }}
+          value: {{ dig "filer" "image" "repository" "" $tesk }}
         - name: TESK_API_TASKMASTER_FILER_IMAGE_VERSION
-          value: {{ index $values "tesk.filer.image.tag" }}
+          value: {{ dig "filer" "image" "tag" "" $tesk }}
         - name: TESK_API_K8S_NAMESPACE
           value: {{ .Release.Namespace }}
+        {{- /* The taskmasters' jobs run with this service account */}}
         - name: TESK_API_TASKMASTER_SERVICE_ACCOUNT_NAME
-          value: taskmaster
+          value: {{ include "tesk.taskmasterName" . }}
         - name: TESK_API_TASKMASTER_ENVIRONMENT_EXECUTOR_BACKOFF_LIMIT
-          value: {{ index $values "tesk.executorRetries" | quote }}
+          value: {{ $tesk.executorRetries | quote }}
         - name: TESK_API_TASKMASTER_ENVIRONMENT_FILER_BACKOFF_LIMIT
-          value: {{ index $values "tesk.filerRetries" | quote }}
+          value: {{ $tesk.filerRetries | quote }}
         {{- /* Optional: unset or empty leaves the filer's default */}}
         {{- with $tesk.filerHttpTimeout }}
         - name: TESK_API_TASKMASTER_ENVIRONMENT_FILER_HTTP_TIMEOUT
           value: {{ toString . | quote }}
         {{- end }}
         {{- /* Only true (also as a string) keeps them; the taskmaster
-        deletes them by default. A missing key (`--reuse-values` from an
-        earlier chart) renders as "<nil>" */}}
+        deletes them by default. A missing key renders as "<nil>" */}}
         {{- if eq (toString $tesk.keepFailedPvcs) "true" }}
         - name: TESK_API_TASKMASTER_ENVIRONMENT_KEEP_FAILED_PVC
           value: "true"
         {{- end }}
         - name: SERVER_SERVLET_CONTEXT_PATH
           value: {{ .Values.ingress.path }}
-        {{- if index $values "tesk.tesApiBasePath" }}
+        {{- if $tesk.tesApiBasePath }}
         - name: OPENAPI_TASKEXECUTIONSERVICE_BASE_PATH
-          value: {{ index $values "tesk.tesApiBasePath" }}
+          value: {{ $tesk.tesApiBasePath }}
         {{- end }}
         - name: TESK_API_SERVICE_INFO_LOCATION
           value: file:///etc/tesk/service-info/service-info.yaml
-        {{- if index $values "ftp.classicFtpSecret" }}
+        {{- if $ftpSecretName }}
         - name: TESK_API_TASKMASTER_FTP_SECRET_NAME
-          value: {{ index $values "ftp.classicFtpSecret" }}
+          value: {{ $ftpSecretName | quote }}
         {{- end }}
         {{- with .Values.ftp.hosts }}
         - name: TESK_API_TASKMASTER_ENVIRONMENT_TESK_FTP_HOSTS
           value: {{ join "," . | quote }}
         {{- end }}
-        {{- if index $values "ftp.netrcSecret" }}
+        {{- with .Values.ftp.netrcSecret }}
         - name: TESK_API_TASKMASTER_ENVIRONMENT_NETRC_SECRET_NAME
-          value: {{ index $values "ftp.netrcSecret" }}
+          value: {{ . }}
         {{- end }}
         - name: TESK_API_AUTHORISATION_ENV_SUBGROUP
-          value: {{ index $values "auth.envSubgroup" }}
+          value: {{ .Values.auth.envSubgroup }}
         - name: TESK_API_AUTHORISATION_BASE_GROUP
-          value: {{ index $values "auth.envBasegroup" }}
+          value: {{ .Values.auth.envBasegroup }}
         - name: SPRING_PROFILES_ACTIVE
           value: {{ .Values.auth.mode }}
-        {{- if not (kindIs "invalid" (index $values "auth.serviceInfoPublic")) }}
+        {{- if not (kindIs "invalid" .Values.auth.serviceInfoPublic) }}
         - name: TESK_API_SERVICE_INFO_PUBLIC
-          value: {{ index $values "auth.serviceInfoPublic" | quote }}
+          value: {{ .Values.auth.serviceInfoPublic | quote }}
         {{- end }}
         {{- /* Null leaves tesk-api's default (off). tesk-api stops at
         startup on anything but true or false (in any case), so fail here
         instead; strings are accepted for tools that set only strings */}}
-        {{- $swaggerUi := .Values.tesk.swaggerUi }}
+        {{- $swaggerUi := $tesk.swaggerUi }}
         {{- if not (or (kindIs "invalid" $swaggerUi) (kindIs "map" $swaggerUi)) }}
         {{- fail (printf "tesk.swaggerUi.enabled must be true or false; tesk.swaggerUi is %q, not a map" (toString $swaggerUi)) }}
         {{- end }}
@@ -133,24 +112,24 @@ spec:
         {{- end }}
         {{- if .Values.transfer.active }}
         - name: TESK_API_TASKMASTER_ENVIRONMENT_HOST_BASE_PATH
-          value: {{ index $values "transfer.wesBasePath" }}
+          value: {{ .Values.transfer.wesBasePath }}
         - name: TESK_API_TASKMASTER_ENVIRONMENT_CONTAINER_BASE_PATH
-          value: {{ index $values "transfer.tesBasePath" }}
+          value: {{ .Values.transfer.tesBasePath }}
         - name: TESK_API_TASKMASTER_ENVIRONMENT_TRANSFER_PVC_NAME
-          value: {{ index $values "transfer.pvcName" }}
+          value: {{ .Values.transfer.pvcName }}
         {{- end }}
         {{- if .Values.storageClass }}
         - name: TESK_API_TASKMASTER_ENVIRONMENT_STORAGE_CLASS_NAME
           value: {{ .Values.storageClass }}
         {{- end }}
         - name: TESK_API_TASKMASTER_DEBUG
-          value: "{{ .Values.tesk.debug }}"
+          value: "{{ $tesk.debug }}"
         - name: TESK_API_SWAGGER-OAUTH_SCOPES
           value: openid:Standard openid,eduperson_entitlement:Access to groups membership,profile:Identity info about user,email:Email
         - name: TESK_API_SWAGGER_OAUTH_CLIENT_ID
           valueFrom:
             secretKeyRef:
-              name: oauth-client-secret
+              name: {{ include "tesk.oauthClientName" . }}
               key: id
               optional: true
         {{- /* Deprecated (auth.clientSecret): only tesk-api images before
@@ -158,10 +137,10 @@ spec:
         - name: TESK_API_SWAGGER_OAUTH_CLIENT_SECRET
           valueFrom:
             secretKeyRef:
-              name: oauth-client-secret
+              name: {{ include "tesk.oauthClientName" . }}
               key: secret
               optional: true
-        {{- if .Values.tesk.securityContext.enabled }}
+        {{- if $tesk.securityContext.enabled }}
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
@@ -169,20 +148,20 @@ spec:
             - ALL
         {{- end }}
         {{- range $name := list "startupProbe" "readinessProbe" "livenessProbe" }}
-        {{- with include "tesk.probe" (dict "root" $ "values" $values "name" $name) }}
+        {{- with include "tesk.probe" (dict "root" $ "name" $name) }}
         {{- . | nindent 8 }}
         {{- end }}
         {{- end }}
         volumeMounts:
-        - name: service-info-config
+        - name: service-info
           mountPath: /etc/tesk/service-info
         ports:
-        - containerPort: {{ .Values.tesk.port }}
+        - containerPort: {{ $tesk.port }}
       volumes:
-      - name: service-info-config
+      - name: service-info
         configMap:
-          name: service-info-config
-      {{- if .Values.tesk.securityContext.enabled }}
+          name: {{ include "tesk.serviceInfoName" . }}
+      {{- if $tesk.securityContext.enabled }}
       securityContext:
         runAsUser: 1000
         runAsNonRoot: true

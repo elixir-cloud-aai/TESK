@@ -5,19 +5,18 @@ TESK is configured with the values of its Helm chart
 has the defaults) and with a few files in the chart directory. See
 [Deployment](deployment.md) for the common setups.
 
-!!! note "Deprecated names of values"
+!!! note "Names of values of earlier versions"
     The values follow Helm's conventions (camelCase, `image` and
     `resources` blocks). The snake_case names of earlier versions of the
-    chart (e.g., `host_name`) still work, and take precedence over the new
-    names, but are deprecated and will be removed in a later release; the
-    notes of `helm install` and `helm upgrade` list those in use. See
-    [Upgrading](upgrading.md#values-renamed-to-camelcase) for the old and new
-    names.
+    chart (e.g., `host_name`) fail the installation, with a list of those in
+    use and their new names; see
+    [Upgrading](upgrading.md#resource-names-from-the-release-name) for all
+    of them.
 
 The chart checks the structure of the values with a JSON schema
 (`charts/tesk/values.schema.json`): maps where the chart expects maps,
 scalars (of any type) where it expects scalars, and the pull policy of the
-image. It accepts unknown keys, and the deprecated names.
+image. It accepts unknown keys.
 
 ## Values
 
@@ -25,9 +24,11 @@ image. It accepts unknown keys, and the deprecated names.
 
 | Value | Default | Description |
 | --- | --- | --- |
+| `nameOverride` | `""` | Replaces the chart's name (`tesk`) in the names of the objects and in the label `app.kubernetes.io/name` (see [Names of the objects](#names-of-the-objects)). |
+| `fullnameOverride` | `""` | Replaces the prefix of the names of the objects (see [Names of the objects](#names-of-the-objects)). |
 | `hostName` | `""` | Host name (FQDN) of the API, for the Ingress or the OpenShift Route. |
 | `storageClass` | empty | Storage class of the tasks' PVCs; empty uses the cluster's default storage class. |
-| `storage` | `none` | `s3` creates the secret `aws-secret` from `charts/tesk/s3-config/` (see [S3](deployment.md#s3)); `openstack` creates a default storage class `gold` for OpenStack Cinder. Anything else adds nothing. |
+| `storage` | `none` | `s3` creates the secret `aws-secret` from `charts/tesk/s3-config/` (see [S3](deployment.md#s3)); `openstack` creates a default storage class `<prefix>-gold` for OpenStack Cinder (one release per cluster may do so). Anything else adds nothing. |
 
 ### API and tasks (`tesk`)
 
@@ -120,7 +121,7 @@ requests to a pod that isn't ready.
 
 | Value | Default | Description |
 | --- | --- | --- |
-| `ftp.classicFtpSecret` | `ftp-secret` | Name of the secret with the FTP username and password, created from `ftp.username` and `ftp.password`; empty creates none. |
+| `ftp.classicFtpSecret` | null | Name of the secret with the FTP username and password, created from `ftp.username` and `ftp.password`; null uses `<prefix>-ftp`, empty or `false` creates none. |
 | `ftp.netrcSecret` | empty | Name of the secret with a `.netrc` file, created from `charts/tesk/ftp/.netrc`; empty creates none. |
 | `ftp.hosts` | `[]` | Hosts that the filer sends the credentials of `ftp.classicFtpSecret` to, e.g. `[ftp.example.org]` (see below); empty sends them to no host. Not needed for `.netrc`. |
 | `ftp.username` | none | FTP username (put it into `secrets.yaml`). |
@@ -147,6 +148,59 @@ every FTP host.
 | `ingress.path` | `/` | Path of the Ingress, and the context path of the API: the TES API is served at `<path>` + `tesk.tesApiBasePath`. |
 | `ingress.tlsSecretName` | empty | Secret with the TLS certificate of `hostName`; empty switches TLS off. With cert-manager, the secret is created automatically. |
 | `ingress.annotations` | cert-manager annotations | Annotations of the Ingress, e.g., for cert-manager. |
+
+## Names of the objects
+
+The names of the chart's objects start with a prefix derived from the
+release name, as in charts made with `helm create`: the release name, if it
+contains the chart's name (`tesk`), else `<release>-tesk`.
+`fullnameOverride` replaces the whole prefix, `nameOverride` the chart's
+name in it. The prefix is cut to 50 characters, so that all names fit the
+63 characters that Kubernetes allows. It must be a valid start of a Service
+name (a lowercase letter first, then lowercase letters, digits and dashes):
+release names that start with a digit or contain dots, which Helm accepts,
+and a `nameOverride` with capital letters, fail the installation unless
+`fullnameOverride` is set.
+
+| Object | Name | Release `tesk` | Release `prod` |
+| --- | --- | --- | --- |
+| Deployment and Service of the API | `<prefix>-api` | `tesk-api` | `prod-tesk-api` |
+| ServiceAccount, Role and RoleBinding of the API and the taskmasters | `<prefix>-taskmaster` | `tesk-taskmaster` | `prod-tesk-taskmaster` |
+| ConfigMap with the service info | `<prefix>-service-info` | `tesk-service-info` | `prod-tesk-service-info` |
+| Secret with the OIDC client (`auth.mode: auth`) | `<prefix>-oauth-client` | `tesk-oauth-client` | `prod-tesk-oauth-client` |
+| Secret with the FTP credentials | `ftp.classicFtpSecret`, or `<prefix>-ftp` if it is null (none if it is empty or `false`) | `tesk-ftp` | `prod-tesk-ftp` |
+| Ingress, or OpenShift Route | `<prefix>` | `tesk` | `prod-tesk` |
+| StorageClass (`storage: openstack`) | `<prefix>-gold` | `tesk-gold` | `prod-tesk-gold` |
+| Secret with the `.netrc` file | `ftp.netrcSecret` | | |
+| Secret with the S3 configuration (`storage: s3`) | `aws-secret` (fixed) | | |
+| Service and Endpoints of a local FTP server (`ftp.hostip`) | `ftp` (fixed) | | |
+
+The chart passes the names that the taskmasters need (service account, FTP
+secret, `.netrc` secret) on to tesk-api. Two names are fixed, because others
+read them by name: the filer mounts the secret `aws-secret`, and tasks
+reach a local FTP server as `ftp://ftp/`. So several releases can share a
+namespace, but only one of them can use `storage: s3` or `ftp.hostip`, and
+the secrets named in the values (`ftp.classicFtpSecret`, `ftp.netrcSecret`)
+need names of their own in each release. `storage: openstack` creates a
+default storage class for the whole cluster: use it in one release only.
+Each release also needs a `hostName` (or `ingress.path`) of its own, as
+Ingresses with the same host and path clash, and a release name that gives
+a prefix of its own: e.g., the releases `prod` and `prod-tesk` both get the
+prefix `prod-tesk`, so Helm refuses to install the second one.
+
+The API's pods have the labels `app.kubernetes.io/name` and
+`app.kubernetes.io/instance` (the release name), which the Deployment and
+the Service select them by; all objects also have the other standard labels
+of Helm charts (`app.kubernetes.io/version`, `app.kubernetes.io/managed-by`,
+`helm.sh/chart`). List the objects of a release with, e.g.,
+`kubectl get all -n tesk -l app.kubernetes.io/instance=tesk`.
+
+!!! warning "Releases in one namespace share their tasks"
+    tesk-api lists, reads and cancels the tasks (jobs) of its namespace,
+    not only those that it created. Releases in one namespace therefore
+    see each other's tasks, and users of one release can read and cancel
+    tasks of another, within the limits of authentication (`auth.mode`).
+    Install releases that must be kept apart in namespaces of their own.
 
 ## Files
 

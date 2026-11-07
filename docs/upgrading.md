@@ -1,13 +1,197 @@
 # Upgrading
 
 Changes that affect existing deployments, newest first. Upgrade a release
-with the same values files as before, adapted as described here:
+with the same values files as before, adapted as described here, unless a
+section says otherwise (releases of charts before [Resource names from the
+release name](#resource-names-from-the-release-name) must be installed
+again):
 
 ```bash
 helm upgrade tesk charts/tesk --namespace tesk -f my-values.yaml -f secrets.yaml
 ```
 
 ## Unreleased
+
+### Resource names from the release name
+
+**Breaking: install existing releases again.** The chart follows Helm's
+conventions now. Its objects get new names and its Deployment a new
+selector, which Kubernetes doesn't allow changing: `helm upgrade` fails
+for a release named `tesk` (whose Deployment keeps the name `tesk-api`),
+and for other release names it would replace all objects at once, with the
+problems of an uninstallation (see below) but without a clean state, or
+fail on the new Ingress, whose host and path clash with the old one. The
+changes:
+
+- **Names:** the names of the chart's objects start with the release name
+  (see [Names of the objects](configuration.md#names-of-the-objects)), so
+  that several releases can share a namespace. For a release named `tesk`:
+
+    | Object | Before | Now |
+    | --- | --- | --- |
+    | Deployment and Service of the API | `tesk-api` | `tesk-api` (`<prefix>-api`) |
+    | ServiceAccount and Role | `taskmaster` | `tesk-taskmaster` |
+    | RoleBinding | `taskmaster-role-binding` | `tesk-taskmaster` |
+    | ConfigMap with the service info | `service-info-config` | `tesk-service-info` |
+    | Secret with the OIDC client | `oauth-client-secret` | `tesk-oauth-client` |
+    | Secret with the FTP credentials | `ftp-secret` (`ftp.classicFtpSecret`) | `tesk-ftp` (if `ftp.classicFtpSecret` is unset) |
+    | Ingress | `ingress-rules` | `tesk` |
+    | OpenShift Route | `tesk-svc` | `tesk` |
+    | StorageClass (`storage: openstack`) | `gold` | `tesk-gold` |
+    | Secret with the S3 configuration | `aws-secret` | `aws-secret` (unchanged) |
+    | Service and Endpoints of a local FTP server | `ftp` | `ftp` (unchanged) |
+
+    For a release with another name, e.g. `prod`, the prefix is
+    `prod-tesk` (`prod-tesk-api`, …). `nameOverride` and `fullnameOverride`
+    change the prefix.
+
+- **Selectors:** the Deployment and the Service select the API's pods by
+  the standard labels `app.kubernetes.io/name` and
+  `app.kubernetes.io/instance` (the release name), instead of `app:
+  tesk-api`, which the objects no longer have. Kubernetes doesn't allow
+  changing the selector of a Deployment.
+
+- **Values:** the snake_case keys of earlier charts (e.g., `host_name`)
+  and `tesk.image` as a string are no longer read. The installation fails
+  if your values set any of them, with a list of those in use and their new
+  names (see the table below).
+
+#### Migrating a release
+
+The chart's objects hold no data of their own: the secrets are created
+from your values files and the files in the chart directory, and the chart
+creates no PVCs. The tasks are jobs, pods and PVCs that tesk-api and the
+taskmasters create in the namespace, not objects of the release: they stay
+when the release is removed. tesk-api reads the tasks from the jobs of its
+namespace, so a new release in the same namespace lists the earlier tasks
+too (from tesk-api's code; not tested in a migration). To move a release
+to this chart:
+
+1. **Rename the values** in your values files (`my-values.yaml`,
+   `secrets.yaml`) as in the table below. Check them with
+   `helm template tesk charts/tesk -f my-values.yaml -f secrets.yaml`,
+   which fails on keys of earlier charts.
+2. **Keep the files and values that the secrets are made from**: the FTP
+   credentials and the OIDC client ID (`secrets.yaml`), `charts/tesk/ftp/.netrc`
+   and `charts/tesk/s3-config/`. If you no longer have them, save the
+   secrets before you remove the release, e.g.,
+   `kubectl get secret ftp-secret --namespace tesk -o yaml > ftp-secret.yaml`
+   (keep these files safe, as they hold credentials).
+3. **Wait until no tasks run.** The taskmasters of running tasks use the
+   service account `taskmaster`, which is removed with the release, so they
+   fail. To stop new tasks from arriving, scale the API down
+   (`kubectl scale deployment/tesk-api --replicas=0 --namespace tesk`), and
+   wait until `kubectl get jobs --namespace tesk` shows no active jobs.
+4. **Remove the release and install it again**, with the same name and
+   namespace:
+
+    ```bash
+    helm uninstall tesk --namespace tesk
+    helm install tesk charts/tesk --namespace tesk \
+        -f my-values.yaml -f secrets.yaml
+    ```
+
+    The API is unavailable from the uninstallation until the new pod is
+    ready (`helm install --wait` waits for it).
+
+If you (or a tool that runs Helm, such as Flux) already ran `helm upgrade`
+with this chart, the failed upgrade created some of the new objects and
+recorded their names, so `helm uninstall` leaves the objects with the old
+names behind (e.g., the Ingress `ingress-rules`, whose host and path then
+clash with the new Ingress). Before step 4, roll back to the last revision
+that worked (`helm history tesk --namespace tesk`, then
+`helm rollback tesk <revision> --namespace tesk`), or delete the objects
+with the old names (see the table above) after the uninstallation. Argo
+CD applies the rendered objects itself, without a Helm release: delete the
+Application with its objects (cascading), then create it again with the
+new values.
+
+Things to check:
+
+- **Names that you use outside the chart:** scripts, monitoring or network
+  policies that refer to the objects by name (e.g., `taskmaster`,
+  `service-info-config`) or by the label `app: tesk-api` need the new names
+  and labels. The API's Deployment and Service keep the name `tesk-api` in
+  a release named `tesk`.
+- **FTP secret:** to keep the name of the FTP secret, set
+  `ftp.classicFtpSecret: ftp-secret`; by default, it is `<prefix>-ftp`.
+  `ftp.classicFtpSecret: ""` still creates no secret.
+- **TLS secret:** the secret named in `ingress.tlsSecretName` isn't part of
+  the release and stays. With cert-manager, the certificate is issued again
+  for the new Ingress if the secret was removed.
+- **OpenStack storage class:** with `storage: openstack`, the default
+  storage class is `<prefix>-gold` now. The uninstallation deletes the
+  storage class `gold`, which was the cluster's default: bound PVCs and
+  their volumes keep working, but new PVCs that name `gold`, also those of
+  other workloads in the cluster, stay pending. Change them to the new
+  name, or leave their class empty to use the default; if your values set
+  `storageClass: gold`, do the same there.
+- **Releases in one namespace share their tasks:** see [Names of the
+  objects](configuration.md#names-of-the-objects).
+
+#### Values renamed to camelCase
+
+The values of the chart follow Helm's conventions now: camelCase names,
+`image` blocks (`repository`, `tag`, `pullPolicy`) and a `resources` block.
+Rename them in your values files:
+
+| Old name | New name |
+| --- | --- |
+| `host_name` | `hostName` |
+| `tesk.image` (a string with the tag) | `tesk.image.repository` and `tesk.image.tag` (default: the chart's `appVersion`) |
+| `tesk.tes_api_base_path` | `tesk.tesApiBasePath` |
+| `tesk.taskmaster_image_name` | `tesk.taskmaster.image.repository` |
+| `tesk.taskmaster_image_version` | `tesk.taskmaster.image.tag` |
+| `tesk.taskmaster_filer_image_name` | `tesk.filer.image.repository` |
+| `tesk.taskmaster_filer_image_version` | `tesk.filer.image.tag` |
+| `tesk.executor_retries` | `tesk.executorRetries` |
+| `tesk.filer_retries` | `tesk.filerRetries` |
+| `tesk.limitsCpu` | `tesk.resources.limits.cpu` |
+| `tesk.limitsMemory` | `tesk.resources.limits.memory` |
+| `tesk.requestsCpu` | `tesk.resources.requests.cpu` |
+| `tesk.requestsMemory` | `tesk.resources.requests.memory` |
+| `transfer.wes_base_path` | `transfer.wesBasePath` |
+| `transfer.tes_base_path` | `transfer.tesBasePath` |
+| `transfer.pvc_name` | `transfer.pvcName` |
+| `auth.env_subgroup` | `auth.envSubgroup` |
+| `auth.env_basegroup` | `auth.envBasegroup` |
+| `auth.service_info_public` | `auth.serviceInfoPublic` |
+| `auth.client_id` | `auth.clientId` |
+| `auth.client_secret` | none: `auth.clientSecret`, its new name, is deprecated itself; remove it (see [Swagger UI client secret deprecated](#swagger-ui-client-secret-deprecated)) |
+| `service.node_port` | `service.nodePort` |
+| `ftp.classic_ftp_secret` | `ftp.classicFtpSecret` |
+| `ftp.netrc_secret` | `ftp.netrcSecret` |
+| `ingress.tls_secret_name` | `ingress.tlsSecretName` |
+
+For example, these values
+
+```yaml
+host_name: tes.example.org
+tesk:
+  image: docker.io/elixircloud/tesk-api:1.2.0
+  limitsMemory: 4Gi
+ingress:
+  tls_secret_name: tesk-tls
+```
+
+become
+
+```yaml
+hostName: tes.example.org
+tesk:
+  image:
+    tag: 1.2.0
+  resources:
+    limits:
+      memory: 4Gi
+ingress:
+  tlsSecretName: tesk-tls
+```
+
+The chart checks the structure of the values (`values.schema.json`):
+e.g., a map where the chart expects a scalar fails the installation, as
+does a pull policy other than `Always`, `IfNotPresent` or `Never`. It
+accepts scalars of any type and unknown keys.
 
 ### Newer taskmaster images delete the PVCs of failed tasks
 
@@ -40,14 +224,16 @@ later ignore `auth.clientSecret`. The chart still passes the value on to
 older tesk-api images, and its notes warn when it is set; a future release
 may remove it. When you upgrade:
 
-- Remove `auth.clientSecret` (or `auth.client_secret`) from your values
-  (e.g., `secrets.yaml`), and upgrade with your values files, not with
-  `--reuse-values`, which keeps the value of the earlier release (or add
-  `--set auth.clientSecret=null`). The chart then sets the secret's
-  `secret` key to empty, which also clears the value stored before. Running pods keep the
-  old value until they restart: if the upgrade doesn't change the API's
-  pod (e.g., its image), restart it with
-  `kubectl rollout restart deployment/tesk-api --namespace tesk`.
+- Remove `auth.clientSecret` (or `auth.client_secret`, which fails the
+  installation now) from your values (e.g., `secrets.yaml`). The chart then
+  sets the secret's `secret` key to empty. If you upgrade a release of this
+  chart that had it set, do so with your values files, not with
+  `--reuse-values`, which keeps the value (or add
+  `--set auth.clientSecret=null`); this clears the value stored before.
+  Running pods keep the old value until they restart: if the upgrade
+  doesn't change the API's pod (e.g., its image), restart it with
+  `kubectl rollout restart deployment/tesk-api --namespace tesk` (the
+  Deployment is `<prefix>-api`, here for the release `tesk`).
 - Register the Swagger UI's client with your identity provider as a public
   client (implicit grant, or authorisation code if your provider allows it
   for public clients).
@@ -82,100 +268,9 @@ The notes that `helm upgrade` prints warn if `ftp.username` is set,
 The API's container has a startup, a readiness and a liveness probe now (see
 [Probes](configuration.md#probes)), which request the service info. After
 `helm install --wait` or `helm upgrade --wait`, the API answers, and the
-Ingress no longer returns `502 Bad Gateway` while it starts. The pod's
-selector and names are unchanged, so `helm upgrade` works as before, and
-restarts the pod once. A container that doesn't start within 5 minutes is
+Ingress no longer returns `502 Bad Gateway` while it starts. A container that doesn't start within 5 minutes is
 restarted (raise `tesk.startupProbe.failureThreshold` on slow nodes). The probes work with your existing values; to turn
 one off, set `tesk.<name>Probe.enabled` to `false`.
-
-### Values renamed to camelCase
-
-The values of the chart follow Helm's conventions now: camelCase names,
-`image` blocks (`repository`, `tag`, `pullPolicy`) and a `resources` block.
-**Your values files keep working unchanged:** the old names still work, and
-render the same objects as before. They are deprecated, though, and will be
-removed in a later release; the notes that `helm upgrade` prints list those
-that your values use. Rename them in your values files at your convenience:
-
-| Old name (deprecated) | New name |
-| --- | --- |
-| `host_name` | `hostName` |
-| `tesk.image` (a string with the tag) | `tesk.image.repository` and `tesk.image.tag` (default: the chart's `appVersion`) |
-| `tesk.tes_api_base_path` | `tesk.tesApiBasePath` |
-| `tesk.taskmaster_image_name` | `tesk.taskmaster.image.repository` |
-| `tesk.taskmaster_image_version` | `tesk.taskmaster.image.tag` |
-| `tesk.taskmaster_filer_image_name` | `tesk.filer.image.repository` |
-| `tesk.taskmaster_filer_image_version` | `tesk.filer.image.tag` |
-| `tesk.executor_retries` | `tesk.executorRetries` |
-| `tesk.filer_retries` | `tesk.filerRetries` |
-| `tesk.limitsCpu` | `tesk.resources.limits.cpu` |
-| `tesk.limitsMemory` | `tesk.resources.limits.memory` |
-| `tesk.requestsCpu` | `tesk.resources.requests.cpu` |
-| `tesk.requestsMemory` | `tesk.resources.requests.memory` |
-| `transfer.wes_base_path` | `transfer.wesBasePath` |
-| `transfer.tes_base_path` | `transfer.tesBasePath` |
-| `transfer.pvc_name` | `transfer.pvcName` |
-| `auth.env_subgroup` | `auth.envSubgroup` |
-| `auth.env_basegroup` | `auth.envBasegroup` |
-| `auth.service_info_public` | `auth.serviceInfoPublic` |
-| `auth.client_id` | `auth.clientId` |
-| `auth.client_secret` | `auth.clientSecret` (deprecated itself: remove it, see [Swagger UI client secret deprecated](#swagger-ui-client-secret-deprecated)) |
-| `service.node_port` | `service.nodePort` |
-| `ftp.classic_ftp_secret` | `ftp.classicFtpSecret` |
-| `ftp.netrc_secret` | `ftp.netrcSecret` |
-| `ingress.tls_secret_name` | `ingress.tlsSecretName` |
-
-For example, these values
-
-```yaml
-host_name: tes.example.org
-tesk:
-  image: docker.io/elixircloud/tesk-api:1.2.0
-  limitsMemory: 4Gi
-ingress:
-  tls_secret_name: tesk-tls
-```
-
-become
-
-```yaml
-hostName: tes.example.org
-tesk:
-  image:
-    tag: 1.2.0
-  resources:
-    limits:
-      memory: 4Gi
-ingress:
-  tlsSecretName: tesk-tls
-```
-
-Things to know:
-
-- **An old name takes precedence** over its new name if a values file sets
-  both, even if the old one is empty or null. Remove the old names when you
-  add the new ones.
-- **`--reuse-values`:** `helm upgrade --reuse-values` keeps the values of
-  the installed release, including the defaults of the earlier chart with
-  the old names, which then take precedence over new names set with
-  `--set` (except `tesk.image.tag` and `tesk.image.pullPolicy`), and which
-  the notes list as deprecated. Upgrade with your values files (`-f`)
-  instead, without `--reuse-values`, once you have renamed the values.
-- **Labels:** all objects get the standard labels of Helm charts
-  (`app.kubernetes.io/name`, `app.kubernetes.io/instance`,
-  `app.kubernetes.io/version`, `app.kubernetes.io/managed-by`,
-  `helm.sh/chart`); the API's pods get the first two. The selectors are
-  unchanged (`app: tesk-api`), so `helm upgrade` works as before; the new
-  pod labels restart the API's pod once.
-- **Schema:** the chart checks the structure of the values
-  (`values.schema.json`): e.g., a map where the chart expects a scalar fails
-  the installation, as does a pull policy other than `Always`,
-  `IfNotPresent` or `Never`. It accepts scalars of any type, unknown keys
-  and the old names, so values that worked before still pass.
-- The resource names don't change. Names derived from the release name, so
-  that several releases can share a namespace, will follow in a release of
-  their own
-  ([#248](https://github.com/elixir-cloud-aai/TESK/issues/248)).
 
 ### Releases and chart versions
 

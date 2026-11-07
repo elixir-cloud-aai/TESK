@@ -5,7 +5,7 @@ It has three components, each in its own repository:
 
 | Component | Repository | Runs as |
 | --- | --- | --- |
-| API | [tesk-api](https://github.com/elixir-cloud-aai/tesk-api) | A Deployment (`tesk-api`), the only long-running pod. |
+| API | [tesk-api](https://github.com/elixir-cloud-aai/tesk-api) | A Deployment (`<prefix>-api`, e.g., `tesk-api`), the only long-running pod. |
 | Taskmaster | [tesk-core](https://github.com/elixir-cloud-aai/tesk-core) | A job per task, created by the API. |
 | Filer | [tesk-core](https://github.com/elixir-cloud-aai/tesk-core) | Jobs of a task, created by its taskmaster: one for the inputs, one for the outputs. |
 
@@ -43,10 +43,12 @@ only pod shared by all tasks. The API reads the state of a task (`GET
 /tasks/{id}:cancel`) by marking its taskmaster, which stops and deletes the
 task's jobs.
 
-The taskmasters use the service account `taskmaster`, which the API uses
-too. Its role in the namespace allows creating, reading, changing and
-deleting jobs; creating, reading and deleting PVCs and ConfigMaps; listing
-and patching pods and reading their logs and status. Pods are created by the
+The taskmasters use the service account `<prefix>-taskmaster` (e.g.,
+`tesk-taskmaster` for the release `tesk`; see [Names of the
+objects](configuration.md#names-of-the-objects)), which the API uses too.
+Its role in the namespace allows creating, reading, changing and deleting
+jobs; creating, reading and deleting PVCs and ConfigMaps; listing and
+patching pods and reading their logs and status. Pods are created by the
 jobs, not directly.
 
 ## Storage

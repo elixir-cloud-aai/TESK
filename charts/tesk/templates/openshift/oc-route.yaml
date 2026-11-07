@@ -1,11 +1,9 @@
 {{- if and (.Capabilities.APIVersions.Has "route.openshift.io/v1") (eq .Values.ingress.rules false) }}
-{{- $values := dict }}
-{{- include "tesk.resolveValues" (dict "root" . "out" $values) }}
-{{- $hostName := index $values "hostName" }}
+{{- $hostName := .Values.hostName }}
 apiVersion: route.openshift.io/v1
 kind: Route
 metadata:
-  name: tesk-svc
+  name: {{ include "tesk.fullname" . }}
   labels:
     {{- include "tesk.labels" . | nindent 4 }}
 spec:
@@ -15,7 +13,7 @@ spec:
     termination: edge
   to:
     kind: Service
-    name: tesk-api
+    name: {{ include "tesk.apiName" . }}
     weight: 100
   wildcardPolicy: None
 status:

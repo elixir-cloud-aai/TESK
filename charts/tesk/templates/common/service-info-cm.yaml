@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: service-info-config
+  name: {{ include "tesk.serviceInfoName" . }}
   labels:
     {{- include "tesk.labels" . | nindent 4 }}
 data:

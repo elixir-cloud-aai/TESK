@@ -11,8 +11,10 @@ The documentation is on [Read the Docs](https://tesk.readthedocs.io/):
 - [Configuration](https://tesk.readthedocs.io/en/latest/configuration/): all
   values of this chart, the service info, and the files and secrets it reads.
 - [Upgrading](https://tesk.readthedocs.io/en/latest/upgrading/): changes that
-  affect existing deployments (e.g., since taskmaster v0.10.6, a task that
-  uses more memory than it requested is killed).
+  affect existing deployments (e.g., the names of the objects derive from
+  the release name, so releases of earlier charts must be installed again;
+  since taskmaster v0.10.6, a task that uses more memory than it requested
+  is killed).
 
 The default values are in [`values.yaml`](values.yaml). In short, from a
 checkout of the repository:

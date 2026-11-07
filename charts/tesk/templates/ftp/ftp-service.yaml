@@ -1,4 +1,5 @@
 {{- if .Values.ftp.hostip }}
+{{- /* A fixed name: tasks reach the FTP server as ftp://ftp/ */}}
 apiVersion: v1
 kind: Service
 metadata:

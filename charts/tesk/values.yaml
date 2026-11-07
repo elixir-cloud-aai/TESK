@@ -3,18 +3,27 @@
 # Declare variables to be passed into your templates.
 #
 # The keys follow Helm's conventions (camelCase). The snake_case keys of
-# earlier versions of the chart (e.g., `host_name`) still work, and take
-# precedence over their new names, but are deprecated: the notes of
-# `helm install` and `helm upgrade` list those in use. See the upgrade notes
-# (docs/upgrading.md) for the old and new keys.
+# earlier versions of the chart (e.g., `host_name`) fail the installation:
+# see the upgrade notes (docs/upgrading.md) for the old and new keys.
+
+# The names of the chart's objects start with the release name, followed by
+# the chart's name (`tesk`) unless the release name contains it: e.g.,
+# `tesk-api` for the release `tesk`, `prod-tesk-api` for the release `prod`.
+# `nameOverride` replaces the chart's name in the names and in the label
+# `app.kubernetes.io/name`; `fullnameOverride` replaces the whole prefix.
+# Prefixes are cut to 50 characters
+nameOverride: ""
+fullnameOverride: ""
 
 # Host name (FQDN) of the API, for the Ingress or the OpenShift Route, e.g.,
 # tes.example.org
 hostName: ""
 
 # Storage backend that the chart sets up: `s3` creates the secret `aws-secret`
-# from the files in `s3-config/`, `openstack` a default storage class `gold`
-# for OpenStack Cinder; anything else (e.g., `none`) adds nothing
+# from the files in `s3-config/` (a fixed name, which the filer reads: one
+# release per namespace can use it), `openstack` a default storage class
+# `<prefix>-gold` for OpenStack Cinder (one per cluster); anything else
+# (e.g., `none`) adds nothing
 storage: none
 
 # Storage class of the tasks' PVCs; empty uses the cluster's default class
@@ -78,8 +87,7 @@ tesk:
   # check the port. An `exec` or `grpc` of your own, or a `tcpSocket` where
   # `httpGet` is the default (and the reverse), replaces that; fields of the
   # default kind are merged with it. The defaults are in the template
-  # `tesk.probe` (`_helpers.tpl`), so that they also apply with
-  # `--reuse-values`.
+  # `tesk.probe` (`_helpers.tpl`).
   startupProbe: {}
   readinessProbe: {}
   livenessProbe: {}
@@ -134,10 +142,12 @@ service:
 
 ftp:
   # If you need FTP, choose one of the 2 methods of providing credentials:
-  # the name of a secret created from `ftp.username` and `ftp.password` (put
-  # them into secrets.yaml), or the name of a secret created from the file
-  # `ftp/.netrc` (e.g., `netrc-secret`, with `classicFtpSecret` empty)
-  classicFtpSecret: ftp-secret
+  # a secret created from `ftp.username` and `ftp.password` (put them into
+  # secrets.yaml), named `classicFtpSecret`, or `<prefix>-ftp` if that is
+  # null; or the name of a secret created from the file `ftp/.netrc` (e.g.,
+  # `netrc-secret`, with `classicFtpSecret` empty, which creates no FTP
+  # secret)
+  classicFtpSecret:
   netrcSecret:
   # The hosts that the filer sends the credentials of `classicFtpSecret` to,
   # e.g., [ftp.example.org]: `host` or `host:port` (IPv6 addresses in
@@ -148,7 +158,8 @@ ftp:
   hosts: []
   # If you run FTP locally, outside of Kubernetes, and need a DNS entry for it
   # (because your workflow engine might not like the IP address), the chart
-  # can create a Service without a selector, named `ftp`: put the IP under
+  # can create a Service without a selector, named `ftp` (a fixed name, so
+  # one release per namespace can use it): put the IP under
   # which your pods see services running on your host (it depends on how you
   # installed Kubernetes; for VirtualBox, it is 192.168.99.1). Tasks can then
   # use it like this: ftp://ftp/file
