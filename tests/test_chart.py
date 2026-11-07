@@ -1861,10 +1861,30 @@ def test_seconds_values_file(tmp_path: Path) -> None:
         tmp_path: A directory for the values file.
     """
     values = tmp_path / "values.yaml"
-    values.write_text("tesk:\n  taskTtlSeconds: 2592000\n  maxQueueSeconds: 86400\n")
+    values.write_text(
+        "tesk:\n  taskTtlSeconds: 2592000\n  maxQueueSeconds: 2147483647\n"
+    )
     variables = env(render("-f", str(values)))
     assert variables[SECONDS["taskTtlSeconds"]] == "2592000"
-    assert variables[SECONDS["maxQueueSeconds"]] == "86400"
+    assert variables[SECONDS["maxQueueSeconds"]] == "2147483647"
+
+
+@pytest.mark.parametrize(
+    "value",
+    ["true", "1.5", "-0.5", '{"a": 1}', "[1]"],
+)
+def test_seconds_invalid_without_schema(value: str) -> None:
+    """Without the schema, the chart still fails on values that aren't seconds.
+
+    Otherwise, e.g., `-0.5` would become a TTL of 0, which deletes every task
+    as soon as it finishes.
+
+    Args:
+        value: The TTL, as JSON.
+    """
+    with pytest.raises(subprocess.CalledProcessError) as error:
+        render("--skip-schema-validation", "--set-json", f"tesk.taskTtlSeconds={value}")
+    assert "tesk.taskTtlSeconds must be whole seconds" in error.value.stderr
 
 
 @pytest.mark.parametrize(
@@ -1945,13 +1965,20 @@ def test_notes_seconds_old_taskmaster(
     """
     text = notes("--set", f"tesk.{key}=3600", *args, tmp_path=tmp_path)
     assert (f"tesk.{key} is set, but tesk.taskmaster.image.tag" in text) is warned
+    # Only the max queue time depends on the version of tesk-api
+    if key == "taskTtlSeconds":
+        assert "but tesk-api" not in text
     assert f"tesk.{key} is set" not in notes(tmp_path=tmp_path)
+
+
+# Without a tag, tesk-api's version is the chart's appVersion
+APP_VERSION = tuple(int(part) for part in str(METADATA["appVersion"]).split(".")[:2])
 
 
 @pytest.mark.parametrize(
     ("args", "warned"),
     [
-        ((), True),
+        ((), APP_VERSION < (1, 2)),
         (("--set", "tesk.image.tag=1.1.0"), True),
         (("--set", "tesk.image.tag=v1.1"), True),
         (("--set", "tesk.image.tag=1.2.0"), False),
@@ -1975,3 +2002,37 @@ def test_notes_max_queue_old_api(
         "--set", "tesk.maxQueueSeconds=3600", *new_taskmaster, *args, tmp_path=tmp_path
     )
     assert ("tesk.maxQueueSeconds is set, but tesk-api" in text) is warned
+
+
+@pytest.mark.parametrize(
+    ("group", "resource", "verbs"),
+    [
+        ("batch", "jobs", {"create", "delete", "get", "list", "patch"}),
+        ("", "configmaps", {"create", "delete", "get"}),
+    ],
+)
+def test_role_rights(group: str, resource: str, verbs: set[str]) -> None:
+    """The API and the taskmasters (one service account) may manage their objects.
+
+    tesk-api creates a task's job and then its ConfigMap, owned by the job,
+    and deletes the job if the ConfigMap fails (tesk-api#117); deleting the
+    ConfigMap needs `delete` where OwnerReferencesPermissionEnforcement is
+    on. The taskmaster patches its own job with the TTL.
+
+    Args:
+        group: The API group.
+        resource: The resource.
+        verbs: The verbs that the role must grant.
+    """
+    manifests = render()
+    assert (
+        deployment(manifests)["spec"]["template"]["spec"]["serviceAccountName"]
+        == "tesk-taskmaster"
+    )
+    granted = {
+        verb
+        for rule in get(manifests, "Role", "tesk-taskmaster")["rules"]
+        if group in rule["apiGroups"] and resource in rule["resources"]
+        for verb in rule["verbs"]
+    }
+    assert verbs <= granted

@@ -10,5 +10,5 @@ tesk-api:
   ref: "d60f1903c49383b09f055de48d51f94f38838988"
 tesk-core:
   repository: elixir-cloud-aai/tesk-core
-  # fix: delete the PVC when the taskmaster stops (#106)
-  ref: "dfdf4ddaa778c5486e6cc89a6aa07f6f66880de3"
+  # feat: fail tasks that stay unschedulable too long (#112)
+  ref: "3fa4ec6746a37176ecad357d3750dc8c94f23bfc"

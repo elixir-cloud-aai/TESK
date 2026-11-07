@@ -295,7 +295,7 @@ sets the size of its PVC.
 By default, finished tasks stay: their jobs and pods remain in the
 namespace until you delete them. With `tesk.taskTtlSeconds`,
 Kubernetes deletes a task's jobs and pods that many seconds after the task
-finished (completed, failed or cancelled):
+finished (completed, failed, or cancelled once its taskmaster had started):
 
 ```yaml
 tesk:
@@ -311,12 +311,16 @@ it finishes. While Kubernetes deletes a task's jobs, the API can briefly
 report a task that completed as `SYSTEM_ERROR`; a long TTL makes it
 unlikely that clients still read it then.
 
-Some objects of a task stay: the ConfigMap with the task's JSON (until
-tesk-api deletes it with the task,
-[tesk-api#117](https://github.com/elixir-cloud-aai/tesk-api/issues/117)),
-and PVCs that `tesk.keepFailedPvcs` keeps. The value needs taskmaster
-images newer than v0.10.6; older ones ignore it. See [Deleting finished
-tasks](https://github.com/elixir-cloud-aai/tesk-core/blob/dev/docs/taskmaster.md#deleting-finished-tasks) in the docs of the taskmaster.
+The TTL applies to tasks created after the API's pod restarted with it;
+delete older tasks by hand (`kubectl delete job <task>`, which deletes the
+task's other jobs with it). Some objects of a task stay: PVCs that
+`tesk.keepFailedPvcs` keeps, and, with tesk-api 1.1 and older, the
+ConfigMap with the task's JSON; newer versions delete it with the task
+([tesk-api#117](https://github.com/elixir-cloud-aai/tesk-api/issues/117)).
+The value needs taskmaster images newer than v0.10.6; older ones ignore it,
+and the chart's notes warn. See [Deleting finished
+tasks](tesk-core/taskmaster.md#deleting-finished-tasks) in the docs of the
+taskmaster.
 
 ## Tasks that can't be scheduled
 
@@ -347,9 +351,11 @@ tesk:
   unschedulable).
 - Pick a time longer than nodes need to scale up, if the cluster has an
   autoscaler. The value needs taskmaster images newer than v0.10.6; older
-  ones ignore it.
+  ones ignore it. It applies to tasks created after the API's pod restarted
+  with it.
 
-See [What it does](https://github.com/elixir-cloud-aai/tesk-core/blob/dev/docs/taskmaster.md#what-it-does) in the docs of the taskmaster.
+See [What it does](tesk-core/taskmaster.md#what-it-does) in the docs of the
+taskmaster.
 
 ## Executors as non-root users
 

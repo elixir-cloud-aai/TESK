@@ -209,8 +209,9 @@ Swagger UI's client as a public client, remove auth.clientSecret from your
 values, and rotate the secret at your identity provider; see
 https://tesk.readthedocs.io/en/latest/upgrading/#swagger-ui-client-secret-deprecated
 {{- end }}
-{{- /* Release tags (vX.Y.Z) up to v0.10.6 ignore ftp.hosts and
-tesk.filerHttpTimeout; others (e.g., dev) are assumed to support them */ -}}
+{{- /* Release tags (vX.Y.Z) up to v0.10.6 ignore ftp.hosts,
+tesk.filerHttpTimeout, tesk.taskTtlSeconds and tesk.maxQueueSeconds; others
+(e.g., dev) are assumed to support them */ -}}
 {{- $oldImages := list -}}
 {{- range $component := list "taskmaster" "filer" -}}
 {{- $tag := toString (dig $component "image" "tag" "" $.Values.tesk) | trimPrefix "v" -}}
@@ -224,8 +225,7 @@ WARNING: ftp.hosts is set, but {{ join " and " $oldImages }} {{ ternary "is" "ar
 v0.10.6 or older, which ignores ftp.hosts: the filer sends the FTP
 credentials to every FTP host, as before. Use images newer than v0.10.6.
 {{- end }}
-{{- $taskmasterTag := toString (dig "taskmaster" "image" "tag" "" .Values.tesk) | trimPrefix "v" -}}
-{{- $oldTaskmaster := and (regexMatch "^[0-9]+\\.[0-9]+\\.[0-9]+$" $taskmasterTag) (semverCompare "<=0.10.6" $taskmasterTag) -}}
+{{- $oldTaskmaster := has "tesk.taskmaster.image.tag" $oldImages -}}
 {{- range $name := list "taskTtlSeconds" "maxQueueSeconds" -}}
 {{- if and (include "tesk.seconds" (dict "root" $ "name" $name "minimum" 0)) $oldTaskmaster }}
 
@@ -255,16 +255,18 @@ timeout, as before. Use images newer than v0.10.6.
 
 {{/*
 Whole seconds from a value under `tesk` (`name`), with a `minimum`, as the
-taskmaster reads them: empty if unset (null or empty); fails outside
-`minimum`..2147483647, which the taskmaster would ignore. Numbers from
-values files are floats, rendered as integers; strings of digits (the
-schema allows no others) lose their leading zeros.
+taskmaster reads them: empty if unset (null or empty); fails on anything
+but whole seconds from `minimum` to 2147483647, which the taskmaster would
+ignore, also without the schema. Numbers from values files are floats,
+rendered as integers; strings of digits lose their leading zeros.
 */}}
 {{- define "tesk.seconds" -}}
 {{- $value := index .root.Values.tesk .name -}}
 {{- if include "tesk.isSet" $value -}}
-{{- $seconds := toString $value -}}
-{{- if not (kindIs "string" $value) -}}
+{{- $seconds := "" -}}
+{{- if kindIs "string" $value -}}
+{{- $seconds = $value -}}
+{{- else if and (or (kindIs "int" $value) (kindIs "int64" $value) (kindIs "float64" $value)) (eq (float64 $value) (floor $value)) -}}
 {{- $seconds = printf "%d" ($value | int64) -}}
 {{- end -}}
 {{- if or (not (regexMatch "^[0-9]{1,10}$" $seconds)) (lt (atoi $seconds) (int .minimum)) (gt (atoi $seconds) 2147483647) -}}
