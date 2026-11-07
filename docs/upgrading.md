@@ -18,8 +18,10 @@ older tesk-api images, and its notes warn when it is set; a future release
 may remove it. When you upgrade:
 
 - Remove `auth.clientSecret` (or `auth.client_secret`) from your values
-  (e.g., `secrets.yaml`). The chart then sets the secret's `secret` key to
-  empty, which also clears the value stored before. Running pods keep the
+  (e.g., `secrets.yaml`), and upgrade with your values files, not with
+  `--reuse-values`, which keeps the value of the earlier release (or add
+  `--set auth.clientSecret=null`). The chart then sets the secret's
+  `secret` key to empty, which also clears the value stored before. Running pods keep the
   old value until they restart: if the upgrade doesn't change the API's
   pod (e.g., its image), restart it with
   `kubectl rollout restart deployment/tesk-api --namespace tesk`.

@@ -1068,7 +1068,11 @@ def test_secret_numbers_values_file(
 
 
 def test_secret_unset() -> None:
-    """Unset credentials render as before (null), not as empty strings."""
+    """Unset credentials render as before: null, the client secret empty.
+
+    The FTP credentials and the client ID stay null, not empty strings; the
+    deprecated client secret is empty, so that an upgrade clears it.
+    """
     manifests = render("--set", "auth.mode=auth")
     assert get(manifests, "Secret", "ftp-secret")["stringData"] == {
         "username": None,
