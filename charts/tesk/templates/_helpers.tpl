@@ -132,6 +132,34 @@ https://tesk.readthedocs.io/en/latest/upgrading/#values-renamed-to-camelcase):
 With --reuse-values, the values include the defaults of the earlier chart,
 with all of these keys: upgrade once with your values files (-f) instead.
 {{- end }}
+{{- $values := dict -}}
+{{- include "tesk.resolveValues" (dict "root" . "out" $values) -}}
+{{- /* Any user name, also one that YAML reads as 0 or false */ -}}
+{{- $username := .Values.ftp.username -}}
+{{- $hasUsername := and (not (kindIs "invalid" $username)) (ne (toString $username) "") -}}
+{{- if and (index $values "ftp.classicFtpSecret") (not (index $values "ftp.netrcSecret")) $hasUsername (not .Values.ftp.hosts) }}
+
+WARNING: ftp.username is set, but ftp.hosts is empty. With taskmaster and
+filer images newer than v0.10.6, the filer sends the FTP credentials to no
+host, and logs in anonymously. Set ftp.hosts to the hosts of the FTP
+account, or use a .netrc file (ftp.netrcSecret); see
+https://tesk.readthedocs.io/en/latest/upgrading/#ftp-credentials-go-only-to-configured-hosts
+{{- end }}
+{{- /* Release tags (vX.Y.Z) up to v0.10.6 ignore ftp.hosts; others (e.g.,
+dev) are assumed to support it */ -}}
+{{- $oldImages := list -}}
+{{- range $key := list "tesk.taskmaster.image.tag" "tesk.filer.image.tag" -}}
+{{- $tag := toString (index $values $key) | trimPrefix "v" -}}
+{{- if and (regexMatch "^[0-9]+\\.[0-9]+\\.[0-9]+$" $tag) (semverCompare "<=0.10.6" $tag) -}}
+{{- $oldImages = append $oldImages $key -}}
+{{- end -}}
+{{- end -}}
+{{- if and .Values.ftp.hosts $oldImages }}
+
+WARNING: ftp.hosts is set, but {{ join " and " $oldImages }} {{ ternary "is" "are" (eq (len $oldImages) 1) }}
+v0.10.6 or older, which ignores ftp.hosts: the filer sends the FTP
+credentials to every FTP host, as before. Use images newer than v0.10.6.
+{{- end }}
 {{- end -}}
 
 {{/*

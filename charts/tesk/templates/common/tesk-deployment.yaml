@@ -85,6 +85,10 @@ spec:
         - name: TESK_API_TASKMASTER_FTP_SECRET_NAME
           value: {{ index $values "ftp.classicFtpSecret" }}
         {{- end }}
+        {{- with .Values.ftp.hosts }}
+        - name: TESK_API_TASKMASTER_ENVIRONMENT_TESK_FTP_HOSTS
+          value: {{ join "," . | quote }}
+        {{- end }}
         {{- if index $values "ftp.netrcSecret" }}
         - name: TESK_API_TASKMASTER_ENVIRONMENT_NETRC_SECRET_NAME
           value: {{ index $values "ftp.netrcSecret" }}

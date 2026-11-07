@@ -9,6 +9,30 @@ helm upgrade tesk charts/tesk --namespace tesk -f my-values.yaml -f secrets.yaml
 
 ## Unreleased
 
+### FTP credentials go only to configured hosts
+
+**Act on this if your tasks use FTP with `ftp.username` and
+`ftp.password`.** With taskmaster and filer images newer than v0.10.6, the
+filer sends these credentials only to the hosts in the new value `ftp.hosts`
+(see [FTP](configuration.md#ftp-ftp)); with `ftp.hosts` empty, it logs in to
+every FTP server anonymously, and logs an error that says so. To keep using
+the credentials, do one of the following when you upgrade:
+
+- Set `ftp.hosts` to the hosts of the FTP account, e.g.:
+
+  ```yaml
+  ftp:
+    hosts:
+      - ftp.example.org
+  ```
+
+- Or put the credentials into a `.netrc` file, with one entry per host
+  (`ftp.netrcSecret`; see [FTP](deployment.md#ftp)).
+
+The notes that `helm upgrade` prints warn if `ftp.username` is set,
+`ftp.hosts` is empty and `ftp.netrcSecret` is not set. Deployments with a
+`.netrc` file, or without FTP credentials, need no change.
+
 ### Probes of the API
 
 The API's container has a startup, a readiness and a liveness probe now (see

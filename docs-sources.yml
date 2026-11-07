@@ -10,5 +10,5 @@ tesk-api:
   ref: "d60f1903c49383b09f055de48d51f94f38838988"
 tesk-core:
   repository: elixir-cloud-aai/tesk-core
-  # docs: add MkDocs docs for TESK's site (#71)
-  ref: "06dc67fdf8721c7de6c16a5044bdc1420c93d834"
+  # fix: connect to FTP URLs with a port (#90)
+  ref: "86d6a4181f88c35eda4519a1c96b2c981ea466d3"
