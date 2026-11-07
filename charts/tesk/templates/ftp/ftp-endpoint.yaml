@@ -1,4 +1,5 @@
 {{- if .Values.ftp.hostip }}
+{{- /* Named as the Service (ftp-service.yaml) */}}
 apiVersion: v1
 kind: Endpoints
 metadata:

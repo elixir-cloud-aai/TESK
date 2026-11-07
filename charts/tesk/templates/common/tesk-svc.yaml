@@ -1,19 +1,16 @@
-{{- $values := dict -}}
-{{- include "tesk.resolveValues" (dict "root" . "out" $values) -}}
 apiVersion: v1
 kind: Service
 metadata:
-  name: tesk-api
+  name: {{ include "tesk.apiName" . }}
   labels:
-    app: tesk-api
     {{- include "tesk.labels" . | nindent 4 }}
 spec:
   ports:
   - port: {{ .Values.tesk.port }}
     {{- if eq .Values.service.type "NodePort" }}
     # Valid only with type NodePort
-    nodePort: {{ index $values "service.nodePort" }}
+    nodePort: {{ .Values.service.nodePort }}
     {{- end }}
   selector:
-    app: tesk-api
+    {{- include "tesk.selectorLabels" . | nindent 4 }}
   type: {{ .Values.service.type | default "ClusterIP" }}

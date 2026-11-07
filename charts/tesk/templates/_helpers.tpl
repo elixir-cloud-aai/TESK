@@ -1,35 +1,92 @@
 {{/*
+The chart's name (`nameOverride` replaces it), for the label
+`app.kubernetes.io/name`.
+*/}}
+{{- define "tesk.name" -}}
+{{- default .Chart.Name .Values.nameOverride | toString | trunc 63 | trimSuffix "-" -}}
+{{- end -}}
+
+{{/*
+The prefix of the names of the chart's objects, as in `helm create`:
+`fullnameOverride` if set, else the release name if it contains the chart's
+name (`tesk`, or `nameOverride`), else `<release>-<name>`. Cut to 50
+characters, so that the names with the longest suffix (`-service-info`)
+fit the 63 characters of a DNS label.
+*/}}
+{{- define "tesk.fullname" -}}
+{{- $name := default .Chart.Name .Values.nameOverride | toString -}}
+{{- $fullname := printf "%s-%s" .Release.Name $name -}}
+{{- if .Values.fullnameOverride -}}
+{{- $fullname = toString .Values.fullnameOverride -}}
+{{- else if contains $name .Release.Name -}}
+{{- $fullname = .Release.Name -}}
+{{- end -}}
+{{- $fullname | trunc 50 | trimSuffix "-" -}}
+{{- end -}}
+
+{{/*
+Names of the chart's objects, derived from `tesk.fullname`: the API's
+Deployment and Service, the taskmasters' ServiceAccount, Role and
+RoleBinding, the ConfigMap with the service info, and the secret with the
+OAuth client. tesk-api gets the names that it passes on to the taskmasters
+(service account, FTP secret) from its environment.
+*/}}
+{{- define "tesk.apiName" -}}
+{{- include "tesk.fullname" . }}-api
+{{- end -}}
+
+{{- define "tesk.taskmasterName" -}}
+{{- include "tesk.fullname" . }}-taskmaster
+{{- end -}}
+
+{{- define "tesk.serviceInfoName" -}}
+{{- include "tesk.fullname" . }}-service-info
+{{- end -}}
+
+{{- define "tesk.oauthClientName" -}}
+{{- include "tesk.fullname" . }}-oauth-client
+{{- end -}}
+
+{{/*
+Name of the secret with the FTP credentials: `ftp.classicFtpSecret`, or
+`<fullname>-ftp` if it is null (unset); empty if it is empty (no secret).
+*/}}
+{{- define "tesk.ftpSecretName" -}}
+{{- $name := .Values.ftp.classicFtpSecret -}}
+{{- if kindIs "invalid" $name -}}
+{{- include "tesk.fullname" . }}-ftp
+{{- else -}}
+{{- toString $name -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Selector labels of the API's pods, as in `helm create`: they tell the pods
+of different releases apart. Selectors can't change after an install.
+*/}}
+{{- define "tesk.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "tesk.name" . }}
+app.kubernetes.io/instance: {{ .Release.Name | quote }}
+{{- end -}}
+
+{{/*
 Standard labels (https://helm.sh/docs/chart_best_practices/labels/) of all
-objects of the chart, in their metadata. They are never used in selectors:
-selectors can't be changed by `helm upgrade`, so these keep `app: tesk-api`.
+objects of the chart, in their metadata.
 */}}
 {{- define "tesk.labels" -}}
 helm.sh/chart: {{ printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
-{{ include "tesk.podLabels" . }}
+{{ include "tesk.selectorLabels" . }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end -}}
 
 {{/*
-Standard labels of the API's pods: only those that don't change with the
-chart's version, so that upgrading the chart alone doesn't restart them.
+Values keys of earlier versions of the chart, which this one no longer
+reads, and what replaces them: the map that holds the old key (empty: the
+top level), the old key, and the replacement. The chart fails if any of them
+is set (`tesk.checkRemovedValues`), so that they aren't ignored unnoticed.
 */}}
-{{- define "tesk.podLabels" -}}
-app.kubernetes.io/name: {{ .Chart.Name }}
-app.kubernetes.io/instance: {{ .Release.Name | quote }}
-{{- end -}}
-
-{{/*
-Values keys renamed to follow Helm's conventions (camelCase, `image` and
-`resources` blocks): the map that holds the old key (empty: the top level),
-the old key, the new key's path, and `yaml` for old values that the
-earlier templates printed into YAML, so that they are parsed as YAML (e.g.,
-an empty string drops a resource limit, as before). The templates read these values with
-`tesk.resolveValues`, so the old keys still work, and `tesk.deprecatedValues`
-lists those in use. `tesk.image` as a string (not in this list) is the old
-form of the `tesk.image` block.
-*/}}
-{{- define "tesk.renamedValues" -}}
+{{- define "tesk.removedValues" -}}
 - ["", host_name, hostName]
 - [tesk, tes_api_base_path, tesk.tesApiBasePath]
 - [tesk, taskmaster_image_name, tesk.taskmaster.image.repository]
@@ -38,10 +95,10 @@ form of the `tesk.image` block.
 - [tesk, taskmaster_filer_image_version, tesk.filer.image.tag]
 - [tesk, executor_retries, tesk.executorRetries]
 - [tesk, filer_retries, tesk.filerRetries]
-- [tesk, limitsCpu, tesk.resources.limits.cpu, yaml]
-- [tesk, limitsMemory, tesk.resources.limits.memory, yaml]
-- [tesk, requestsCpu, tesk.resources.requests.cpu, yaml]
-- [tesk, requestsMemory, tesk.resources.requests.memory, yaml]
+- [tesk, limitsCpu, tesk.resources.limits.cpu]
+- [tesk, limitsMemory, tesk.resources.limits.memory]
+- [tesk, requestsCpu, tesk.resources.requests.cpu]
+- [tesk, requestsMemory, tesk.resources.requests.memory]
 - [transfer, wes_base_path, transfer.wesBasePath]
 - [transfer, tes_base_path, transfer.tesBasePath]
 - [transfer, pvc_name, transfer.pvcName]
@@ -49,7 +106,7 @@ form of the `tesk.image` block.
 - [auth, env_basegroup, auth.envBasegroup]
 - [auth, service_info_public, auth.serviceInfoPublic]
 - [auth, client_id, auth.clientId]
-- [auth, client_secret, auth.clientSecret]
+- [auth, client_secret, "nothing (auth.clientSecret, its new name, is deprecated: leave it unset)"]
 - [service, node_port, service.nodePort]
 - [ftp, classic_ftp_secret, ftp.classicFtpSecret]
 - [ftp, netrc_secret, ftp.netrcSecret]
@@ -57,63 +114,29 @@ form of the `tesk.image` block.
 {{- end -}}
 
 {{/*
-Resolves the renamed values (`tesk.renamedValues`) of the root context
-(`root`) into a dict (`out`), by the new keys' paths (e.g.,
-`out.hostName`): from the old key if it is set (also to null or empty),
-else from the new key (null if missing). The old keys take precedence: they
-can only be set by users (they aren't in `values.yaml`), and
-`helm upgrade --reuse-values` replaces `values.yaml` with the defaults of
-the installed chart, which has the old keys only. Renders nothing; the
-templates call it as
-`{{- $values := dict -}}{{- include "tesk.resolveValues" (dict "root" . "out" $values) -}}`.
-Old values marked `yaml` are parsed as YAML; invalid YAML fails, as with
-the earlier templates.
+Fails if the values set keys of `tesk.removedValues` (also to null or
+empty) or `tesk.image` as a string (the old form), listing them with their
+replacements, but not their values; renders nothing otherwise.
 */}}
-{{- define "tesk.resolveValues" -}}
-{{- $root := .root.Values -}}
-{{- $out := .out -}}
-{{- range include "tesk.renamedValues" .root | fromYamlArray -}}
-{{- $parent := ternary $root (index $root (index . 0)) (eq (index . 0) "") -}}
-{{- $value := $root -}}
-{{- if and (kindIs "map" $parent) (hasKey $parent (index . 1)) -}}
-{{- $value = index $parent (index . 1) -}}
-{{- if has "yaml" . -}}
-{{- $text := ternary "" (toString $value) (kindIs "invalid" $value) -}}
-{{- $parsed := printf "value: %s" $text | fromYaml -}}
-{{- if hasKey $parsed "Error" -}}
-{{- fail (printf "%s%s is not valid YAML: %s" (ternary "" (printf "%s." (index . 0)) (eq (index . 0) "")) (index . 1) $parsed.Error) -}}
-{{- end -}}
-{{- $value = $parsed.value -}}
-{{- end -}}
-{{- else -}}
-{{- /* Null if a map on the path is missing (or not a map) */ -}}
-{{- range splitList "." (index . 2) -}}
-{{- $value = index (ternary $value (dict) (kindIs "map" $value)) . -}}
-{{- end -}}
-{{- end -}}
-{{- $_ := set $out (index . 2) $value -}}
-{{- end -}}
-{{- end -}}
-
-{{/*
-The deprecated keys in use, one per line, with their new keys; empty if
-there are none.
-*/}}
-{{- define "tesk.deprecatedValues" -}}
+{{- define "tesk.checkRemovedValues" -}}
 {{- $values := .Values -}}
-{{- range include "tesk.renamedValues" . | fromYamlArray -}}
+{{- $found := list -}}
+{{- range include "tesk.removedValues" . | fromYamlArray -}}
 {{- $map := $values -}}
 {{- $prefix := "" -}}
 {{- if index . 0 -}}
 {{- $map = index $values (index . 0) -}}
 {{- $prefix = printf "%s." (index . 0) -}}
 {{- end -}}
-{{- if and (kindIs "map" $map) (hasKey $map (index . 1)) }}
-  - {{ $prefix }}{{ index . 1 }}: use {{ index . 2 }}
+{{- if and (kindIs "map" $map) (hasKey $map (index . 1)) -}}
+{{- $found = append $found (printf "%s%s: use %s" $prefix (index . 1) (index . 2)) -}}
 {{- end -}}
 {{- end -}}
-{{- if and (kindIs "map" .Values.tesk) (kindIs "string" .Values.tesk.image) }}
-  - tesk.image (a string): use tesk.image.repository and tesk.image.tag
+{{- if and (kindIs "map" $values.tesk) (kindIs "string" $values.tesk.image) -}}
+{{- $found = append $found "tesk.image (a string): use tesk.image.repository and tesk.image.tag" -}}
+{{- end -}}
+{{- if $found -}}
+{{- fail (printf "\n\nThe values use keys that this chart no longer reads. Rename them (see\nhttps://tesk.readthedocs.io/en/latest/upgrading/#resource-names-from-the-release-name):\n  - %s\n" (join "\n  - " $found)) -}}
 {{- end -}}
 {{- end -}}
 
@@ -123,21 +146,10 @@ The notes that `helm install` and `helm upgrade` print (`NOTES.txt`).
 {{- define "tesk.notes" -}}
 TESK is deployed as release {{ .Release.Name }} in namespace {{ .Release.Namespace }}.
 See https://tesk.readthedocs.io/en/latest/deployment/ to check the installation.
-{{- with include "tesk.deprecatedValues" . }}
-
-WARNING: Your values use deprecated keys, which a later release will remove.
-Rename them (see
-https://tesk.readthedocs.io/en/latest/upgrading/#values-renamed-to-camelcase):
-{{- . }}
-With --reuse-values, the values include the defaults of the earlier chart,
-with all of these keys: upgrade once with your values files (-f) instead.
-{{- end }}
-{{- $values := dict -}}
-{{- include "tesk.resolveValues" (dict "root" . "out" $values) -}}
 {{- /* Any user name, also one that YAML reads as 0 or false */ -}}
 {{- $username := .Values.ftp.username -}}
 {{- $hasUsername := include "tesk.isSet" $username -}}
-{{- if and (index $values "ftp.classicFtpSecret") (not (index $values "ftp.netrcSecret")) $hasUsername (not .Values.ftp.hosts) }}
+{{- if and (include "tesk.ftpSecretName" .) (not .Values.ftp.netrcSecret) $hasUsername (not .Values.ftp.hosts) }}
 
 WARNING: ftp.username is set, but ftp.hosts is empty. With taskmaster and
 filer images newer than v0.10.6, the filer sends the FTP credentials to no
@@ -146,7 +158,7 @@ account, or use a .netrc file (ftp.netrcSecret); see
 https://tesk.readthedocs.io/en/latest/upgrading/#ftp-credentials-go-only-to-configured-hosts
 {{- end }}
 {{- /* Any client secret, also one that YAML reads as 0 or false */ -}}
-{{- if include "tesk.isSet" (index $values "auth.clientSecret") }}
+{{- if include "tesk.isSet" .Values.auth.clientSecret }}
 
 WARNING: auth.clientSecret is deprecated: the Swagger UI is a public client,
 which needs no secret, and tesk-api 1.2.0 and later ignore it. Register the
@@ -157,10 +169,10 @@ https://tesk.readthedocs.io/en/latest/upgrading/#swagger-ui-client-secret-deprec
 {{- /* Release tags (vX.Y.Z) up to v0.10.6 ignore ftp.hosts and
 tesk.filerHttpTimeout; others (e.g., dev) are assumed to support them */ -}}
 {{- $oldImages := list -}}
-{{- range $key := list "tesk.taskmaster.image.tag" "tesk.filer.image.tag" -}}
-{{- $tag := toString (index $values $key) | trimPrefix "v" -}}
+{{- range $component := list "taskmaster" "filer" -}}
+{{- $tag := toString (dig $component "image" "tag" "" $.Values.tesk) | trimPrefix "v" -}}
 {{- if and (regexMatch "^[0-9]+\\.[0-9]+\\.[0-9]+$" $tag) (semverCompare "<=0.10.6" $tag) -}}
-{{- $oldImages = append $oldImages $key -}}
+{{- $oldImages = append $oldImages (printf "tesk.%s.image.tag" $component) -}}
 {{- end -}}
 {{- end -}}
 {{- if and .Values.ftp.hosts $oldImages }}
@@ -169,7 +181,7 @@ WARNING: ftp.hosts is set, but {{ join " and " $oldImages }} {{ ternary "is" "ar
 v0.10.6 or older, which ignores ftp.hosts: the filer sends the FTP
 credentials to every FTP host, as before. Use images newer than v0.10.6.
 {{- end }}
-{{- if and (kindIs "map" .Values.tesk) .Values.tesk.filerHttpTimeout $oldImages }}
+{{- if and .Values.tesk.filerHttpTimeout $oldImages }}
 
 WARNING: tesk.filerHttpTimeout is set, but {{ join " and " $oldImages }} {{ ternary "is" "are" (eq (len $oldImages) 1) }}
 v0.10.6 or older, which ignores it: HTTP(S) requests of the filer have no
@@ -209,17 +221,15 @@ or set them with `--set-string`.
 {{/*
 A probe of the API's container, as YAML, or nothing if it is disabled
 (`enabled: false`): the values of the probe (`tesk.startupProbe`,
-`tesk.readinessProbe` or `tesk.livenessProbe`) on top of the defaults. The
-defaults are set here, not in `values.yaml`, so that they also apply with
-`helm upgrade --reuse-values` from an earlier chart. The default action of
-the probe is `GET <ingress.path><tesk.tesApiBasePath>/service-info`: the API
-answers it from a local file, without a backend. It is a check of the port
-instead if the endpoint needs a token (`auth.mode: auth` with
+`tesk.readinessProbe` or `tesk.livenessProbe`) on top of the defaults,
+which are set here. The default action of the probe is
+`GET <ingress.path><tesk.tesApiBasePath>/service-info`: the API answers it
+from a local file, without a backend. It is a check of the port instead if
+the endpoint needs a token (`auth.mode: auth` with
 `auth.serviceInfoPublic: false`). A probe with an action of its own
 (`httpGet`, `tcpSocket`, `exec` or `grpc`) keeps that one.
 
-Takes the root context (`root`), the resolved values (`values`, see
-`tesk.resolveValues`) and the key of the probe (`name`).
+Takes the root context (`root`) and the key of the probe (`name`).
 */}}
 {{- define "tesk.probe" -}}
 {{- $root := .root -}}
@@ -233,9 +243,9 @@ Takes the root context (`root`), the resolved values (`values`, see
 {{- $_ := unset $user "enabled" -}}
 {{- $probe := mergeOverwrite (deepCopy (index $defaults .name)) $user -}}
 {{- $port := $root.Values.tesk.port | int -}}
-{{- $needsToken := and (eq (toString $root.Values.auth.mode) "auth") (eq (lower (toString (index .values "auth.serviceInfoPublic"))) "false") -}}
+{{- $needsToken := and (eq (toString $root.Values.auth.mode) "auth") (eq (lower (toString $root.Values.auth.serviceInfoPublic)) "false") -}}
 {{- $key := "httpGet" -}}
-{{- $action := dict "path" (printf "%s%s/service-info" (trimSuffix "/" (toString $root.Values.ingress.path)) (trimSuffix "/" ((index .values "tesk.tesApiBasePath") | default "/ga4gh/tes/v1"))) "port" $port -}}
+{{- $action := dict "path" (printf "%s%s/service-info" (trimSuffix "/" (toString $root.Values.ingress.path)) (trimSuffix "/" ($root.Values.tesk.tesApiBasePath | default "/ga4gh/tes/v1"))) "port" $port -}}
 {{- if $needsToken -}}
 {{- $key = "tcpSocket" -}}
 {{- $action = dict "port" $port -}}
