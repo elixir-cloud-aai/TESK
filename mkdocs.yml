@@ -89,6 +89,7 @@ nav:
   - Upgrading: upgrading.md
   - Guides:
       - Integration with WES: integrated_wes_tes.md
+      - TESK on MicroK8s: microk8s.md
       - Local FTP server: local_ftp.md
   - tesk-api: external:tesk-api
   - tesk-core: external:tesk-core
