@@ -119,7 +119,10 @@ REMOVED: list[tuple[tuple[str, ...], str]] = [
         ("--set", "ingress.tls_secret_name=tls"),
         "ingress.tls_secret_name: use ingress.tlsSecretName",
     ),
-    # Also null or empty
+]
+
+# Removed keys set to null or empty fail too
+REMOVED_EMPTY: list[tuple[tuple[str, ...], str]] = [
     (("--set", "tesk.limitsCpu=null"), "tesk.limitsCpu: use"),
     (("--set", "host_name="), "host_name: use hostName"),
 ]
@@ -1294,6 +1297,9 @@ def test_names_from_release(tmp_path: Path) -> None:
         (chart / "s3-config" / name).write_text("[default]\n")
     manifests = render(*ALL_OBJECTS, "--set", "storage=s3", chart=chart)
     manifests += render(*ALL_OBJECTS, chart=chart)
+    manifests += render(
+        "--api-versions", "route.openshift.io/v1", "--set", "ingress.rules=false"
+    )
     assert _names(manifests) == {
         ("ConfigMap", "tesk-service-info"),
         ("Deployment", "tesk-api"),
@@ -1301,6 +1307,7 @@ def test_names_from_release(tmp_path: Path) -> None:
         ("Ingress", "tesk"),
         ("Role", "tesk-taskmaster"),
         ("RoleBinding", "tesk-taskmaster"),
+        ("Route", "tesk"),
         ("Secret", "aws-secret"),
         ("Secret", "netrc"),
         ("Secret", "tesk-ftp"),
@@ -1415,15 +1422,27 @@ def test_names_passed_on() -> None:
         (("--set", "ftp.classicFtpSecret=null"), "tesk-ftp"),
         (("--set", "ftp.classicFtpSecret=ftp-secret"), "ftp-secret"),
         (("--set", "ftp.classicFtpSecret="), None),
+        (("--set", "ftp.classicFtpSecret=false"), None),
+        (("--values", "null"), "tesk-ftp"),
     ],
 )
-def test_ftp_secret_name(args: tuple[str, ...], name: str | None) -> None:
+def test_ftp_secret_name(
+    args: tuple[str, ...], name: str | None, tmp_path: Path
+) -> None:
     """The FTP secret is `<fullname>-ftp`, unless named; empty creates none.
 
+    False (as in earlier versions of the chart) creates none too.
+
     Args:
-        args: The `helm template` arguments.
+        args: The `helm template` arguments; `--values null` stands for a
+            values file that sets `ftp.classicFtpSecret` to null.
         name: The name of the secret, or `None` if there is none.
+        tmp_path: A directory for the values file.
     """
+    if args == ("--values", "null"):
+        values = tmp_path / "values.yaml"
+        values.write_text("ftp:\n  classicFtpSecret: null\n")
+        args = ("--values", str(values))
     manifests = render(*args)
     secrets = {m["metadata"]["name"] for m in manifests if m["kind"] == "Secret"}
     variable = env(manifests).get("TESK_API_TASKMASTER_FTP_SECRET_NAME")
@@ -1431,7 +1450,7 @@ def test_ftp_secret_name(args: tuple[str, ...], name: str | None) -> None:
     assert secrets == ({name} if name else set())
 
 
-@pytest.mark.parametrize(("args", "message"), REMOVED)
+@pytest.mark.parametrize(("args", "message"), REMOVED + REMOVED_EMPTY)
 def test_removed_keys(args: tuple[str, ...], message: str) -> None:
     """Keys of earlier versions of the chart fail, naming their replacements.
 
@@ -1448,19 +1467,87 @@ def test_removed_keys(args: tuple[str, ...], message: str) -> None:
 
 def test_removed_keys_all() -> None:
     """The error lists all the removed keys in use at once."""
-    args = [arg for options, _ in REMOVED[:-2] for arg in options]
+    args = [arg for options, _ in REMOVED for arg in options]
     with pytest.raises(subprocess.CalledProcessError) as error:
         render(*args)
     listed = [
         line for line in error.value.stderr.splitlines() if line.startswith("  - ")
     ]
-    assert len(listed) == len(REMOVED) - 2
+    assert len(listed) == len(REMOVED)
+
+
+def _removed_keys_of_chart() -> set[str]:
+    """Get the removed keys that the chart checks (`tesk.removedValues`).
+
+    Returns:
+        The keys, with the maps that hold them (e.g., `tesk.limitsCpu`).
+    """
+    text = (CHART / "templates" / "_helpers.tpl").read_text()
+    start = text.index('{{- define "tesk.removedValues" -}}')
+    block = text[start : text.index("{{- end -}}", start)].splitlines()[1:]
+    entries = yaml.safe_load("\n".join(block))
+    return {".".join(part for part in entry[:2] if part) for entry in entries}
+
+
+def test_removed_keys_lists() -> None:
+    """The chart, these tests and the upgrade notes list the same keys."""
+    keys = {args[-1].split("=")[0] for args, _ in REMOVED}
+    keys.discard("tesk.image")
+    assert keys == _removed_keys_of_chart()
+    upgrading = (CHART.parents[1] / "docs" / "upgrading.md").read_text()
+    documented = {
+        line.split("`")[1]
+        for line in upgrading[upgrading.index("| Old name | New name |") :]
+        .split("\n\n")[0]
+        .splitlines()[2:]
+    }
+    documented.discard("tesk.image")
+    assert documented == keys
+
+
+def test_removed_keys_link() -> None:
+    """The error links to the section of the upgrade notes that exists."""
+    with pytest.raises(subprocess.CalledProcessError) as error:
+        render("--set", "host_name=x")
+    anchor = "resource-names-from-the-release-name"
+    assert f"upgrading/#{anchor}" in error.value.stderr
+    upgrading = (CHART.parents[1] / "docs" / "upgrading.md").read_text()
+    assert "\n### Resource names from the release name\n" in upgrading
 
 
 def test_labels_numeric_release() -> None:
-    """A release name that looks like a number is a string label."""
-    for manifest in render(release="123"):
-        assert manifest["metadata"]["labels"]["app.kubernetes.io/instance"] == "123"
+    """A release name or `nameOverride` that looks like a number is a string."""
+    manifests = render(
+        "--set", "fullnameOverride=tesk", "--set", "nameOverride=456", release="123"
+    )
+    for manifest in manifests:
+        labels = manifest["metadata"]["labels"]
+        assert labels["app.kubernetes.io/instance"] == "123"
+        assert labels["app.kubernetes.io/name"] == "456"
+
+
+@pytest.mark.parametrize(
+    ("release", "args"),
+    [
+        ("123", ()),
+        ("tesk.prod", ()),
+        ("prod", ("--set", "fullnameOverride=Prod")),
+    ],
+)
+def test_invalid_prefix(release: str, args: tuple[str, ...]) -> None:
+    """A prefix that isn't a valid Service name fails, with a hint.
+
+    Helm accepts release names that start with a digit or contain dots,
+    which Service names can't.
+
+    Args:
+        release: The release name.
+        args: More `helm template` arguments.
+    """
+    with pytest.raises(subprocess.CalledProcessError) as error:
+        render(*args, release=release)
+    assert "isn't a valid Service name" in error.value.stderr
+    assert "fullnameOverride" in error.value.stderr
 
 
 def test_labels_openshift() -> None:

@@ -1,4 +1,6 @@
-{{- /* Keys of earlier versions of the chart fail the installation */ -}}
+{{- /* Keys of earlier versions of the chart fail the installation. The
+check is here because the Deployment is always rendered; it applies to the
+whole chart */ -}}
 {{- include "tesk.checkRemovedValues" . -}}
 {{- $tesk := .Values.tesk -}}
 {{- $repository := dig "image" "repository" "" $tesk | default "docker.io/elixircloud/tesk-api" -}}
@@ -72,7 +74,7 @@ spec:
           value: file:///etc/tesk/service-info/service-info.yaml
         {{- if $ftpSecretName }}
         - name: TESK_API_TASKMASTER_FTP_SECRET_NAME
-          value: {{ $ftpSecretName }}
+          value: {{ $ftpSecretName | quote }}
         {{- end }}
         {{- with .Values.ftp.hosts }}
         - name: TESK_API_TASKMASTER_ENVIRONMENT_TESK_FTP_HOSTS

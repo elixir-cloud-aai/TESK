@@ -11,7 +11,10 @@ The prefix of the names of the chart's objects, as in `helm create`:
 `fullnameOverride` if set, else the release name if it contains the chart's
 name (`tesk`, or `nameOverride`), else `<release>-<name>`. Cut to 50
 characters, so that the names with the longest suffix (`-service-info`)
-fit the 63 characters of a DNS label.
+fit the 63 characters of a DNS label. Fails if the prefix isn't a valid
+start of a Service name (DNS-1035: a lowercase letter first, then
+lowercase letters, digits and dashes), e.g. for the release names `123` or
+`tesk.prod`, which Helm accepts: set `fullnameOverride` then.
 */}}
 {{- define "tesk.fullname" -}}
 {{- $name := default .Chart.Name .Values.nameOverride | toString -}}
@@ -21,7 +24,11 @@ fit the 63 characters of a DNS label.
 {{- else if contains $name .Release.Name -}}
 {{- $fullname = .Release.Name -}}
 {{- end -}}
-{{- $fullname | trunc 50 | trimSuffix "-" -}}
+{{- $fullname = $fullname | trunc 50 | trimSuffix "-" -}}
+{{- if not (regexMatch "^[a-z]([-a-z0-9]*[a-z0-9])?$" $fullname) -}}
+{{- fail (printf "the names of the objects would start with %q, which isn't a valid Service name (a lowercase letter first, then lowercase letters, digits and dashes): use another release name, or set fullnameOverride" $fullname) -}}
+{{- end -}}
+{{- $fullname -}}
 {{- end -}}
 
 {{/*
@@ -49,13 +56,14 @@ OAuth client. tesk-api gets the names that it passes on to the taskmasters
 
 {{/*
 Name of the secret with the FTP credentials: `ftp.classicFtpSecret`, or
-`<fullname>-ftp` if it is null (unset); empty if it is empty (no secret).
+`<fullname>-ftp` if it is null (unset); empty (no secret) if it is empty or
+otherwise false (e.g., `false`), as in earlier versions of the chart.
 */}}
 {{- define "tesk.ftpSecretName" -}}
 {{- $name := .Values.ftp.classicFtpSecret -}}
 {{- if kindIs "invalid" $name -}}
 {{- include "tesk.fullname" . }}-ftp
-{{- else -}}
+{{- else if $name -}}
 {{- toString $name -}}
 {{- end -}}
 {{- end -}}
@@ -65,7 +73,7 @@ Selector labels of the API's pods, as in `helm create`: they tell the pods
 of different releases apart. Selectors can't change after an install.
 */}}
 {{- define "tesk.selectorLabels" -}}
-app.kubernetes.io/name: {{ include "tesk.name" . }}
+app.kubernetes.io/name: {{ include "tesk.name" . | quote }}
 app.kubernetes.io/instance: {{ .Release.Name | quote }}
 {{- end -}}
 
