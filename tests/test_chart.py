@@ -698,6 +698,9 @@ def test_secret_number_too_large(tmp_path: Path) -> None:
     with pytest.raises(subprocess.CalledProcessError) as error:
         render("-f", str(values))
     assert "too large" in error.value.stderr
+    assert "--set-string" in error.value.stderr
+    assert "12345678901234567890" not in error.value.stderr
+    assert "1.2345678901234567e+19" not in error.value.stderr
 
 
 def test_transfer() -> None:

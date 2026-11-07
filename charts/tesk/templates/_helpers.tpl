@@ -146,7 +146,7 @@ or set them with `--set-string`.
 {{- if and (lt . 9007199254740992.0) (gt . -9007199254740992.0) -}}
 {{- printf "%.0f" . | quote -}}
 {{- else -}}
-{{- fail (printf "the number %v is too large to be exact: quote it in the values file or use --set-string" .) -}}
+{{- fail "a secret value is a number too large to be exact: quote it in the values file or use --set-string" -}}
 {{- end -}}
 {{- else -}}
 {{- quote . -}}
