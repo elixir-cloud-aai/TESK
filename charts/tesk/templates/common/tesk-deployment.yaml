@@ -95,14 +95,17 @@ spec:
           value: {{ .Values.auth.serviceInfoPublic | quote }}
         {{- end }}
         {{- /* Authorisation without groups, by a claim of the user info:
-        only when on, and complete, since tesk-api stops at startup without
-        a name or a non-blank value */}}
+        only with mode auth (noauth leaves all endpoints open) and when on;
+        complete, since tesk-api stops at startup without a name or a
+        non-blank value. Blank values are left out, as tesk-api does */}}
         {{- $claim := default dict .Values.auth.claim }}
-        {{- if eq (toString $claim.enabled) "true" }}
+        {{- if and (eq (toString .Values.auth.mode) "auth") (eq (toString $claim.enabled) "true") }}
         {{- $claimName := trim (toString (default "" $claim.name)) }}
         {{- $claimValues := list }}
         {{- range (default list $claim.values) }}
-        {{- $claimValues = append $claimValues (trim .) }}
+        {{- with trim (toString .) }}
+        {{- $claimValues = append $claimValues . }}
+        {{- end }}
         {{- end }}
         {{- if or (not $claimName) (not $claimValues) }}
         {{- fail "auth.claim.enabled needs auth.claim.name and at least one value in auth.claim.values" }}

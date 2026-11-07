@@ -566,10 +566,19 @@ CLAIM = (
         ("--set-string", "auth.claim.enabled=false"),
         ("--set-json", "auth.claim=null"),
         ("--set-json", "auth.claim.enabled=null"),
+        (
+            "--set",
+            "auth.mode=noauth",
+            "--set-json",
+            'auth.claim={"enabled": true, "name": "x", "values": ["a"]}',
+        ),
+        ("--set", "auth.mode=noauth", "--set", "auth.claim.enabled=true"),
     ],
 )
 def test_auth_claim_off(args: tuple[str, ...]) -> None:
-    """Off by default: tesk-api gets none of the claim's variables.
+    """Off by default, and with mode noauth: none of the claim's variables.
+
+    With mode noauth, all endpoints are open, so the claim isn't checked.
 
     Args:
         args: The `helm template` arguments.
@@ -600,12 +609,21 @@ def test_auth_claim_off(args: tuple[str, ...]) -> None:
             ),
             "a,b c,d",
         ),
+        (
+            (
+                "--set-json",
+                'auth.claim={"enabled": true, "name": " eduperson_entitlement ",'
+                ' "values": [" a ", "\\u000b", "b"]}',
+            ),
+            "a,b",
+        ),
     ],
 )
 def test_auth_claim(args: tuple[str, ...], values: str) -> None:
     """With `auth.claim.enabled`, the claim's name and values are passed on.
 
-    The values are joined with commas, as tesk-api splits them.
+    The values are trimmed, blank ones left out, and joined with commas,
+    as tesk-api splits them.
 
     Args:
         args: The `helm template` arguments.
@@ -626,6 +644,8 @@ def test_auth_claim(args: tuple[str, ...], values: str) -> None:
         '{"enabled": true, "name": "x"}',
         '{"enabled": true, "name": "x", "values": []}',
         '{"enabled": true, "name": "x", "values": null}',
+        '{"enabled": true, "name": "x", "values": ["\\u000b"]}',
+        '{"enabled": true, "name": "x", "values": ["\\u00a0"]}',
     ],
 )
 def test_auth_claim_incomplete(claim: str) -> None:
@@ -635,7 +655,7 @@ def test_auth_claim_incomplete(claim: str) -> None:
         claim: `auth.claim`, as JSON.
     """
     with pytest.raises(subprocess.CalledProcessError) as error:
-        render("--set-json", f"auth.claim={claim}")
+        render("--set", "auth.mode=auth", "--set-json", f"auth.claim={claim}")
     assert "auth.claim.enabled needs auth.claim.name and" in error.value.stderr
 
 

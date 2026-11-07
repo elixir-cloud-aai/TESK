@@ -243,7 +243,8 @@ tesk-api.
 
 Providers whose groups don't fit that model (e.g., LS Login without the
 group structure) can authorise users by a claim of the user info instead
-(tesk-api 1.2.0 or later). It is off by default:
+(tesk-api 1.2.0 or later). It is off by default, and needs `auth.mode:
+auth`:
 
 ```yaml
 auth:
@@ -266,9 +267,11 @@ mustn't contain commas.
 Everyone who has one of the values can run any image with any command on
 the cluster. Choose a claim and values that an administrator grants per
 user and users can't set themselves, e.g., an entitlement of your
-community, not a value that every account has. See [Authorisation without
-groups](https://github.com/elixir-cloud-aai/tesk-api/blob/dev/docs/access-control.md#authorisation-without-groups) in the docs of tesk-api for the rules and their security
-implications.
+community, not a value that every account has. See [Authorisation
+without groups][claim-docs] in the docs of tesk-api for the rules and their
+security implications.
+
+[claim-docs]: https://github.com/elixir-cloud-aai/tesk-api/blob/dev/docs/access-control.md#authorisation-without-groups
 
 To let users log in from the Swagger UI, register a public OIDC client
 (without a secret; implicit grant, or authorisation code if your provider

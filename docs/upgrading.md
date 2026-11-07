@@ -193,14 +193,6 @@ e.g., a map where the chart expects a scalar fails the installation, as
 does a pull policy other than `Always`, `IfNotPresent` or `Never`. It
 accepts scalars of any type and unknown keys.
 
-### Authorisation by a claim
-
-The new values `auth.claim.enabled`, `auth.claim.name` and
-`auth.claim.values` authorise users without groups, by a claim of the user
-info (see [Authorisation by a
-claim](deployment.md#authorisation-by-a-claim)). They are off by default,
-which changes nothing; they need tesk-api 1.2.0 or later.
-
 ### Newer taskmaster images delete the PVCs of failed tasks
 
 With taskmaster images newer than v0.10.6, the taskmaster also deletes the
@@ -313,6 +305,14 @@ The new value `auth.serviceInfoPublic` (default `true`) controls whether
 1.2.0 or later; earlier versions ignore it and keep the endpoint public.
 The default keeps the endpoint public; set it to `false` to require a
 token.
+
+### Authorisation by a claim
+
+The new values `auth.claim.enabled`, `auth.claim.name` and
+`auth.claim.values` authorise users without groups, by a claim of the user
+info (see [Authorisation by a
+claim](deployment.md#authorisation-by-a-claim)). They are off by default,
+which changes nothing; they need tesk-api 1.2.0 or later.
 
 ### Swagger UI with tesk-api 1.2.0
 

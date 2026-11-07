@@ -130,7 +130,8 @@ auth:
   serviceInfoPublic: true
   # With mode auth: authorisation without groups, by a claim of the user
   # info, for providers whose groups don't fit the group model above (e.g.,
-  # LS Login). Off by default. With `enabled: true`, users with one of
+  # LS Login). Off by default, and ignored with mode noauth. With
+  # `enabled: true`, users with one of
   # `values` (compared exactly) in the claim `name` may run tasks and see
   # their own; group rules still apply first. Everyone who has one of the
   # values can run any image on the cluster: choose an entitlement that an
