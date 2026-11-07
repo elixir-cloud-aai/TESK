@@ -332,6 +332,12 @@ def test_image_block() -> None:
     assert container(manifests)["imagePullPolicy"] == "Always"
 
 
+def test_image_tag_zero() -> None:
+    """A tag that is falsy but set (0) is used, not the chart's `appVersion`."""
+    manifests = render("--set", "tesk.image.tag=0")
+    assert container(manifests)["image"].endswith(":0")
+
+
 def test_images() -> None:
     """The images of the API, taskmaster and filer come from the values."""
     manifests = render(
@@ -809,6 +815,12 @@ def test_labels() -> None:
     service = get(manifests, "Service", "tesk-api")
     assert service["spec"]["selector"] == {"app": "tesk-api"}
     assert service["metadata"]["labels"]["app"] == "tesk-api"
+
+
+def test_labels_numeric_release() -> None:
+    """A release name that looks like a number is a string label."""
+    for manifest in render(release="123"):
+        assert manifest["metadata"]["labels"]["app.kubernetes.io/instance"] == "123"
 
 
 def test_labels_openshift() -> None:

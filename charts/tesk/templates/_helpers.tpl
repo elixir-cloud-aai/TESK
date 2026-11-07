@@ -16,7 +16,7 @@ chart's version, so that upgrading the chart alone doesn't restart them.
 */}}
 {{- define "tesk.podLabels" -}}
 app.kubernetes.io/name: {{ .Chart.Name }}
-app.kubernetes.io/instance: {{ .Release.Name }}
+app.kubernetes.io/instance: {{ .Release.Name | quote }}
 {{- end -}}
 
 {{/*

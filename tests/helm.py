@@ -38,19 +38,20 @@ data:
 """
 
 
-def render(*args: str, chart: Path = CHART) -> list[Manifest]:
+def render(*args: str, chart: Path = CHART, release: str = "tesk") -> list[Manifest]:
     """Render the chart with `helm template` arguments.
 
     Args:
         args: Further arguments of `helm template`, e.g., `--set` options.
         chart: The chart directory (e.g., a copy with added files).
+        release: The name of the release.
 
     Returns:
         The rendered objects.
     """
     assert HELM is not None
     output = subprocess.run(  # noqa: S603 (fixed executable and arguments)
-        [HELM, "template", "tesk", str(chart), "--namespace", NAMESPACE, *args],
+        [HELM, "template", release, str(chart), "--namespace", NAMESPACE, *args],
         capture_output=True,
         check=True,
         text=True,

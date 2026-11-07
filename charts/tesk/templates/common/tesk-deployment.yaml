@@ -12,7 +12,12 @@ the user replaces.
 {{- $pullPolicy := "" -}}
 {{- if kindIs "map" $tesk.image -}}
 {{- $repository := $tesk.image.repository | default "docker.io/elixircloud/tesk-api" -}}
-{{- $image = printf "%s:%s" $repository (toString ($tesk.image.tag | default .Chart.AppVersion)) -}}
+{{- $tag := $tesk.image.tag -}}
+{{- /* Not `default`, which would replace a tag of 0 */ -}}
+{{- if or (kindIs "invalid" $tag) (eq (toString $tag) "") -}}
+{{- $tag = .Chart.AppVersion -}}
+{{- end -}}
+{{- $image = printf "%s:%s" $repository (toString $tag) -}}
 {{- $pullPolicy = $tesk.image.pullPolicy -}}
 {{- end -}}
 {{- /* The old keys of resources replace those of the block, if set */ -}}
