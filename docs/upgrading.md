@@ -206,6 +206,15 @@ PVCs that earlier releases left behind stay: list them with
 `kubectl get pvc --namespace tesk`, and delete those of tasks that have
 ended (`<task>-pvc`, where `<task>` is the task's ID).
 
+### Executors as non-root users
+
+The new value `tesk.executor.securityContext` (`runAsUser`, `runAsGroup`,
+`fsGroup`, `runAsNonRoot`) sets the security context of the executors'
+pods, through the new ConfigMap `<prefix>-executor` (see [Executors as
+non-root users](deployment.md#executors-as-non-root-users)). It is empty by
+default, which changes nothing; setting or changing it restarts the API's
+pod.
+
 ### Timeout of the filer's HTTP(S) requests
 
 With taskmaster and filer images newer than v0.10.6, the filer's HTTP(S)
