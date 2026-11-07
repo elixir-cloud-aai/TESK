@@ -1,5 +1,6 @@
-How to use local FTP
---------------------
+# Local FTP server
+
+For a development cluster (e.g., Minikube), an FTP server on the host can serve as the storage backend of TESK. Set it up as follows, then point TESK to it with `ftp.hostip` and the FTP credentials (see [FTP](deployment.md#ftp) and [Configuration](configuration.md#ftp-ftp)).
 
 * Create a new user on the host
 

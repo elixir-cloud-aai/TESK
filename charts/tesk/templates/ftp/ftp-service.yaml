@@ -1,11 +1,15 @@
-{{ if .Values.ftp.hostip }}
-kind: Service
+{{- if .Values.ftp.hostip }}
 apiVersion: v1
+kind: Service
 metadata:
-    name: ftp
+  name: ftp
+  labels:
+    {{- include "tesk.labels" . | nindent 4 }}
 spec:
-    ports:
-        - protocol:   TCP
-          port:       21  # internal (inside the cluster)
-          targetPort: 21  # external (at the host)
-{{ end }}
+  ports:
+  - protocol: TCP
+    # Inside the cluster
+    port: 21
+    # At the host
+    targetPort: 21
+{{- end }}

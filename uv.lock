@@ -980,6 +980,7 @@ dev = [
     { name = "mkdocs-material" },
     { name = "mkdocs-redirects" },
     { name = "mypy" },
+    { name = "pathspec" },
     { name = "pre-commit" },
     { name = "pymdown-extensions" },
     { name = "pytest" },
@@ -991,6 +992,7 @@ docs = [
     { name = "mkdocs" },
     { name = "mkdocs-material" },
     { name = "mkdocs-redirects" },
+    { name = "pathspec" },
     { name = "pymdown-extensions" },
     { name = "pyyaml" },
 ]
@@ -1004,6 +1006,7 @@ dev = [
     { name = "mkdocs-material", specifier = ">=9.6,<10" },
     { name = "mkdocs-redirects", specifier = ">=1.2,<2" },
     { name = "mypy", specifier = ">=1.18" },
+    { name = "pathspec", specifier = ">=0.11.1" },
     { name = "pre-commit", specifier = ">=4.6" },
     { name = "pymdown-extensions", specifier = ">=10.16,<13" },
     { name = "pytest", specifier = ">=8.4" },
@@ -1015,6 +1018,7 @@ docs = [
     { name = "mkdocs", specifier = ">=1.6.1,<2" },
     { name = "mkdocs-material", specifier = ">=9.6,<10" },
     { name = "mkdocs-redirects", specifier = ">=1.2,<2" },
+    { name = "pathspec", specifier = ">=0.11.1" },
     { name = "pymdown-extensions", specifier = ">=10.16,<13" },
     { name = "pyyaml", specifier = ">=6.0" },
 ]

@@ -82,9 +82,15 @@ validation:
 nav:
   - Home: index.md
   - Introduction to TES: tesintro.md
+  - Architecture: architecture.md
   - Deployment: deployment.md
-  - Integration with WES: integrated_wes_tes.md
-  - Local FTP server: local_ftp.md
+  - Configuration: configuration.md
+  - API: api.md
+  - Upgrading: upgrading.md
+  - Guides:
+      - Integration with WES: integrated_wes_tes.md
+      - TESK on MicroK8s: microk8s.md
+      - Local FTP server: local_ftp.md
   - tesk-api: external:tesk-api
   - tesk-core: external:tesk-core
   - Development: development.md

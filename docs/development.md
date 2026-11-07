@@ -17,7 +17,7 @@ source .venv/bin/activate  # or `activate.fish` etc.
 pre-commit install  # run the checks on every commit
 pre-commit run --all-files  # whitespace, YAML/JSON, ruff, mypy, actionlint
 pre-commit run --all-files --hook-stage manual gitleaks-all  # secrets
-pytest  # the tests of the docs hooks
+pytest  # the tests of the docs hooks and, with helm, of the chart
 helm lint charts/tesk --strict
 mkdocs build --strict  # the docs, as CI and Read the Docs build them
 ```
@@ -36,8 +36,28 @@ The workflow `CI` (`.github/workflows/ci.yml`) runs on every pull request to
   Commits](https://www.conventionalcommits.org/) (squash merges use it as
   the commit message).
 - **Lint:** the pre-commit hooks above.
-- **Test:** the tests in `tests/`, with coverage.
-- **Chart:** `helm lint --strict` and `helm template` of the chart.
+- **Test:** the tests in `tests/` except the chart tests, with coverage.
+- **Chart:** `helm lint --strict` and `helm template` of the chart, and the
+  chart tests (`tests/test_chart.py`), which render the chart with
+  `helm template` for the default values and the main options (ingress,
+  OpenShift route, storage backends, FTP, authentication, service info) and
+  check the rendered objects, with the pinned Helm version. They fail here
+  if Helm is missing (`REQUIRE_HELM`).
+
+  The chart tests also check that the deprecated names of values still work
+  (see [Upgrading](upgrading.md#values-renamed-to-camelcase)):
+
+  - The default values and the deprecated names, also with empty, null or
+    string values, render the same objects as a copy of the chart before the
+    renaming (`tests/data/legacy-chart/`), apart from the standard labels.
+  - So do the old defaults, as `helm upgrade --reuse-values` uses them.
+  - Each deprecated name has the same effect as its new name, and takes
+    precedence over it.
+
+  When a release removes the deprecated names, remove these tests with them:
+  `tests/data/legacy-chart/` and its excludes in `.pre-commit-config.yaml`,
+  `LEGACY_*` in `tests/helm.py`, and the tests that use them, `RENAMED` and
+  `DEPRECATED` in `tests/test_chart.py`.
 - **Chart install:** installs the chart with its default values on a
   [kind](https://kind.sigs.k8s.io/) cluster and checks that
   `GET /ga4gh/tes/v1/service-info` answers.
@@ -92,8 +112,9 @@ We chose this over the [multirepo
 plugin](https://github.com/jdoiro3/mkdocs-multirepo-plugin), which imports
 the docs of other repositories by branch or tag: a branch moves (the site
 would change, or break, without a change in this repository), and tags of
-the other repositories exist only for releases. The hook needs no extra
-dependency and no `git`, and fails the build on any problem. It limits the
+the other repositories exist only for releases. The hook needs no `git`,
+and no dependency beyond MkDocs and the packages it uses itself (PyYAML,
+pathspec), and fails the build on any problem. It limits the
 size of the compressed tarball, and the number and total size of the files
 it extracts (`MAX_ARCHIVE_BYTES`, `MAX_MEMBERS` and `MAX_EXTRACTED_BYTES` in
 `docs/hooks.py`); the content of a pinned commit is otherwise trusted, so
@@ -109,6 +130,13 @@ tesk-core:
 - Keep a `nav` in their `mkdocs.yml`, with their `index.md` first.
 - Keep no Python files in `docs/` that are meant as pages (`*.py` files,
   e.g., hooks, are not pulled).
+- List files in `docs/` that aren't part of the site (e.g., the
+  `requirements.txt` of their Read the Docs build) in `exclude_docs` of
+  their `mkdocs.yml`. The hook applies their `exclude_docs`, `draft_docs`
+  and `not_in_nav` (patterns relative to their `docs/`; plain strings, not
+  `!ENV`) and MkDocs' default exclusions (hidden files and a top-level
+  `templates/`), as MkDocs does in their own site; settings from `INHERIT`
+  are not read.
 
 ## Releases
 
@@ -158,7 +186,9 @@ To release version X.Y.Z:
 
 1. In a pull request to `dev`, set `version` in `charts/tesk/Chart.yaml`, and
    `version` and `date-released` in `CITATION.cff`, to X.Y.Z and the release
-   date; merge it once CI passed.
+   date; merge it once CI passed. (`appVersion` in `Chart.yaml` is not the
+   release version: it is the version of tesk-api that the chart deploys,
+   the default tag of its image.)
 2. Once `CI` passed for the push of that commit (`<sha>`) to `dev` (the
    check needs a commit that was pushed to `dev`, not one only tested in a
    pull request), move `main` forward to it (`main` only ever moves forward
@@ -178,16 +208,6 @@ If a run fails before publishing, fix the cause and re-run it: a re-run
 completes a draft that a failed run left. If the tagged commit is wrong,
 release a new version instead.
 
-To install a released chart, download it from the release, check that the
-release workflow built and signed it from the release tag, and install it:
-
-```bash
-gh release download vX.Y.Z --repo elixir-cloud-aai/TESK --pattern 'tesk-*'
-gh attestation verify tesk-X.Y.Z.tgz --repo elixir-cloud-aai/TESK \
-    --signer-workflow elixir-cloud-aai/TESK/.github/workflows/release.yml \
-    --source-ref refs/tags/vX.Y.Z
-cosign verify-blob tesk-X.Y.Z.tgz --bundle tesk-X.Y.Z.tgz.sigstore.json \
-    --certificate-identity https://github.com/elixir-cloud-aai/TESK/.github/workflows/release.yml@refs/tags/vX.Y.Z \
-    --certificate-oidc-issuer https://token.actions.githubusercontent.com
-helm install tesk tesk-X.Y.Z.tgz --namespace tesk --create-namespace
-```
+To install a released chart, see [Installation from a
+release](deployment.md#from-a-release): it checks that this workflow built
+and signed the chart from the release tag.
