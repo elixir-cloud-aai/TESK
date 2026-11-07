@@ -55,12 +55,15 @@ helm upgrade --install tesk charts/tesk \
   (`charts/tesk/ftp/.netrc`) and the S3 configuration
   (`charts/tesk/s3-config/`). Edit or add them before installing.
 
-The resources have fixed names (`tesk-api`, `taskmaster`, …), so install one
-release per namespace. They have the standard labels of Helm charts
-(`app.kubernetes.io/name: tesk`, `app.kubernetes.io/instance: <release>`,
-…), e.g., to list them with `kubectl get all -n tesk -l
-app.kubernetes.io/instance=tesk`; the selectors of the Deployment and the
-Service still use only `app: tesk-api`.
+The names of the objects start with the release name (e.g., `tesk-api` and
+`tesk-taskmaster` for the release `tesk`, `prod-tesk-api` for the release
+`prod`; see [Names of the objects](configuration.md#names-of-the-objects)),
+and they have the standard labels of Helm charts (`app.kubernetes.io/name:
+tesk`, `app.kubernetes.io/instance: <release>`, …), e.g., to list them with
+`kubectl get all -n tesk -l app.kubernetes.io/instance=tesk`. Several
+releases can share a namespace, but they then see each other's tasks:
+install releases that must be kept apart into namespaces of their own. The
+commands on this page assume the release `tesk` in the namespace `tesk`.
 
 ### From a release
 
@@ -178,8 +181,8 @@ for FTP, enable TLS on the FTP server without enforcing it. Provide the
 credentials in one of two ways:
 
 - **Username and password** (default): the chart creates the secret named in
-  `ftp.classicFtpSecret` (default `ftp-secret`) from `ftp.username` and
-  `ftp.password` (in `secrets.yaml`). List the hosts of the account in
+  `ftp.classicFtpSecret` (by default `<prefix>-ftp`, e.g., `tesk-ftp`) from
+  `ftp.username` and `ftp.password` (in `secrets.yaml`). List the hosts of the account in
   `ftp.hosts` (e.g., `[ftp.example.org]`): the filer sends the credentials
   only to them, and logs in anonymously elsewhere.
 - **`.netrc` file**, which can hold credentials for several servers: set
@@ -218,6 +221,8 @@ MinIO, …). Set `storage: s3` and put the AWS CLI's [`config` and
 files](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html)
 into `charts/tesk/s3-config/` (templates: `config-TEMPLATE`,
 `credentials-TEMPLATE`); the chart creates the secret `aws-secret` from them.
+The filer reads the secret by this fixed name, so only one release per
+namespace can use S3.
 
 ## Authentication and authorisation
 
