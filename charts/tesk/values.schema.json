@@ -343,9 +343,9 @@
           ],
           "items": {
             "type": "string",
-            "pattern": "^[^,]+$"
+            "pattern": "^[^,@/?#\\s]*[^,@/?#\\s:]$"
           },
-          "description": "Hosts (host or host:port) that the FTP credentials of classicFtpSecret are sent to; empty sends them to no host"
+          "description": "Hosts (host or host:port, without user information, path, whitespace or empty port) that the FTP credentials of classicFtpSecret are sent to; empty sends them to no host"
         },
         "username": {
           "$ref": "#/$defs/scalar",

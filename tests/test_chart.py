@@ -809,10 +809,15 @@ def test_ftp_hosts(args: tuple[str, ...], expected: str | None) -> None:
         ("--set-json", "ftp.hosts=[1]"),
         ("--set-json", 'ftp.hosts=["a,b"]'),
         ("--set-json", 'ftp.hosts=[""]'),
+        ("--set-json", 'ftp.hosts=["ftp://ftp.example.org"]'),
+        ("--set-json", 'ftp.hosts=["user@ftp.example.org"]'),
+        ("--set-json", 'ftp.hosts=["ftp.example.org/"]'),
+        ("--set-json", 'ftp.hosts=[" ftp.example.org"]'),
+        ("--set-json", 'ftp.hosts=["ftp.example.org:"]'),
     ],
 )
 def test_ftp_hosts_invalid(args: tuple[str, ...]) -> None:
-    """`ftp.hosts` is a list of non-empty strings without commas.
+    """`ftp.hosts` entries are hosts, with a port or not, and nothing else.
 
     Args:
         args: The `helm template` arguments.
@@ -821,18 +826,31 @@ def test_ftp_hosts_invalid(args: tuple[str, ...]) -> None:
         render(*args)
 
 
-def test_notes_ftp_hosts(tmp_path: Path) -> None:
-    """The notes warn about FTP credentials without `ftp.hosts`."""
+@pytest.mark.parametrize(
+    ("args", "warned"),
+    [
+        ((), True),
+        (("--set", "ftp.hosts={ftp.example.org}"), False),
+        (("--set", "ftp.classicFtpSecret="), False),
+        (("--set", "ftp.netrcSecret=netrc"), False),
+    ],
+)
+def test_notes_ftp_hosts(tmp_path: Path, args: tuple[str, ...], warned: bool) -> None:
+    """The notes warn about FTP credentials without `ftp.hosts`.
+
+    Only if the credentials are used: with `ftp.classicFtpSecret` and
+    without `.netrc`.
+
+    Args:
+        tmp_path: A directory for a copy of the chart.
+        args: Further `helm template` arguments.
+        warned: Whether the notes warn.
+    """
     credentials = ("--set", "ftp.username=user", "--set", "ftp.password=s3cr3t")
-    text = notes(*credentials, tmp_path=tmp_path)
-    assert "ftp.hosts" in text
+    text = notes(*credentials, *args, tmp_path=tmp_path)
+    assert f"release tesk in namespace {NAMESPACE}" in text
+    assert ("ftp.hosts is empty" in text) is warned
     assert "s3cr3t" not in text
-    text = notes(
-        *credentials, "--set", "ftp.hosts={ftp.example.org}", tmp_path=tmp_path
-    )
-    assert "ftp.hosts" not in text
-    text = notes(*credentials, "--set", "ftp.classicFtpSecret=", tmp_path=tmp_path)
-    assert "ftp.hosts" not in text
 
 
 def test_ftp_secret() -> None:

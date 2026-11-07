@@ -10,5 +10,5 @@ tesk-api:
   ref: "d60f1903c49383b09f055de48d51f94f38838988"
 tesk-core:
   repository: elixir-cloud-aai/tesk-core
-  # docs: add MkDocs docs for TESK's site (#71)
-  ref: "06dc67fdf8721c7de6c16a5044bdc1420c93d834"
+  # feat: send FTP credentials only to listed hosts (#99)
+  ref: "5cd9200e878c58dbe48b7ec24cc3ff5ad8b47384"

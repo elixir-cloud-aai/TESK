@@ -134,11 +134,12 @@ with all of these keys: upgrade once with your values files (-f) instead.
 {{- end }}
 {{- $values := dict -}}
 {{- include "tesk.resolveValues" (dict "root" . "out" $values) -}}
-{{- if and (index $values "ftp.classicFtpSecret") .Values.ftp.username (not .Values.ftp.hosts) }}
+{{- if and (index $values "ftp.classicFtpSecret") (not (index $values "ftp.netrcSecret")) .Values.ftp.username (not .Values.ftp.hosts) }}
 
-WARNING: ftp.username is set, but ftp.hosts is empty: the filer sends the
-FTP credentials to no host, and logs in anonymously. Set ftp.hosts to the
-hosts of the FTP account, or use a .netrc file (ftp.netrcSecret); see
+WARNING: ftp.username is set, but ftp.hosts is empty. With taskmaster and
+filer images newer than v0.10.6, the filer sends the FTP credentials to no
+host, and logs in anonymously. Set ftp.hosts to the hosts of the FTP
+account, or use a .netrc file (ftp.netrcSecret); see
 https://tesk.readthedocs.io/en/latest/upgrading/#ftp-credentials-go-only-to-configured-hosts
 {{- end }}
 {{- end -}}
