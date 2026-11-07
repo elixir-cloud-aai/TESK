@@ -41,14 +41,23 @@ The workflow `CI` (`.github/workflows/ci.yml`) runs on every pull request to
   chart tests (`tests/test_chart.py`), which render the chart with
   `helm template` for the default values and the main options (ingress,
   OpenShift route, storage backends, FTP, authentication, service info) and
-  check the rendered objects, with the pinned Helm version. They also check
-  that the deprecated names of values still work (see
-  [Upgrading](upgrading.md#values-renamed-to-camelcase)): the default values
-  and the deprecated names, also with empty, null or string values, must
-  render the same objects as a copy of the chart before the renaming
-  (`tests/data/legacy-chart/`), apart from the standard labels, also with
-  the old defaults as with `helm upgrade --reuse-values`. Remove the copy
-  with the deprecated names. They fail here if Helm is missing (`REQUIRE_HELM`).
+  check the rendered objects, with the pinned Helm version. They fail here
+  if Helm is missing (`REQUIRE_HELM`).
+
+  The chart tests also check that the deprecated names of values still work
+  (see [Upgrading](upgrading.md#values-renamed-to-camelcase)):
+
+  - The default values and the deprecated names, also with empty, null or
+    string values, render the same objects as a copy of the chart before the
+    renaming (`tests/data/legacy-chart/`), apart from the standard labels.
+  - So do the old defaults, as `helm upgrade --reuse-values` uses them.
+  - Each deprecated name has the same effect as its new name, and takes
+    precedence over it.
+
+  When a release removes the deprecated names, remove these tests with them:
+  `tests/data/legacy-chart/` and its excludes in `.pre-commit-config.yaml`,
+  `LEGACY_*` in `tests/helm.py`, and the tests that use them, `RENAMED` and
+  `DEPRECATED` in `tests/test_chart.py`.
 - **Chart install:** installs the chart with its default values on a
   [kind](https://kind.sigs.k8s.io/) cluster and checks that
   `GET /ga4gh/tes/v1/service-info` answers.

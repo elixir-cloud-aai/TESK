@@ -39,8 +39,8 @@ from tests.helm import (
 )
 
 # The deprecated keys (as `--set` options with values other than the
-# defaults) and the same settings with their new keys; with `None`, the
-# deprecated option changes nothing on its own (e.g., a null default)
+# defaults; the last option sets the key) and the same settings with their
+# new keys
 RENAMED: list[tuple[tuple[str, ...], tuple[str, ...]]] = [
     (("--set", "host_name=a.example.org"), ("--set", "hostName=a.example.org")),
     (
@@ -667,6 +667,8 @@ def test_legacy_chart(args: tuple[str, ...]) -> None:
         (),
         ("--set", "host_name=tes.example.org"),
         ("--set", "tesk.limitsCpu="),
+        # Null removes the old default, so the new key (missing) is read
+        ("--set", "tesk.taskmaster_image_version=null"),
     ],
 )
 def test_reuse_values(args: tuple[str, ...], tmp_path: Path) -> None:
@@ -679,6 +681,22 @@ def test_reuse_values(args: tuple[str, ...], tmp_path: Path) -> None:
     assert _sorted(without_labels(render(*args, chart=chart))) == _sorted(
         render(*args, chart=LEGACY_CHART)
     )
+
+
+def test_reuse_values_null_resource(tmp_path: Path) -> None:
+    """With the earlier defaults, a null resource drops it, as before.
+
+    The earlier chart rendered `cpu: null`; the chart leaves it out, which
+    Kubernetes reads the same way.
+    """
+    chart = copy_chart(tmp_path, LEGACY_VALUES)
+    resources = container(render("--set", "tesk.limitsCpu=null", chart=chart))[
+        "resources"
+    ]
+    assert resources == {
+        "limits": {"memory": "2048Mi"},
+        "requests": {"cpu": 1, "memory": "2048Mi"},
+    }
 
 
 @pytest.mark.parametrize(
@@ -702,8 +720,53 @@ def test_reuse_values_image(
     """
     chart = copy_chart(tmp_path, LEGACY_VALUES)
     api = container(render(*args, chart=chart))
-    assert api["image"] == f"docker.io/elixircloud/{image}"
+    repository = VALUES["tesk"]["image"]["repository"].rsplit("/", 1)[0]
+    assert api["image"] == f"{repository}/{image}"
     assert api.get("imagePullPolicy") == pull_policy
+
+
+@pytest.mark.parametrize(
+    ("args", "expected"),
+    [
+        (("--set-json", "tesk.resources=null"), {}),
+        (
+            ("--set-json", "tesk.resources.limits=null"),
+            {"requests": {"cpu": 1, "memory": "2048Mi"}},
+        ),
+    ],
+)
+def test_resources_null(args: tuple[str, ...], expected: dict[str, Any]) -> None:
+    """Null resources (or limits) render without them."""
+    assert container(render(*args))["resources"] == expected
+
+
+@pytest.mark.parametrize(
+    ("args", "variable"),
+    [
+        (("--set-json", "tesk.taskmaster=null"), "TESK_API_TASKMASTER_IMAGE_NAME"),
+        (
+            ("--set-json", "tesk.filer.image=null"),
+            "TESK_API_TASKMASTER_FILER_IMAGE_NAME",
+        ),
+    ],
+)
+def test_images_null(args: tuple[str, ...], variable: str) -> None:
+    """A null taskmaster or filer image renders an empty image name."""
+    assert env(render(*args))[variable] is None
+
+
+def test_resources_old_keys_invalid() -> None:
+    """An old resource value that isn't valid YAML fails, as before."""
+    with pytest.raises(subprocess.CalledProcessError) as error:
+        render("--set", "tesk.limitsMemory=a: b")
+    assert "tesk.limitsMemory" in error.value.stderr
+
+
+def test_renamed_lists() -> None:
+    """`RENAMED` and `DEPRECATED` cover the same deprecated keys."""
+    keys = {old[-1].split("=")[0] for old, _ in RENAMED}
+    keys = {"tesk.image (a string)" if k == "tesk.image" else k for k in keys}
+    assert keys == set(DEPRECATED)
 
 
 @pytest.mark.parametrize(("old", "new"), RENAMED)

@@ -22,7 +22,9 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{/*
 Values keys renamed to follow Helm's conventions (camelCase, `image` and
 `resources` blocks): the map that holds the old key (empty: the top level),
-the old key and the new key's path. The templates read these values with
+the old key, the new key's path, and `yaml` for old values that the
+earlier templates printed into YAML, so that they are parsed as YAML (e.g.,
+an empty string drops a resource limit, as before). The templates read these values with
 `tesk.resolveValues`, so the old keys still work, and `tesk.deprecatedValues`
 lists those in use. `tesk.image` as a string (not in this list) is the old
 form of the `tesk.image` block.
@@ -36,10 +38,10 @@ form of the `tesk.image` block.
 - [tesk, taskmaster_filer_image_version, tesk.filer.image.tag]
 - [tesk, executor_retries, tesk.executorRetries]
 - [tesk, filer_retries, tesk.filerRetries]
-- [tesk, limitsCpu, tesk.resources.limits.cpu]
-- [tesk, limitsMemory, tesk.resources.limits.memory]
-- [tesk, requestsCpu, tesk.resources.requests.cpu]
-- [tesk, requestsMemory, tesk.resources.requests.memory]
+- [tesk, limitsCpu, tesk.resources.limits.cpu, yaml]
+- [tesk, limitsMemory, tesk.resources.limits.memory, yaml]
+- [tesk, requestsCpu, tesk.resources.requests.cpu, yaml]
+- [tesk, requestsMemory, tesk.resources.requests.memory, yaml]
 - [transfer, wes_base_path, transfer.wesBasePath]
 - [transfer, tes_base_path, transfer.tesBasePath]
 - [transfer, pvc_name, transfer.pvcName]
@@ -64,8 +66,8 @@ can only be set by users (they aren't in `values.yaml`), and
 the installed chart, which has the old keys only. Renders nothing; the
 templates call it as
 `{{- $values := dict -}}{{- include "tesk.resolveValues" (dict "root" . "out" $values) -}}`.
-Old values of resources are parsed as YAML, as the earlier templates
-printed them into YAML (e.g., an empty string drops a limit).
+Old values marked `yaml` are parsed as YAML; invalid YAML fails, as with
+the earlier templates.
 */}}
 {{- define "tesk.resolveValues" -}}
 {{- $root := .root.Values -}}
@@ -75,17 +77,18 @@ printed them into YAML (e.g., an empty string drops a limit).
 {{- $value := $root -}}
 {{- if and (kindIs "map" $parent) (hasKey $parent (index . 1)) -}}
 {{- $value = index $parent (index . 1) -}}
-{{- if hasPrefix "tesk.resources." (index . 2) -}}
+{{- if has "yaml" . -}}
 {{- $text := ternary "" (toString $value) (kindIs "invalid" $value) -}}
-{{- $value = (printf "value: %s" $text | fromYaml).value -}}
+{{- $parsed := printf "value: %s" $text | fromYaml -}}
+{{- if hasKey $parsed "Error" -}}
+{{- fail (printf "%s%s is not valid YAML: %s" (ternary "" (printf "%s." (index . 0)) (eq (index . 0) "")) (index . 1) $parsed.Error) -}}
+{{- end -}}
+{{- $value = $parsed.value -}}
 {{- end -}}
 {{- else -}}
+{{- /* Null if a map on the path is missing (or not a map) */ -}}
 {{- range splitList "." (index . 2) -}}
-{{- if kindIs "map" $value -}}
-{{- $value = index $value . -}}
-{{- else -}}
-{{- $value = nil -}}
-{{- end -}}
+{{- $value = index (ternary $value (dict) (kindIs "map" $value)) . -}}
 {{- end -}}
 {{- end -}}
 {{- $_ := set $out (index . 2) $value -}}
