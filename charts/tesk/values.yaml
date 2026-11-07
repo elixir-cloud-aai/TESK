@@ -67,8 +67,11 @@ tesk:
   # `enabled: false` leaves it out. By default, they request
   # `GET <ingress.path><tesApiBasePath>/service-info`; with `auth.mode: auth`
   # and `auth.serviceInfoPublic: false` (the endpoint needs a token), they
-  # check the port. An `httpGet`, `tcpSocket`, `exec` or `grpc` of your own
-  # replaces that.
+  # check the port. An `exec` or `grpc` of your own, or a `tcpSocket` where
+  # `httpGet` is the default (and the reverse), replaces that; fields of the
+  # default kind are merged with it. The defaults are in the template
+  # `tesk.probe` (`_helpers.tpl`), so that they also apply with
+  # `--reuse-values`.
   startupProbe: {}
   readinessProbe: {}
   livenessProbe: {}

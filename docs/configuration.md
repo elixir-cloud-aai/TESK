@@ -74,8 +74,14 @@ on the API's port (`/ga4gh/tes/v1/service-info` with the default values). The
 API answers it from a local file, so it doesn't need the Kubernetes API or a
 token. If you set `auth.mode: auth` and `auth.serviceInfoPublic: false`, the
 endpoint needs a token, so the probes check that the port accepts connections
-instead. An `httpGet`, `tcpSocket`, `exec` or `grpc` field of your own
-replaces the default request.
+instead. An `exec` or `grpc` field (or a `tcpSocket` where the default is
+`httpGet`, and the reverse) of your own replaces the default request; `httpGet`
+fields (or `tcpSocket` fields, where that is the default) are merged with it,
+e.g., `httpGet.httpHeaders` keeps the default path and port.
+
+The startup probe gives the API 5 minutes to start (5 s times 60 failures);
+the container is restarted after that. Raise `tesk.startupProbe.failureThreshold`
+on slow nodes.
 
 As the readiness probe fails until the API answers, `helm install --wait`
 (and `helm upgrade --wait`) returns only then, and the Ingress doesn't send

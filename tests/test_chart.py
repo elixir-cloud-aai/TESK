@@ -390,10 +390,60 @@ def test_probes_defaults() -> None:
         assert api[name]["httpGet"] == http_get
     # The slow start (about a minute) is covered by the startup probe, which
     # holds off the others
-    startup = api["startupProbe"]
-    assert startup["periodSeconds"] * startup["failureThreshold"] >= 300
-    assert api["readinessProbe"]["periodSeconds"] <= 10
-    assert api["livenessProbe"]["failureThreshold"] >= 3
+    timing = {"timeoutSeconds": 5}
+    assert {k: v for k, v in api["startupProbe"].items() if k != "httpGet"} == {
+        **timing,
+        "periodSeconds": 5,
+        "failureThreshold": 60,
+    }
+    assert {k: v for k, v in api["readinessProbe"].items() if k != "httpGet"} == {
+        **timing,
+        "periodSeconds": 10,
+        "failureThreshold": 3,
+    }
+    assert {k: v for k, v in api["livenessProbe"].items() if k != "httpGet"} == {
+        **timing,
+        "periodSeconds": 20,
+        "failureThreshold": 3,
+    }
+
+
+@pytest.mark.parametrize(
+    ("args", "expected"),
+    [
+        (("--set", "tesk.readinessProbe=null"), {"httpGet": {"path": SERVICE_INFO}}),
+        (
+            ("--set-string", "tesk.readinessProbe.enabled=false"),
+            None,
+        ),
+        (
+            ("--set", "tesk.readinessProbe.httpGet.port=9000"),
+            {"httpGet": {"path": SERVICE_INFO, "port": 9000}},
+        ),
+        (
+            (
+                "--set",
+                "auth.mode=auth",
+                "--set",
+                "auth.serviceInfoPublic=false",
+                "--set",
+                "tesk.readinessProbe.tcpSocket.host=h",
+            ),
+            {"tcpSocket": {"port": 8080, "host": "h"}},
+        ),
+    ],
+)
+def test_probes_edge_cases(
+    args: tuple[str, ...], expected: dict[str, Any] | None
+) -> None:
+    """Null probes, string flags and partial actions are handled."""
+    probe = container(render(*args)).get("readinessProbe")
+    if expected is None:
+        assert probe is None
+    else:
+        assert probe is not None
+        for key, value in expected.items():
+            assert value.items() <= probe[key].items()
 
 
 def test_probes_pod_unchanged() -> None:
