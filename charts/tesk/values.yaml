@@ -1,106 +1,135 @@
 # Default values for tesk.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
+#
+# The keys follow Helm's conventions (camelCase). The snake_case keys of
+# earlier versions of the chart (e.g., `host_name`) still work, and take
+# precedence over their new names, but are deprecated: the notes of
+# `helm install` and `helm upgrade` list those in use. See the upgrade notes
+# (docs/upgrading.md) for the old and new keys.
 
-# host_name: tes.tsi.ebi.ac.uk
-host_name: ""
-#
-#
-#
+# Host name (FQDN) of the API, for the Ingress or the OpenShift Route, e.g.,
+# tes.example.org
+hostName: ""
 
-# 'openstack' or 's3'
+# Storage backend that the chart sets up: `s3` creates the secret `aws-secret`
+# from the files in `s3-config/`, `openstack` a default storage class `gold`
+# for OpenStack Cinder; anything else (e.g., `none`) adds nothing
 storage: none
 
-# Configurable storage class.
+# Storage class of the tasks' PVCs; empty uses the cluster's default class
 storageClass:
 
 tesk:
-    # if empty - default base path; currently /ga4gh/tes/v1
-    #tes_api_base_path:
-    # For backwards compatibility with TES 0.3 - old base bath
-    tes_api_base_path: /ga4gh/tes/v1
-    image: docker.io/elixircloud/tesk-api:1.1.0
-    port: 8080
-    taskmaster_image_name:  docker.io/elixircloud/tesk-core-taskmaster
-    taskmaster_image_version: v0.10.6
-    taskmaster_filer_image_name: docker.io/elixircloud/tesk-core-filer
-    taskmaster_filer_image_version: v0.10.6
-    debug: false
-    executor_retries: 2
-    filer_retries: 2
+  # Image of the API (tesk-api)
+  image:
+    repository: docker.io/elixircloud/tesk-api
+    # Defaults to the chart's `appVersion`
+    tag: ""
+    # `Always`, `IfNotPresent` or `Never`; empty leaves Kubernetes' default
+    pullPolicy: ""
+  # Port of the API's container and Service
+  port: 8080
+  # Base path of the TES API; empty uses tesk-api's default (/ga4gh/tes/v1)
+  tesApiBasePath: /ga4gh/tes/v1
+  # Image of the taskmaster (tesk-core), which runs each task
+  taskmaster:
+    image:
+      repository: docker.io/elixircloud/tesk-core-taskmaster
+      tag: v0.10.6
+  # Image of the filer (tesk-core), which stages the inputs and outputs
+  filer:
+    image:
+      repository: docker.io/elixircloud/tesk-core-filer
+      tag: v0.10.6
+  # Debug logging in the taskmasters
+  debug: false
+  # Retries of an executor's job, and of a filer's job, on errors
+  executorRetries: 2
+  filerRetries: 2
 
-    limitsCpu: 1
-    limitsMemory: 2048Mi
-    requestsCpu: 1
-    requestsMemory: 2048Mi
+  # Resources of the API's container
+  resources:
+    limits:
+      cpu: 1
+      memory: 2048Mi
+    requests:
+      cpu: 1
+      memory: 2048Mi
 
-    securityContext:
-      enabled: true
+  securityContext:
+    enabled: true
 
-    # Swagger UI of the API (at `ingress.path`): turning it
-    # on serves the Swagger UI publicly; enable it only where needed.
-    # true or false only; null leaves tesk-api's default (off). Needs tesk-api
-    # 1.2.0 or later (`tesk.image`); earlier versions ignore this and always
-    # serve the Swagger UI
-    swaggerUi:
-      enabled: false
+  # Swagger UI of the API (at `ingress.path`): turning it on serves the
+  # Swagger UI publicly; enable it only where needed. true or false only;
+  # null leaves tesk-api's default (off). Needs tesk-api 1.2.0 or later
+  # (`tesk.image.tag`); earlier versions ignore this and always serve the
+  # Swagger UI
+  swaggerUi:
+    enabled: false
 
 transfer:
-    # If you want local file systems support (i.e. 'file:' urls in inputs and outputs),
-    # you have to define these 2 properties.
-    active: false
-
-    # wes_base_path: '/data'      # WesElixir via docker-compose
-    wes_base_path: '/tmp'         # WesElixir locally
-                                  # Change the value of $wesBasePath in minikubeStart accordingly
-    tes_base_path: '/transfer'
-    pvc_name: 'transfer-pvc'
+  # Support for local file systems (`file:` URLs in inputs and outputs) on a
+  # shared PVC
+  active: false
+  # Path where the workflow engine sees the shared volume, e.g., `/data` for
+  # WES-ELIXIR via docker-compose, `/tmp` for WES-ELIXIR run locally (change
+  # `$wesBasePath` in minikubeStart accordingly)
+  wesBasePath: /tmp
+  # Path where the filer mounts the shared PVC
+  tesBasePath: /transfer
+  # Name of the shared PVC (not created by the chart)
+  pvcName: transfer-pvc
 
 auth:
-    # the following variables are specific to each deployment
-    # mode: auth/noauth
-    mode: noauth
-    # EBI/CSC
-    env_subgroup: CSC
-    env_basegroup: ECP_CLN
-    # With mode auth: true lets GET /service-info answer without a token, false
-    # requires a valid token for it. Needs tesk-api 1.2.0 or later (tesk.image);
-    # earlier versions ignore this and keep the endpoint public. No effect with
-    # mode noauth, where all endpoints are open.
-    service_info_public: true
+  # `auth` requires OIDC access tokens; `noauth` leaves all endpoints open
+  mode: noauth
+  # Group model of LS Login (ELIXIR AAI): the base group and the subgroup of
+  # this deployment (e.g., EBI or CSC) that grant access
+  envSubgroup: CSC
+  envBasegroup: ECP_CLN
+  # With mode auth: true lets GET /service-info answer without a token, false
+  # requires a valid token for it. Needs tesk-api 1.2.0 or later
+  # (`tesk.image.tag`); earlier versions ignore this and keep the endpoint
+  # public. No effect with mode noauth, where all endpoints are open.
+  serviceInfoPublic: true
+  # The OIDC client of the Swagger UI (`clientId`, `clientSecret`): put them
+  # into a separate values file (secrets.yaml), not into this one
 
 service:
-    # the following variables are specific to each deployment
-    # use:
-    # - NodePort, if you want to expose API directly
-    # - LoadBalancer for cloud provider (gcloud) or empty otherwise
-    # type: NodePort
-    # node_port: 31567
-    type: ""
-    node_port: ""
+  # Type of the API's Service: `NodePort` to expose the API directly,
+  # `LoadBalancer` on clusters of cloud providers, or empty for `ClusterIP`
+  type: ""
+  # Node port with type `NodePort` (30000-32767), e.g., 31567
+  nodePort: ""
 
 ftp:
-    # If you need FTP configuration, choose one of the 2 methods of providing credentials
-    classic_ftp_secret: ftp-secret
-    netrc_secret:
-    #classic_ftp_secret:
-    #netrc_secret: netrc-secret
-    # If you install FTP locally, but outside of k8s and need a DNS entry for it (because your workflow manager might not like the IP address)
-    # one way of getting a DNS entry for your FTP service is to use a k8s "service without a selector"
-    # Put the IP under which your pods see see services running on your host (differs depending on the way you installes K8s)
-    # For virtualBox, it is 192.168.99.1 and your ftp service will be visible under ftp name
-    # You will be able to use it like this: ftp://ftp/file
-    hostip:
+  # If you need FTP, choose one of the 2 methods of providing credentials:
+  # the name of a secret created from `ftp.username` and `ftp.password` (put
+  # them into secrets.yaml), or the name of a secret created from the file
+  # `ftp/.netrc` (e.g., `netrc-secret`, with `classicFtpSecret` empty)
+  classicFtpSecret: ftp-secret
+  netrcSecret:
+  # If you run FTP locally, outside of Kubernetes, and need a DNS entry for it
+  # (because your workflow engine might not like the IP address), the chart
+  # can create a Service without a selector, named `ftp`: put the IP under
+  # which your pods see services running on your host (it depends on how you
+  # installed Kubernetes; for VirtualBox, it is 192.168.99.1). Tasks can then
+  # use it like this: ftp://ftp/file
+  hostip:
 
 ingress:
+  # Creates an Ingress for `hostName`; false creates an OpenShift Route
+  # instead, on OpenShift
   rules: true
   ingressClassName: ""
+  # Path of the Ingress, and the context path of the API
   path: /
-  # If no TLS secret name configured, TLS will be switched off
-  tls_secret_name:
-  # Annotations for Ingress Resource.
+  # Secret with the TLS certificate of `hostName`; empty switches TLS off
+  tlsSecretName:
+  # Annotations of the Ingress
   annotations:
-      kubernetes.io/tls-acme: "true"
-      # Choose one of the following depending on your setup
-      # cert-manager.io/issuer: letsencrypt-production
-      cert-manager.io/cluster-issuer: letsencrypt-production
+    kubernetes.io/tls-acme: "true"
+    # Choose one of the following depending on your setup
+    # cert-manager.io/issuer: letsencrypt-production
+    cert-manager.io/cluster-issuer: letsencrypt-production

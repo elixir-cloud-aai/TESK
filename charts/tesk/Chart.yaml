@@ -1,6 +1,28 @@
 apiVersion: v2
 name: tesk
-description: A TESK-EXILIR Helm chart for Kubernetes
+description: >-
+  TESK, the GA4GH Task Execution Service (TES) on Kubernetes by ELIXIR
+  On-Cloud: the API (tesk-api), which runs each task as Kubernetes jobs with
+  the taskmaster and filer of tesk-core
 type: application
+# The chart's version; a release-prep pull request sets it to the version of
+# the next release (see "Releases" in docs/development.md)
 version: 0.1.1
-appVersion: dev
+# The version of tesk-api that the chart deploys: the default tag of its
+# image (`tesk.image.tag`)
+appVersion: "1.1.0"
+home: https://tesk.readthedocs.io/
+icon: https://raw.githubusercontent.com/elixir-cloud-aai/TESK/dev/docs/images/TESKlogo.png
+sources:
+  - https://github.com/elixir-cloud-aai/TESK
+  - https://github.com/elixir-cloud-aai/tesk-api
+  - https://github.com/elixir-cloud-aai/tesk-core
+keywords:
+  - ga4gh
+  - tes
+  - task-execution
+  - kubernetes
+  - elixir
+maintainers:
+  - name: ELIXIR On-Cloud
+    url: https://github.com/elixir-cloud-aai

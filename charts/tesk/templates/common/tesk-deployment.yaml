@@ -1,7 +1,50 @@
+{{- /*
+The deprecated keys take precedence over the new ones (see
+`tesk.renamedValues` in `_helpers.tpl`); `dig` reads the new keys in nested
+maps, as these are missing with `helm upgrade --reuse-values` from an
+earlier chart.
+*/ -}}
+{{- $tesk := .Values.tesk -}}
+{{- $auth := .Values.auth -}}
+{{- $ftp := .Values.ftp -}}
+{{- $transfer := .Values.transfer -}}
+{{- /* `tesk.image` as a string is the old form, with the tag */ -}}
+{{- $image := $tesk.image -}}
+{{- $pullPolicy := "" -}}
+{{- if kindIs "map" $tesk.image -}}
+{{- $image = printf "%s:%s" $tesk.image.repository (toString ($tesk.image.tag | default .Chart.AppVersion)) -}}
+{{- $pullPolicy = $tesk.image.pullPolicy -}}
+{{- end -}}
+{{- $resources := deepCopy (dig "resources" dict $tesk) -}}
+{{- range $old, $path := dict "limitsCpu" (list "limits" "cpu") "limitsMemory" (list "limits" "memory") "requestsCpu" (list "requests" "cpu") "requestsMemory" (list "requests" "memory") -}}
+{{- if hasKey $tesk $old -}}
+{{- if not (kindIs "map" (index $resources (index $path 0))) -}}
+{{- $_ := set $resources (index $path 0) dict -}}
+{{- end -}}
+{{- $_ := set (index $resources (index $path 0)) (index $path 1) (index $tesk $old) -}}
+{{- end -}}
+{{- end -}}
+{{- $taskmasterName := ternary (index $tesk "taskmaster_image_name") (dig "taskmaster" "image" "repository" nil $tesk) (hasKey $tesk "taskmaster_image_name") -}}
+{{- $taskmasterVersion := ternary (index $tesk "taskmaster_image_version") (dig "taskmaster" "image" "tag" nil $tesk) (hasKey $tesk "taskmaster_image_version") -}}
+{{- $filerName := ternary (index $tesk "taskmaster_filer_image_name") (dig "filer" "image" "repository" nil $tesk) (hasKey $tesk "taskmaster_filer_image_name") -}}
+{{- $filerVersion := ternary (index $tesk "taskmaster_filer_image_version") (dig "filer" "image" "tag" nil $tesk) (hasKey $tesk "taskmaster_filer_image_version") -}}
+{{- $executorRetries := ternary (index $tesk "executor_retries") (index $tesk "executorRetries") (hasKey $tesk "executor_retries") -}}
+{{- $filerRetries := ternary (index $tesk "filer_retries") (index $tesk "filerRetries") (hasKey $tesk "filer_retries") -}}
+{{- $basePath := ternary (index $tesk "tes_api_base_path") (index $tesk "tesApiBasePath") (hasKey $tesk "tes_api_base_path") -}}
+{{- $classicFtpSecret := ternary (index $ftp "classic_ftp_secret") (index $ftp "classicFtpSecret") (hasKey $ftp "classic_ftp_secret") -}}
+{{- $netrcSecret := ternary (index $ftp "netrc_secret") (index $ftp "netrcSecret") (hasKey $ftp "netrc_secret") -}}
+{{- $envSubgroup := ternary (index $auth "env_subgroup") (index $auth "envSubgroup") (hasKey $auth "env_subgroup") -}}
+{{- $envBasegroup := ternary (index $auth "env_basegroup") (index $auth "envBasegroup") (hasKey $auth "env_basegroup") -}}
+{{- $serviceInfoPublic := ternary (index $auth "service_info_public") (index $auth "serviceInfoPublic") (hasKey $auth "service_info_public") -}}
+{{- $wesBasePath := ternary (index $transfer "wes_base_path") (index $transfer "wesBasePath") (hasKey $transfer "wes_base_path") -}}
+{{- $tesBasePath := ternary (index $transfer "tes_base_path") (index $transfer "tesBasePath") (hasKey $transfer "tes_base_path") -}}
+{{- $pvcName := ternary (index $transfer "pvc_name") (index $transfer "pvcName") (hasKey $transfer "pvc_name") -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: tesk-api
+  labels:
+    {{- include "tesk.labels" . | nindent 4 }}
 spec:
   selector:
     matchLabels:
@@ -11,60 +54,59 @@ spec:
     metadata:
       labels:
         app: tesk-api
+        {{- include "tesk.podLabels" . | nindent 8 }}
     spec:
       serviceAccountName: taskmaster
       containers:
       - name: tesk-api
-        image: {{ .Values.tesk.image }}
+        image: {{ $image }}
+        {{- with $pullPolicy }}
+        imagePullPolicy: {{ . }}
+        {{- end }}
         resources:
-          limits:
-            cpu: {{ .Values.tesk.limitsCpu }}
-            memory: {{ .Values.tesk.limitsMemory }}
-          requests:
-             cpu: {{ .Values.tesk.requestsCpu }}
-             memory: {{ .Values.tesk.requestsMemory }}
+          {{- toYaml $resources | nindent 10 }}
         env:
         - name: TESK_API_TASKMASTER_IMAGE_NAME
-          value: {{ .Values.tesk.taskmaster_image_name }}
+          value: {{ $taskmasterName }}
         - name: TESK_API_TASKMASTER_IMAGE_VERSION
-          value: {{ .Values.tesk.taskmaster_image_version }}
+          value: {{ $taskmasterVersion }}
         - name: TESK_API_TASKMASTER_FILER_IMAGE_NAME
-          value: {{ .Values.tesk.taskmaster_filer_image_name }}
+          value: {{ $filerName }}
         - name: TESK_API_TASKMASTER_FILER_IMAGE_VERSION
-          value: {{ .Values.tesk.taskmaster_filer_image_version }}
+          value: {{ $filerVersion }}
         - name: TESK_API_K8S_NAMESPACE
-          value: {{.Release.Namespace}}
+          value: {{ .Release.Namespace }}
         - name: TESK_API_TASKMASTER_SERVICE_ACCOUNT_NAME
           value: taskmaster
         - name: TESK_API_TASKMASTER_ENVIRONMENT_EXECUTOR_BACKOFF_LIMIT
-          value: {{ .Values.tesk.executor_retries | quote }}
+          value: {{ $executorRetries | quote }}
         - name: TESK_API_TASKMASTER_ENVIRONMENT_FILER_BACKOFF_LIMIT
-          value: {{ .Values.tesk.filer_retries | quote }}
+          value: {{ $filerRetries | quote }}
         - name: SERVER_SERVLET_CONTEXT_PATH
           value: {{ .Values.ingress.path }}
-        {{ if .Values.tesk.tes_api_base_path }}
+        {{- if $basePath }}
         - name: OPENAPI_TASKEXECUTIONSERVICE_BASE_PATH
-          value: {{ .Values.tesk.tes_api_base_path }}
-        {{ end }}
+          value: {{ $basePath }}
+        {{- end }}
         - name: TESK_API_SERVICE_INFO_LOCATION
           value: file:///etc/tesk/service-info/service-info.yaml
-        {{ if .Values.ftp.classic_ftp_secret }}
+        {{- if $classicFtpSecret }}
         - name: TESK_API_TASKMASTER_FTP_SECRET_NAME
-          value: {{ .Values.ftp.classic_ftp_secret }}
-        {{ end }}
-        {{ if .Values.ftp.netrc_secret }}
+          value: {{ $classicFtpSecret }}
+        {{- end }}
+        {{- if $netrcSecret }}
         - name: TESK_API_TASKMASTER_ENVIRONMENT_NETRC_SECRET_NAME
-          value: {{ .Values.ftp.netrc_secret }}
-        {{ end }}
+          value: {{ $netrcSecret }}
+        {{- end }}
         - name: TESK_API_AUTHORISATION_ENV_SUBGROUP
-          value: {{ .Values.auth.env_subgroup }}
+          value: {{ $envSubgroup }}
         - name: TESK_API_AUTHORISATION_BASE_GROUP
-          value: {{ .Values.auth.env_basegroup }}
+          value: {{ $envBasegroup }}
         - name: SPRING_PROFILES_ACTIVE
           value: {{ .Values.auth.mode }}
-        {{- if not (kindIs "invalid" .Values.auth.service_info_public) }}
+        {{- if not (kindIs "invalid" $serviceInfoPublic) }}
         - name: TESK_API_SERVICE_INFO_PUBLIC
-          value: {{ .Values.auth.service_info_public | quote }}
+          value: {{ $serviceInfoPublic | quote }}
         {{- end }}
         {{- /* Null leaves tesk-api's default (off). tesk-api stops at
         startup on anything but true or false (in any case), so fail here
@@ -82,24 +124,20 @@ spec:
         - name: TESK_API_SWAGGER_UI_ENABLED
           value: {{ $swaggerUiValue | quote }}
         {{- end }}
-
-        {{ if .Values.transfer.active }}
+        {{- if .Values.transfer.active }}
         - name: TESK_API_TASKMASTER_ENVIRONMENT_HOST_BASE_PATH
-          value: {{ .Values.transfer.wes_base_path }}
+          value: {{ $wesBasePath }}
         - name: TESK_API_TASKMASTER_ENVIRONMENT_CONTAINER_BASE_PATH
-          value: {{ .Values.transfer.tes_base_path }}
+          value: {{ $tesBasePath }}
         - name: TESK_API_TASKMASTER_ENVIRONMENT_TRANSFER_PVC_NAME
-          value: {{ .Values.transfer.pvc_name }}
-        {{ end }}
-
-        {{ if .Values.storageClass }}
+          value: {{ $pvcName }}
+        {{- end }}
+        {{- if .Values.storageClass }}
         - name: TESK_API_TASKMASTER_ENVIRONMENT_STORAGE_CLASS_NAME
           value: {{ .Values.storageClass }}
-        {{ end }}
-
+        {{- end }}
         - name: TESK_API_TASKMASTER_DEBUG
           value: "{{ .Values.tesk.debug }}"
-
         - name: TESK_API_SWAGGER-OAUTH_SCOPES
           value: openid:Standard openid,eduperson_entitlement:Access to groups membership,profile:Identity info about user,email:Email
         - name: TESK_API_SWAGGER_OAUTH_CLIENT_ID
@@ -122,15 +160,14 @@ spec:
             - ALL
         {{- end }}
         volumeMounts:
-          - name: service-info-config
-            mountPath: /etc/tesk/service-info
-
+        - name: service-info-config
+          mountPath: /etc/tesk/service-info
         ports:
         - containerPort: {{ .Values.tesk.port }}
       volumes:
-        - name: service-info-config
-          configMap:
-            name: service-info-config
+      - name: service-info-config
+        configMap:
+          name: service-info-config
       {{- if .Values.tesk.securityContext.enabled }}
       securityContext:
         runAsUser: 1000

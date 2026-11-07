@@ -1,10 +1,13 @@
-{{ if and (.Capabilities.APIVersions.Has "route.openshift.io/v1") (eq .Values.ingress.rules false) }}
+{{- if and (.Capabilities.APIVersions.Has "route.openshift.io/v1") (eq .Values.ingress.rules false) }}
+{{- $hostName := ternary (index .Values "host_name") .Values.hostName (hasKey .Values "host_name") }}
 apiVersion: route.openshift.io/v1
 kind: Route
 metadata:
   name: tesk-svc
+  labels:
+    {{- include "tesk.labels" . | nindent 4 }}
 spec:
-  host: {{ .Values.host_name }}
+  host: {{ $hostName }}
   tls:
     insecureEdgeTerminationPolicy: Redirect
     termination: edge
@@ -15,8 +18,8 @@ spec:
   wildcardPolicy: None
 status:
   ingress:
-    - conditions:
-      host: {{ .Values.host_name }}
-      routerName: router
-      wildcardPolicy: None
-{{ end }}
+  - conditions:
+    host: {{ $hostName }}
+    routerName: router
+    wildcardPolicy: None
+{{- end }}
