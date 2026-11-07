@@ -289,3 +289,43 @@ The resources of the executors come from each task (`resources.cpu_cores`,
 limits, so a task that uses more memory than it requested is killed (OOM),
 and its CPU is throttled. The disk space of a task (`resources.disk_gb`)
 sets the size of its PVC.
+
+## Executors as non-root users
+
+The executors run the tasks' commands with the user of their images, often
+root. To run them as another user, set their pods' security context:
+
+```yaml
+tesk:
+  executor:
+    securityContext:
+      runAsUser: 1000
+      runAsGroup: 1000
+      # Group of the files on the task's PVC, so that the executors can
+      # read and write those that the filer staged
+      fsGroup: 1000
+      # Refuse to start executors that would run as root
+      runAsNonRoot: true
+```
+
+The chart puts these fields into a ConfigMap (`<prefix>-executor`), which
+tesk-api reads at startup and applies to the pods of the executors it
+creates; changing them restarts the API's pod, and applies to tasks created
+afterwards. tesk-api reads only these four fields. The taskmasters and the
+filers still run as root.
+
+- **`fsGroup`:** the filer writes the inputs to the task's PVC as root.
+  With `fsGroup`, Kubernetes makes the volume's files group-owned by that
+  group and writable for it when it mounts the PVC into an executor, so
+  executors that run as other users can read and write them (see
+  [#113](https://github.com/elixir-cloud-aai/TESK/issues/113)). This works
+  for volume types whose ownership Kubernetes manages, e.g., most block
+  storage; not for NFS, hostPath, or CSI drivers that don't support it
+  (`fsGroupPolicy: None`). With those, set the permissions on the storage
+  side.
+- **Images:** an executor image that needs root (e.g., to install packages
+  at runtime) fails with `runAsUser`; with `runAsNonRoot: true` and no
+  `runAsUser`, images whose user is root don't start. Set these values
+  only if the tasks' images work as other users.
+- **Running as root by default:** a non-root default is tracked in
+  [#128](https://github.com/elixir-cloud-aai/TESK/issues/128).

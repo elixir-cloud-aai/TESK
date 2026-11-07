@@ -121,6 +121,40 @@
             }
           }
         },
+        "executor": {
+          "type": "object",
+          "properties": {
+            "securityContext": {
+              "type": [
+                "object",
+                "null"
+              ],
+              "description": "Security context of the executors' pods: the fields that tesk-api reads",
+              "additionalProperties": false,
+              "properties": {
+                "runAsUser": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "description": "User ID of the executors' containers"
+                },
+                "runAsGroup": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "description": "Primary group ID of the executors' containers"
+                },
+                "fsGroup": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "description": "Group that owns the pod's volumes (e.g., the task's PVC), for volume types whose ownership Kubernetes manages"
+                },
+                "runAsNonRoot": {
+                  "type": "boolean",
+                  "description": "Refuse to start executors that would run as root"
+                }
+              }
+            }
+          }
+        },
         "debug": {
           "$ref": "#/$defs/scalar",
           "description": "Debug logging in the taskmasters"

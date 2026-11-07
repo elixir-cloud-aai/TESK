@@ -43,6 +43,7 @@ image. It accepts unknown keys.
 | `tesk.taskmaster.image.tag` | `v0.10.6` | Tag of the taskmaster image (see [Upgrading](upgrading.md#taskmaster-and-filer-v0106)). |
 | `tesk.filer.image.repository` | `docker.io/elixircloud/tesk-core-filer` | Image of the filer (tesk-core), without its tag. |
 | `tesk.filer.image.tag` | `v0.10.6` | Tag of the filer image. |
+| `tesk.executor.securityContext` | `{}` | Security context of the executors' pods: `runAsUser`, `runAsGroup`, `fsGroup` (non-negative integers) and `runAsNonRoot` (`true` or `false`); other fields fail the schema check. Empty leaves the executors as their images say. See [Executors as non-root users](deployment.md#executors-as-non-root-users). |
 | `tesk.debug` | `false` | Debug logging in the taskmasters. |
 | `tesk.executorRetries` | `2` | Retries of an executor's job on errors (its `backoffLimit`). |
 | `tesk.filerRetries` | `2` | Retries of a filer's job on errors, while staging inputs or outputs. |
@@ -167,6 +168,7 @@ and a `nameOverride` with capital letters, fail the installation unless
 | Deployment and Service of the API | `<prefix>-api` | `tesk-api` | `prod-tesk-api` |
 | ServiceAccount, Role and RoleBinding of the API and the taskmasters | `<prefix>-taskmaster` | `tesk-taskmaster` | `prod-tesk-taskmaster` |
 | ConfigMap with the service info | `<prefix>-service-info` | `tesk-service-info` | `prod-tesk-service-info` |
+| ConfigMap with the executors' security context (`tesk.executor.securityContext`) | `<prefix>-executor` | `tesk-executor` | `prod-tesk-executor` |
 | Secret with the OIDC client (`auth.mode: auth`) | `<prefix>-oauth-client` | `tesk-oauth-client` | `prod-tesk-oauth-client` |
 | Secret with the FTP credentials | `ftp.classicFtpSecret`, or `<prefix>-ftp` if it is null (none if it is empty or `false`) | `tesk-ftp` | `prod-tesk-ftp` |
 | Ingress, or OpenShift Route | `<prefix>` | `tesk` | `prod-tesk` |

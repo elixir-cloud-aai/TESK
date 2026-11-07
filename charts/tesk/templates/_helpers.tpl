@@ -60,6 +60,31 @@ OAuth client. tesk-api gets the names that it passes on to the taskmasters
 {{- include "tesk.fullname" . }}-oauth-client
 {{- end -}}
 
+{{- define "tesk.executorConfigName" -}}
+{{- include "tesk.fullname" . }}-executor
+{{- end -}}
+
+{{/*
+The executors' security context (`tesk.executor.securityContext`) as
+tesk-api reads it (`KubernetesObjectsSupplier`): the fields `fsGroup`,
+`runAsGroup` and `runAsUser` as integers (Helm reads numbers in values
+files as floats, which YAML would render as, e.g., 1e+06), and
+`runAsNonRoot` as `nonRoot`; empty if none is set.
+*/}}
+{{- define "tesk.executorSecurityContext" -}}
+{{- $context := dig "executor" "securityContext" dict .Values.tesk | default dict -}}
+{{- $lines := list -}}
+{{- range $key := list "fsGroup" "runAsGroup" "runAsUser" -}}
+{{- if hasKey $context $key -}}
+{{- $lines = append $lines (printf "%s: %d" $key (index $context $key | int64)) -}}
+{{- end -}}
+{{- end -}}
+{{- if hasKey $context "runAsNonRoot" -}}
+{{- $lines = append $lines (printf "nonRoot: %t" (index $context "runAsNonRoot")) -}}
+{{- end -}}
+{{- join "\n" $lines -}}
+{{- end -}}
+
 {{/*
 Name of the secret with the FTP credentials: `ftp.classicFtpSecret`, or
 `<fullname>-ftp` if it is null (unset); empty (no secret) if it is empty or

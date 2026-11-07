@@ -322,6 +322,111 @@ def test_security_context() -> None:
     assert "securityContext" not in container(manifests)
 
 
+def test_executor_security_context_default() -> None:
+    """By default, executors run as before: no ConfigMap, no `CONFIGMAP`."""
+    manifests = render()
+    assert find(manifests, "ConfigMap", "tesk-executor") is None
+    assert "CONFIGMAP" not in env(manifests)
+    annotations = deployment(manifests)["spec"]["template"]["metadata"]
+    assert "annotations" not in annotations
+
+
+@pytest.mark.parametrize(
+    ("args", "expected"),
+    [
+        (
+            (
+                "--set",
+                "tesk.executor.securityContext.runAsUser=1000",
+                "--set",
+                "tesk.executor.securityContext.runAsGroup=3000",
+                "--set",
+                "tesk.executor.securityContext.fsGroup=2000",
+                "--set",
+                "tesk.executor.securityContext.runAsNonRoot=true",
+            ),
+            {"runAsUser": 1000, "runAsGroup": 3000, "fsGroup": 2000, "nonRoot": True},
+        ),
+        (
+            ("--set", "tesk.executor.securityContext.fsGroup=2000"),
+            {"fsGroup": 2000},
+        ),
+        (
+            ("--set", "tesk.executor.securityContext.runAsNonRoot=false"),
+            {"nonRoot": False},
+        ),
+        (
+            ("--set", "tesk.executor.securityContext.runAsUser=0"),
+            {"runAsUser": 0},
+        ),
+    ],
+)
+def test_executor_security_context(
+    args: tuple[str, ...], expected: dict[str, Any]
+) -> None:
+    """The executors' security context reaches tesk-api through a ConfigMap.
+
+    tesk-api reads the ConfigMap named in `CONFIGMAP` at startup (key
+    `securityContext`, with `nonRoot` for `runAsNonRoot`); a checksum
+    restarts the API's pod when it changes.
+
+    Args:
+        args: The `helm template` arguments.
+        expected: The fields that tesk-api reads.
+    """
+    manifests = render(*args, release="prod")
+    config = get(manifests, "ConfigMap", "prod-tesk-executor")
+    assert yaml.safe_load(config["data"]["securityContext"]) == expected
+    assert env(manifests)["CONFIGMAP"] == "prod-tesk-executor"
+    annotations = deployment(manifests)["spec"]["template"]["metadata"]["annotations"]
+    other = render("--set", "tesk.executor.securityContext.fsGroup=1", release="prod")
+    other_annotations = deployment(other)["spec"]["template"]["metadata"]["annotations"]
+    assert annotations["checksum/executor-config"]
+    assert annotations != other_annotations
+
+
+def test_executor_security_context_values_file(tmp_path: Path) -> None:
+    """Numbers in a values file (floats to Helm) are rendered as integers.
+
+    Args:
+        tmp_path: A directory for the values file.
+    """
+    values = tmp_path / "values.yaml"
+    values.write_text(
+        "tesk:\n  executor:\n    securityContext:\n"
+        "      runAsUser: 1000000\n      fsGroup: 2000\n"
+    )
+    config = get(render("-f", str(values)), "ConfigMap", "tesk-executor")
+    assert config["data"]["securityContext"].split() == [
+        "fsGroup:",
+        "2000",
+        "runAsUser:",
+        "1000000",
+    ]
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        '{"runAsUser": -1}',
+        '{"runAsUser": 1.5}',
+        '{"runAsUser": "1000"}',
+        '{"runAsNonRoot": "yes"}',
+        '{"privileged": true}',
+        "[]",
+    ],
+)
+def test_executor_security_context_invalid(value: str) -> None:
+    """The schema accepts only the fields that tesk-api reads, as numbers.
+
+    Args:
+        value: The security context, as JSON.
+    """
+    with pytest.raises(subprocess.CalledProcessError) as error:
+        render("--set-json", f"tesk.executor.securityContext={value}")
+    assert "values don't meet the specifications of the schema" in error.value.stderr
+
+
 PROBES = ("startupProbe", "readinessProbe", "livenessProbe")
 SERVICE_INFO = "/ga4gh/tes/v1/service-info"
 
@@ -1247,6 +1352,8 @@ ALL_OBJECTS = (
     "storage=openstack",
     "--set",
     "auth.mode=auth",
+    "--set",
+    "tesk.executor.securityContext.fsGroup=1",
 )
 
 
@@ -1301,6 +1408,7 @@ def test_names_from_release(tmp_path: Path) -> None:
         "--api-versions", "route.openshift.io/v1", "--set", "ingress.rules=false"
     )
     assert _names(manifests) == {
+        ("ConfigMap", "tesk-executor"),
         ("ConfigMap", "tesk-service-info"),
         ("Deployment", "tesk-api"),
         ("Endpoints", "ftp"),

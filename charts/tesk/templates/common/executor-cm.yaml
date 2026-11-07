@@ -1,0 +1,14 @@
+{{- /* The executors' security context, which tesk-api reads at startup
+from the ConfigMap named in its variable CONFIGMAP (key securityContext);
+none by default, so that executors run as their images say */ -}}
+{{- with include "tesk.executorSecurityContext" . }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "tesk.executorConfigName" $ }}
+  labels:
+    {{- include "tesk.labels" $ | nindent 4 }}
+data:
+  securityContext: |
+    {{- . | nindent 4 }}
+{{- end }}
