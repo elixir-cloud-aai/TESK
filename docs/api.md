@@ -3,7 +3,7 @@
 TESK implements the [GA4GH Task Execution Service (TES)
 API](https://github.com/ga4gh/task-execution-schemas). With the default
 values, it is served at `/ga4gh/tes/v1` below the host and path of the
-deployment (`ingress.path` + `tesk.tes_api_base_path`, see
+deployment (`ingress.path` + `tesk.tesApiBasePath`, see
 [Configuration](configuration.md)), e.g.,
 `https://tes.example.org/ga4gh/tes/v1`.
 
@@ -21,7 +21,7 @@ path of the deployment, only if `tesk.swaggerUi.enabled` is `true` (see
 With `auth.mode: auth`, requests need an OIDC access token (see
 [Authentication and
 authorisation](deployment.md#authentication-and-authorisation)), except
-`GET /service-info`, which stays public unless `auth.service_info_public` is
+`GET /service-info`, which stays public unless `auth.serviceInfoPublic` is
 `false` (see [Configuration](configuration.md)), the API description
 (`GET /v2/api-docs`), and the Swagger UI if it is on.
 

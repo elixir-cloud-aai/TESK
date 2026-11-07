@@ -9,6 +9,92 @@ helm upgrade tesk charts/tesk --namespace tesk -f my-values.yaml -f secrets.yaml
 
 ## Unreleased
 
+### Values renamed to camelCase
+
+The values of the chart follow Helm's conventions now: camelCase names,
+`image` blocks (`repository`, `tag`, `pullPolicy`) and a `resources` block.
+**Your values files keep working unchanged:** the old names still work, and
+render the same objects as before. They are deprecated, though, and will be
+removed in a later release; the notes that `helm upgrade` prints list those
+that your values use. Rename them in your values files at your convenience:
+
+| Old name (deprecated) | New name |
+| --- | --- |
+| `host_name` | `hostName` |
+| `tesk.image` (a string with the tag) | `tesk.image.repository` and `tesk.image.tag` (default: the chart's `appVersion`) |
+| `tesk.tes_api_base_path` | `tesk.tesApiBasePath` |
+| `tesk.taskmaster_image_name` | `tesk.taskmaster.image.repository` |
+| `tesk.taskmaster_image_version` | `tesk.taskmaster.image.tag` |
+| `tesk.taskmaster_filer_image_name` | `tesk.filer.image.repository` |
+| `tesk.taskmaster_filer_image_version` | `tesk.filer.image.tag` |
+| `tesk.executor_retries` | `tesk.executorRetries` |
+| `tesk.filer_retries` | `tesk.filerRetries` |
+| `tesk.limitsCpu` | `tesk.resources.limits.cpu` |
+| `tesk.limitsMemory` | `tesk.resources.limits.memory` |
+| `tesk.requestsCpu` | `tesk.resources.requests.cpu` |
+| `tesk.requestsMemory` | `tesk.resources.requests.memory` |
+| `transfer.wes_base_path` | `transfer.wesBasePath` |
+| `transfer.tes_base_path` | `transfer.tesBasePath` |
+| `transfer.pvc_name` | `transfer.pvcName` |
+| `auth.env_subgroup` | `auth.envSubgroup` |
+| `auth.env_basegroup` | `auth.envBasegroup` |
+| `auth.service_info_public` | `auth.serviceInfoPublic` |
+| `auth.client_id` | `auth.clientId` |
+| `auth.client_secret` | `auth.clientSecret` |
+| `service.node_port` | `service.nodePort` |
+| `ftp.classic_ftp_secret` | `ftp.classicFtpSecret` |
+| `ftp.netrc_secret` | `ftp.netrcSecret` |
+| `ingress.tls_secret_name` | `ingress.tlsSecretName` |
+
+For example, these values
+
+```yaml
+host_name: tes.example.org
+tesk:
+  image: docker.io/elixircloud/tesk-api:1.2.0
+  limitsMemory: 4Gi
+ingress:
+  tls_secret_name: tesk-tls
+```
+
+become
+
+```yaml
+hostName: tes.example.org
+tesk:
+  image:
+    tag: 1.2.0
+  resources:
+    limits:
+      memory: 4Gi
+ingress:
+  tlsSecretName: tesk-tls
+```
+
+Things to know:
+
+- **An old name takes precedence** over its new name if a values file sets
+  both. Remove the old names when you add the new ones.
+- **`--reuse-values`:** `helm upgrade --reuse-values` keeps the values of
+  the installed release, including the defaults of the earlier chart with
+  the old names, which then take precedence over new names set with
+  `--set`. Upgrade with your values files (`-f`) instead, without
+  `--reuse-values`, once you have renamed the values.
+- **Labels:** all objects get the standard labels of Helm charts
+  (`app.kubernetes.io/name`, `app.kubernetes.io/instance`,
+  `app.kubernetes.io/version`, `app.kubernetes.io/managed-by`,
+  `helm.sh/chart`); the API's pods get the first two. The selectors are
+  unchanged (`app: tesk-api`), so `helm upgrade` works as before; the new
+  pod labels restart the API's pod once.
+- **Schema:** the chart checks the types of the values
+  (`values.schema.json`): e.g., a map where a string is expected fails the
+  installation. It accepts strings for all scalars, unknown keys and the old
+  names.
+- The resource names don't change. Names derived from the release name, so
+  that several releases can share a namespace, will follow in a release of
+  their own
+  ([#248](https://github.com/elixir-cloud-aai/TESK/issues/248)).
+
 ### Releases and chart versions
 
 Charts are now released from signed `vX.Y.Z` tags as files attached to
@@ -28,7 +114,7 @@ The default taskmaster and filer are now v0.10.6 (were v0.10.2):
 
 - Taskmaster v0.10.2 ends tasks in `SYSTEM_ERROR` on Kubernetes 1.31 or
   later, as it reads only the first condition of a job. If your values set
-  `tesk.taskmaster_image_version`, set it to v0.10.6 or later.
+  `tesk.taskmaster.image.tag`, set it to v0.10.6 or later.
 - **Resource limits:** v0.10.6 sets the resources that a task requests
   (`resources.cpu_cores`, `resources.ram_gb`) as the limits of its executors
   too. A task that uses more memory than it requested is now killed (OOM),
@@ -37,7 +123,7 @@ The default taskmaster and filer are now v0.10.6 (were v0.10.2):
 
 ### Public service info
 
-The new value `auth.service_info_public` (default `true`) controls whether
+The new value `auth.serviceInfoPublic` (default `true`) controls whether
 `GET /service-info` needs a token with `auth.mode: auth`. It needs tesk-api
 1.2.0 or later; earlier versions ignore it and keep the endpoint public.
 The default keeps the endpoint public; set it to `false` to require a
@@ -48,7 +134,7 @@ token.
 The new value `tesk.swaggerUi.enabled` (default `false`) controls whether
 tesk-api serves the Swagger UI (see [Swagger UI](deployment.md#swagger-ui)).
 Upgrading the chart alone changes nothing: tesk-api before 1.2.0 (the
-chart's default `tesk.image` is still 1.1.0) ignores the value and always
+chart's default `tesk.image.tag` is still 1.1.0) ignores the value and always
 serves the Swagger UI. tesk-api 1.2.0 or later serves it only if the value
 is `true`. If you use the Swagger UI, set `tesk.swaggerUi.enabled: true`
 when you upgrade to tesk-api 1.2.0 or later. Turning it on serves the

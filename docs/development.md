@@ -41,8 +41,13 @@ The workflow `CI` (`.github/workflows/ci.yml`) runs on every pull request to
   chart tests (`tests/test_chart.py`), which render the chart with
   `helm template` for the default values and the main options (ingress,
   OpenShift route, storage backends, FTP, authentication, service info) and
-  check the rendered objects, with the pinned Helm version. They fail here if
-  Helm is missing (`REQUIRE_HELM`).
+  check the rendered objects, with the pinned Helm version. They also check
+  that the deprecated names of values still work (see
+  [Upgrading](upgrading.md#values-renamed-to-camelcase)): the default values
+  and the old defaults (`tests/data/legacy-values.yaml`) must render the
+  objects of the chart before the renaming (`tests/data/legacy-manifests.yaml`),
+  apart from the standard labels. Remove these files with the deprecated
+  names. They fail here if Helm is missing (`REQUIRE_HELM`).
 - **Chart install:** installs the chart with its default values on a
   [kind](https://kind.sigs.k8s.io/) cluster and checks that
   `GET /ga4gh/tes/v1/service-info` answers.
