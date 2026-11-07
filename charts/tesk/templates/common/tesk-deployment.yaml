@@ -146,6 +146,8 @@ spec:
               name: oauth-client-secret
               key: id
               optional: true
+        {{- /* Deprecated (auth.clientSecret): only tesk-api images before
+        1.2.0 read it */}}
         - name: TESK_API_SWAGGER_OAUTH_CLIENT_SECRET
           valueFrom:
             secretKeyRef:

@@ -106,7 +106,7 @@ requests to a pod that isn't ready.
 | `auth.envSubgroup` | `CSC` | Subgroup of the base group for this deployment. |
 | `auth.serviceInfoPublic` | `true` | With `auth.mode: auth`: `true` lets `GET /service-info` answer without a token, `false` requires a valid token for it. Needs tesk-api 1.2.0 or later; earlier versions ignore it and keep the endpoint public. No effect with `noauth`. |
 | `auth.clientId` | none | ID of the OIDC client of the Swagger UI (with `auth.mode: auth`; put it into `secrets.yaml`). |
-| `auth.clientSecret` | none | Secret of that client (put it into `secrets.yaml`). |
+| `auth.clientSecret` | none | Deprecated: the Swagger UI is a public client, which needs no secret, and tesk-api 1.2.0 and later ignore it; register its client as a public client and leave this unset (see [Upgrading](upgrading.md#swagger-ui-client-secret-deprecated)). |
 
 ### Service (`service`)
 
@@ -163,7 +163,7 @@ fields.
 
 | File | For |
 | --- | --- |
-| `secrets.yaml` (passed with `-f`) | `ftp.username`, `ftp.password`, `auth.clientId`, `auth.clientSecret`. |
+| `secrets.yaml` (passed with `-f`) | `ftp.username`, `ftp.password`, `auth.clientId`. |
 | `charts/tesk/ftp/.netrc` | FTP credentials as a `.netrc` file, with `ftp.netrcSecret`. |
 | `charts/tesk/s3-config/config`, `credentials` | S3 configuration and credentials, with `storage: s3`. |
 | `charts/tesk/tls_secret_name.yml-TEMPLATE` | Template of a TLS secret, if you create it yourself. |
