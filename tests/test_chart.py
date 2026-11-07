@@ -10,6 +10,7 @@ pinned Helm version only.
 from __future__ import annotations
 
 import base64
+import copy
 import json
 import os
 from pathlib import Path
@@ -595,6 +596,24 @@ def test_auth() -> None:
 
 
 @pytest.mark.parametrize(
+    "args", [(), ("--set", "auth.clientSecret="), ("--set", "auth.clientSecret=null")]
+)
+def test_auth_without_client_secret(args: tuple[str, ...]) -> None:
+    """Without `auth.clientSecret` (deprecated), the secret's `secret` is empty.
+
+    Empty, not left out, so that an upgrade also clears a value set before.
+
+    Args:
+        args: More `helm template` arguments.
+    """
+    manifests = render(
+        "--set", "auth.mode=auth", "--set", "auth.clientId=client", *args
+    )
+    secret = get(manifests, "Secret", "oauth-client-secret")
+    assert secret["stringData"] == {"id": "client", "secret": ""}
+
+
+@pytest.mark.parametrize(
     ("args", "expected"),
     [
         ((), "true"),
@@ -870,6 +889,34 @@ def test_notes_ftp_hosts(tmp_path: Path, args: tuple[str, ...], warned: bool) ->
 
 
 @pytest.mark.parametrize(
+    ("args", "warned"),
+    [
+        ((), False),
+        (("--set", "auth.clientSecret="), False),
+        (("--set", "auth.clientSecret=s3cr3t"), True),
+        (("--set", "auth.clientSecret=0"), True),
+        (("--set", "auth.client_secret=s3cr3t"), True),
+        (("--set", "auth.mode=auth", "--set", "auth.clientSecret=s3cr3t"), True),
+    ],
+)
+def test_notes_client_secret(
+    tmp_path: Path, args: tuple[str, ...], warned: bool
+) -> None:
+    """The notes warn that `auth.clientSecret` is deprecated, if it is set.
+
+    Also with the old key, and with any value, also one that YAML reads as 0.
+
+    Args:
+        tmp_path: A directory for a copy of the chart.
+        args: The `helm template` arguments.
+        warned: Whether the notes warn.
+    """
+    text = notes(*args, tmp_path=tmp_path)
+    assert ("auth.clientSecret is deprecated" in text) is warned
+    assert "s3cr3t" not in text
+
+
+@pytest.mark.parametrize(
     ("args", "keys"),
     [
         ((), ["tesk.taskmaster.image.tag", "tesk.filer.image.tag"]),
@@ -1021,7 +1068,11 @@ def test_secret_numbers_values_file(
 
 
 def test_secret_unset() -> None:
-    """Unset credentials render as before (null), not as empty strings."""
+    """Unset credentials render as before: null, the client secret empty.
+
+    The FTP credentials and the client ID stay null, not empty strings; the
+    deprecated client secret is empty, so that an upgrade clears it.
+    """
     manifests = render("--set", "auth.mode=auth")
     assert get(manifests, "Secret", "ftp-secret")["stringData"] == {
         "username": None,
@@ -1029,7 +1080,7 @@ def test_secret_unset() -> None:
     }
     assert get(manifests, "Secret", "oauth-client-secret")["stringData"] == {
         "id": None,
-        "secret": None,
+        "secret": "",
     }
 
 
@@ -1122,11 +1173,37 @@ LEGACY_CASES: list[tuple[str, ...]] = [
 ]
 
 
+def _with_empty_client_secret(manifests: list[Manifest]) -> list[Manifest]:
+    """Read the null `secret` of the earlier chart's OAuth secret as empty.
+
+    The chart renders the deprecated `auth.clientSecret` as empty if it is
+    unset; the earlier chart rendered null, which Kubernetes stores as empty.
+
+    Args:
+        manifests: The rendered objects (not changed).
+
+    Returns:
+        Copies of the objects.
+    """
+    manifests = copy.deepcopy(manifests)
+    for manifest in manifests:
+        if manifest["kind"] == "Secret" and manifest["metadata"]["name"] == (
+            "oauth-client-secret"
+        ):
+            data = manifest["stringData"]
+            if data.get("secret", "") is None:
+                data["secret"] = ""
+    return manifests
+
+
 @pytest.mark.parametrize("args", LEGACY_CASES)
 def test_legacy_chart(args: tuple[str, ...]) -> None:
-    """Values of the earlier chart render its objects, apart from labels."""
+    """Values of the earlier chart render its objects.
+
+    Apart from labels and an unset `auth.clientSecret` (empty, not null).
+    """
     assert _sorted(without_probes(without_labels(render(*args)))) == _sorted(
-        render(*args, chart=LEGACY_CHART)
+        _with_empty_client_secret(render(*args, chart=LEGACY_CHART))
     )
 
 

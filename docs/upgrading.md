@@ -9,6 +9,27 @@ helm upgrade tesk charts/tesk --namespace tesk -f my-values.yaml -f secrets.yaml
 
 ## Unreleased
 
+### Swagger UI client secret deprecated
+
+**Act on this if you set `auth.clientSecret`.** The Swagger UI is a public
+client: its default implicit grant needs no secret, and tesk-api 1.2.0 and
+later ignore `auth.clientSecret`. The chart still passes the value on to
+older tesk-api images, and its notes warn when it is set; a future release
+may remove it. When you upgrade:
+
+- Remove `auth.clientSecret` (or `auth.client_secret`) from your values
+  (e.g., `secrets.yaml`), and upgrade with your values files, not with
+  `--reuse-values`, which keeps the value of the earlier release (or add
+  `--set auth.clientSecret=null`). The chart then sets the secret's
+  `secret` key to empty, which also clears the value stored before. Running pods keep the
+  old value until they restart: if the upgrade doesn't change the API's
+  pod (e.g., its image), restart it with
+  `kubectl rollout restart deployment/tesk-api --namespace tesk`.
+- Register the Swagger UI's client with your identity provider as a public
+  client (implicit grant, or authorisation code if your provider allows it
+  for public clients).
+- Rotate the secret at your identity provider.
+
 ### FTP credentials go only to configured hosts
 
 **Act on this if your tasks use FTP with `ftp.username` and
@@ -75,7 +96,7 @@ that your values use. Rename them in your values files at your convenience:
 | `auth.env_basegroup` | `auth.envBasegroup` |
 | `auth.service_info_public` | `auth.serviceInfoPublic` |
 | `auth.client_id` | `auth.clientId` |
-| `auth.client_secret` | `auth.clientSecret` |
+| `auth.client_secret` | `auth.clientSecret` (deprecated itself: remove it, see [Swagger UI client secret deprecated](#swagger-ui-client-secret-deprecated)) |
 | `service.node_port` | `service.nodePort` |
 | `ftp.classic_ftp_secret` | `ftp.classicFtpSecret` |
 | `ftp.netrc_secret` | `ftp.netrcSecret` |
