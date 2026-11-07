@@ -316,8 +316,9 @@ filers aren't affected: their images run them as UID 100. The API's own
 pod has a separate security context (`tesk.securityContext`).
 
 - **`fsGroup`:** the filer writes the inputs to the task's PVC as UID
-  100, readable but not writable for others. With `fsGroup`, Kubernetes makes the volume's files group-owned by that
-  group and writable for it when it mounts the PVC into an executor, so
+  100, readable but not writable for others. With `fsGroup`, Kubernetes
+  makes the volume's files group-owned by that group and writable for it
+  when it mounts the PVC into an executor, so
   executors that run as other users can read and write them (see
   [#113](https://github.com/elixir-cloud-aai/TESK/issues/113)). This works
   for volume types whose ownership Kubernetes manages, e.g., most block
@@ -327,7 +328,7 @@ pod has a separate security context (`tesk.securityContext`).
 - **Images:** an executor image that needs root (e.g., to install packages
   at runtime) fails with `runAsUser`; with `runAsNonRoot: true` and no
   `runAsUser`, images whose user is root, or a name rather than a numeric
-  ID, don't start. Set `runAsUser` together with `runAsNonRoot`, and set
-  these values only if the tasks' images work as other users.
+  ID, don't start; setting `runAsUser` as well avoids that. Set these
+  values only if the tasks' images work as other users.
 - **Running as root by default:** a non-root default is tracked in
   [#128](https://github.com/elixir-cloud-aai/TESK/issues/128).

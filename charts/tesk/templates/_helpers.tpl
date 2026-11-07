@@ -41,8 +41,9 @@ lowercase letters, digits and dashes), e.g. for the release names `123` or
 Names of the chart's objects, derived from `tesk.fullname`: the API's
 Deployment and Service, the taskmasters' ServiceAccount, Role and
 RoleBinding, the ConfigMaps with the service info and the executors'
-security context, and the secret with the OAuth client. tesk-api gets the names that it passes on to the taskmasters
-(service account, FTP secret) from its environment.
+security context, and the secret with the OAuth client. tesk-api gets
+the names that it passes on to the taskmasters (service account, FTP
+secret) from its environment.
 */}}
 {{- define "tesk.apiName" -}}
 {{- include "tesk.fullname" . }}-api
