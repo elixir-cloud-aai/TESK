@@ -290,6 +290,67 @@ limits, so a task that uses more memory than it requested is killed (OOM),
 and its CPU is throttled. The disk space of a task (`resources.disk_gb`)
 sets the size of its PVC.
 
+## Deleting finished tasks
+
+By default, finished tasks stay: their jobs and pods remain in the
+namespace until you delete them. With `tesk.taskTtlSeconds`,
+Kubernetes deletes a task's jobs and pods that many seconds after the task
+finished (completed, failed or cancelled):
+
+```yaml
+tesk:
+  taskTtlSeconds: 86400  # a day
+```
+
+TESK keeps no database: a task whose jobs are deleted is gone from the API
+(`ListTasks` doesn't list it, `GetTask` doesn't find it). Leave the clients
+of the API (e.g., workflow engines) enough time to read the final state and
+logs of their tasks: hours or days rather than seconds or minutes, e.g.,
+`86400` (a day) or `604800` (a week). With `0`, a task disappears as soon as
+it finishes. While Kubernetes deletes a task's jobs, the API can briefly
+report a task that completed as `SYSTEM_ERROR`; a long TTL makes it
+unlikely that clients still read it then.
+
+Some objects of a task stay: the ConfigMap with the task's JSON (until
+tesk-api deletes it with the task,
+[tesk-api#117](https://github.com/elixir-cloud-aai/tesk-api/issues/117)),
+and PVCs that `tesk.keepFailedPvcs` keeps. The value needs taskmaster
+images newer than v0.10.6; older ones ignore it. See [Deleting finished
+tasks](https://github.com/elixir-cloud-aai/tesk-core/blob/dev/docs/taskmaster.md#deleting-finished-tasks) in the docs of the taskmaster.
+
+## Tasks that can't be scheduled
+
+By default, a pod that the scheduler can't place, e.g., one that requests
+more CPU or memory than any node has, waits forever, and its task stays
+`QUEUED`. With `tesk.maxQueueSeconds`, the task ends once such a pod has
+waited that many seconds:
+
+```yaml
+tesk:
+  maxQueueSeconds: 3600  # an hour
+```
+
+- An executor that never ran is deleted, and the task ends as
+  `SYSTEM_ERROR`. An executor whose earlier attempt ran (a retry,
+  `tesk.executorRetries`) ends as `EXECUTOR_ERROR`, a filer as
+  `SYSTEM_ERROR`. The taskmaster's log names the job and the scheduler's
+  message.
+- **Only with tesk-api newer than 1.1** (`tesk.image.tag`), which derives
+  the task's state from all of its jobs
+  ([tesk-api#104](https://github.com/elixir-cloud-aai/tesk-api/issues/104)):
+  tesk-api 1.1 and older report such a task as `COMPLETE`. The chart's notes
+  warn about this.
+- The taskmaster checks the pods about once a minute, so a task can end up
+  to about a minute later than the max queue time.
+- Not covered: the taskmaster's own pod, and pods that a `ResourceQuota`
+  keeps from being created (they never exist, so they are never
+  unschedulable).
+- Pick a time longer than nodes need to scale up, if the cluster has an
+  autoscaler. The value needs taskmaster images newer than v0.10.6; older
+  ones ignore it.
+
+See [What it does](https://github.com/elixir-cloud-aai/tesk-core/blob/dev/docs/taskmaster.md#what-it-does) in the docs of the taskmaster.
+
 ## Executors as non-root users
 
 The executors run the tasks' commands with the user of their images, often
