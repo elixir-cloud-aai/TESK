@@ -12,6 +12,8 @@ repos:
         # Helm templates are not valid YAML before rendering; `mkdocs.yml`
         # uses MkDocs' `!ENV` tag (the docs build checks it)
         exclude: ^(charts/tesk/templates/|mkdocs\.yml$)
+        # Rendered manifests of the chart tests (`tests/data/`)
+        args: [--allow-multiple-documents]
       # The copy of tesk-core in `source/` is left as it is (not maintained here)
       - id: end-of-file-fixer
         exclude: ^source/tesk-core/

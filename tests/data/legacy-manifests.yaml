@@ -1,0 +1,246 @@
+# `helm template tesk charts/tesk --namespace tesk` of the chart before the
+# keys were renamed to camelCase (#247; commit 27a6945), with its default
+# values. The chart tests check that the chart still renders these objects,
+# apart from the added standard labels.
+---
+# Source: tesk/templates/common/taskmaster-rbac.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: taskmaster
+---
+# Source: tesk/templates/ftp/ftp-secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ftp-secret
+type: Opaque
+stringData:
+  username:
+  password:
+---
+# Source: tesk/templates/common/service-info-cm.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: service-info-config
+data:
+  service-info.yaml: |
+    id: 'uk.ac.ebi.tsc.tesk'
+    name: TESK
+    type:
+      group: org.ga4gh
+      artifact: TES
+      version: 1.0
+    description:  GA4GH TES Server implementation for Kubernetes
+    organization:
+      name: EMBL-EBI
+      url: https://www.ebi.ac.uk/
+    contactUrl: https://github.com/EMBL-EBI-TSI/TESK/issues
+    documentationUrl: https://github.com/EMBL-EBI-TSI/TESK
+    createdAt: 2021-04-06
+    environment: dev
+    version: 1.0
+    storage:
+    - ftp://ftp-private.ebi.ac.uk
+---
+# Source: tesk/templates/common/taskmaster-rbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: taskmaster
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - list
+  - patch
+- apiGroups:
+  - ""
+  resources:
+  - persistentvolumeclaims
+  - configmaps
+  verbs:
+  - create
+  - delete
+  - get
+- apiGroups:
+  - ""
+  resources:
+  - pods/log
+  - pods/status
+  verbs:
+  - get
+  - list
+- apiGroups:
+  - batch
+  resources:
+  - jobs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+---
+# Source: tesk/templates/common/taskmaster-rbac.yaml
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: taskmaster-role-binding
+subjects:
+- kind: ServiceAccount
+  name: taskmaster
+roleRef:
+  kind: Role
+  name: taskmaster
+  apiGroup: rbac.authorization.k8s.io
+---
+# Source: tesk/templates/common/tesk-svc.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: tesk-api
+  labels:
+    app: tesk-api
+spec:
+  ports:
+  - port: 8080
+
+  selector:
+    app: tesk-api
+  type: 'ClusterIP'
+---
+# Source: tesk/templates/common/tesk-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tesk-api
+spec:
+  selector:
+    matchLabels:
+      app: tesk-api
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: tesk-api
+    spec:
+      serviceAccountName: taskmaster
+      containers:
+      - name: tesk-api
+        image: docker.io/elixircloud/tesk-api:1.1.0
+        resources:
+          limits:
+            cpu: 1
+            memory: 2048Mi
+          requests:
+             cpu: 1
+             memory: 2048Mi
+        env:
+        - name: TESK_API_TASKMASTER_IMAGE_NAME
+          value: docker.io/elixircloud/tesk-core-taskmaster
+        - name: TESK_API_TASKMASTER_IMAGE_VERSION
+          value: v0.10.6
+        - name: TESK_API_TASKMASTER_FILER_IMAGE_NAME
+          value: docker.io/elixircloud/tesk-core-filer
+        - name: TESK_API_TASKMASTER_FILER_IMAGE_VERSION
+          value: v0.10.6
+        - name: TESK_API_K8S_NAMESPACE
+          value: tesk
+        - name: TESK_API_TASKMASTER_SERVICE_ACCOUNT_NAME
+          value: taskmaster
+        - name: TESK_API_TASKMASTER_ENVIRONMENT_EXECUTOR_BACKOFF_LIMIT
+          value: "2"
+        - name: TESK_API_TASKMASTER_ENVIRONMENT_FILER_BACKOFF_LIMIT
+          value: "2"
+        - name: SERVER_SERVLET_CONTEXT_PATH
+          value: /
+
+        - name: OPENAPI_TASKEXECUTIONSERVICE_BASE_PATH
+          value: /ga4gh/tes/v1
+
+        - name: TESK_API_SERVICE_INFO_LOCATION
+          value: file:///etc/tesk/service-info/service-info.yaml
+
+        - name: TESK_API_TASKMASTER_FTP_SECRET_NAME
+          value: ftp-secret
+
+
+        - name: TESK_API_AUTHORISATION_ENV_SUBGROUP
+          value: CSC
+        - name: TESK_API_AUTHORISATION_BASE_GROUP
+          value: ECP_CLN
+        - name: SPRING_PROFILES_ACTIVE
+          value: noauth
+        - name: TESK_API_SERVICE_INFO_PUBLIC
+          value: "true"
+        - name: TESK_API_SWAGGER_UI_ENABLED
+          value: "false"
+
+
+
+
+
+        - name: TESK_API_TASKMASTER_DEBUG
+          value: "false"
+
+        - name: TESK_API_SWAGGER-OAUTH_SCOPES
+          value: openid:Standard openid,eduperson_entitlement:Access to groups membership,profile:Identity info about user,email:Email
+        - name: TESK_API_SWAGGER_OAUTH_CLIENT_ID
+          valueFrom:
+            secretKeyRef:
+              name: oauth-client-secret
+              key: id
+              optional: true
+        - name: TESK_API_SWAGGER_OAUTH_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: oauth-client-secret
+              key: secret
+              optional: true
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+          - name: service-info-config
+            mountPath: /etc/tesk/service-info
+
+        ports:
+        - containerPort: 8080
+      volumes:
+        - name: service-info-config
+          configMap:
+            name: service-info-config
+      securityContext:
+        runAsUser: 1000
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+---
+# Source: tesk/templates/ingress/ingress-rules.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-rules
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-production"
+    kubernetes.io/tls-acme: "true"
+spec:
+  ingressClassName:
+
+  rules:
+  - host:
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: tesk-api
+            port:
+              number: 8080
