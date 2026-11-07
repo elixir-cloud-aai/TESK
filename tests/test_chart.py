@@ -617,10 +617,7 @@ def test_ftp_secret_numeric() -> None:
 @pytest.mark.parametrize("value", TRICKY_VALUES)
 @pytest.mark.parametrize(
     ("id_key", "secret_key"),
-    [
-        ("auth.clientId", "auth.clientSecret"),
-        ("auth.client_id", "auth.client_secret"),
-    ],
+    [("clientId", "clientSecret"), ("client_id", "client_secret")],
 )
 def test_auth_quoting(value: str, id_key: str, secret_key: str, tmp_path: Path) -> None:
     """The OAuth client ID and secret are strings (new and old keys)."""
@@ -630,8 +627,8 @@ def test_auth_quoting(value: str, id_key: str, secret_key: str, tmp_path: Path) 
             {
                 "auth": {
                     "mode": "auth",
-                    id_key.split(".")[1]: value,
-                    secret_key.split(".")[1]: value,
+                    id_key: value,
+                    secret_key: value,
                 }
             }
         )
@@ -642,7 +639,7 @@ def test_auth_quoting(value: str, id_key: str, secret_key: str, tmp_path: Path) 
 
 
 def test_auth_numeric() -> None:
-    """A numeric client ID set with `--set` is rendered as a string."""
+    """Numbers set with `--set` are strings (new and old key mixed)."""
     manifests = render(
         "--set",
         "auth.mode=auth",
@@ -653,6 +650,54 @@ def test_auth_numeric() -> None:
     )
     secret = get(manifests, "Secret", "oauth-client-secret")
     assert secret["stringData"] == {"id": "123", "secret": "456"}
+
+
+@pytest.mark.parametrize(
+    ("number", "expected"),
+    [(123456789012, "123456789012"), (1000000, "1000000"), (1.5, "1.5")],
+)
+def test_secret_numbers_values_file(
+    number: float, expected: str, tmp_path: Path
+) -> None:
+    """Numbers in a values file are rendered as written, not as floats."""
+    values = tmp_path / "secrets.yaml"
+    values.write_text(
+        yaml.safe_dump(
+            {
+                "ftp": {"username": number, "password": number},
+                "auth": {"mode": "auth", "clientId": number, "clientSecret": number},
+            }
+        )
+    )
+    manifests = render("-f", str(values))
+    expected_data = {"username": expected, "password": expected}
+    assert get(manifests, "Secret", "ftp-secret")["stringData"] == expected_data
+    assert get(manifests, "Secret", "oauth-client-secret")["stringData"] == {
+        "id": expected,
+        "secret": expected,
+    }
+
+
+def test_secret_unset() -> None:
+    """Unset credentials render as before (null), not as empty strings."""
+    manifests = render("--set", "auth.mode=auth")
+    assert get(manifests, "Secret", "ftp-secret")["stringData"] == {
+        "username": None,
+        "password": None,
+    }
+    assert get(manifests, "Secret", "oauth-client-secret")["stringData"] == {
+        "id": None,
+        "secret": None,
+    }
+
+
+def test_secret_number_too_large(tmp_path: Path) -> None:
+    """A number that a float can't hold exactly fails with a hint."""
+    values = tmp_path / "secrets.yaml"
+    values.write_text("ftp:\n  username: 12345678901234567890\n")
+    with pytest.raises(subprocess.CalledProcessError) as error:
+        render("-f", str(values))
+    assert "too large" in error.value.stderr
 
 
 def test_transfer() -> None:

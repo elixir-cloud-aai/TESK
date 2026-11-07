@@ -133,3 +133,22 @@ With --reuse-values, the values include the defaults of the earlier chart,
 with all of these keys: upgrade once with your values files (-f) instead.
 {{- end }}
 {{- end -}}
+
+{{/*
+A secret value as a quoted YAML string. Helm parses numbers in values
+files as floats, which Go renders in scientific notation from 1e21 (and
+rounds above 2^53); whole numbers up to 2^53 are rendered as written, and
+larger ones fail: quote them in the values file (e.g., `"12345678901234567890"`)
+or set them with `--set-string`.
+*/}}
+{{- define "tesk.secretValue" -}}
+{{- if and (kindIs "float64" .) (eq (floor .) .) -}}
+{{- if and (lt . 9007199254740992.0) (gt . -9007199254740992.0) -}}
+{{- printf "%.0f" . | quote -}}
+{{- else -}}
+{{- fail (printf "the number %v is too large to be exact: quote it in the values file or use --set-string" .) -}}
+{{- end -}}
+{{- else -}}
+{{- quote . -}}
+{{- end -}}
+{{- end -}}
