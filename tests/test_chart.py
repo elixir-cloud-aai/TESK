@@ -1518,6 +1518,34 @@ def test_removed_keys_link() -> None:
     assert "\n### Resource names from the release name\n" in upgrading
 
 
+@pytest.mark.parametrize(
+    ("value", "label"),
+    [("tes--", "tes"), ("TESK", "TESK"), ("a_b.c", "a_b.c")],
+)
+def test_name_override_label(value: str, label: str) -> None:
+    """`nameOverride` becomes the label, without trailing dashes.
+
+    Args:
+        value: The value of `nameOverride`.
+        label: The expected label `app.kubernetes.io/name`.
+    """
+    manifests = render("--set", f"nameOverride={value}", "--set", "fullnameOverride=t")
+    selector = deployment(manifests)["spec"]["selector"]["matchLabels"]
+    assert selector["app.kubernetes.io/name"] == label
+
+
+@pytest.mark.parametrize("value", ["a/b", "-a", "a b"])
+def test_name_override_invalid(value: str) -> None:
+    """A `nameOverride` that isn't a valid label value fails, with a hint.
+
+    Args:
+        value: The value of `nameOverride`.
+    """
+    with pytest.raises(subprocess.CalledProcessError) as error:
+        render("--set", f"nameOverride={value}", "--set", "fullnameOverride=t")
+    assert "isn't a valid label value" in error.value.stderr
+
+
 def test_labels_numeric_release() -> None:
     """A release name or `nameOverride` that looks like a number is a string."""
     manifests = render(

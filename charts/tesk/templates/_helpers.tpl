@@ -1,9 +1,15 @@
 {{/*
 The chart's name (`nameOverride` replaces it), for the label
-`app.kubernetes.io/name`.
+`app.kubernetes.io/name`: cut to 63 characters, without trailing dashes.
+Fails if it isn't a valid label value (letters, digits, `-`, `_` and `.`,
+starting and ending with a letter or digit).
 */}}
 {{- define "tesk.name" -}}
-{{- default .Chart.Name .Values.nameOverride | toString | trunc 63 | trimSuffix "-" -}}
+{{- $name := regexReplaceAll "-+$" (default .Chart.Name .Values.nameOverride | toString | trunc 63) "" -}}
+{{- if not (regexMatch "^[A-Za-z0-9]([-A-Za-z0-9_.]*[A-Za-z0-9])?$" $name) -}}
+{{- fail (printf "nameOverride %q isn't a valid label value (letters, digits, -, _ and ., starting and ending with a letter or digit)" $name) -}}
+{{- end -}}
+{{- $name -}}
 {{- end -}}
 
 {{/*

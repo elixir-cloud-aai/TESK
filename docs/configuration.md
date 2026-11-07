@@ -183,6 +183,10 @@ namespace, but only one of them can use `storage: s3` or `ftp.hostip`, and
 the secrets named in the values (`ftp.classicFtpSecret`, `ftp.netrcSecret`)
 need names of their own in each release. `storage: openstack` creates a
 default storage class for the whole cluster: use it in one release only.
+Each release also needs a `hostName` (or `ingress.path`) of its own, as
+Ingresses with the same host and path clash, and a release name that gives
+a prefix of its own: e.g., the releases `prod` and `prod-tesk` both get the
+prefix `prod-tesk`, so Helm refuses to install the second one.
 
 The API's pods have the labels `app.kubernetes.io/name` and
 `app.kubernetes.io/instance` (the release name), which the Deployment and
