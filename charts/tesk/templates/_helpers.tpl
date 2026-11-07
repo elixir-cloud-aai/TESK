@@ -226,8 +226,8 @@ v0.10.6 or older, which ignores ftp.hosts: the filer sends the FTP
 credentials to every FTP host, as before. Use images newer than v0.10.6.
 {{- end }}
 {{- $oldTaskmaster := has "tesk.taskmaster.image.tag" $oldImages -}}
-{{- range $name := list "taskTtlSeconds" "maxQueueSeconds" -}}
-{{- if and (include "tesk.seconds" (dict "root" $ "name" $name "minimum" 0)) $oldTaskmaster }}
+{{- range $name, $minimum := dict "taskTtlSeconds" 0 "maxQueueSeconds" 1 -}}
+{{- if and (include "tesk.seconds" (dict "root" $ "name" $name "minimum" $minimum)) $oldTaskmaster }}
 
 WARNING: tesk.{{ $name }} is set, but tesk.taskmaster.image.tag is
 v0.10.6 or older, which ignores it. Use a taskmaster image newer than

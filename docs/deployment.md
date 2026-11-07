@@ -312,8 +312,12 @@ report a task that completed as `SYSTEM_ERROR`; a long TTL makes it
 unlikely that clients still read it then.
 
 The TTL applies to tasks created after the API's pod restarted with it;
-delete older tasks by hand (`kubectl delete job <task>`, which deletes the
-task's other jobs with it). Some objects of a task stay: PVCs that
+delete older tasks by hand. `kubectl delete job <task>` deletes a task's
+other jobs with it only if its taskmaster image was newer than v0.10.6.
+For tasks of older taskmasters, also delete the executors' jobs
+(`kubectl delete job -l taskmaster-name=<task>`), the filers' jobs
+(`<task>-inputs-filer`, `<task>-outputs-filer`) and the ConfigMap
+(`<task>`). Some objects of a task stay: PVCs that
 `tesk.keepFailedPvcs` keeps, and, with tesk-api 1.1 and older, the
 ConfigMap with the task's JSON; newer versions delete it with the task
 ([tesk-api#117](https://github.com/elixir-cloud-aai/tesk-api/issues/117)).

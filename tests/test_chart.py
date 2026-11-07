@@ -14,6 +14,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import re
 import shutil
 import subprocess
 from typing import Any
@@ -1805,6 +1806,10 @@ def test_schema_permissive(values: dict[str, Any], tmp_path: Path) -> None:
     assert render("--values", str(path))
 
 
+# Without a tag, tesk-api's version is the chart's appVersion (major and
+# minor; (0, 0) if it isn't a version)
+_APP_VERSION = re.match(r"v?(\d+)\.(\d+)", str(METADATA["appVersion"]))
+APP_VERSION = (int(_APP_VERSION[1]), int(_APP_VERSION[2])) if _APP_VERSION else (0, 0)
 SECONDS = {
     "taskTtlSeconds": "TESK_API_TASKMASTER_ENVIRONMENT_TASK_TTL_SECONDS",
     "maxQueueSeconds": "TESK_API_TASKMASTER_ENVIRONMENT_TESK_MAX_QUEUE_SECONDS",
@@ -1969,10 +1974,6 @@ def test_notes_seconds_old_taskmaster(
     if key == "taskTtlSeconds":
         assert "but tesk-api" not in text
     assert f"tesk.{key} is set" not in notes(tmp_path=tmp_path)
-
-
-# Without a tag, tesk-api's version is the chart's appVersion
-APP_VERSION = tuple(int(part) for part in str(METADATA["appVersion"]).split(".")[:2])
 
 
 @pytest.mark.parametrize(
