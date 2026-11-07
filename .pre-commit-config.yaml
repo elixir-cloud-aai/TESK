@@ -11,16 +11,16 @@ repos:
       - id: check-yaml
         # Helm templates are not valid YAML before rendering; `mkdocs.yml`
         # uses MkDocs' `!ENV` tag (the docs build checks it)
-        exclude: ^(charts/tesk/templates/|mkdocs\.yml$)
-        # Rendered manifests of the chart tests (`tests/data/`)
-        args: [--allow-multiple-documents]
-      # The copy of tesk-core in `source/` is left as it is (not maintained here)
+        exclude: ^(charts/tesk/templates/|tests/data/legacy-chart/templates/|mkdocs\.yml$)
+      # The copy of tesk-core in `source/` is left as it is (not maintained
+      # here), and so is the copy of the earlier chart that the chart tests
+      # compare with (`tests/data/legacy-chart/`)
       - id: end-of-file-fixer
-        exclude: ^source/tesk-core/
+        exclude: ^(source/tesk-core/|tests/data/legacy-chart/)
       # Keeps Markdown hard line breaks (two trailing spaces)
       - id: trailing-whitespace
         args: [--markdown-linebreak-ext=md]
-        exclude: ^source/tesk-core/
+        exclude: ^(source/tesk-core/|tests/data/legacy-chart/)
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: 25bcf95026b96e2dd3c0aec3090c3d6ef6ca2e6c  # frozen: v0.17.3
     hooks:

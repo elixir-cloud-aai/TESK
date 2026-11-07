@@ -1,5 +1,5 @@
-{{- $service := .Values.service -}}
-{{- $nodePort := ternary (index $service "node_port") (index $service "nodePort") (hasKey $service "node_port") -}}
+{{- $values := dict -}}
+{{- include "tesk.resolveValues" (dict "root" . "out" $values) -}}
 apiVersion: v1
 kind: Service
 metadata:
@@ -12,7 +12,7 @@ spec:
   - port: {{ .Values.tesk.port }}
     {{- if eq .Values.service.type "NodePort" }}
     # Valid only with type NodePort
-    nodePort: {{ $nodePort }}
+    nodePort: {{ index $values "service.nodePort" }}
     {{- end }}
   selector:
     app: tesk-api

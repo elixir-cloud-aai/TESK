@@ -1,0 +1,11 @@
+{{ if .Values.ftp.hostip }}
+kind: Service
+apiVersion: v1
+metadata:
+    name: ftp
+spec:
+    ports:
+        - protocol:   TCP
+          port:       21  # internal (inside the cluster)
+          targetPort: 21  # external (at the host)
+{{ end }}

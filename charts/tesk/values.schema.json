@@ -1,22 +1,23 @@
 {
   "$schema": "https://json-schema.org/draft-07/schema#",
-  "$comment": "Permissive on purpose: it checks the types of the values only, accepts strings for scalars (for tools that set only strings) and unknown keys, and still accepts the deprecated keys of earlier versions of the chart (see tesk.renamedValues in templates/_helpers.tpl), so that existing values files keep working",
+  "$comment": "Permissive on purpose, so that values that worked with earlier versions of the chart keep working: it checks only the structure of the values (maps where the templates expect maps, scalars where they expect scalars, of any scalar type) and the pull policy of the image, accepts unknown keys, and still accepts the deprecated keys (see tesk.renamedValues in templates/_helpers.tpl)",
   "type": "object",
   "$defs": {
-    "text": {
-      "type": ["string", "null"]
-    },
     "scalar": {
-      "type": ["string", "number", "boolean", "null"]
-    },
-    "number": {
-      "type": ["number", "string", "null"]
-    },
-    "flag": {
-      "type": ["boolean", "string", "null"]
+      "type": [
+        "string",
+        "number",
+        "boolean",
+        "null"
+      ]
     },
     "map": {
-      "type": ["object", "null"]
+      "type": [
+        "object",
+        "string",
+        "null"
+      ],
+      "$comment": "A string (e.g., empty) replaces the default map, as in earlier versions of the chart"
     },
     "image": {
       "type": "object",
@@ -32,27 +33,30 @@
       }
     },
     "resourceList": {
-      "type": ["object", "null"],
+      "type": [
+        "object",
+        "null"
+      ],
       "additionalProperties": {
-        "$ref": "#/$defs/number"
+        "$ref": "#/$defs/scalar"
       }
     }
   },
   "properties": {
     "hostName": {
-      "$ref": "#/$defs/text",
+      "$ref": "#/$defs/scalar",
       "description": "Host name (FQDN) of the API, for the Ingress or the OpenShift Route"
     },
     "host_name": {
-      "$ref": "#/$defs/text",
+      "$ref": "#/$defs/scalar",
       "description": "Deprecated: use hostName"
     },
     "storage": {
-      "$ref": "#/$defs/text",
+      "$ref": "#/$defs/scalar",
       "description": "Storage backend that the chart sets up: s3, openstack, or anything else for none"
     },
     "storageClass": {
-      "$ref": "#/$defs/text",
+      "$ref": "#/$defs/scalar",
       "description": "Storage class of the tasks' PVCs; empty uses the cluster's default class"
     },
     "tesk": {
@@ -74,22 +78,31 @@
                   "$ref": "#/$defs/scalar"
                 },
                 "pullPolicy": {
-                  "enum": ["Always", "IfNotPresent", "Never", "", null]
+                  "enum": [
+                    "Always",
+                    "IfNotPresent",
+                    "Never",
+                    "",
+                    null
+                  ]
                 }
               }
             }
           ]
         },
         "port": {
-          "type": ["integer", "string"],
+          "type": [
+            "integer",
+            "string"
+          ],
           "description": "Port of the API's container and Service"
         },
         "tesApiBasePath": {
-          "$ref": "#/$defs/text",
+          "$ref": "#/$defs/scalar",
           "description": "Base path of the TES API"
         },
         "tes_api_base_path": {
-          "$ref": "#/$defs/text",
+          "$ref": "#/$defs/scalar",
           "description": "Deprecated: use tesk.tesApiBasePath"
         },
         "taskmaster": {
@@ -109,7 +122,7 @@
           }
         },
         "taskmaster_image_name": {
-          "$ref": "#/$defs/text",
+          "$ref": "#/$defs/scalar",
           "description": "Deprecated: use tesk.taskmaster.image.repository"
         },
         "taskmaster_image_version": {
@@ -117,7 +130,7 @@
           "description": "Deprecated: use tesk.taskmaster.image.tag"
         },
         "taskmaster_filer_image_name": {
-          "$ref": "#/$defs/text",
+          "$ref": "#/$defs/scalar",
           "description": "Deprecated: use tesk.filer.image.repository"
         },
         "taskmaster_filer_image_version": {
@@ -125,27 +138,30 @@
           "description": "Deprecated: use tesk.filer.image.tag"
         },
         "debug": {
-          "$ref": "#/$defs/flag",
+          "$ref": "#/$defs/scalar",
           "description": "Debug logging in the taskmasters"
         },
         "executorRetries": {
-          "$ref": "#/$defs/number",
+          "$ref": "#/$defs/scalar",
           "description": "Retries of an executor's job on errors"
         },
         "executor_retries": {
-          "$ref": "#/$defs/number",
+          "$ref": "#/$defs/scalar",
           "description": "Deprecated: use tesk.executorRetries"
         },
         "filerRetries": {
-          "$ref": "#/$defs/number",
+          "$ref": "#/$defs/scalar",
           "description": "Retries of a filer's job on errors"
         },
         "filer_retries": {
-          "$ref": "#/$defs/number",
+          "$ref": "#/$defs/scalar",
           "description": "Deprecated: use tesk.filerRetries"
         },
         "resources": {
-          "type": ["object", "null"],
+          "type": [
+            "object",
+            "null"
+          ],
           "description": "Resources of the API's container (requests and limits)",
           "properties": {
             "limits": {
@@ -157,19 +173,19 @@
           }
         },
         "limitsCpu": {
-          "$ref": "#/$defs/number",
+          "$ref": "#/$defs/scalar",
           "description": "Deprecated: use tesk.resources.limits.cpu"
         },
         "limitsMemory": {
-          "$ref": "#/$defs/number",
+          "$ref": "#/$defs/scalar",
           "description": "Deprecated: use tesk.resources.limits.memory"
         },
         "requestsCpu": {
-          "$ref": "#/$defs/number",
+          "$ref": "#/$defs/scalar",
           "description": "Deprecated: use tesk.resources.requests.cpu"
         },
         "requestsMemory": {
-          "$ref": "#/$defs/number",
+          "$ref": "#/$defs/scalar",
           "description": "Deprecated: use tesk.resources.requests.memory"
         },
         "securityContext": {
@@ -185,31 +201,31 @@
       "type": "object",
       "properties": {
         "active": {
-          "$ref": "#/$defs/flag",
+          "$ref": "#/$defs/scalar",
           "description": "Support for file: URLs on a shared PVC"
         },
         "wesBasePath": {
-          "$ref": "#/$defs/text",
+          "$ref": "#/$defs/scalar",
           "description": "Path where the workflow engine sees the shared volume"
         },
         "wes_base_path": {
-          "$ref": "#/$defs/text",
+          "$ref": "#/$defs/scalar",
           "description": "Deprecated: use transfer.wesBasePath"
         },
         "tesBasePath": {
-          "$ref": "#/$defs/text",
+          "$ref": "#/$defs/scalar",
           "description": "Path where the filer mounts the shared PVC"
         },
         "tes_base_path": {
-          "$ref": "#/$defs/text",
+          "$ref": "#/$defs/scalar",
           "description": "Deprecated: use transfer.tesBasePath"
         },
         "pvcName": {
-          "$ref": "#/$defs/text",
+          "$ref": "#/$defs/scalar",
           "description": "Name of the shared PVC"
         },
         "pvc_name": {
-          "$ref": "#/$defs/text",
+          "$ref": "#/$defs/scalar",
           "description": "Deprecated: use transfer.pvcName"
         }
       }
@@ -218,31 +234,31 @@
       "type": "object",
       "properties": {
         "mode": {
-          "$ref": "#/$defs/text",
+          "$ref": "#/$defs/scalar",
           "description": "auth requires OIDC access tokens; noauth leaves all endpoints open"
         },
         "envSubgroup": {
-          "$ref": "#/$defs/text",
+          "$ref": "#/$defs/scalar",
           "description": "Subgroup of the base group for this deployment"
         },
         "env_subgroup": {
-          "$ref": "#/$defs/text",
+          "$ref": "#/$defs/scalar",
           "description": "Deprecated: use auth.envSubgroup"
         },
         "envBasegroup": {
-          "$ref": "#/$defs/text",
+          "$ref": "#/$defs/scalar",
           "description": "Base group of the LS Login group model that grants access"
         },
         "env_basegroup": {
-          "$ref": "#/$defs/text",
+          "$ref": "#/$defs/scalar",
           "description": "Deprecated: use auth.envBasegroup"
         },
         "serviceInfoPublic": {
-          "$ref": "#/$defs/flag",
+          "$ref": "#/$defs/scalar",
           "description": "With mode auth, whether GET /service-info answers without a token"
         },
         "service_info_public": {
-          "$ref": "#/$defs/flag",
+          "$ref": "#/$defs/scalar",
           "description": "Deprecated: use auth.serviceInfoPublic"
         },
         "clientId": {
@@ -267,15 +283,15 @@
       "type": "object",
       "properties": {
         "type": {
-          "$ref": "#/$defs/text",
+          "$ref": "#/$defs/scalar",
           "description": "Type of the API's Service: NodePort, LoadBalancer, or empty for ClusterIP"
         },
         "nodePort": {
-          "$ref": "#/$defs/number",
+          "$ref": "#/$defs/scalar",
           "description": "Node port with type NodePort"
         },
         "node_port": {
-          "$ref": "#/$defs/number",
+          "$ref": "#/$defs/scalar",
           "description": "Deprecated: use service.nodePort"
         }
       }
@@ -284,19 +300,19 @@
       "type": "object",
       "properties": {
         "classicFtpSecret": {
-          "$ref": "#/$defs/text",
+          "$ref": "#/$defs/scalar",
           "description": "Name of the secret with the FTP username and password; empty creates none"
         },
         "classic_ftp_secret": {
-          "$ref": "#/$defs/text",
+          "$ref": "#/$defs/scalar",
           "description": "Deprecated: use ftp.classicFtpSecret"
         },
         "netrcSecret": {
-          "$ref": "#/$defs/text",
+          "$ref": "#/$defs/scalar",
           "description": "Name of the secret with a .netrc file; empty creates none"
         },
         "netrc_secret": {
-          "$ref": "#/$defs/text",
+          "$ref": "#/$defs/scalar",
           "description": "Deprecated: use ftp.netrcSecret"
         },
         "username": {
@@ -308,7 +324,7 @@
           "description": "FTP password"
         },
         "hostip": {
-          "$ref": "#/$defs/text",
+          "$ref": "#/$defs/scalar",
           "description": "IP of an FTP server outside the cluster, as pods see the host"
         }
       }
@@ -317,23 +333,23 @@
       "type": "object",
       "properties": {
         "rules": {
-          "$ref": "#/$defs/flag",
+          "$ref": "#/$defs/scalar",
           "description": "Creates an Ingress; false creates an OpenShift Route instead, on OpenShift"
         },
         "ingressClassName": {
-          "$ref": "#/$defs/text",
+          "$ref": "#/$defs/scalar",
           "description": "Ingress class"
         },
         "path": {
-          "$ref": "#/$defs/text",
+          "$ref": "#/$defs/scalar",
           "description": "Path of the Ingress, and the context path of the API"
         },
         "tlsSecretName": {
-          "$ref": "#/$defs/text",
+          "$ref": "#/$defs/scalar",
           "description": "Secret with the TLS certificate of hostName; empty switches TLS off"
         },
         "tls_secret_name": {
-          "$ref": "#/$defs/text",
+          "$ref": "#/$defs/scalar",
           "description": "Deprecated: use ingress.tlsSecretName"
         },
         "annotations": {

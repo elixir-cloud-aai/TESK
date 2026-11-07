@@ -21,12 +21,11 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 
 {{/*
 Values keys renamed to follow Helm's conventions (camelCase, `image` and
-`resources` blocks), by the map that holds them (empty: the top level). The
-templates still read the old keys, which take precedence over the new ones:
-they can only be set by users (they aren't in `values.yaml`), and
-`helm upgrade --reuse-values` replaces `values.yaml` with the defaults of the
-installed chart, which has the old keys only. `tesk.image` as a string (not
-in this list) is the old form of the `tesk.image` block.
+`resources` blocks): the map that holds the old key (empty: the top level),
+the old key and the new key's path. The templates read these values with
+`tesk.resolveValues`, so the old keys still work, and `tesk.deprecatedValues`
+lists those in use. `tesk.image` as a string (not in this list) is the old
+form of the `tesk.image` block.
 */}}
 {{- define "tesk.renamedValues" -}}
 - ["", host_name, hostName]
@@ -53,6 +52,44 @@ in this list) is the old form of the `tesk.image` block.
 - [ftp, classic_ftp_secret, ftp.classicFtpSecret]
 - [ftp, netrc_secret, ftp.netrcSecret]
 - [ingress, tls_secret_name, ingress.tlsSecretName]
+{{- end -}}
+
+{{/*
+Resolves the renamed values (`tesk.renamedValues`) of the root context
+(`root`) into a dict (`out`), by the new keys' paths (e.g.,
+`out.hostName`): from the old key if it is set (also to null or empty),
+else from the new key (null if missing). The old keys take precedence: they
+can only be set by users (they aren't in `values.yaml`), and
+`helm upgrade --reuse-values` replaces `values.yaml` with the defaults of
+the installed chart, which has the old keys only. Renders nothing; the
+templates call it as
+`{{- $values := dict -}}{{- include "tesk.resolveValues" (dict "root" . "out" $values) -}}`.
+Old values of resources are parsed as YAML, as the earlier templates
+printed them into YAML (e.g., an empty string drops a limit).
+*/}}
+{{- define "tesk.resolveValues" -}}
+{{- $root := .root.Values -}}
+{{- $out := .out -}}
+{{- range include "tesk.renamedValues" .root | fromYamlArray -}}
+{{- $parent := ternary $root (index $root (index . 0)) (eq (index . 0) "") -}}
+{{- $value := $root -}}
+{{- if and (kindIs "map" $parent) (hasKey $parent (index . 1)) -}}
+{{- $value = index $parent (index . 1) -}}
+{{- if hasPrefix "tesk.resources." (index . 2) -}}
+{{- $text := ternary "" (toString $value) (kindIs "invalid" $value) -}}
+{{- $value = (printf "value: %s" $text | fromYaml).value -}}
+{{- end -}}
+{{- else -}}
+{{- range splitList "." (index . 2) -}}
+{{- if kindIs "map" $value -}}
+{{- $value = index $value . -}}
+{{- else -}}
+{{- $value = nil -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+{{- $_ := set $out (index . 2) $value -}}
+{{- end -}}
 {{- end -}}
 
 {{/*
@@ -89,5 +126,7 @@ WARNING: Your values use deprecated keys, which a later release will remove.
 Rename them (see
 https://tesk.readthedocs.io/en/latest/upgrading/#values-renamed-to-camelcase):
 {{- . }}
+With --reuse-values, the values include the defaults of the earlier chart,
+with all of these keys: upgrade once with your values files (-f) instead.
 {{- end }}
 {{- end -}}

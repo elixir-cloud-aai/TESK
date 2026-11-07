@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: tesk-api
+  labels:
+    app: tesk-api
+spec:
+  ports:
+  - port: {{ .Values.tesk.port }}
+    {{ if eq .Values.service.type "NodePort" }}nodePort: {{ .Values.service.node_port }}   # valid only if {{ .Values.service.type }} == NodePort{{ end }}
+  selector:
+    app: tesk-api
+  type: {{ if .Values.service.type }}{{ .Values.service.type }}{{ else }}'ClusterIP'{{ end }}

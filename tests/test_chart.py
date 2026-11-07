@@ -18,17 +18,18 @@ import subprocess
 from typing import Any
 
 import pytest
-import yaml
 
 from tests.helm import (
     CHART,
     HELM,
+    LEGACY_CHART,
     LEGACY_VALUES,
     METADATA,
     NAMESPACE,
     VALUES,
     Manifest,
     container,
+    copy_chart,
     env,
     find,
     get,
@@ -619,33 +620,90 @@ def _sorted(manifests: list[Manifest]) -> list[Manifest]:
     return sorted(manifests, key=lambda m: (m["kind"], m["metadata"]["name"]))
 
 
-def test_legacy_manifests() -> None:
-    """The defaults render the objects of earlier versions, apart from labels."""
-    legacy = [
-        doc
-        for doc in yaml.safe_load_all(
-            (LEGACY_VALUES.parent / "legacy-manifests.yaml").read_text()
-        )
-        if doc
-    ]
-    assert _sorted(without_labels(render())) == _sorted(legacy)
+# Values that render the same objects with the earlier chart (see
+# `LEGACY_CHART`), apart from the standard labels: the deprecated keys, also
+# with empty, null or string values, and values that the schema must accept
+LEGACY_CASES: list[tuple[str, ...]] = [
+    (),
+    ("--values", str(LEGACY_VALUES)),
+    *(old for old, _ in RENAMED),
+    ("--set", "tesk.limitsCpu="),
+    ("--set-json", 'tesk={"limitsCpu": "", "requestsMemory": null}'),
+    ("--set", "tesk.limitsCpu=0.5"),
+    ("--set-string", "tesk.limitsCpu=1"),
+    ("--set", "tesk.limitsMemory=2147483648"),
+    ("--set", "tesk.executor_retries=1000000"),
+    ("--set", "tesk.port=9000"),
+    ("--set", "tesk.debug=1"),
+    ("--set", "storageClass=5"),
+    ("--set", "ingress.annotations="),
+    ("--set", "service.type=NodePort"),
+    ("--set", "transfer.active=true"),
+    ("--set", "storage=openstack"),
+    ("--set", "ftp.hostip=10.0.0.1"),
+    ("--set", "auth.mode=auth", "--set", "auth.client_id=c"),
+    (
+        "--api-versions",
+        "route.openshift.io/v1",
+        "--set",
+        "ingress.rules=false",
+        "--set",
+        "host_name=tes.example.org",
+    ),
+]
 
 
-def test_legacy_values() -> None:
-    """The earlier default values, with the old keys, render the same objects."""
-    assert render("--values", str(LEGACY_VALUES)) == render()
+@pytest.mark.parametrize("args", LEGACY_CASES)
+def test_legacy_chart(args: tuple[str, ...]) -> None:
+    """Values of the earlier chart render its objects, apart from labels."""
+    assert _sorted(without_labels(render(*args))) == _sorted(
+        render(*args, chart=LEGACY_CHART)
+    )
 
 
-def test_reuse_values(tmp_path: Path) -> None:
-    """The earlier defaults as the chart's defaults render the same objects.
+@pytest.mark.parametrize(
+    "args",
+    [
+        (),
+        ("--set", "host_name=tes.example.org"),
+        ("--set", "tesk.limitsCpu="),
+    ],
+)
+def test_reuse_values(args: tuple[str, ...], tmp_path: Path) -> None:
+    """With the earlier defaults, the chart renders the earlier objects.
 
     `helm upgrade --reuse-values` replaces the chart's default values with
     those of the installed chart, so the templates get the old keys only.
     """
-    chart = tmp_path / "tesk"
-    shutil.copytree(CHART, chart)
-    shutil.copyfile(LEGACY_VALUES, chart / "values.yaml")
-    assert render(chart=chart) == render()
+    chart = copy_chart(tmp_path, LEGACY_VALUES)
+    assert _sorted(without_labels(render(*args, chart=chart))) == _sorted(
+        render(*args, chart=LEGACY_CHART)
+    )
+
+
+@pytest.mark.parametrize(
+    ("args", "image", "pull_policy"),
+    [
+        (("--set", "tesk.image.tag=1.2.0"), "tesk-api:1.2.0", None),
+        (
+            ("--set", "tesk.image.pullPolicy=Always"),
+            f"tesk-api:{METADATA['appVersion']}",
+            "Always",
+        ),
+    ],
+)
+def test_reuse_values_image(
+    args: tuple[str, ...], image: str, pull_policy: str | None, tmp_path: Path
+) -> None:
+    """With the earlier defaults, the new image block works on its own.
+
+    The earlier default of `tesk.image` is a string, which a map set with
+    `--reuse-values` replaces, so the repository comes from the template.
+    """
+    chart = copy_chart(tmp_path, LEGACY_VALUES)
+    api = container(render(*args, chart=chart))
+    assert api["image"] == f"docker.io/elixircloud/{image}"
+    assert api.get("imagePullPolicy") == pull_policy
 
 
 @pytest.mark.parametrize(("old", "new"), RENAMED)
@@ -656,13 +714,12 @@ def test_renamed(old: tuple[str, ...], new: tuple[str, ...]) -> None:
     assert manifests != render(*old[:-2])
 
 
-def test_renamed_precedence() -> None:
-    """A deprecated key takes precedence over its new key."""
-    manifests = render(
-        "--set", "hostName=new.example.org", "--set", "host_name=old.example.org"
-    )
-    spec = get(manifests, "Ingress", "ingress-rules")["spec"]
-    assert spec["rules"][0]["host"] == "old.example.org"
+@pytest.mark.parametrize(("old", "new"), RENAMED)
+def test_renamed_precedence(old: tuple[str, ...], new: tuple[str, ...]) -> None:
+    """A deprecated key takes precedence over its new key, even if empty."""
+    # The new key (the last option) with another value
+    other = (*new[:-1], f"{new[-1]}x")
+    assert render(*other, *old) == render(*old)
 
 
 def test_labels() -> None:
@@ -698,6 +755,12 @@ def test_labels_openshift() -> None:
     )
     labels = get(manifests, "Route", "tesk-svc")["metadata"]["labels"]
     assert labels.items() >= STANDARD_LABELS.items()
+
+
+def test_notes_template() -> None:
+    """`NOTES.txt` only includes the template that `notes` renders."""
+    text = (CHART / "templates" / "NOTES.txt").read_text()
+    assert text.strip() == '{{- include "tesk.notes" . -}}'
 
 
 def test_notes(tmp_path: Path) -> None:
@@ -772,3 +835,10 @@ def test_schema_permissive(values: dict[str, Any], tmp_path: Path) -> None:
     path = tmp_path / "values.yaml"
     path.write_text(json.dumps(values))
     assert render("--values", str(path))
+
+
+def test_notes_reuse_values(tmp_path: Path) -> None:
+    """The notes explain warnings for the earlier defaults (`--reuse-values`)."""
+    text = notes(tmp_path=tmp_path, values=LEGACY_VALUES)
+    assert "  - host_name: use hostName" in text
+    assert "--reuse-values" in text

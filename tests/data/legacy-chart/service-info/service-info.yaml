@@ -1,0 +1,17 @@
+id: 'uk.ac.ebi.tsc.tesk'
+name: TESK
+type:
+  group: org.ga4gh
+  artifact: TES
+  version: 1.0
+description:  GA4GH TES Server implementation for Kubernetes
+organization:
+  name: EMBL-EBI
+  url: https://www.ebi.ac.uk/
+contactUrl: https://github.com/EMBL-EBI-TSI/TESK/issues
+documentationUrl: https://github.com/EMBL-EBI-TSI/TESK
+createdAt: 2021-04-06
+environment: dev
+version: 1.0
+storage:
+- ftp://ftp-private.ebi.ac.uk

@@ -17,8 +17,10 @@ NAMESPACE = "tesk"
 # The chart's default values and metadata
 VALUES: dict[str, Any] = yaml.safe_load((CHART / "values.yaml").read_text())
 METADATA: dict[str, Any] = yaml.safe_load((CHART / "Chart.yaml").read_text())
-# The default values before the keys were renamed, with the deprecated keys
-LEGACY_VALUES = Path(__file__).parent / "data" / "legacy-values.yaml"
+# A copy of the chart before the values were renamed, and its default values,
+# with the deprecated keys
+LEGACY_CHART = Path(__file__).parent / "data" / "legacy-chart"
+LEGACY_VALUES = LEGACY_CHART / "values.yaml"
 
 # A rendered Kubernetes object
 Manifest = dict[str, Any]
@@ -56,23 +58,39 @@ def render(*args: str, chart: Path = CHART) -> list[Manifest]:
     return [doc for doc in yaml.safe_load_all(output) if doc]
 
 
-def notes(*args: str, tmp_path: Path) -> str:
+def copy_chart(tmp_path: Path, values: Path | None = None) -> Path:
+    """Copy the chart, e.g., to add files to it.
+
+    Args:
+        tmp_path: A directory for the copy; each call makes a new one in it.
+        values: A file to replace the default values with (e.g., as
+            `helm upgrade --reuse-values` replaces them with those of the
+            installed chart).
+
+    Returns:
+        The copy.
+    """
+    chart = Path(tempfile.mkdtemp(dir=tmp_path)) / "tesk"
+    shutil.copytree(CHART, chart)
+    if values is not None:
+        shutil.copyfile(values, chart / "values.yaml")
+    return chart
+
+
+def notes(*args: str, tmp_path: Path, values: Path | None = None) -> str:
     """Render the notes of the chart with `helm template` arguments.
 
     Args:
         args: Further arguments of `helm template`, e.g., `--set` options.
         tmp_path: A directory for a copy of the chart.
+        values: A file to replace the default values with (see `copy_chart`).
 
     Returns:
-        The notes, as `helm install` prints them.
+        The notes, as `helm install` prints them (`templates/NOTES.txt` only
+        includes the template rendered here).
     """
-    chart = Path(tempfile.mkdtemp(dir=tmp_path)) / "tesk"
-    shutil.copytree(CHART, chart)
+    chart = copy_chart(tmp_path, values)
     (chart / "templates" / "notes-test.yaml").write_text(_NOTES_TEMPLATE)
-    # `NOTES.txt` must only include the template rendered here
-    assert (CHART / "templates" / "NOTES.txt").read_text().strip() == (
-        '{{- include "tesk.notes" . -}}'
-    )
     configmap = get(render(*args, chart=chart), "ConfigMap", "notes")
     text: str = configmap["data"]["notes"]
     return text

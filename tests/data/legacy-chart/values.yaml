@@ -1,8 +1,3 @@
-# The default values of the chart before the keys were renamed to camelCase
-# (#247; `charts/tesk/values.yaml` at commit 27a6945), with the deprecated
-# snake_case keys. The chart tests check that they still render the same
-# objects, also as the defaults of `helm upgrade --reuse-values`.
-
 # Default values for tesk.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.

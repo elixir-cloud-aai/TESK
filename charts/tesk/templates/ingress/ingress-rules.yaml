@@ -1,7 +1,8 @@
 {{- if .Values.ingress.rules }}
-{{- $hostName := ternary (index .Values "host_name") .Values.hostName (hasKey .Values "host_name") -}}
-{{- $ingress := .Values.ingress -}}
-{{- $tlsSecretName := ternary (index $ingress "tls_secret_name") (index $ingress "tlsSecretName") (hasKey $ingress "tls_secret_name") }}
+{{- $values := dict }}
+{{- include "tesk.resolveValues" (dict "root" . "out" $values) }}
+{{- $hostName := index $values "hostName" }}
+{{- $tlsSecretName := index $values "ingress.tlsSecretName" }}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:

@@ -1,5 +1,7 @@
 {{- if and (.Capabilities.APIVersions.Has "route.openshift.io/v1") (eq .Values.ingress.rules false) }}
-{{- $hostName := ternary (index .Values "host_name") .Values.hostName (hasKey .Values "host_name") }}
+{{- $values := dict }}
+{{- include "tesk.resolveValues" (dict "root" . "out" $values) }}
+{{- $hostName := index $values "hostName" }}
 apiVersion: route.openshift.io/v1
 kind: Route
 metadata:
