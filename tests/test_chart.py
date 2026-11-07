@@ -814,6 +814,12 @@ def test_ftp_hosts(args: tuple[str, ...], expected: str | None) -> None:
         ("--set-json", 'ftp.hosts=["ftp.example.org/"]'),
         ("--set-json", 'ftp.hosts=[" ftp.example.org"]'),
         ("--set-json", 'ftp.hosts=["ftp.example.org:"]'),
+        ("--set-json", 'ftp.hosts=["2001:db8::1"]'),
+        ("--set-json", 'ftp.hosts=["[::1"]'),
+        ("--set-json", 'ftp.hosts=[":21"]'),
+        ("--set-json", 'ftp.hosts=["ftp.example.org:abc"]'),
+        ("--set-json", 'ftp.hosts=["ftp.example.org:0"]'),
+        ("--set-json", 'ftp.hosts=["ftp.example.org\\u000b"]'),
     ],
 )
 def test_ftp_hosts_invalid(args: tuple[str, ...]) -> None:

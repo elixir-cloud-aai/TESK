@@ -29,9 +29,9 @@ the credentials, do one of the following when you upgrade:
 - Or put the credentials into a `.netrc` file, with one entry per host
   (`ftp.netrcSecret`; see [FTP](deployment.md#ftp)).
 
-The notes that `helm upgrade` prints warn if `ftp.username` is set and
-`ftp.hosts` is empty (without `ftp.netrcSecret`). Deployments with a `.netrc` file, or without FTP
-credentials, need no change.
+The notes that `helm upgrade` prints warn if `ftp.username` is set,
+`ftp.hosts` is empty and `ftp.netrcSecret` is not set. Deployments with a
+`.netrc` file, or without FTP credentials, need no change.
 
 ### Probes of the API
 
