@@ -117,7 +117,7 @@ fields.
 | `charts/tesk/s3-config/config`, `credentials` | S3 configuration and credentials, with `storage: s3`. |
 | `charts/tesk/tls_secret_name.yml-TEMPLATE` | Template of a TLS secret, if you create it yourself. |
 
-The chart quotes the four `secrets.yaml` values, so any character is allowed and a numeric value (e.g., a numeric client ID) becomes a string. Numbers of 2^53 or more can't be read exactly from a values file: quote them (`"12345678901234567890"`) or use `--set-string`. The files are used as they are.
+The chart quotes the four `secrets.yaml` values, so any character is allowed and a numeric value (e.g., a numeric client ID) becomes a string. Numbers of 2^53 or more can't be read exactly from a values file: quote them (`"12345678901234567890"`) or use `--set-string`. Quote IDs with leading zeros or in hex or exponent form too, because YAML reads them as other numbers. The files are used as they are.
 
 ## Environment variables
 
