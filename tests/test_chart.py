@@ -777,6 +777,147 @@ def test_ftp() -> None:
     assert get(manifests, "Service", "ftp")["spec"]["ports"][0]["port"] == 21
 
 
+@pytest.mark.parametrize(
+    ("args", "expected"),
+    [
+        ((), None),
+        (("--set-json", "ftp.hosts=[]"), None),
+        (("--set", "ftp.hosts=null"), None),
+        (("--set", "ftp.hosts={ftp.example.org}"), "ftp.example.org"),
+        (
+            ("--set", "ftp.hosts={ftp.example.org,data.example.org:2121}"),
+            "ftp.example.org,data.example.org:2121",
+        ),
+        (("--set-json", 'ftp.hosts=["[2001:db8::1]:21"]'), "[2001:db8::1]:21"),
+    ],
+)
+def test_ftp_hosts(args: tuple[str, ...], expected: str | None) -> None:
+    """`ftp.hosts` reaches the taskmaster as `TESK_FTP_HOSTS`, if not empty.
+
+    Args:
+        args: The `helm template` arguments.
+        expected: The value of the variable, or `None` if it is not set.
+    """
+    variables = env(render(*args))
+    assert variables.get("TESK_API_TASKMASTER_ENVIRONMENT_TESK_FTP_HOSTS") == expected
+
+
+@pytest.mark.parametrize(
+    "args",
+    [
+        ("--set", "ftp.hosts=ftp.example.org"),
+        ("--set-json", "ftp.hosts=[1]"),
+        ("--set-json", 'ftp.hosts=["a,b"]'),
+        ("--set-json", 'ftp.hosts=[""]'),
+        ("--set-json", 'ftp.hosts=["ftp://ftp.example.org"]'),
+        ("--set-json", 'ftp.hosts=["user@ftp.example.org"]'),
+        ("--set-json", 'ftp.hosts=["ftp.example.org/"]'),
+        ("--set-json", 'ftp.hosts=[" ftp.example.org"]'),
+        ("--set-json", 'ftp.hosts=["ftp.example.org:"]'),
+        ("--set-json", 'ftp.hosts=["2001:db8::1"]'),
+        ("--set-json", 'ftp.hosts=["[::1"]'),
+        ("--set-json", 'ftp.hosts=[":21"]'),
+        ("--set-json", 'ftp.hosts=["ftp.example.org:abc"]'),
+        ("--set-json", 'ftp.hosts=["ftp.example.org:0"]'),
+        ("--set-json", 'ftp.hosts=["ftp.example.org\\u000b"]'),
+        ("--set-json", 'ftp.hosts=["*.example.org"]'),
+        ("--set-json", 'ftp.hosts=["ftp.example.org:65536"]'),
+    ],
+)
+def test_ftp_hosts_invalid(args: tuple[str, ...]) -> None:
+    """`ftp.hosts` entries are hosts, with a port or not, and nothing else.
+
+    Args:
+        args: The `helm template` arguments.
+    """
+    with pytest.raises(subprocess.CalledProcessError):
+        render(*args)
+
+
+USER = ("--set", "ftp.username=user")
+PASSWORD = ("--set", "ftp.password=s3cr3t")
+
+
+@pytest.mark.parametrize(
+    ("args", "warned"),
+    [
+        ((*USER, *PASSWORD), True),
+        (USER, True),
+        (("--set", "ftp.username=0", *PASSWORD), True),
+        (("--set", "ftp.username=false", *PASSWORD), True),
+        (PASSWORD, False),
+        ((), False),
+        ((*USER, *PASSWORD, "--set", "ftp.hosts={ftp.example.org}"), False),
+        ((*USER, *PASSWORD, "--set", "ftp.classicFtpSecret="), False),
+        ((*USER, *PASSWORD, "--set", "ftp.netrcSecret=netrc"), False),
+    ],
+)
+def test_notes_ftp_hosts(tmp_path: Path, args: tuple[str, ...], warned: bool) -> None:
+    """The notes warn about an FTP user name without `ftp.hosts`.
+
+    Any user name, also one that YAML reads as 0 or false, but only if the
+    credentials are used: with `ftp.classicFtpSecret` and without `.netrc`.
+
+    Args:
+        tmp_path: A directory for a copy of the chart.
+        args: The `helm template` arguments.
+        warned: Whether the notes warn.
+    """
+    text = notes(*args, tmp_path=tmp_path)
+    assert f"release tesk in namespace {NAMESPACE}" in text
+    assert ("ftp.hosts is empty" in text) is warned
+    assert "s3cr3t" not in text
+
+
+@pytest.mark.parametrize(
+    ("args", "keys"),
+    [
+        ((), ["tesk.taskmaster.image.tag", "tesk.filer.image.tag"]),
+        (("--set", "tesk.filer.image.tag=v0.11.0"), ["tesk.taskmaster.image.tag"]),
+        (("--set", "tesk.taskmaster.image.tag=0.9.0"), None),
+        (
+            (
+                "--set",
+                "tesk.taskmaster.image.tag=v0.10.7",
+                "--set",
+                "tesk.filer.image.tag=dev",
+            ),
+            [],
+        ),
+    ],
+)
+def test_notes_ftp_hosts_old_images(
+    tmp_path: Path, args: tuple[str, ...], keys: list[str] | None
+) -> None:
+    """The notes warn if `ftp.hosts` is set, but images are too old for it.
+
+    Release tags up to v0.10.6 ignore `ftp.hosts`; other tags (e.g., `dev`)
+    are assumed to support it.
+
+    Args:
+        tmp_path: A directory for a copy of the chart.
+        args: Further `helm template` arguments (image tags).
+        keys: The keys of the old image tags that the warning names, or
+            `None` for both keys (the taskmaster's tag set to an old one
+            without the `v`).
+    """
+    hosts = ("--set", "ftp.hosts={ftp.example.org}")
+    text = notes(*hosts, *args, tmp_path=tmp_path)
+    expected = (
+        keys
+        if keys is not None
+        else [
+            "tesk.taskmaster.image.tag",
+            "tesk.filer.image.tag",
+        ]
+    )
+    if expected:
+        assert f"WARNING: ftp.hosts is set, but {' and '.join(expected)} " in text
+    else:
+        assert "ftp.hosts is set" not in text
+    assert "ftp.hosts is set" not in notes(*args, tmp_path=tmp_path)
+
+
 def test_ftp_secret() -> None:
     """The FTP secret holds the credentials from the values."""
     manifests = render("--set", "ftp.username=user", "--set", "ftp.password=pass")

@@ -180,7 +180,9 @@ credentials in one of two ways:
 
 - **Username and password** (default): the chart creates the secret named in
   `ftp.classicFtpSecret` (default `ftp-secret`) from `ftp.username` and
-  `ftp.password` (in `secrets.yaml`).
+  `ftp.password` (in `secrets.yaml`). List the hosts of the account in
+  `ftp.hosts` (e.g., `[ftp.example.org]`): the filer sends the credentials
+  only to them, and logs in anonymously elsewhere.
 - **`.netrc` file**, which can hold credentials for several servers: set
   `ftp.netrcSecret` (e.g., `netrc-secret`) and `ftp.classicFtpSecret: ""`,
   and put the file at `charts/tesk/ftp/.netrc` (template:
