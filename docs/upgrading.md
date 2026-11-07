@@ -1,7 +1,10 @@
 # Upgrading
 
 Changes that affect existing deployments, newest first. Upgrade a release
-with the same values files as before, adapted as described here:
+with the same values files as before, adapted as described here, unless a
+section says otherwise (releases of charts before [Resource names from the
+release name](#resource-names-from-the-release-name) must be installed
+again):
 
 ```bash
 helm upgrade tesk charts/tesk --namespace tesk -f my-values.yaml -f secrets.yaml
@@ -11,9 +14,13 @@ helm upgrade tesk charts/tesk --namespace tesk -f my-values.yaml -f secrets.yaml
 
 ### Resource names from the release name
 
-**Breaking: an existing release can't be upgraded in place.** The chart
-follows Helm's conventions now, and two of its changes can't be applied by
-`helm upgrade` to a release of an earlier chart:
+**Breaking: install existing releases again.** The chart follows Helm's
+conventions now. Its objects get new names and its Deployment a new
+selector, which Kubernetes doesn't allow changing: `helm upgrade` fails
+for a release named `tesk` (whose Deployment keeps the name `tesk-api`),
+and for other release names it would replace all objects at once, with the
+problems of an uninstallation (see below) but without a clean state. The
+changes:
 
 - **Names:** the names of the chart's objects start with the release name
   (see [Names of the objects](configuration.md#names-of-the-objects)), so
@@ -54,8 +61,10 @@ The chart's objects hold no data of their own: the secrets are created
 from your values files and the files in the chart directory, and the chart
 creates no PVCs. The tasks are jobs, pods and PVCs that tesk-api and the
 taskmasters create in the namespace, not objects of the release: they stay
-when the release is removed, and the new release lists them (task history
-is kept). To move a release to this chart:
+when the release is removed. tesk-api reads the tasks from the jobs of its
+namespace, so a new release in the same namespace lists the earlier tasks
+too (from tesk-api's code; not tested in a migration). To move a release
+to this chart:
 
 1. **Rename the values** in your values files (`my-values.yaml`,
    `secrets.yaml`) as in the table below. Check them with
@@ -84,6 +93,15 @@ is kept). To move a release to this chart:
     The API is unavailable from the uninstallation until the new pod is
     ready (`helm install --wait` waits for it).
 
+If you (or a GitOps tool such as Argo CD or Flux) already ran `helm upgrade`
+with this chart, the failed upgrade created some of the new objects and
+recorded their names, so `helm uninstall` leaves the objects with the old
+names behind (e.g., the Ingress `ingress-rules`, whose host and path then
+clash with the new Ingress). Before step 4, roll back to the last revision
+that worked (`helm history tesk --namespace tesk`, then
+`helm rollback tesk <revision> --namespace tesk`), or delete the objects
+with the old names (see the table above) after the uninstallation.
+
 Things to check:
 
 - **Names that you use outside the chart:** scripts, monitoring or network
@@ -98,9 +116,12 @@ Things to check:
   the release and stays. With cert-manager, the certificate is issued again
   for the new Ingress if the secret was removed.
 - **OpenStack storage class:** with `storage: openstack`, the default
-  storage class is `<prefix>-gold` now. PVCs and volumes of the class
-  `gold` keep working; if your values set `storageClass: gold`, set it to
-  the new name, or leave it empty to use the default class.
+  storage class is `<prefix>-gold` now. The uninstallation deletes the
+  storage class `gold`, which was the cluster's default: bound PVCs and
+  their volumes keep working, but new PVCs that name `gold`, also those of
+  other workloads in the cluster, stay pending. Change them to the new
+  name, or leave their class empty to use the default; if your values set
+  `storageClass: gold`, do the same there.
 - **Releases in one namespace share their tasks:** see [Names of the
   objects](configuration.md#names-of-the-objects).
 
@@ -207,7 +228,8 @@ may remove it. When you upgrade:
   `--set auth.clientSecret=null`); this clears the value stored before.
   Running pods keep the old value until they restart: if the upgrade
   doesn't change the API's pod (e.g., its image), restart it with
-  `kubectl rollout restart deployment/tesk-api --namespace tesk`.
+  `kubectl rollout restart deployment/tesk-api --namespace tesk` (the
+  Deployment is `<prefix>-api`, here for the release `tesk`).
 - Register the Swagger UI's client with your identity provider as a public
   client (implicit grant, or authorisation code if your provider allows it
   for public clients).

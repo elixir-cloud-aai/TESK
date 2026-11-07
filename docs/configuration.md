@@ -121,7 +121,7 @@ requests to a pod that isn't ready.
 
 | Value | Default | Description |
 | --- | --- | --- |
-| `ftp.classicFtpSecret` | null | Name of the secret with the FTP username and password, created from `ftp.username` and `ftp.password`; null uses `<prefix>-ftp`, empty creates none. |
+| `ftp.classicFtpSecret` | null | Name of the secret with the FTP username and password, created from `ftp.username` and `ftp.password`; null uses `<prefix>-ftp`, empty or `false` creates none. |
 | `ftp.netrcSecret` | empty | Name of the secret with a `.netrc` file, created from `charts/tesk/ftp/.netrc`; empty creates none. |
 | `ftp.hosts` | `[]` | Hosts that the filer sends the credentials of `ftp.classicFtpSecret` to, e.g. `[ftp.example.org]` (see below); empty sends them to no host. Not needed for `.netrc`. |
 | `ftp.username` | none | FTP username (put it into `secrets.yaml`). |
@@ -156,7 +156,10 @@ release name, as in charts made with `helm create`: the release name, if it
 contains the chart's name (`tesk`), else `<release>-tesk`.
 `fullnameOverride` replaces the whole prefix, `nameOverride` the chart's
 name in it. The prefix is cut to 50 characters, so that all names fit the
-63 characters that Kubernetes allows.
+63 characters that Kubernetes allows. It must be a valid start of a Service
+name (a lowercase letter first, then lowercase letters, digits and dashes):
+release names that start with a digit or contain dots, which Helm accepts,
+fail the installation unless `fullnameOverride` is set.
 
 | Object | Name | Release `tesk` | Release `prod` |
 | --- | --- | --- | --- |
@@ -164,7 +167,7 @@ name in it. The prefix is cut to 50 characters, so that all names fit the
 | ServiceAccount, Role and RoleBinding of the API and the taskmasters | `<prefix>-taskmaster` | `tesk-taskmaster` | `prod-tesk-taskmaster` |
 | ConfigMap with the service info | `<prefix>-service-info` | `tesk-service-info` | `prod-tesk-service-info` |
 | Secret with the OIDC client (`auth.mode: auth`) | `<prefix>-oauth-client` | `tesk-oauth-client` | `prod-tesk-oauth-client` |
-| Secret with the FTP credentials | `ftp.classicFtpSecret`, or `<prefix>-ftp` if it is null | `tesk-ftp` | `prod-tesk-ftp` |
+| Secret with the FTP credentials | `ftp.classicFtpSecret`, or `<prefix>-ftp` if it is null (none if it is empty or `false`) | `tesk-ftp` | `prod-tesk-ftp` |
 | Ingress, or OpenShift Route | `<prefix>` | `tesk` | `prod-tesk` |
 | StorageClass (`storage: openstack`) | `<prefix>-gold` | `tesk-gold` | `prod-tesk-gold` |
 | Secret with the `.netrc` file | `ftp.netrcSecret` | | |
