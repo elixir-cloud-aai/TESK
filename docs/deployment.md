@@ -239,6 +239,40 @@ of LS Login (formerly ELIXIR AAI), configured with `auth.envBasegroup` and
 guide](https://github.com/elixir-cloud-aai/tesk-api/blob/master/auth.md) of
 tesk-api.
 
+### Authorisation by a claim
+
+Providers whose groups don't fit that model (e.g., LS Login without the
+group structure) can authorise users by a claim of the user info instead
+(tesk-api 1.2.0 or later). It is off by default, and needs `auth.mode:
+auth`:
+
+```yaml
+auth:
+  mode: auth
+  claim:
+    enabled: true
+    name: eduperson_entitlement
+    values:
+      - urn:geant:example.org:group:tesk#example.org
+```
+
+Users with one of the values in the claim may create tasks, which belong to
+them only, without a team, and list, get and cancel their own tasks; group
+rules still apply first. Their tokens must come from a client that the
+provider allows to release the claim; without it, requests are refused
+(`403 Forbidden`). The chart fails if the setting is on without a name or
+without values, as tesk-api wouldn't start; values are compared exactly and
+mustn't contain commas.
+
+Everyone who has one of the values can run any image with any command on
+the cluster. Choose a claim and values that an administrator grants per
+user and users can't set themselves, e.g., an entitlement of your
+community, not a value that every account has. See [Authorisation
+without groups][claim-docs] in the docs of tesk-api for the rules and their
+security implications.
+
+[claim-docs]: https://github.com/elixir-cloud-aai/tesk-api/blob/dev/docs/access-control.md#authorisation-without-groups
+
 To let users log in from the Swagger UI, register a public OIDC client
 (without a secret; implicit grant, or authorisation code if your provider
 allows it for public clients) with your provider and put its ID into
