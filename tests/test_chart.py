@@ -10,6 +10,7 @@ pinned Helm version only.
 from __future__ import annotations
 
 import base64
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -322,9 +323,24 @@ def test_security_context() -> None:
     assert "securityContext" not in container(manifests)
 
 
-def test_executor_security_context_default() -> None:
-    """By default, executors run as before: no ConfigMap, no `CONFIGMAP`."""
-    manifests = render()
+@pytest.mark.parametrize(
+    "args",
+    [
+        (),
+        ("--set-json", "tesk.executor.securityContext={}"),
+        ("--set-json", "tesk.executor.securityContext=null"),
+        ("--set-json", "tesk.executor=null"),
+    ],
+)
+def test_executor_security_context_default(args: tuple[str, ...]) -> None:
+    """Without a security context, executors run as before.
+
+    No ConfigMap, no `CONFIGMAP`, and no checksum annotation.
+
+    Args:
+        args: The `helm template` arguments.
+    """
+    manifests = render(*args)
     assert find(manifests, "ConfigMap", "tesk-executor") is None
     assert "CONFIGMAP" not in env(manifests)
     annotations = deployment(manifests)["spec"]["template"]["metadata"]
@@ -367,8 +383,7 @@ def test_executor_security_context(
     """The executors' security context reaches tesk-api through a ConfigMap.
 
     tesk-api reads the ConfigMap named in `CONFIGMAP` at startup (key
-    `securityContext`, with `nonRoot` for `runAsNonRoot`); a checksum
-    restarts the API's pod when it changes.
+    `securityContext`, with `nonRoot` for `runAsNonRoot`).
 
     Args:
         args: The `helm template` arguments.
@@ -378,11 +393,23 @@ def test_executor_security_context(
     config = get(manifests, "ConfigMap", "prod-tesk-executor")
     assert yaml.safe_load(config["data"]["securityContext"]) == expected
     assert env(manifests)["CONFIGMAP"] == "prod-tesk-executor"
-    annotations = deployment(manifests)["spec"]["template"]["metadata"]["annotations"]
-    other = render("--set", "tesk.executor.securityContext.fsGroup=1", release="prod")
-    other_annotations = deployment(other)["spec"]["template"]["metadata"]["annotations"]
-    assert annotations["checksum/executor-config"]
-    assert annotations != other_annotations
+
+
+def test_executor_security_context_checksum() -> None:
+    """A checksum of the ConfigMap's data restarts the API's pod on changes.
+
+    tesk-api reads the ConfigMap only at startup.
+    """
+    checksums = []
+    for group in (1, 2):
+        manifests = render("--set", f"tesk.executor.securityContext.fsGroup={group}")
+        data = get(manifests, "ConfigMap", "tesk-executor")["data"]["securityContext"]
+        metadata = deployment(manifests)["spec"]["template"]["metadata"]
+        checksum = metadata["annotations"]["checksum/executor-config"]
+        # The block scalar adds a final newline that the checksum leaves out
+        assert checksum == hashlib.sha256(data.rstrip("\n").encode()).hexdigest()
+        checksums.append(checksum)
+    assert checksums[0] != checksums[1]
 
 
 def test_executor_security_context_values_file(tmp_path: Path) -> None:
@@ -397,18 +424,19 @@ def test_executor_security_context_values_file(tmp_path: Path) -> None:
         "      runAsUser: 1000000\n      fsGroup: 2000\n"
     )
     config = get(render("-f", str(values)), "ConfigMap", "tesk-executor")
-    assert config["data"]["securityContext"].split() == [
-        "fsGroup:",
-        "2000",
-        "runAsUser:",
-        "1000000",
-    ]
+    # Without a conversion, Helm would render 1000000 as 1e+06
+    assert yaml.safe_load(config["data"]["securityContext"]) == {
+        "fsGroup": 2000,
+        "runAsUser": 1000000,
+    }
 
 
 @pytest.mark.parametrize(
     "value",
     [
         '{"runAsUser": -1}',
+        '{"runAsUser": 2147483648}',
+        '{"fsGroup": 2147483648}',
         '{"runAsUser": 1.5}',
         '{"runAsUser": "1000"}',
         '{"runAsNonRoot": "yes"}',

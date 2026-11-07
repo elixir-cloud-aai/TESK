@@ -59,7 +59,8 @@ tesk:
     # leaves the executors as their images say (often root). `fsGroup` also
     # gives executors access to the files that the filer stages on the
     # task's PVC, on volume types whose ownership Kubernetes manages. Not
-    # applied to the taskmaster and the filer. tesk-api reads it at startup,
+    # applied to the API (see `securityContext`), the taskmaster and the
+    # filer. tesk-api reads it at startup,
     # so a change restarts the API's pod
     securityContext: {}
   # Debug logging in the taskmasters

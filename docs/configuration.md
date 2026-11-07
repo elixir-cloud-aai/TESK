@@ -43,7 +43,7 @@ image. It accepts unknown keys.
 | `tesk.taskmaster.image.tag` | `v0.10.6` | Tag of the taskmaster image (see [Upgrading](upgrading.md#taskmaster-and-filer-v0106)). |
 | `tesk.filer.image.repository` | `docker.io/elixircloud/tesk-core-filer` | Image of the filer (tesk-core), without its tag. |
 | `tesk.filer.image.tag` | `v0.10.6` | Tag of the filer image. |
-| `tesk.executor.securityContext` | `{}` | Security context of the executors' pods: `runAsUser`, `runAsGroup`, `fsGroup` (non-negative integers) and `runAsNonRoot` (`true` or `false`); other fields fail the schema check. Empty leaves the executors as their images say. See [Executors as non-root users](deployment.md#executors-as-non-root-users). |
+| `tesk.executor.securityContext` | `{}` | Security context of the executors' pods: `runAsUser`, `runAsGroup`, `fsGroup` (integers from 0 to 2147483647) and `runAsNonRoot` (`true` or `false`); other fields fail the schema check. Empty leaves the executors as their images say. Applies only to the executors, not to the API (`tesk.securityContext`), the taskmasters or the filers. See [Executors as non-root users](deployment.md#executors-as-non-root-users). |
 | `tesk.debug` | `false` | Debug logging in the taskmasters. |
 | `tesk.executorRetries` | `2` | Retries of an executor's job on errors (its `backoffLimit`). |
 | `tesk.filerRetries` | `2` | Retries of a filer's job on errors, while staging inputs or outputs. |
@@ -53,7 +53,7 @@ image. It accepts unknown keys.
 | `tesk.startupProbe` | every 5 s, 5 s timeout, up to 60 failures (5 minutes) | Startup probe of the API's container: it holds off the other probes while the API starts, which takes about a minute (see [Probes](#probes)). |
 | `tesk.readinessProbe` | every 10 s, 5 s timeout, 3 failures | Readiness probe: the Service and Ingress send requests to the pod, and `helm install --wait` returns, once it succeeds (see [Probes](#probes)). |
 | `tesk.livenessProbe` | every 20 s, 5 s timeout, 3 failures | Liveness probe: Kubernetes restarts the container if it fails (see [Probes](#probes)). |
-| `tesk.securityContext.enabled` | `true` | Runs the API as a non-root user (UID 1000) with the `RuntimeDefault` seccomp profile, no privilege escalation and no capabilities. |
+| `tesk.securityContext.enabled` | `true` | Runs the API as a non-root user (UID 1000) with the `RuntimeDefault` seccomp profile, no privilege escalation and no capabilities. Applies only to the API's pod; for the executors, see `tesk.executor.securityContext`. |
 | `tesk.swaggerUi.enabled` | `false` | `true` serves the Swagger UI (at the root path of the deployment, `ingress.path`, see [Swagger UI](deployment.md#swagger-ui)). Turning it on serves the Swagger UI publicly; enable it only where needed. `true` or `false` only (also as strings, in any case; anything else fails the installation); null leaves tesk-api's default (off). Needs tesk-api 1.2.0 or later; earlier versions ignore it and always serve the Swagger UI. |
 
 #### Probes

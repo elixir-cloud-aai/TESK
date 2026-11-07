@@ -135,17 +135,20 @@
                 "runAsUser": {
                   "type": "integer",
                   "minimum": 0,
-                  "description": "User ID of the executors' containers"
+                  "description": "User ID of the executors' containers",
+                  "maximum": 2147483647
                 },
                 "runAsGroup": {
                   "type": "integer",
                   "minimum": 0,
-                  "description": "Primary group ID of the executors' containers"
+                  "description": "Primary group ID of the executors' containers",
+                  "maximum": 2147483647
                 },
                 "fsGroup": {
                   "type": "integer",
                   "minimum": 0,
-                  "description": "Group that owns the pod's volumes (e.g., the task's PVC), for volume types whose ownership Kubernetes manages"
+                  "description": "Group that owns the pod's volumes (e.g., the task's PVC), for volume types whose ownership Kubernetes manages",
+                  "maximum": 2147483647
                 },
                 "runAsNonRoot": {
                   "type": "boolean",
