@@ -1984,6 +1984,12 @@ def test_seconds_unset(key: str, args: tuple[str, ...]) -> None:
         ("maxQueueSeconds", ("--set", "tesk.maxQueueSeconds=3600"), "3600"),
         ("maxQueueSeconds", ("--set", "tesk.maxQueueSeconds=1"), "1"),
         ("maxQueueSeconds", ("--set-string", "tesk.maxQueueSeconds=0600"), "600"),
+        (
+            "taskTtlSeconds",
+            ("--set-string", "tesk.taskTtlSeconds=0000000000086400"),
+            "86400",
+        ),
+        ("taskTtlSeconds", ("--set-string", "tesk.taskTtlSeconds=000"), "0"),
     ],
 )
 def test_seconds(key: str, args: tuple[str, ...], expected: str) -> None:
@@ -2071,6 +2077,14 @@ def test_seconds_invalid_schema(args: tuple[str, ...]) -> None:
             ("--set-string", "tesk.maxQueueSeconds=9999999999"),
             "tesk.maxQueueSeconds must be whole seconds from 1 to 2147483647",
         ),
+        (
+            ("--set-string", "tesk.taskTtlSeconds=99999999999999999999"),
+            "tesk.taskTtlSeconds must be whole seconds from 0 to 2147483647",
+        ),
+        (
+            ("--set-string", "tesk.maxQueueSeconds=0000"),
+            "tesk.maxQueueSeconds must be whole seconds from 1 to 2147483647",
+        ),
     ],
 )
 def test_seconds_invalid_range(args: tuple[str, ...], message: str) -> None:
@@ -2120,6 +2134,8 @@ def test_notes_seconds_old_taskmaster(
         ((), APP_VERSION < (1, 2)),
         (("--set", "tesk.image.tag=1.1.0"), True),
         (("--set", "tesk.image.tag=v1.1"), True),
+        (("--set", "tesk.image.tag=1.1.1-rc.1"), True),
+        (("--set", "tesk.image.tag=1.2.0-rc.1"), False),
         (("--set", "tesk.image.tag=1.2.0"), False),
         (("--set", "tesk.image.tag=dev"), False),
     ],

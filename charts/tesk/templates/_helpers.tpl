@@ -238,7 +238,7 @@ v0.10.6.
 the max queue time as COMPLETE (tesk-api#104); tags that aren't versions
 (e.g., dev) are assumed to be newer */ -}}
 {{- $apiTag := toString (dig "image" "tag" "" .Values.tesk) | default .Chart.AppVersion | trimPrefix "v" -}}
-{{- if and (include "tesk.seconds" (dict "root" . "name" "maxQueueSeconds" "minimum" 1)) (regexMatch "^[0-9]+\\.[0-9]+(\\.[0-9]+)?$" $apiTag) (semverCompare "<1.2.0-0" $apiTag) }}
+{{- if and (include "tesk.seconds" (dict "root" . "name" "maxQueueSeconds" "minimum" 1)) (regexMatch "^[0-9]+\\.[0-9]+(\\.[0-9]+)?([-+][0-9A-Za-z.+-]*)?$" $apiTag) (semverCompare "<1.2.0-0" $apiTag) }}
 
 WARNING: tesk.maxQueueSeconds is set, but tesk-api {{ $apiTag }} (tesk.image.tag)
 reports a task whose executor wasn't scheduled in time as COMPLETE instead
@@ -254,11 +254,13 @@ timeout, as before. Use images newer than v0.10.6.
 {{- end -}}
 
 {{/*
-Whole seconds from a value under `tesk` (`name`), with a `minimum`, as the
-taskmaster reads them: empty if unset (null or empty); fails on anything
-but whole seconds from `minimum` to 2147483647, which the taskmaster would
-ignore, also without the schema. Numbers from values files are floats,
-rendered as integers; strings of digits lose their leading zeros.
+Whole seconds from a value under `tesk` (`name`), with a `minimum` (0 or 1),
+as the taskmaster reads them: empty if unset (null or empty); fails on
+anything but whole seconds from `minimum` to 2147483647, which the
+taskmaster would ignore, also without the schema. Numbers from values files
+are floats, rendered as integers; strings of digits lose their leading
+zeros. The range is checked on the digits, not with `atoi`, whose `int` has
+32 bits on some platforms.
 */}}
 {{- define "tesk.seconds" -}}
 {{- $value := index .root.Values.tesk .name -}}
@@ -269,10 +271,11 @@ rendered as integers; strings of digits lose their leading zeros.
 {{- else if and (or (kindIs "int" $value) (kindIs "int64" $value) (kindIs "float64" $value)) (eq (float64 $value) (floor $value)) -}}
 {{- $seconds = printf "%d" ($value | int64) -}}
 {{- end -}}
-{{- if or (not (regexMatch "^[0-9]{1,10}$" $seconds)) (lt (atoi $seconds) (int .minimum)) (gt (atoi $seconds) 2147483647) -}}
+{{- $digits := regexReplaceAll "^0+([0-9])" $seconds "${1}" -}}
+{{- if or (not (regexMatch "^[0-9]+$" $seconds)) (gt (len $digits) 10) (and (eq (len $digits) 10) (gt $digits "2147483647")) (and (eq (int .minimum) 1) (eq $digits "0")) -}}
 {{- fail (printf "tesk.%s must be whole seconds from %d to 2147483647, not %q" .name (int .minimum) (toString $value)) -}}
 {{- end -}}
-{{- atoi $seconds -}}
+{{- $digits -}}
 {{- end -}}
 {{- end -}}
 
