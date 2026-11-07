@@ -9,7 +9,7 @@ helm upgrade tesk charts/tesk --namespace tesk -f my-values.yaml -f secrets.yaml
 
 ## Unreleased
 
-### PVCs of failed and cancelled tasks are deleted
+### Newer taskmaster images delete the PVCs of failed tasks
 
 With taskmaster images newer than v0.10.6, the taskmaster also deletes the
 PVC of a task that fails or is cancelled; before, only tasks that completed

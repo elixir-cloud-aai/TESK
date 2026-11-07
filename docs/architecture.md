@@ -32,6 +32,8 @@ repositories (see [Development](development.md#docs-of-tesk-api-and-tesk-core)).
    the task as requests and limits. If an executor fails, the task ends with
    `EXECUTOR_ERROR`, and later executors don't run.
 5. It runs the filer again to upload the outputs, deletes the PVC and ends.
+   A task that fails or is cancelled stops there, and its PVC is deleted
+   too, unless `tesk.keepFailedPvcs` is set.
 
 Each task has its own taskmaster and executors, and, with inputs, outputs
 or volumes, its own PVC and filers; the API is the

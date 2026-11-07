@@ -79,8 +79,9 @@ spec:
           value: {{ toString . | quote }}
         {{- end }}
         {{- /* Only true (also as a string) keeps them; the taskmaster
-        deletes them by default */}}
-        {{- if eq (lower (toString $tesk.keepFailedPvcs)) "true" }}
+        deletes them by default. A missing key (`--reuse-values` from an
+        earlier chart) renders as "<nil>" */}}
+        {{- if eq (toString $tesk.keepFailedPvcs) "true" }}
         - name: TESK_API_TASKMASTER_ENVIRONMENT_KEEP_FAILED_PVC
           value: "true"
         {{- end }}

@@ -1235,6 +1235,7 @@ def test_filer_http_timeout_values_file(tmp_path: Path) -> None:
         (("--set", "tesk.keepFailedPvcs=true"), "true"),
         (("--set-string", "tesk.keepFailedPvcs=true"), "true"),
         (("--set-string", "tesk.keepFailedPvcs=false"), None),
+        (("--set-string", "tesk.keepFailedPvcs="), None),
     ],
 )
 def test_keep_failed_pvcs(args: tuple[str, ...], expected: str | None) -> None:
@@ -1258,7 +1259,9 @@ def test_keep_failed_pvcs(args: tuple[str, ...], expected: str | None) -> None:
 
 @pytest.mark.parametrize("value", ['"yes"', '"True"', "1", "[]"])
 def test_keep_failed_pvcs_invalid(value: str) -> None:
-    """The schema accepts only true, false (also as strings) or null.
+    """The schema rejects values other than true, false, empty or null.
+
+    The strings "true" and "false" pass too, in lowercase only.
 
     Args:
         value: The value, as JSON.
@@ -1266,6 +1269,18 @@ def test_keep_failed_pvcs_invalid(value: str) -> None:
     with pytest.raises(subprocess.CalledProcessError) as error:
         render("--set-json", f"tesk.keepFailedPvcs={value}")
     assert "values don't meet the specifications of the schema" in error.value.stderr
+
+
+def test_keep_failed_pvcs_values_file(tmp_path: Path) -> None:
+    """A YAML boolean in a values file keeps the PVCs too.
+
+    Args:
+        tmp_path: A directory for the values file.
+    """
+    values = tmp_path / "values.yaml"
+    values.write_text("tesk:\n  keepFailedPvcs: true\n")
+    variables = env(render("-f", str(values)))
+    assert variables["TESK_API_TASKMASTER_ENVIRONMENT_KEEP_FAILED_PVC"] == "true"
 
 
 def _sorted(manifests: list[Manifest]) -> list[Manifest]:

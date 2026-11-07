@@ -174,9 +174,10 @@
             false,
             "true",
             "false",
+            "",
             null
           ],
-          "description": "Keep the PVCs of tasks that fail or are cancelled (true or false); by default, the taskmaster deletes them"
+          "description": "Keep the PVCs of tasks that fail or are cancelled (true or false; empty is false); by default, the taskmaster deletes them"
         },
         "resources": {
           "type": [
