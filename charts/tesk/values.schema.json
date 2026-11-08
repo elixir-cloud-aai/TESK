@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft-07/schema#",
-  "$comment": "Checks the structure of the values (maps where the templates expect maps, scalars where they expect scalars, mostly of any scalar type, as tools may set strings), and rejects unknown keys of the chart's own maps (e.g., typos); maps with Kubernetes' keys (resources, security contexts, probes, annotations) are open. Keys of earlier versions of the chart ($defs/removed) pass here, and fail in the templates with their replacements (see tesk.removedValues in templates/_helpers.tpl)",
+  "$comment": "Checks the structure of the values (maps where the templates expect maps, scalars where they expect scalars) and rejects unknown keys of the chart's own maps (e.g., typos). Scalars are of any scalar type, as tools may set strings, except for the switches ingress.enabled and transfer.enabled (booleans) and values with ranges. Open on purpose: the maps with Kubernetes' fields (tesk.podSecurityContext, tesk.securityContext, the probes, the resource lists of tesk.resources, ingress.annotations), as in foca-common, and global and enabled, which Helm and parent charts (condition: tesk.enabled) set. Keys of earlier versions of the chart ($defs/removed) pass here, and fail in the templates with their replacements (see tesk.removedValues in templates/_helpers.tpl)",
   "type": "object",
   "$defs": {
     "scalar": {
@@ -274,7 +274,7 @@
             "object",
             "null"
           ],
-          "description": "Security context of the API's container (fields of a Kubernetes SecurityContext), merged with the defaults; null removes it",
+          "description": "Security context of the API's container (fields of a Kubernetes SecurityContext), merged with the defaults; null removes it; its key enabled (of earlier versions of the chart) is listed as removed, but as the map is open, only the templates reject it",
           "properties": {
             "enabled": {
               "$ref": "#/$defs/removed"
@@ -522,10 +522,7 @@
           "description": "Creates an Ingress; false creates an OpenShift Route instead, on OpenShift"
         },
         "className": {
-          "type": [
-            "string",
-            "null"
-          ],
+          "$ref": "#/$defs/scalar",
           "description": "Ingress class; empty uses the cluster's default class"
         },
         "path": {
@@ -555,6 +552,13 @@
     "global": {
       "type": "object",
       "description": "Global values, which Helm passes on to all charts; the chart reads none"
+    },
+    "enabled": {
+      "type": [
+        "boolean",
+        "null"
+      ],
+      "description": "Set by parent charts that include this one with condition: tesk.enabled; the chart reads none"
     },
     "host_name": {
       "$ref": "#/$defs/removed"

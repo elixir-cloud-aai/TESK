@@ -19,8 +19,9 @@ scalars where it expects scalars (mostly of any type, as tools may set
 strings; `true` or `false` for `ingress.enabled` and `transfer.enabled`),
 the pull policy of the image, and the ranges of some values. Unknown keys
 (e.g., typos) in the chart's own maps fail the installation; maps with
-Kubernetes' fields (`tesk.resources`, the security contexts, the probes,
-`ingress.annotations`) take any keys.
+Kubernetes' fields (`tesk.podSecurityContext`, `tesk.securityContext`,
+the probes, `tesk.resources.limits` and `requests`, `ingress.annotations`)
+take any keys.
 
 ## Values
 

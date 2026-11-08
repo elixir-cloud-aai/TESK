@@ -152,7 +152,7 @@ them in your values files:
 | `tesk.limitsMemory` | `tesk.resources.limits.memory` |
 | `tesk.requestsCpu` | `tesk.resources.requests.cpu` |
 | `tesk.requestsMemory` | `tesk.resources.requests.memory` |
-| `tesk.securityContext.enabled` | `tesk.podSecurityContext` (the pod) and `tesk.securityContext` (the container), maps with the same defaults as before; instead of `enabled: false`, set both to `null` (see below) |
+| `tesk.securityContext.enabled` | `tesk.podSecurityContext` (the pod) and `tesk.securityContext` (the container), maps with the same defaults as before (see below) |
 | `transfer.active` | `transfer.enabled` |
 | `transfer.wes_base_path` | `transfer.wesBasePath` |
 | `transfer.tes_base_path` | `transfer.tesBasePath` |
@@ -208,15 +208,19 @@ ingress:
 assigns the user of a pod: there, set only `tesk.podSecurityContext.runAsUser:
 null` instead, which keeps the rest of the security contexts. Your values
 are merged with the defaults of these maps, so `{}` changes nothing; `null`
-removes a field, or the whole context.
+removes a field, or the whole context: to drop both, as `enabled: false`
+did, set `tesk.podSecurityContext` and `tesk.securityContext` to `null`.
 
 The chart checks the values (`values.schema.json`): e.g., a map where the
 chart expects a scalar fails the installation, as do a pull policy other
 than `Always`, `IfNotPresent` or `Never`, a value other than `true` or
 `false` for `ingress.enabled` and `transfer.enabled`, and unknown keys
 (e.g., typos) in the chart's own maps. Maps with Kubernetes' fields
-(`tesk.resources`, the security contexts, the probes,
-`ingress.annotations`) take any keys.
+(`tesk.podSecurityContext`, `tesk.securityContext`, the probes,
+`tesk.resources.limits` and `requests`, `ingress.annotations`) take
+any keys. An empty `ingress.className` now leaves `ingressClassName` out
+of the Ingress (it was null before), so the cluster's default class
+applies as before.
 
 The template of a TLS secret in the chart directory is now
 `tls-secret.yaml-TEMPLATE` (was `tls_secret_name.yml-TEMPLATE`), with a

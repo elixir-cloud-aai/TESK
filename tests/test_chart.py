@@ -341,7 +341,7 @@ def test_security_context() -> None:
 
 
 def test_security_context_values() -> None:
-    """The security contexts are merged with the values; null removes them."""
+    """The security contexts are merged with the values; null removes a field."""
     manifests = render(
         "--set",
         "tesk.podSecurityContext.runAsUser=null",
@@ -358,6 +358,10 @@ def test_security_context_values() -> None:
         "seccompProfile": {"type": "RuntimeDefault"},
     }
     assert container(manifests)["securityContext"]["readOnlyRootFilesystem"] is True
+
+
+def test_security_context_null() -> None:
+    """Null removes the security contexts of the API's pod and container."""
     manifests = render(
         "--set", "tesk.podSecurityContext=null", "--set", "tesk.securityContext=null"
     )
@@ -997,6 +1001,9 @@ def test_openshift_route() -> None:
     assert route["spec"]["to"]["name"] == "tesk-api"
     assert route["spec"]["tls"]["termination"] == "edge"
     assert find(render(*openshift), "Route", "tesk") is None
+    # Only false creates a route, not a missing switch
+    manifests = render(*openshift, "--set", "ingress.enabled=null")
+    assert find(manifests, "Route", "tesk") is None
 
 
 def test_node_port() -> None:
@@ -1981,6 +1988,7 @@ def test_schema_invalid(args: tuple[str, ...]) -> None:
         {"tesk": {"image": {"tag": 1.2}}},
         {"auth": {"serviceInfoPublic": "false"}},
         {"global": {"anything": True}},
+        {"ingress": {"className": 123}},
         {"tesk": {"resources": {"limits": {"nvidia.com/gpu": 1}}}},
         {"tesk": {"podSecurityContext": {"fsGroup": 2000}}},
         {"tesk": {"securityContext": {"readOnlyRootFilesystem": True}}},
@@ -2046,6 +2054,30 @@ def test_schema_removed_keys() -> None:
         for part in maps:
             node = node["properties"][part]
         assert node["properties"][name] == {"$ref": "#/$defs/removed"}, key
+
+
+def test_dependency(tmp_path: Path) -> None:
+    """The chart renders as a dependency switched on by `condition: tesk.enabled`.
+
+    Parent charts set `tesk.enabled`, and Helm passes it on to the chart,
+    whose schema must accept it.
+
+    Args:
+        tmp_path: A directory for the parent chart.
+    """
+    parent = tmp_path / "parent"
+    (parent / "charts").mkdir(parents=True)
+    shutil.copytree(CHART, parent / "charts" / "tesk")
+    (parent / "Chart.yaml").write_text(
+        "apiVersion: v2\nname: parent\nversion: 0.1.0\n"
+        "dependencies:\n  - name: tesk\n"
+        f"    version: {METADATA['version']}\n    condition: tesk.enabled\n"
+    )
+    (parent / "values.yaml").write_text("tesk:\n  enabled: true\n")
+    manifests = render(chart=parent)
+    assert find(manifests, "Deployment", "tesk-api") is not None
+    (parent / "values.yaml").write_text("tesk:\n  enabled: false\n")
+    assert render(chart=parent) == []
 
 
 def test_file_names() -> None:

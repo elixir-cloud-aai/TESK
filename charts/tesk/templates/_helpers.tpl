@@ -132,6 +132,9 @@ replacement. The chart fails if any of them is set
 schema (`values.schema.json`) lets them through for that. Besides the keys
 of released charts, the list has `auth.envBasegroup`, a name that the chart
 had on `dev` only, as it would otherwise fall back to the default group.
+Keep in sync (tests/test_chart.py checks it): the removed keys in
+`values.schema.json`, `REMOVED` in tests/test_chart.py and the table in
+docs/upgrading.md.
 */}}
 {{- define "tesk.removedValues" -}}
 - ["", host_name, hostName]
