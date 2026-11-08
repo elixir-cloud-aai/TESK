@@ -14,8 +14,9 @@ metadata:
     {{- end }}
   {{- end }}
 spec:
-  {{- with .Values.ingress.className }}
-  ingressClassName: {{ toString . | quote }}
+  {{- /* Also a class that YAML reads as 0 or false */}}
+  {{- if include "tesk.isSet" .Values.ingress.className }}
+  ingressClassName: {{ toString .Values.ingress.className | quote }}
   {{- end }}
   {{- if $tlsSecretName }}
   tls:

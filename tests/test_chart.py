@@ -357,7 +357,11 @@ def test_security_context_values() -> None:
         "runAsNonRoot": True,
         "seccompProfile": {"type": "RuntimeDefault"},
     }
-    assert container(manifests)["securityContext"]["readOnlyRootFilesystem"] is True
+    assert container(manifests)["securityContext"] == {
+        "allowPrivilegeEscalation": False,
+        "capabilities": {"drop": ["ALL"]},
+        "readOnlyRootFilesystem": True,
+    }
 
 
 def test_security_context_null() -> None:
@@ -947,6 +951,10 @@ def test_ingress() -> None:
     )
     spec = get(manifests, "Ingress", "tesk")["spec"]
     assert spec["ingressClassName"] == "nginx"
+    # Also a class that YAML reads as 0; empty uses the cluster's default
+    zero = get(render("--set", "ingress.className=0"), "Ingress", "tesk")["spec"]
+    assert zero["ingressClassName"] == "0"
+    assert "ingressClassName" not in get(render(), "Ingress", "tesk")["spec"]
     assert "tls" not in spec
     assert spec["rules"][0]["host"] == "tes.example.org"
     backend = spec["rules"][0]["http"]["paths"][0]["backend"]["service"]
