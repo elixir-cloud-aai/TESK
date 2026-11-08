@@ -1,4 +1,4 @@
-{{- if .Values.ftp.hostip }}
+{{- if .Values.ftp.hostIp }}
 {{- /* A fixed name: tasks reach the FTP server as ftp://ftp/ */}}
 apiVersion: v1
 kind: Service

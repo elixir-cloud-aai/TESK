@@ -1,6 +1,6 @@
 # Local FTP server
 
-For a development cluster (e.g., Minikube), an FTP server on the host can serve as the storage backend of TESK. Set it up as follows, then point TESK to it with `ftp.hostip` and the FTP credentials (see [FTP](deployment.md#ftp) and [Configuration](configuration.md#ftp-ftp)).
+For a development cluster (e.g., Minikube), an FTP server on the host can serve as the storage backend of TESK. Set it up as follows, then point TESK to it with `ftp.hostIp` and the FTP credentials (see [FTP](deployment.md#ftp) and [Configuration](configuration.md#ftp-ftp)).
 
 * Create a new user on the host
 
@@ -78,11 +78,11 @@ For a development cluster (e.g., Minikube), an FTP server on the host can serve 
     }
   ```
 
-* Configure credentials and hostIP for FTP using the Helm chart according to instructions.
+* Configure credentials and `ftp.hostIp` for FTP using the Helm chart according to instructions.
 ```
- ftp.hostip:
+ ftp.hostIp:
 ```
-`hostIP` needs to be set to the IP, where containers running in your K8s see your services running on localhost.
+`ftp.hostIp` needs to be set to the IP, where containers running in your K8s see your services running on localhost.
 For `docker` driver, it seems to be `172.30.0.1` (on Linux). For minikube with a VM driver (such as virtualbox), you can check the IP by running:
 ```
 minikube ssh "ping host.minikube.internal"

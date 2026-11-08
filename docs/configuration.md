@@ -6,17 +6,21 @@ has the defaults) and with a few files in the chart directory. See
 [Deployment](deployment.md) for the common setups.
 
 !!! note "Names of values of earlier versions"
-    The values follow Helm's conventions (camelCase, `image` and
-    `resources` blocks). The snake_case names of earlier versions of the
-    chart (e.g., `host_name`) fail the installation, with a list of those in
-    use and their new names; see
+    The values follow Helm's conventions (camelCase, `enabled` switches,
+    `image`, `resources` and security context blocks). The names of earlier
+    versions of the chart (e.g., `host_name` or `ingress.rules`) fail the
+    installation, with a list of those in use and their new names; see
     [Upgrading](upgrading.md#resource-names-from-the-release-name) for all
     of them.
 
-The chart checks the structure of the values with a JSON schema
+The chart checks the values with a JSON schema
 (`charts/tesk/values.schema.json`): maps where the chart expects maps,
-scalars (of any type) where it expects scalars, and the pull policy of the
-image. It accepts unknown keys.
+scalars where it expects scalars (mostly of any type, as tools may set
+strings; `true` or `false` for `ingress.enabled` and `transfer.enabled`),
+the pull policy of the image, and the ranges of some values. Unknown keys
+(e.g., typos) in the chart's own maps fail the installation; maps with
+Kubernetes' fields (`tesk.resources`, the security contexts, the probes,
+`ingress.annotations`) take any keys.
 
 ## Values
 
@@ -43,7 +47,7 @@ image. It accepts unknown keys.
 | `tesk.taskmaster.image.tag` | `v0.10.6` | Tag of the taskmaster image (see [Upgrading](upgrading.md#taskmaster-and-filer-v0106)). |
 | `tesk.filer.image.repository` | `docker.io/elixircloud/tesk-core-filer` | Image of the filer (tesk-core), without its tag. |
 | `tesk.filer.image.tag` | `v0.10.6` | Tag of the filer image. |
-| `tesk.executor.securityContext` | `{}` | Security context of the executors' pods: `runAsUser`, `runAsGroup`, `fsGroup` (integers from 0 to 2147483647) and `runAsNonRoot` (`true` or `false`); other fields fail the schema check. Empty leaves the executors as their images say. Applies only to the executors, not to the API (`tesk.securityContext`), the taskmasters or the filers. See [Executors as non-root users](deployment.md#executors-as-non-root-users). |
+| `tesk.executor.securityContext` | `{}` | Security context of the executors' pods: `runAsUser`, `runAsGroup`, `fsGroup` (integers from 0 to 2147483647) and `runAsNonRoot` (`true` or `false`); other fields fail the schema check. Empty leaves the executors as their images say. Applies only to the executors, not to the API (`tesk.podSecurityContext`, `tesk.securityContext`), the taskmasters or the filers. See [Executors as non-root users](deployment.md#executors-as-non-root-users). |
 | `tesk.debug` | `false` | Debug logging in the taskmasters. |
 | `tesk.executorRetries` | `2` | Retries of an executor's job on errors (its `backoffLimit`). |
 | `tesk.filerRetries` | `2` | Retries of a filer's job on errors, while staging inputs or outputs. |
@@ -55,7 +59,8 @@ image. It accepts unknown keys.
 | `tesk.startupProbe` | every 5 s, 5 s timeout, up to 60 failures (5 minutes) | Startup probe of the API's container: it holds off the other probes while the API starts, which takes about a minute (see [Probes](#probes)). |
 | `tesk.readinessProbe` | every 10 s, 5 s timeout, 3 failures | Readiness probe: the Service and Ingress send requests to the pod, and `helm install --wait` returns, once it succeeds (see [Probes](#probes)). |
 | `tesk.livenessProbe` | every 20 s, 5 s timeout, 3 failures | Liveness probe: Kubernetes restarts the container if it fails (see [Probes](#probes)). |
-| `tesk.securityContext.enabled` | `true` | Runs the API as a non-root user (UID 1000) with the `RuntimeDefault` seccomp profile, no privilege escalation and no capabilities. Applies only to the API's pod; for the executors, see `tesk.executor.securityContext`. |
+| `tesk.podSecurityContext` | `runAsUser: 1000`, `runAsNonRoot: true`, `seccompProfile` `RuntimeDefault` | Security context of the API's pod (fields of a Kubernetes `PodSecurityContext`). Your values are merged with the defaults; null removes a field (e.g., `runAsUser: null` on OpenShift, which assigns the user) or, for `tesk.podSecurityContext: null`, the whole context. Applies only to the API's pod; for the executors, see `tesk.executor.securityContext`. |
+| `tesk.securityContext` | `allowPrivilegeEscalation: false`, `capabilities.drop: [ALL]` | Security context of the API's container (fields of a Kubernetes `SecurityContext`), merged with the defaults like `tesk.podSecurityContext`. |
 | `tesk.swaggerUi.enabled` | `false` | `true` serves the Swagger UI (at the root path of the deployment, `ingress.path`, see [Swagger UI](deployment.md#swagger-ui)). Turning it on serves the Swagger UI publicly; enable it only where needed. `true` or `false` only (also as strings, in any case; anything else fails the installation); null leaves tesk-api's default (off). Needs tesk-api 1.2.0 or later; earlier versions ignore it and always serve the Swagger UI. |
 
 #### Probes
@@ -97,7 +102,7 @@ requests to a pod that isn't ready.
 
 | Value | Default | Description |
 | --- | --- | --- |
-| `transfer.active` | `false` | Enables `file://` inputs and outputs on a shared PVC (see [Shared file system](deployment.md#shared-file-system)). |
+| `transfer.enabled` | `false` | Enables `file://` inputs and outputs on a shared PVC (see [Shared file system](deployment.md#shared-file-system)). |
 | `transfer.wesBasePath` | `/tmp` | Path where the workflow engine sees the shared volume; `file://` URLs must be below it. |
 | `transfer.tesBasePath` | `/transfer` | Path where the filer mounts the shared PVC. |
 | `transfer.pvcName` | `transfer-pvc` | Name of the shared PVC (not created by the chart). |
@@ -107,7 +112,7 @@ requests to a pod that isn't ready.
 | Value | Default | Description |
 | --- | --- | --- |
 | `auth.mode` | `noauth` | `auth` requires OIDC access tokens (see [Authentication and authorisation](deployment.md#authentication-and-authorisation)); `noauth` leaves all endpoints open. |
-| `auth.envBasegroup` | `ECP_CLN` | Base group of the LS Login (ELIXIR AAI) group model that grants access. |
+| `auth.envBaseGroup` | `ECP_CLN` | Base group of the LS Login (ELIXIR AAI) group model that grants access. |
 | `auth.envSubgroup` | `CSC` | Subgroup of the base group for this deployment. |
 | `auth.serviceInfoPublic` | `true` | With `auth.mode: auth`: `true` lets `GET /service-info` answer without a token, `false` requires a valid token for it. Needs tesk-api 1.2.0 or later; earlier versions ignore it and keep the endpoint public. No effect with `noauth`. |
 | `auth.claim.enabled` | `false` | With `auth.mode: auth`: `true` authorises users without groups, by a claim of the user info (see [Authorisation by a claim](deployment.md#authorisation-by-a-claim)). Needs `auth.claim.name` and `auth.claim.values`, and tesk-api 1.2.0 or later; ignored with `auth.mode: noauth`. |
@@ -132,7 +137,7 @@ requests to a pod that isn't ready.
 | `ftp.hosts` | `[]` | Hosts that the filer sends the credentials of `ftp.classicFtpSecret` to, e.g. `[ftp.example.org]` (see below); empty sends them to no host. Not needed for `.netrc`. |
 | `ftp.username` | none | FTP username (put it into `secrets.yaml`). |
 | `ftp.password` | none | FTP password (put it into `secrets.yaml`). |
-| `ftp.hostip` | empty | IP of an FTP server outside the cluster, as pods see the host; creates a Service `ftp` for it, so that tasks can use `ftp://ftp/...` (see [Local FTP server](local_ftp.md)). |
+| `ftp.hostIp` | empty | IP of an FTP server outside the cluster, as pods see the host; creates a Service `ftp` for it, so that tasks can use `ftp://ftp/...` (see [Local FTP server](local_ftp.md)). |
 
 Each entry of `ftp.hosts` is `host` or `host:port`, with IPv6 addresses in
 brackets. Hosts match exactly, ignoring case, without wildcards; an entry
@@ -149,8 +154,8 @@ every FTP host.
 
 | Value | Default | Description |
 | --- | --- | --- |
-| `ingress.rules` | `true` | Creates an Ingress for `hostName`; `false` creates an OpenShift Route instead, on OpenShift. |
-| `ingress.ingressClassName` | `""` | Ingress class. |
+| `ingress.enabled` | `true` | Creates an Ingress for `hostName`; `false` creates an OpenShift Route instead, on OpenShift. |
+| `ingress.className` | `""` | Ingress class (`ingressClassName` of the Ingress); empty uses the cluster's default class. |
 | `ingress.path` | `/` | Path of the Ingress, and the context path of the API: the TES API is served at `<path>` + `tesk.tesApiBasePath`. |
 | `ingress.tlsSecretName` | empty | Secret with the TLS certificate of `hostName`; empty switches TLS off. With cert-manager, the secret is created automatically. |
 | `ingress.annotations` | cert-manager annotations | Annotations of the Ingress, e.g., for cert-manager. |
@@ -180,13 +185,13 @@ and a `nameOverride` with capital letters, fail the installation unless
 | StorageClass (`storage: openstack`) | `<prefix>-gold` | `tesk-gold` | `prod-tesk-gold` |
 | Secret with the `.netrc` file | `ftp.netrcSecret` | | |
 | Secret with the S3 configuration (`storage: s3`) | `aws-secret` (fixed) | | |
-| Service and Endpoints of a local FTP server (`ftp.hostip`) | `ftp` (fixed) | | |
+| Service and Endpoints of a local FTP server (`ftp.hostIp`) | `ftp` (fixed) | | |
 
 The chart passes the names that the taskmasters need (service account, FTP
 secret, `.netrc` secret) on to tesk-api. Two names are fixed, because others
 read them by name: the filer mounts the secret `aws-secret`, and tasks
 reach a local FTP server as `ftp://ftp/`. So several releases can share a
-namespace, but only one of them can use `storage: s3` or `ftp.hostip`, and
+namespace, but only one of them can use `storage: s3` or `ftp.hostIp`, and
 the secrets named in the values (`ftp.classicFtpSecret`, `ftp.netrcSecret`)
 need names of their own in each release. `storage: openstack` creates a
 default storage class for the whole cluster: use it in one release only.
@@ -228,7 +233,7 @@ fields.
 | `secrets.yaml` (passed with `-f`) | `ftp.username`, `ftp.password`, `auth.clientId`. |
 | `charts/tesk/ftp/.netrc` | FTP credentials as a `.netrc` file, with `ftp.netrcSecret`. |
 | `charts/tesk/s3-config/config`, `credentials` | S3 configuration and credentials, with `storage: s3`. |
-| `charts/tesk/tls_secret_name.yml-TEMPLATE` | Template of a TLS secret, if you create it yourself. |
+| `charts/tesk/tls-secret.yaml-TEMPLATE` | Template of a TLS secret, if you create it yourself. |
 
 The chart quotes the four `secrets.yaml` values, so any character is allowed and a numeric value (e.g., a numeric client ID) becomes a string. Numbers of 2^53 or more can't be read exactly from a values file: quote them (`"12345678901234567890"`) or use `--set-string`. Quote IDs with leading zeros or in hex or exponent form too, because YAML reads them as other numbers. The files are used as they are.
 

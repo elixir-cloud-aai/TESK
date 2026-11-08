@@ -1,4 +1,4 @@
-{{- if and (.Capabilities.APIVersions.Has "route.openshift.io/v1") (eq .Values.ingress.rules false) }}
+{{- if and (.Capabilities.APIVersions.Has "route.openshift.io/v1") (not .Values.ingress.enabled) }}
 {{- $hostName := .Values.hostName }}
 apiVersion: route.openshift.io/v1
 kind: Route

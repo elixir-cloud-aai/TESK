@@ -116,7 +116,7 @@ kill %1  # stop the port forward
 
 ## Exposing the API
 
-With the default values, the chart creates an Ingress (`ingress.rules`), but
+With the default values, the chart creates an Ingress (`ingress.enabled`), but
 without a host name and an Ingress class it isn't reachable from outside the
 cluster. Choose one of the following.
 
@@ -131,8 +131,8 @@ a host name (DNS entry) pointing to it, and a TLS certificate, e.g., from
 ```yaml
 hostName: tes.example.org
 ingress:
-  rules: true
-  ingressClassName: nginx
+  enabled: true
+  className: nginx
   path: /
   # The secret that cert-manager creates; empty switches TLS off
   tlsSecretName: tesk-tls
@@ -150,7 +150,7 @@ simplest option:
 
 ```yaml
 ingress:
-  rules: false
+  enabled: false
 service:
   type: NodePort
   # Any port in the range 30000-32767
@@ -165,8 +165,17 @@ docs](https://kubernetes.io/docs/tasks/access-application-cluster/create-externa
 
 ### OpenShift
 
-On OpenShift, set `ingress.rules: false`: the chart then creates a Route for
-`hostName`, with TLS terminated at the router.
+On OpenShift, set `ingress.enabled: false`: the chart then creates a Route
+for `hostName`, with TLS terminated at the router. OpenShift assigns the
+user of the API's pod, so remove the chart's fixed user (UID 1000) too:
+
+```yaml
+ingress:
+  enabled: false
+tesk:
+  podSecurityContext:
+    runAsUser: null
+```
 
 ## Storage backends
 
@@ -204,7 +213,7 @@ set:
 
 ```yaml
 transfer:
-  active: true
+  enabled: true
   # Where the workflow engine sees the shared volume
   wesBasePath: /data
   # Where the filer mounts it
@@ -233,7 +242,7 @@ every endpoint except `GET /service-info`, which stays public unless
 `auth.serviceInfoPublic` is `false` (tesk-api 1.2.0 or later), the API
 description (`GET /v2/api-docs`), and the [Swagger UI](#swagger-ui) if it is
 on. TESK works with any OIDC provider; authorisation follows the group model
-of LS Login (formerly ELIXIR AAI), configured with `auth.envBasegroup` and
+of LS Login (formerly ELIXIR AAI), configured with `auth.envBaseGroup` and
 `auth.envSubgroup`. See the [tesk-api section](tesk-api/index.md) and the
 [authentication and authorisation
 guide](https://github.com/elixir-cloud-aai/tesk-api/blob/master/auth.md) of
@@ -420,7 +429,8 @@ afterwards. While the new pod starts, the old one keeps creating tasks with
 the old settings. `runAsUser: 0` with `runAsNonRoot: true` fails the chart,
 as Kubernetes wouldn't start such executors. tesk-api reads only these four fields. The taskmasters and the
 filers aren't affected: their images run them as UID 100. The API's own
-pod has a separate security context (`tesk.securityContext`).
+pod has separate security contexts (`tesk.podSecurityContext`,
+`tesk.securityContext`).
 
 - **`fsGroup`:** the filer writes the inputs to the task's PVC as UID
   100, readable but not writable for others. With `fsGroup`, Kubernetes

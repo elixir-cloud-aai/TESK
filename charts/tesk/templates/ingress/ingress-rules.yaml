@@ -1,4 +1,4 @@
-{{- if .Values.ingress.rules }}
+{{- if .Values.ingress.enabled }}
 {{- $hostName := .Values.hostName }}
 {{- $tlsSecretName := .Values.ingress.tlsSecretName }}
 apiVersion: networking.k8s.io/v1
@@ -14,7 +14,9 @@ metadata:
     {{- end }}
   {{- end }}
 spec:
-  ingressClassName: {{ .Values.ingress.ingressClassName }}
+  {{- with .Values.ingress.className }}
+  ingressClassName: {{ . }}
+  {{- end }}
   {{- if $tlsSecretName }}
   tls:
   - hosts:

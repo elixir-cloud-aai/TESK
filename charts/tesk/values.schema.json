@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft-07/schema#",
-  "$comment": "Permissive on purpose: it checks only the structure of the values (maps where the templates expect maps, scalars where they expect scalars, of any scalar type) and the pull policy of the image, and accepts unknown keys. Keys of earlier versions of the chart pass here, and fail in the templates with their replacements (see tesk.removedValues in templates/_helpers.tpl)",
+  "$comment": "Checks the structure of the values (maps where the templates expect maps, scalars where they expect scalars, mostly of any scalar type, as tools may set strings), and rejects unknown keys of the chart's own maps (e.g., typos); maps with Kubernetes' keys (resources, security contexts, probes, annotations) are open. Keys of earlier versions of the chart ($defs/removed) pass here, and fail in the templates with their replacements (see tesk.removedValues in templates/_helpers.tpl)",
   "type": "object",
   "$defs": {
     "scalar": {
@@ -30,7 +30,8 @@
           "$ref": "#/$defs/scalar",
           "description": "Image tag"
         }
-      }
+      },
+      "additionalProperties": false
     },
     "resourceList": {
       "type": [
@@ -40,6 +41,12 @@
       "additionalProperties": {
         "$ref": "#/$defs/scalar"
       }
+    },
+    "removed": {
+      "description": "Removed: the chart fails and names the key that replaces it (tesk.removedValues in templates/_helpers.tpl)"
+    },
+    "switch": {
+      "type": "boolean"
     }
   },
   "properties": {
@@ -90,7 +97,8 @@
                     null
                   ]
                 }
-              }
+              },
+              "additionalProperties": false
             }
           ]
         },
@@ -111,7 +119,8 @@
             "image": {
               "$ref": "#/$defs/image"
             }
-          }
+          },
+          "additionalProperties": false
         },
         "filer": {
           "type": "object",
@@ -119,7 +128,8 @@
             "image": {
               "$ref": "#/$defs/image"
             }
-          }
+          },
+          "additionalProperties": false
         },
         "executor": {
           "type": "object",
@@ -156,7 +166,8 @@
                 }
               }
             }
-          }
+          },
+          "additionalProperties": false
         },
         "debug": {
           "$ref": "#/$defs/scalar",
@@ -226,8 +237,16 @@
             },
             "requests": {
               "$ref": "#/$defs/resourceList"
+            },
+            "claims": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "description": "Dynamic resources (DRA) of the container"
             }
-          }
+          },
+          "additionalProperties": false
         },
         "startupProbe": {
           "type": [
@@ -251,19 +270,72 @@
           "description": "The liveness probe of the API's container (fields of a Kubernetes probe, and enabled), merged with the chart's defaults"
         },
         "securityContext": {
-          "type": "object",
-          "description": "Security context of the API (enabled)"
+          "type": [
+            "object",
+            "null"
+          ],
+          "description": "Security context of the API's container (fields of a Kubernetes SecurityContext), merged with the defaults; null removes it",
+          "properties": {
+            "enabled": {
+              "$ref": "#/$defs/removed"
+            }
+          }
         },
         "swaggerUi": {
-          "description": "Swagger UI of the API (enabled: true or false); checked by the templates"
+          "description": "Swagger UI of the API (enabled: true or false); the templates check the values",
+          "properties": {
+            "enabled": {}
+          },
+          "additionalProperties": false
+        },
+        "podSecurityContext": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "description": "Security context of the API's pod (fields of a Kubernetes PodSecurityContext), merged with the defaults; null removes it"
+        },
+        "tes_api_base_path": {
+          "$ref": "#/$defs/removed"
+        },
+        "taskmaster_image_name": {
+          "$ref": "#/$defs/removed"
+        },
+        "taskmaster_image_version": {
+          "$ref": "#/$defs/removed"
+        },
+        "taskmaster_filer_image_name": {
+          "$ref": "#/$defs/removed"
+        },
+        "taskmaster_filer_image_version": {
+          "$ref": "#/$defs/removed"
+        },
+        "executor_retries": {
+          "$ref": "#/$defs/removed"
+        },
+        "filer_retries": {
+          "$ref": "#/$defs/removed"
+        },
+        "limitsCpu": {
+          "$ref": "#/$defs/removed"
+        },
+        "limitsMemory": {
+          "$ref": "#/$defs/removed"
+        },
+        "requestsCpu": {
+          "$ref": "#/$defs/removed"
+        },
+        "requestsMemory": {
+          "$ref": "#/$defs/removed"
         }
-      }
+      },
+      "additionalProperties": false
     },
     "transfer": {
       "type": "object",
       "properties": {
-        "active": {
-          "$ref": "#/$defs/scalar",
+        "enabled": {
+          "$ref": "#/$defs/switch",
           "description": "Support for file: URLs on a shared PVC"
         },
         "wesBasePath": {
@@ -277,8 +349,21 @@
         "pvcName": {
           "$ref": "#/$defs/scalar",
           "description": "Name of the shared PVC"
+        },
+        "active": {
+          "$ref": "#/$defs/removed"
+        },
+        "wes_base_path": {
+          "$ref": "#/$defs/removed"
+        },
+        "tes_base_path": {
+          "$ref": "#/$defs/removed"
+        },
+        "pvc_name": {
+          "$ref": "#/$defs/removed"
         }
-      }
+      },
+      "additionalProperties": false
     },
     "auth": {
       "type": "object",
@@ -291,7 +376,7 @@
           "$ref": "#/$defs/scalar",
           "description": "Subgroup of the base group for this deployment"
         },
-        "envBasegroup": {
+        "envBaseGroup": {
           "$ref": "#/$defs/scalar",
           "description": "Base group of the LS Login group model that grants access"
         },
@@ -344,8 +429,27 @@
         "clientSecret": {
           "$ref": "#/$defs/scalar",
           "description": "Deprecated: secret of the OIDC client of the Swagger UI, ignored by tesk-api 1.2.0 and later (the Swagger UI is a public client); only passed on to older tesk-api images"
+        },
+        "envBasegroup": {
+          "$ref": "#/$defs/removed"
+        },
+        "env_subgroup": {
+          "$ref": "#/$defs/removed"
+        },
+        "env_basegroup": {
+          "$ref": "#/$defs/removed"
+        },
+        "service_info_public": {
+          "$ref": "#/$defs/removed"
+        },
+        "client_id": {
+          "$ref": "#/$defs/removed"
+        },
+        "client_secret": {
+          "$ref": "#/$defs/removed"
         }
-      }
+      },
+      "additionalProperties": false
     },
     "service": {
       "type": "object",
@@ -357,8 +461,12 @@
         "nodePort": {
           "$ref": "#/$defs/scalar",
           "description": "Node port with type NodePort"
+        },
+        "node_port": {
+          "$ref": "#/$defs/removed"
         }
-      }
+      },
+      "additionalProperties": false
     },
     "ftp": {
       "type": "object",
@@ -390,22 +498,35 @@
           "$ref": "#/$defs/scalar",
           "description": "FTP password"
         },
-        "hostip": {
+        "hostIp": {
           "$ref": "#/$defs/scalar",
           "description": "IP of an FTP server outside the cluster, as pods see the host"
+        },
+        "hostip": {
+          "$ref": "#/$defs/removed"
+        },
+        "classic_ftp_secret": {
+          "$ref": "#/$defs/removed"
+        },
+        "netrc_secret": {
+          "$ref": "#/$defs/removed"
         }
-      }
+      },
+      "additionalProperties": false
     },
     "ingress": {
       "type": "object",
       "properties": {
-        "rules": {
-          "$ref": "#/$defs/scalar",
+        "enabled": {
+          "$ref": "#/$defs/switch",
           "description": "Creates an Ingress; false creates an OpenShift Route instead, on OpenShift"
         },
-        "ingressClassName": {
-          "$ref": "#/$defs/scalar",
-          "description": "Ingress class"
+        "className": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Ingress class; empty uses the cluster's default class"
         },
         "path": {
           "$ref": "#/$defs/scalar",
@@ -418,8 +539,26 @@
         "annotations": {
           "$ref": "#/$defs/map",
           "description": "Annotations of the Ingress"
+        },
+        "rules": {
+          "$ref": "#/$defs/removed"
+        },
+        "ingressClassName": {
+          "$ref": "#/$defs/removed"
+        },
+        "tls_secret_name": {
+          "$ref": "#/$defs/removed"
         }
-      }
+      },
+      "additionalProperties": false
+    },
+    "global": {
+      "type": "object",
+      "description": "Global values, which Helm passes on to all charts; the chart reads none"
+    },
+    "host_name": {
+      "$ref": "#/$defs/removed"
     }
-  }
+  },
+  "additionalProperties": false
 }

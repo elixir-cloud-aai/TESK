@@ -126,8 +126,12 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{/*
 Values keys of earlier versions of the chart, which this one no longer
 reads, and what replaces them: the map that holds the old key (empty: the
-top level), the old key, and the replacement. The chart fails if any of them
-is set (`tesk.checkRemovedValues`), so that they aren't ignored unnoticed.
+top level; nested maps separated by dots), the old key, and the
+replacement. The chart fails if any of them is set
+(`tesk.checkRemovedValues`), so that they aren't ignored unnoticed; the
+schema (`values.schema.json`) lets them through for that. Besides the keys
+of released charts, the list has `auth.envBasegroup`, a name that the chart
+had on `dev` only, as it would otherwise fall back to the default group.
 */}}
 {{- define "tesk.removedValues" -}}
 - ["", host_name, hostName]
@@ -146,7 +150,7 @@ is set (`tesk.checkRemovedValues`), so that they aren't ignored unnoticed.
 - [transfer, tes_base_path, transfer.tesBasePath]
 - [transfer, pvc_name, transfer.pvcName]
 - [auth, env_subgroup, auth.envSubgroup]
-- [auth, env_basegroup, auth.envBasegroup]
+- [auth, env_basegroup, auth.envBaseGroup]
 - [auth, service_info_public, auth.serviceInfoPublic]
 - [auth, client_id, auth.clientId]
 - [auth, client_secret, "nothing (auth.clientSecret, its new name, is deprecated: leave it unset)"]
@@ -154,6 +158,12 @@ is set (`tesk.checkRemovedValues`), so that they aren't ignored unnoticed.
 - [ftp, classic_ftp_secret, ftp.classicFtpSecret]
 - [ftp, netrc_secret, ftp.netrcSecret]
 - [ingress, tls_secret_name, ingress.tlsSecretName]
+- [tesk.securityContext, enabled, tesk.podSecurityContext and tesk.securityContext (maps; null for none)]
+- [transfer, active, transfer.enabled]
+- [auth, envBasegroup, auth.envBaseGroup]
+- [ftp, hostip, ftp.hostIp]
+- [ingress, rules, ingress.enabled]
+- [ingress, ingressClassName, ingress.className]
 {{- end -}}
 
 {{/*
@@ -168,7 +178,11 @@ replacements, but not their values; renders nothing otherwise.
 {{- $map := $values -}}
 {{- $prefix := "" -}}
 {{- if index . 0 -}}
-{{- $map = index $values (index . 0) -}}
+{{- range $part := splitList "." (index . 0) -}}
+{{- if kindIs "map" $map -}}
+{{- $map = get $map $part -}}
+{{- end -}}
+{{- end -}}
 {{- $prefix = printf "%s." (index . 0) -}}
 {{- end -}}
 {{- if and (kindIs "map" $map) (hasKey $map (index . 1)) -}}

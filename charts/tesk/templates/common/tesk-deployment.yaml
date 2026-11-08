@@ -107,7 +107,7 @@ spec:
         - name: TESK_API_AUTHORISATION_ENV_SUBGROUP
           value: {{ .Values.auth.envSubgroup }}
         - name: TESK_API_AUTHORISATION_BASE_GROUP
-          value: {{ .Values.auth.envBasegroup }}
+          value: {{ .Values.auth.envBaseGroup }}
         - name: SPRING_PROFILES_ACTIVE
           value: {{ .Values.auth.mode }}
         {{- if not (kindIs "invalid" .Values.auth.serviceInfoPublic) }}
@@ -153,7 +153,7 @@ spec:
         - name: TESK_API_SWAGGER_UI_ENABLED
           value: {{ $swaggerUiValue | quote }}
         {{- end }}
-        {{- if .Values.transfer.active }}
+        {{- if .Values.transfer.enabled }}
         - name: TESK_API_TASKMASTER_ENVIRONMENT_HOST_BASE_PATH
           value: {{ .Values.transfer.wesBasePath }}
         - name: TESK_API_TASKMASTER_ENVIRONMENT_CONTAINER_BASE_PATH
@@ -183,12 +183,9 @@ spec:
               name: {{ include "tesk.oauthClientName" . }}
               key: secret
               optional: true
-        {{- if $tesk.securityContext.enabled }}
+        {{- with $tesk.securityContext }}
         securityContext:
-          allowPrivilegeEscalation: false
-          capabilities:
-            drop:
-            - ALL
+          {{- toYaml . | nindent 10 }}
         {{- end }}
         {{- range $name := list "startupProbe" "readinessProbe" "livenessProbe" }}
         {{- with include "tesk.probe" (dict "root" $ "name" $name) }}
@@ -204,10 +201,7 @@ spec:
       - name: service-info
         configMap:
           name: {{ include "tesk.serviceInfoName" . }}
-      {{- if $tesk.securityContext.enabled }}
+      {{- with $tesk.podSecurityContext }}
       securityContext:
-        runAsUser: 1000
-        runAsNonRoot: true
-        seccompProfile:
-          type: RuntimeDefault
+        {{- toYaml . | nindent 8 }}
       {{- end }}
