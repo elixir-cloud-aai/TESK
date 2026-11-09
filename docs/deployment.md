@@ -15,8 +15,8 @@ This page covers the installation and the most common setups;
 
 - **A Kubernetes cluster.** TESK needs access to one namespace only, and
   works in multi-tenant clusters such as OpenShift. The chart's default
-  taskmaster and filer, v0.10.6, were tested on Kubernetes 1.30 and 1.36;
-  earlier versions of Kubernetes were not tested with them. On Kubernetes
+  taskmaster and filer are 0.11.0; v0.10.6 was tested on Kubernetes 1.30
+  and 1.36, earlier versions of Kubernetes were not tested. On Kubernetes
   1.31 or later, the taskmaster must be v0.10.6 or later (see
   [Upgrading](upgrading.md#taskmaster-and-filer-v0106)).
 - **[Helm](https://helm.sh/) 3.**

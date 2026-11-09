@@ -1283,9 +1283,26 @@ def test_notes_client_secret(
 @pytest.mark.parametrize(
     ("args", "keys"),
     [
-        ((), ["tesk.taskmaster.image.tag", "tesk.filer.image.tag"]),
-        (("--set", "tesk.filer.image.tag=v0.11.0"), ["tesk.taskmaster.image.tag"]),
-        (("--set", "tesk.taskmaster.image.tag=0.9.0"), None),
+        ((), []),
+        (
+            (
+                "--set",
+                "tesk.taskmaster.image.tag=v0.10.6",
+                "--set",
+                "tesk.filer.image.tag=v0.10.6",
+            ),
+            ["tesk.taskmaster.image.tag", "tesk.filer.image.tag"],
+        ),
+        (("--set", "tesk.taskmaster.image.tag=v0.10.6"), ["tesk.taskmaster.image.tag"]),
+        (
+            (
+                "--set",
+                "tesk.taskmaster.image.tag=0.9.0",
+                "--set",
+                "tesk.filer.image.tag=0.10.6",
+            ),
+            None,
+        ),
         (
             (
                 "--set",
@@ -1542,8 +1559,17 @@ def test_filer_http_timeout_invalid(args: tuple[str, ...]) -> None:
 @pytest.mark.parametrize(
     ("args", "warned"),
     [
-        ((), True),
-        (("--set", "tesk.filer.image.tag=v0.11.0"), True),
+        ((), False),
+        (
+            (
+                "--set",
+                "tesk.taskmaster.image.tag=v0.10.6",
+                "--set",
+                "tesk.filer.image.tag=v0.10.6",
+            ),
+            True,
+        ),
+        (("--set", "tesk.filer.image.tag=v0.10.6"), True),
         (
             (
                 "--set",
@@ -2349,7 +2375,7 @@ def test_seconds_invalid_range(args: tuple[str, ...], message: str) -> None:
 @pytest.mark.parametrize(
     ("args", "warned"),
     [
-        ((), True),
+        ((), False),
         (("--set", "tesk.taskmaster.image.tag=v0.10.6"), True),
         (("--set", "tesk.taskmaster.image.tag=v0.11.0"), False),
         (("--set", "tesk.taskmaster.image.tag=dev"), False),

@@ -10,7 +10,33 @@ again):
 helm upgrade tesk charts/tesk --namespace tesk -f my-values.yaml -f secrets.yaml
 ```
 
-## Unreleased
+## 0.3.0
+
+### tesk-api 1.2.0, taskmaster and filer 0.11.0
+
+The chart deploys tesk-api 1.2.0 (its `appVersion`) and taskmaster and
+filer 0.11.0 by default now (were 1.1.0 and v0.10.6). With these images,
+the changes below that need "tesk-api 1.2.0" or "images newer than v0.10.6"
+take effect when you upgrade, unless your values pin older tags:
+
+- **Act on this if your tasks use FTP with `ftp.username` and
+  `ftp.password`:** the filer sends them only to `ftp.hosts` (see [FTP
+  credentials go only to configured
+  hosts](#ftp-credentials-go-only-to-configured-hosts)).
+- **Act on this if you use the Swagger UI:** tesk-api serves it only with
+  `tesk.swaggerUi.enabled: true` (see [Swagger UI with tesk-api
+  1.2.0](#swagger-ui-with-tesk-api-120)).
+- The taskmaster deletes the PVCs of failed and cancelled tasks (see
+  [Newer taskmaster images delete the PVCs of failed
+  tasks](#newer-taskmaster-images-delete-the-pvcs-of-failed-tasks)), and
+  the filer's HTTP(S) requests time out after 300 seconds without progress
+  (see [Timeout of the filer's HTTP(S)
+  requests](#timeout-of-the-filers-https-requests)).
+
+**Image tags without `v`:** releases of tesk-core from 0.11.0 on tag their
+images `X.Y.Z` (e.g., `0.11.0`), as tesk-api does; earlier ones were tagged
+`vX.Y.Z` (e.g., `v0.10.6`). If your values set `tesk.taskmaster.image.tag`
+or `tesk.filer.image.tag`, use `0.11.0`, not `v0.11.0`.
 
 ### Creator labels of tesk-api 1.2.0
 
@@ -387,9 +413,8 @@ which changes nothing; they need tesk-api 1.2.0 or later.
 
 The new value `tesk.swaggerUi.enabled` (default `false`) controls whether
 tesk-api serves the Swagger UI (see [Swagger UI](deployment.md#swagger-ui)).
-Upgrading the chart alone changes nothing: tesk-api before 1.2.0 (the
-chart's default `tesk.image.tag` is still 1.1.0) ignores the value and always
-serves the Swagger UI. tesk-api 1.2.0 or later serves it only if the value
-is `true`. If you use the Swagger UI, set `tesk.swaggerUi.enabled: true`
-when you upgrade to tesk-api 1.2.0 or later. Turning it on serves the
+tesk-api before 1.2.0 ignores the value and always serves the Swagger UI;
+tesk-api 1.2.0 or later, the chart's default now, serves it only if the
+value is `true`. If you use the Swagger UI, set `tesk.swaggerUi.enabled:
+true` when you upgrade. Turning it on serves the
 Swagger UI publicly; enable it only where needed.

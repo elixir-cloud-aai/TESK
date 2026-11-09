@@ -47,12 +47,12 @@ tesk:
   taskmaster:
     image:
       repository: docker.io/elixircloud/tesk-core-taskmaster
-      tag: v0.10.6
+      tag: 0.11.0
   # Image of the filer (tesk-core), which stages the inputs and outputs
   filer:
     image:
       repository: docker.io/elixircloud/tesk-core-filer
-      tag: v0.10.6
+      tag: 0.11.0
   # The executors, which run the task's commands
   executor:
     # Security context of the executors' pods, e.g., to run them as non-root
