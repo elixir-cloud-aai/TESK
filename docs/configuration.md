@@ -47,7 +47,7 @@ take any keys.
 | `tesk.taskmaster.image.repository` | `docker.io/elixircloud/tesk-core-taskmaster` | Image of the taskmaster (tesk-core), without its tag. |
 | `tesk.taskmaster.image.tag` | `0.11.0` | Tag of the taskmaster image (see [Upgrading](upgrading.md#tesk-api-120-taskmaster-and-filer-0110)). |
 | `tesk.filer.image.repository` | `docker.io/elixircloud/tesk-core-filer` | Image of the filer (tesk-core), without its tag. |
-| `tesk.filer.image.tag` | `0.11.0` | Tag of the filer image. |
+| `tesk.filer.image.tag` | `0.11.0` | Tag of the filer image; the same release as the taskmaster's. |
 | `tesk.executor.securityContext` | `{}` | Security context of the executors' pods: `runAsUser`, `runAsGroup`, `fsGroup` (integers from 0 to 2147483647) and `runAsNonRoot` (`true` or `false`); other fields fail the schema check. Empty leaves the executors as their images say. Applies only to the executors, not to the API (`tesk.podSecurityContext`, `tesk.securityContext`), the taskmasters or the filers. See [Executors as non-root users](deployment.md#executors-as-non-root-users). |
 | `tesk.debug` | `false` | Debug logging in the taskmasters. |
 | `tesk.executorRetries` | `2` | Retries of an executor's job on errors (its `backoffLimit`). |

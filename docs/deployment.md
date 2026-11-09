@@ -14,11 +14,12 @@ This page covers the installation and the most common setups;
 ## Requirements
 
 - **A Kubernetes cluster.** TESK needs access to one namespace only, and
-  works in multi-tenant clusters such as OpenShift. Taskmaster and filer
-  v0.10.6 were tested on Kubernetes 1.30 and 1.36; Kubernetes before 1.30
-  was not tested. The chart's default images, 0.11.0, have not been tested
-  on a list of Kubernetes versions yet. If you pin older images on
-  Kubernetes 1.31 or later, the taskmaster must be v0.10.6 or later (see
+  works in multi-tenant clusters such as OpenShift. The chart's default
+  taskmaster and filer, 0.11.0, need Kubernetes 1.23 or later, and their
+  end-to-end tests run on Kubernetes 1.37 (see the [upgrade notes of
+  tesk-core](tesk-core/upgrading.md)). If you pin older images, set both
+  tags to the same release; on Kubernetes 1.31 or later, it must be v0.10.6
+  or later, which was tested on Kubernetes 1.30 and 1.36 (see
   [Upgrading](upgrading.md#taskmaster-and-filer-v0106)).
 - **[Helm](https://helm.sh/) 3.**
 - **A default storage class.** TESK creates a temporary PVC for each task
@@ -314,7 +315,7 @@ if it is on with such an image (`tesk.image.tag`). See
 [Creator labels][creator-labels] in the upgrade notes of tesk-api, also for
 how to list and delete the old tasks.
 
-[creator-labels]: https://github.com/elixir-cloud-aai/tesk-api/blob/dev/docs/upgrading.md
+[creator-labels]: tesk-api/upgrading.md
 
 ## Swagger UI
 

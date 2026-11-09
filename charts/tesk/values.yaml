@@ -48,7 +48,8 @@ tesk:
     image:
       repository: docker.io/elixircloud/tesk-core-taskmaster
       tag: 0.11.0
-  # Image of the filer (tesk-core), which stages the inputs and outputs
+  # Image of the filer (tesk-core), which stages the inputs and outputs; its
+  # tag must be the same release as the taskmaster's
   filer:
     image:
       repository: docker.io/elixircloud/tesk-core-filer

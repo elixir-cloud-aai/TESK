@@ -53,6 +53,10 @@ upgrade, unless your values pin older tags:
   the executors are limited to the resources that a task requests, and
   are killed (OOM) or throttled beyond them (see [Taskmaster and filer
   v0.10.6](#taskmaster-and-filer-v0106)).
+- **Act on this if your tasks leave symbolic links in their outputs:** the
+  filer 0.11.0 fails such outputs, and the task fails; executors must copy
+  the targets instead (see the [upgrade notes of
+  tesk-core](tesk-core/upgrading.md)).
 - `tesk.taskTtlSeconds` and `tesk.maxQueueSeconds` take effect if you set
   them (see [Deleting finished tasks and a max queue
   time](#deleting-finished-tasks-and-a-max-queue-time)).
@@ -65,7 +69,10 @@ jobs): read the [upgrade notes of tesk-api](tesk-api/upgrading.md) and
 **Image tags without `v`:** releases of tesk-core from 0.11.0 on tag their
 images `X.Y.Z` (e.g., `0.11.0`), as tesk-api does; earlier ones were tagged
 `vX.Y.Z` (e.g., `v0.10.6`). If your values set `tesk.taskmaster.image.tag`
-or `tesk.filer.image.tag`, use `0.11.0`, not `v0.11.0`.
+or `tesk.filer.image.tag`, use `0.11.0`, not `v0.11.0`. Set both tags
+together, to the same release: from 0.11.0 on, the filer must be of the
+same version as the taskmaster (e.g., an older taskmaster pinned in your
+values with the default filer 0.11.0 doesn't work).
 
 ### Creator labels of tesk-api 1.2.0
 
@@ -419,7 +426,8 @@ too:
 
 - Taskmaster v0.10.2 ends tasks in `SYSTEM_ERROR` on Kubernetes 1.31 or
   later, as it reads only the first condition of a job. If your values set
-  `tesk.taskmaster.image.tag`, set it to v0.10.6 or later.
+  `tesk.taskmaster.image.tag` or `tesk.filer.image.tag`, set both to the
+  same release, v0.10.6 or later.
 - **Resource limits:** v0.10.6 and later set the resources that a task
   requests (`resources.cpu_cores`, `resources.ram_gb`) as the limits of its
   executors too. A task that uses more memory than it requested is now killed (OOM),
