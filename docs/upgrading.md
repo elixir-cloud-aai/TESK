@@ -12,6 +12,17 @@ helm upgrade tesk charts/tesk --namespace tesk -f my-values.yaml -f secrets.yaml
 
 ## Unreleased
 
+### Creator labels of tesk-api 1.2.0
+
+**Act on this if you use `auth.mode: auth`.** With tesk-api 1.2.0, tasks
+created before you upgrade tesk-api no longer belong to their creators.
+Upgrade when no tasks run and the old ones are no longer needed, or set the
+new value `auth.legacyUserLabels` to `true` for a transition (see [Tasks
+created before tesk-api 1.2.0](deployment.md#tasks-created-before-tesk-api-120)).
+While the API's pod is replaced, the old and the new pod run side by side
+for a moment, and creators may get `403 Forbidden` for their newest tasks
+until the new pod has taken over.
+
 ### Resource names from the release name
 
 **Breaking: install existing releases again.** The chart follows Helm's

@@ -289,6 +289,32 @@ allows it for public clients) with your provider and put its ID into
 tesk-api 1.2.0 and later ignore it (see
 [Upgrading](upgrading.md#swagger-ui-client-secret-deprecated)).
 
+### Tasks created before tesk-api 1.2.0
+
+tesk-api 1.2.0 records the creator of a task without loss, in labels other
+than those of earlier versions. With `auth.mode: auth`, tasks created by an
+earlier version therefore no longer belong to their creators, who can't
+list, get or cancel them any more. Either upgrade when no tasks run and the
+old ones are no longer needed, or, so that tesk-api also matches the old
+tasks to their creators for a transition after the upgrade, set:
+
+```yaml
+auth:
+  legacyUserLabels: true
+```
+
+While it is on, tesk-api filters lists of tasks itself rather than letting
+Kubernetes select them by creator, which takes longer the more tasks there
+are. Set it back to `false` once the old tasks are no longer needed (e.g.,
+after `tesk.taskTtlSeconds`). It is off by default (unset, so tesk-api's
+default applies) and has no effect with `auth.mode: noauth`. tesk-api
+before 1.2.0 ignores it; `helm install` and `helm upgrade` print a warning
+if it is on with such an image (`tesk.image.tag`). See
+[Creator labels][creator-labels] in the upgrade notes of tesk-api, also for
+how to list and delete the old tasks.
+
+[creator-labels]: https://github.com/elixir-cloud-aai/tesk-api/blob/dev/docs/upgrading.md
+
 ## Swagger UI
 
 tesk-api can serve a Swagger UI, at the root path of the deployment (`/`

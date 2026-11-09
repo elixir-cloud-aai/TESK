@@ -114,6 +114,13 @@ spec:
         - name: TESK_API_SERVICE_INFO_PUBLIC
           value: {{ .Values.auth.serviceInfoPublic | quote }}
         {{- end }}
+        {{- /* Tasks of tesk-api before 1.2.0, by their old creator label:
+        only with mode auth (noauth matches no tasks to creators) and when
+        on; otherwise tesk-api's default (off) applies */}}
+        {{- if and (eq (toString .Values.auth.mode) "auth") (eq (toString .Values.auth.legacyUserLabels) "true") }}
+        - name: TESK_API_AUTHORISATION_LEGACY_USER_LABELS
+          value: "true"
+        {{- end }}
         {{- /* Authorisation without groups, by a claim of the user info:
         only with mode auth (noauth leaves all endpoints open) and when on;
         complete, since tesk-api stops at startup without a name or a

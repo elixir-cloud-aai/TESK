@@ -384,6 +384,16 @@
           "$ref": "#/$defs/scalar",
           "description": "With mode auth, whether GET /service-info answers without a token"
         },
+        "legacyUserLabels": {
+          "enum": [
+            true,
+            false,
+            "true",
+            "false",
+            null
+          ],
+          "description": "With mode auth, whether tasks created by tesk-api before 1.2.0 are matched to their creators by their old creator label"
+        },
         "claim": {
           "type": [
             "object",

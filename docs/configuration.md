@@ -116,6 +116,7 @@ requests to a pod that isn't ready.
 | `auth.envBaseGroup` | `ECP_CLN` | Base group of the LS Login (ELIXIR AAI) group model that grants access. |
 | `auth.envSubgroup` | `CSC` | Subgroup of the base group for this deployment. |
 | `auth.serviceInfoPublic` | `true` | With `auth.mode: auth`: `true` lets `GET /service-info` answer without a token, `false` requires a valid token for it. Needs tesk-api 1.2.0 or later; earlier versions ignore it and keep the endpoint public. No effect with `noauth`. |
+| `auth.legacyUserLabels` | `false` | With `auth.mode: auth`: `true` also matches tasks created by tesk-api before 1.2.0 to their creators, by the creator label of those versions; for a transition after upgrading to tesk-api 1.2.0 (see [Tasks created before tesk-api 1.2.0](deployment.md#tasks-created-before-tesk-api-120)). Needs tesk-api 1.2.0 or later; no effect with `noauth`. |
 | `auth.claim.enabled` | `false` | With `auth.mode: auth`: `true` authorises users without groups, by a claim of the user info (see [Authorisation by a claim](deployment.md#authorisation-by-a-claim)). Needs `auth.claim.name` and `auth.claim.values`, and tesk-api 1.2.0 or later; ignored with `auth.mode: noauth`. |
 | `auth.claim.name` | `""` | Name of the claim, e.g., `eduperson_entitlement`. |
 | `auth.claim.values` | `[]` | Values of the claim, one of which a user needs (compared exactly); non-blank, without commas. |

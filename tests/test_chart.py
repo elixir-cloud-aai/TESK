@@ -891,6 +891,91 @@ def test_auth_claim_invalid(claim: str) -> None:
     assert "values don't meet the specifications of the schema" in error.value.stderr
 
 
+LEGACY_USER_LABELS = "TESK_API_AUTHORISATION_LEGACY_USER_LABELS"
+
+
+@pytest.mark.parametrize(
+    "args",
+    [
+        (),
+        ("--set", "auth.legacyUserLabels=false"),
+        ("--set-string", "auth.legacyUserLabels=false"),
+        ("--set-json", "auth.legacyUserLabels=null"),
+        ("--set", "auth.mode=noauth", "--set", "auth.legacyUserLabels=true"),
+    ],
+)
+def test_auth_legacy_user_labels_off(args: tuple[str, ...]) -> None:
+    """Off by default, and with mode noauth: tesk-api's default (off) applies.
+
+    Rendered with mode auth, unless the arguments set noauth: with mode
+    noauth, all endpoints are open, so tasks aren't matched to creators.
+
+    Args:
+        args: The `helm template` arguments.
+    """
+    variables = env(render("--set", "auth.mode=auth", *args))
+    assert LEGACY_USER_LABELS not in variables
+
+
+@pytest.mark.parametrize(
+    "args",
+    [
+        ("--set", "auth.legacyUserLabels=true"),
+        ("--set-string", "auth.legacyUserLabels=true"),
+    ],
+)
+def test_auth_legacy_user_labels(args: tuple[str, ...]) -> None:
+    """With mode auth, `auth.legacyUserLabels: true` turns the setting on.
+
+    Args:
+        args: The `helm template` arguments.
+    """
+    variables = env(render("--set", "auth.mode=auth", *args))
+    assert variables[LEGACY_USER_LABELS] == "true"
+
+
+def test_auth_legacy_user_labels_values_file(tmp_path: Path) -> None:
+    """A boolean from a values file is passed on as the string `true`.
+
+    Args:
+        tmp_path: A directory for the values file.
+    """
+    values = tmp_path / "values.yaml"
+    values.write_text("auth:\n  mode: auth\n  legacyUserLabels: true\n")
+    assert env(render("-f", str(values)))[LEGACY_USER_LABELS] == "true"
+
+
+def test_auth_legacy_user_labels_with_claim() -> None:
+    """The setting and authorisation by a claim can be on together."""
+    variables = env(
+        render(
+            "--set",
+            "auth.mode=auth",
+            "--set",
+            "auth.legacyUserLabels=true",
+            "--set",
+            "auth.serviceInfoPublic=false",
+            "--set-json",
+            'auth.claim={"enabled": true, "name": "x", "values": ["a"]}',
+        )
+    )
+    assert variables[LEGACY_USER_LABELS] == "true"
+    assert variables["TESK_API_AUTHORISATION_CLAIM_ENABLED"] == "true"
+    assert variables["TESK_API_SERVICE_INFO_PUBLIC"] == "false"
+
+
+@pytest.mark.parametrize("value", ['"yes"', "1", "[]", '{"enabled": true}'])
+def test_auth_legacy_user_labels_invalid(value: str) -> None:
+    """The schema accepts only booleans (also as strings) and null.
+
+    Args:
+        value: `auth.legacyUserLabels`, as JSON.
+    """
+    with pytest.raises(subprocess.CalledProcessError) as error:
+        render("--set-json", f"auth.legacyUserLabels={value}")
+    assert "values don't meet the specifications of the schema" in error.value.stderr
+
+
 @pytest.mark.parametrize(
     ("args", "expected"),
     [
@@ -1995,6 +2080,7 @@ def test_schema_invalid(args: tuple[str, ...]) -> None:
         {"service": {"nodePort": "31567", "type": "NodePort"}},
         {"tesk": {"image": {"tag": 1.2}}},
         {"auth": {"serviceInfoPublic": "false"}},
+        {"auth": {"legacyUserLabels": "true"}},
         {"global": {"anything": True}},
         {"ingress": {"className": 123}},
         {"tesk": {"resources": {"limits": {"nvidia.com/gpu": 1}}}},
@@ -2317,6 +2403,46 @@ def test_notes_max_queue_old_api(
         "--set", "tesk.maxQueueSeconds=3600", *new_taskmaster, *args, tmp_path=tmp_path
     )
     assert ("tesk.maxQueueSeconds is set, but tesk-api" in text) is warned
+
+
+@pytest.mark.parametrize(
+    ("args", "warned"),
+    [
+        ((), APP_VERSION < (1, 2)),
+        (("--set", "tesk.image.tag=1.1.0"), True),
+        (("--set", "tesk.image.tag=v1.1"), True),
+        (("--set", "tesk.image.tag=1.2.0-rc.1"), False),
+        (("--set", "tesk.image.tag=1.2.0"), False),
+        (("--set", "tesk.image.tag=dev"), False),
+        (("--set", "tesk.image.tag=1.1.0", "--set", "auth.mode=noauth"), False),
+        (
+            ("--set", "tesk.image.tag=1.1.0", "--set", "auth.legacyUserLabels=false"),
+            False,
+        ),
+    ],
+)
+def test_notes_legacy_user_labels_old_api(
+    tmp_path: Path, args: tuple[str, ...], warned: bool
+) -> None:
+    """The notes warn if `auth.legacyUserLabels` is on with tesk-api before 1.2.0.
+
+    Those versions ignore the setting.
+
+    Args:
+        tmp_path: A directory for a copy of the chart.
+        args: Further `helm template` arguments (image tag, mode, setting).
+        warned: Whether the notes warn.
+    """
+    text = notes(
+        "--set",
+        "auth.mode=auth",
+        "--set",
+        "auth.legacyUserLabels=true",
+        *args,
+        tmp_path=tmp_path,
+    )
+    assert ("auth.legacyUserLabels is on, but tesk-api" in text) is warned
+    assert "auth.legacyUserLabels is on" not in notes(tmp_path=tmp_path)
 
 
 @pytest.mark.parametrize(
