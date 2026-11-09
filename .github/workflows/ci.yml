@@ -1,8 +1,8 @@
 # Everything that must pass on pull requests and pushes to `dev`: the pull
 # request title, lint, the tests, the chart (lint, render, and install on a
 # kind cluster), the docs and the notes of a release in preparation. The
-# gate `passed` ("CI passed") is the only required check. No `paths:` filters, so that the gate always reports; skip
-# jobs with `if:` instead (and allow the skip in the gate). Runs also when a
+# gate `passed` ("CI passed") is the only required check. No `paths:`
+# filters, so that the gate always reports; skip jobs with `if:` instead (and allow the skip in the gate). Runs also when a
 # pull request is edited, so that the title check follows the title; all
 # jobs run then, as a run that skipped the checks would report "CI passed"
 # for the commit. Nothing is published from here

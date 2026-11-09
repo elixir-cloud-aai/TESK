@@ -15,8 +15,8 @@ follow the format agreed for all repositories of the organization (see
 
 The release body never changes, so curated notes must not link to versions
 that move (`UNVERSIONED`, e.g., the latest docs or branch `dev`), but to the
-release's (e.g., `/en/vX.Y.Z/`, `blob/vX.Y.Z/`), and must be finished (no
-`TODO`).
+release's (e.g., `/en/vX.Y.Z/`, `blob/vX.Y.Z/`). Notes must also be
+finished (no `TODO`).
 
 The curated notes (`docs/releases/<version>.md`) hold parts 1 and 2; every
 release needs them. The release workflow (`.github/workflows/release.yml`)
