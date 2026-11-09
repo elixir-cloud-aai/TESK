@@ -139,9 +139,9 @@ jobs:
               exit 1
           fi
       # Curated release notes are published as written, so every release
-      # needs them, finished (no `TODO`) and in the agreed format
-      # (`scripts/release_notes.py`, standard library only), before
-      # anything is published
+      # needs them, finished (no `TODO`) and in the agreed format, before
+      # anything is published (`scripts/release_notes.py`, standard library
+      # only)
       - name: Set up Python
         uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
@@ -151,12 +151,7 @@ jobs:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
           python scripts/release_notes.py require "${VERSION}"
-          notes="docs/releases/${VERSION}.md"
-          if grep -n "TODO" "${notes}"; then
-              echo "::error::${notes} contains TODO: finish the release notes, then tag a new release"
-              exit 1
-          fi
-          python scripts/release_notes.py check "${notes}"
+          python scripts/release_notes.py check "docs/releases/${VERSION}.md"
       # The checks here don't run all of CI: require a successful run of the
       # CI workflow for a push of the release commit (to `dev`, which `main`
       # follows); runs for pull requests test merge commits, not the commit
@@ -321,13 +316,13 @@ jobs:
         run: cosign sign-blob --yes --bundle "dist/${FILE}.sigstore.json" "dist/${FILE}"
       # Assets of a published immutable release (a repository setting) can't
       # be added or replaced, so the release is created as a draft, gets its
-      # files, and is published last, with its notes (curated ones, then
-      # those generated since the previous release, on every run, so that a
-      # draft of an earlier run gets current ones), its title and flags. The release of the tag is
-      # looked up among all releases, drafts included: a re-run completes
-      # the draft of a failed run; a release that is already published
-      # (e.g., by hand) gets nothing, but must have both files, or the step
-      # fails
+      # files, and is published last, with its title, flags and notes: the
+      # curated ones, then the ones generated since the previous release
+      # (generated on every run, so that a draft of an earlier run gets
+      # current ones). The release of the tag is looked up among all
+      # releases, drafts included: a re-run completes the draft of a failed
+      # run; a release that is already published (e.g., by hand) gets
+      # nothing, but must have both files, or the step fails
       - name: Create release
         env:
           GH_TOKEN: ${{ github.token }}

@@ -2,7 +2,6 @@
 
 import importlib.util
 from pathlib import Path
-import re
 import subprocess
 import sys
 
@@ -430,18 +429,28 @@ def test_main_require_default(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -
     """`require` reads the notes in `docs/releases/` by default."""
     releases = tmp_path / "docs" / "releases"
     releases.mkdir(parents=True)
-    (releases / "0.4.0.md").write_text(CURATED, encoding="utf-8")
+    (releases / "0.3.0.md").write_text(CURATED, encoding="utf-8")
     monkeypatch.chdir(tmp_path)
-    assert release_notes.main(["require", "0.5.0"]) == 1
-    assert release_notes.main(["require", "0.4.0"]) == 0
+    assert release_notes.main(["require", "0.3.1"]) == 1
+    assert release_notes.main(["require", "0.3.0"]) == 0
 
 
-def test_release_has_notes() -> None:
-    """The release in preparation (`CITATION.cff`) has curated notes."""
-    citation = (ROOT / "CITATION.cff").read_text(encoding="utf-8")
-    match = re.search(r'^version: "?([^"\s]+)"?$', citation, re.MULTILINE)
-    assert match
-    assert release_notes.missing_notes(match[1], ROOT / "docs/releases") is None
+@pytest.mark.parametrize(
+    "markdown",
+    [
+        "Intro. TODO: link the upgrade notes.\n",
+        "Intro.\n\n<!-- TODO -->\n",
+        "Intro.\n\n## Fixes\n\n- A fix, TODO (#1)\n",
+    ],
+)
+def test_check_todo(markdown: str) -> None:
+    """Unfinished notes (with `TODO`, also in a comment) have a finding."""
+    line = next(
+        number
+        for number, text in enumerate(markdown.splitlines(), start=1)
+        if "TODO" in text
+    )
+    assert _messages(markdown) == [(line, "TODO: finish the")]
 
 
 def test_script(tmp_path: Path) -> None:
@@ -499,7 +508,7 @@ def test_check_versioned_links(link: str) -> None:
 
 def test_body_splits_at_line_breaks_only() -> None:
     """Other line separators (e.g., U+2028) in generated notes start no line."""
-    generated = "* x ## Security by @a in u\n\n**Full Changelog**: c\n"
+    generated = "* x\u2028## Security by @a in u\n\n**Full Changelog**: c\n"
     text, warnings = release_notes.body("Intro.\n", generated)
     assert "\n## Security" not in text
     assert warnings == []

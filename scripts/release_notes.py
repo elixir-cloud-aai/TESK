@@ -1,9 +1,8 @@
 """Check curated release notes and build the body of a GitHub release.
 
-Release notes follow the format agreed for all repositories of the
-organization (see "Releases" in `docs/development.md`), as in
-cloud-registry's `scripts/release_notes.py`, from which this script is
-ported:
+Ported from cloud-registry's `scripts/release_notes.py`. Release notes
+follow the format agreed for all repositories of the organization (see
+"Releases" in `docs/development.md`):
 
 1. An intro paragraph saying what the release brings, with a link to the
    upgrade or migration guide if there is one.
@@ -16,13 +15,14 @@ ported:
 
 The release body never changes, so curated notes must not link to versions
 that move (`UNVERSIONED`, e.g., the latest docs or branch `dev`), but to the
-release's (e.g., `/en/vX.Y.Z/`, `blob/vX.Y.Z/`).
+release's (e.g., `/en/vX.Y.Z/`, `blob/vX.Y.Z/`), and must be finished (no
+`TODO`).
 
-The curated notes (`docs/releases/<version>.md`) hold parts 1 and 2; the
-release workflow (`.github/workflows/release.yml`) adds parts 3 and 4 from
-GitHub's `generate-notes` API. Every release has a previous one there (the
-first release of the workflow follows `v0.2`), so the generation of the
-notes of a first release (cloud-registry's `first`) is not ported.
+The curated notes (`docs/releases/<version>.md`) hold parts 1 and 2; every
+release needs them. The release workflow (`.github/workflows/release.yml`)
+adds parts 3 and 4 from GitHub's `generate-notes` API, since the previous
+release, which every release has (the first one of the workflow follows
+`v0.2`).
 
 Commands:
     `check <notes>`: check the structure of curated notes.
@@ -32,10 +32,10 @@ Commands:
         file).
     `require <version> [--releases <dir>]`: fail if the curated notes of a
         release (`<dir>/<version>.md`, by default in `docs/releases/`) are
-        missing; unlike in cloud-registry, every release needs them.
+        missing.
 
 Errors (and warnings) are printed as GitHub annotations to standard error.
-Only the stdlib is used, so the workflow runs it without installing the app.
+Only the stdlib is used, so the workflows run it without installing anything.
 """
 
 import argparse
@@ -108,6 +108,9 @@ MOVING_LINK = (
     "Link to a version that moves (e.g., latest docs, branch dev): the release"
     " body never changes, so link the release's (/en/vX.Y.Z/, blob/vX.Y.Z/)"
 )
+# Marks unfinished notes, which must not be published
+TODO = "TODO"
+UNFINISHED = "TODO: finish the release notes before the release"
 
 
 @dataclass(frozen=True)
@@ -365,15 +368,17 @@ def check(markdown: str) -> list[Finding]:
         empty), holding bullets only, each ending with its issue and pull
         request numbers, and none of the parts that the release workflow adds
         (`## Commits`, the `**Full Changelog**` line), and no links to
-        versions that move (`UNVERSIONED`). An HTML comment on a line of
-        its own counts as a blank line.
+        versions that move (`UNVERSIONED`), and no `TODO` (unfinished
+        notes, also in comments). An HTML comment on a line of its own
+        counts as a blank line.
     """
     lines = markdown.removeprefix("\ufeff").splitlines()
-    findings = _Checker().run(lines) + [
-        Finding(number, MOVING_LINK)
-        for number, line in enumerate(lines, start=1)
-        if UNVERSIONED.search(line)
-    ]
+    findings = _Checker().run(lines)
+    for number, line in enumerate(lines, start=1):
+        if UNVERSIONED.search(line):
+            findings.append(Finding(number, MOVING_LINK))
+        if TODO in line:
+            findings.append(Finding(number, UNFINISHED))
     return sorted(findings, key=lambda finding: finding.line)
 
 

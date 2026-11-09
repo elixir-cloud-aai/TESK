@@ -1,8 +1,7 @@
 # Everything that must pass on pull requests and pushes to `dev`: the pull
 # request title, lint, the tests, the chart (lint, render, and install on a
-# kind cluster), the docs and the release notes of a release in
-# preparation. The gate `passed` ("CI passed") is the only
-# required check. No `paths:` filters, so that the gate always reports; skip
+# kind cluster), the docs and the notes of a release in preparation. The
+# gate `passed` ("CI passed") is the only required check. No `paths:` filters, so that the gate always reports; skip
 # jobs with `if:` instead (and allow the skip in the gate). Runs also when a
 # pull request is edited, so that the title check follows the title; all
 # jobs run then, as a run that skipped the checks would report "CI passed"
@@ -225,15 +224,13 @@ jobs:
           fi
           status=0
           notes="docs/releases/${version}.md"
+          # Annotations `::error::` and `::error file=...::` become warnings
+          # on pull requests
           python scripts/release_notes.py require "${version}" 2> require.txt || status=1
-          sed "s/^::error::/::${level}::/" require.txt
+          sed -E "s/^::error( |::)/::${level}\1/" require.txt
           if [[ -f "${notes}" ]]; then
-              if grep -n "TODO" "${notes}"; then
-                  echo "::${level}::${notes} contains TODO: finish the release notes before tagging v${version}"
-                  status=1
-              fi
               python scripts/release_notes.py check "${notes}" 2> notes.txt || status=1
-              sed "s/^::error /::${level} /" notes.txt
+              sed -E "s/^::error( |::)/::${level}\1/" notes.txt
           fi
           if [[ "${level}" == "error" ]]; then
               exit "${status}"

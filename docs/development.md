@@ -206,7 +206,10 @@ To release version X.Y.Z:
 
 1. In a pull request to `dev`, set `version` in `charts/tesk/Chart.yaml`, and
    `version` and `date-released` in `CITATION.cff`, to X.Y.Z and the release
-   date, and add the curated notes (see above); merge it once CI passed.
+   date, and add the curated notes, `docs/releases/X.Y.Z.md`, with their
+   entry in the `nav` of `mkdocs.yml` (see above); check them with
+   `python scripts/release_notes.py check docs/releases/X.Y.Z.md`. Merge
+   the pull request once CI passed.
    (`appVersion` in `Chart.yaml` is not the release version: it is the
    version of tesk-api that the chart deploys, the default tag of its
    image.)
