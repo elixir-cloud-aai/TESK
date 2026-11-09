@@ -115,12 +115,15 @@ jobs:
           coverage run -m pytest --ignore=tests/test_chart.py
           coverage report
           coverage xml
+      # Upload errors fail pushes to this repository only, because forks,
+      # pull requests from forks and Dependabot get no access to the Codecov
+      # token
       - name: Submit report to Codecov
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./coverage.xml
-          fail_ci_if_error: ${{ github.event_name == 'push' }}
+          fail_ci_if_error: ${{ github.event_name == 'push' && github.repository_owner == 'elixir-cloud-aai' }}
           verbose: true
 
   # Lints and renders the chart (`.github/actions/test-chart`)
