@@ -94,14 +94,19 @@ VERSION = re.compile(
 DOCS_HOST = "tesk.readthedocs.io"
 REPOSITORY = "elixir-cloud-aai/TESK"
 _MOVING = r"(?![\w.-])"
+_BRANCH = rf"(?:refs/heads/)?(?:dev|main|HEAD){_MOVING}"
 UNVERSIONED = re.compile(
-    rf"{re.escape(DOCS_HOST)}/(?:en/)?(?:latest|stable){_MOVING}"
+    # Docs other than those of a version (`/en/vX.Y.Z/`, `/en/X.Y.Z/`): the
+    # root and unprefixed paths redirect to the default version, which
+    # moves, as do `latest` and `stable`
+    rf"{re.escape(DOCS_HOST)}(?![\w-])(?!/en/v?[0-9])"
     rf"|github\.com/{re.escape(REPOSITORY)}/"
-    rf"(?:blob|tree|raw|edit|blame|commits)/(?:refs/heads/)?(?:dev|main|HEAD)"
-    rf"{_MOVING}"
+    rf"(?:blob|tree|raw|edit|blame|commits)/{_BRANCH}"
+    # Comparisons with a branch on either side
+    rf"|github\.com/{re.escape(REPOSITORY)}/compare/"
+    rf"(?:(?:refs/heads/)?(?:dev|main|HEAD)\.{{2,3}}|(?:[\w./-]*?\.{{2,3}})?{_BRANCH})"
     rf"|github\.com/{re.escape(REPOSITORY)}/releases/latest{_MOVING}"
-    rf"|raw\.githubusercontent\.com/{re.escape(REPOSITORY)}/"
-    rf"(?:refs/heads/)?(?:dev|main|HEAD){_MOVING}",
+    rf"|raw\.githubusercontent\.com/{re.escape(REPOSITORY)}/{_BRANCH}",
     re.ASCII | re.IGNORECASE,
 )
 MOVING_LINK = (
