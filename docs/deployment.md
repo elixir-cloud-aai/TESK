@@ -307,7 +307,9 @@ While it is on, tesk-api filters lists of tasks itself rather than letting
 Kubernetes select them by creator, which takes longer the more tasks there
 are. Set it back to `false` once the old tasks are no longer needed (e.g.,
 after `tesk.taskTtlSeconds`). It is off by default (unset, so tesk-api's
-default applies) and has no effect with `auth.mode: noauth`. See
+default applies) and has no effect with `auth.mode: noauth`. tesk-api
+before 1.2.0 ignores it; `helm install` and `helm upgrade` print a warning
+if it is on with such an image (`tesk.image.tag`). See
 [Creator labels][creator-labels] in the upgrade notes of tesk-api, also for
 how to list and delete the old tasks.
 

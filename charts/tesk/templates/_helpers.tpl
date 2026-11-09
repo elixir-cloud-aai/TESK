@@ -262,6 +262,15 @@ reports a task whose executor wasn't scheduled in time as COMPLETE instead
 of SYSTEM_ERROR. Set it only with a tesk-api image newer than 1.1; see
 https://tesk.readthedocs.io/en/latest/deployment/#tasks-that-cant-be-scheduled
 {{- end }}
+{{- /* tesk-api before 1.2.0 ignores the legacy creator labels setting,
+which the chart only passes on with mode auth */ -}}
+{{- $oldApi := and (regexMatch "^[0-9]+\\.[0-9]+(\\.[0-9]+)?([-+][0-9A-Za-z.+-]*)?$" $apiTag) (semverCompare "<1.2.0-0" $apiTag) -}}
+{{- if and (eq (toString .Values.auth.mode) "auth") (eq (toString .Values.auth.legacyUserLabels) "true") $oldApi }}
+
+WARNING: auth.legacyUserLabels is on, but tesk-api {{ $apiTag }} (tesk.image.tag)
+ignores it. It is for tesk-api 1.2.0 or later; see
+https://tesk.readthedocs.io/en/latest/deployment/#tasks-created-before-tesk-api-120
+{{- end }}
 {{- if and .Values.tesk.filerHttpTimeout $oldImages }}
 
 WARNING: tesk.filerHttpTimeout is set, but {{ join " and " $oldImages }} {{ ternary "is" "are" (eq (len $oldImages) 1) }}

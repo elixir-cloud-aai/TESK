@@ -2406,6 +2406,46 @@ def test_notes_max_queue_old_api(
 
 
 @pytest.mark.parametrize(
+    ("args", "warned"),
+    [
+        ((), APP_VERSION < (1, 2)),
+        (("--set", "tesk.image.tag=1.1.0"), True),
+        (("--set", "tesk.image.tag=v1.1"), True),
+        (("--set", "tesk.image.tag=1.2.0-rc.1"), False),
+        (("--set", "tesk.image.tag=1.2.0"), False),
+        (("--set", "tesk.image.tag=dev"), False),
+        (("--set", "tesk.image.tag=1.1.0", "--set", "auth.mode=noauth"), False),
+        (
+            ("--set", "tesk.image.tag=1.1.0", "--set", "auth.legacyUserLabels=false"),
+            False,
+        ),
+    ],
+)
+def test_notes_legacy_user_labels_old_api(
+    tmp_path: Path, args: tuple[str, ...], warned: bool
+) -> None:
+    """The notes warn if `auth.legacyUserLabels` is on with tesk-api before 1.2.0.
+
+    Those versions ignore the setting.
+
+    Args:
+        tmp_path: A directory for a copy of the chart.
+        args: Further `helm template` arguments (image tag, mode, setting).
+        warned: Whether the notes warn.
+    """
+    text = notes(
+        "--set",
+        "auth.mode=auth",
+        "--set",
+        "auth.legacyUserLabels=true",
+        *args,
+        tmp_path=tmp_path,
+    )
+    assert ("auth.legacyUserLabels is on, but tesk-api" in text) is warned
+    assert "auth.legacyUserLabels is on" not in notes(tmp_path=tmp_path)
+
+
+@pytest.mark.parametrize(
     ("group", "resource", "verbs"),
     [
         ("batch", "jobs", {"create", "delete", "get", "list", "patch"}),
