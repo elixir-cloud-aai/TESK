@@ -945,6 +945,25 @@ def test_auth_legacy_user_labels_values_file(tmp_path: Path) -> None:
     assert env(render("-f", str(values)))[LEGACY_USER_LABELS] == "true"
 
 
+def test_auth_legacy_user_labels_with_claim() -> None:
+    """The setting and authorisation by a claim can be on together."""
+    variables = env(
+        render(
+            "--set",
+            "auth.mode=auth",
+            "--set",
+            "auth.legacyUserLabels=true",
+            "--set",
+            "auth.serviceInfoPublic=false",
+            "--set-json",
+            'auth.claim={"enabled": true, "name": "x", "values": ["a"]}',
+        )
+    )
+    assert variables[LEGACY_USER_LABELS] == "true"
+    assert variables["TESK_API_AUTHORISATION_CLAIM_ENABLED"] == "true"
+    assert variables["TESK_API_SERVICE_INFO_PUBLIC"] == "false"
+
+
 @pytest.mark.parametrize("value", ['"yes"', "1", "[]", '{"enabled": true}'])
 def test_auth_legacy_user_labels_invalid(value: str) -> None:
     """The schema accepts only booleans (also as strings) and null.
@@ -2061,6 +2080,7 @@ def test_schema_invalid(args: tuple[str, ...]) -> None:
         {"service": {"nodePort": "31567", "type": "NodePort"}},
         {"tesk": {"image": {"tag": 1.2}}},
         {"auth": {"serviceInfoPublic": "false"}},
+        {"auth": {"legacyUserLabels": "true"}},
         {"global": {"anything": True}},
         {"ingress": {"className": 123}},
         {"tesk": {"resources": {"limits": {"nvidia.com/gpu": 1}}}},

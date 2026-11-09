@@ -173,7 +173,9 @@ auth:
   # creator. tesk-api 1.2.0 records creators without loss in other labels,
   # so these tasks only belong to their creators with this setting. Turn it
   # on for a transition after the upgrade, and off again once the old tasks
-  # are no longer needed. Needs tesk-api 1.2.0 or later; see
+  # are no longer needed: while it is on, tesk-api filters lists of tasks
+  # itself. false (or null) leaves it unset, so tesk-api's default (off)
+  # applies. Needs tesk-api 1.2.0 or later; see
   # https://github.com/elixir-cloud-aai/tesk-api/blob/dev/docs/upgrading.md
   legacyUserLabels: false
   # With mode auth: authorisation without groups, by a claim of the user info,
