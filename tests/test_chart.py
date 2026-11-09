@@ -1294,6 +1294,7 @@ def test_notes_client_secret(
             ["tesk.taskmaster.image.tag", "tesk.filer.image.tag"],
         ),
         (("--set", "tesk.taskmaster.image.tag=v0.10.6"), ["tesk.taskmaster.image.tag"]),
+        (("--set", "tesk.filer.image.tag=v0.10.6"), ["tesk.filer.image.tag"]),
         (
             (
                 "--set",
@@ -1301,7 +1302,16 @@ def test_notes_client_secret(
                 "--set",
                 "tesk.filer.image.tag=0.10.6",
             ),
-            None,
+            ["tesk.taskmaster.image.tag", "tesk.filer.image.tag"],
+        ),
+        (
+            (
+                "--set",
+                "tesk.taskmaster.image.tag=0.11.0",
+                "--set",
+                "tesk.filer.image.tag=0.11.0",
+            ),
+            [],
         ),
         (
             (
@@ -1315,32 +1325,22 @@ def test_notes_client_secret(
     ],
 )
 def test_notes_ftp_hosts_old_images(
-    tmp_path: Path, args: tuple[str, ...], keys: list[str] | None
+    tmp_path: Path, args: tuple[str, ...], keys: list[str]
 ) -> None:
     """The notes warn if `ftp.hosts` is set, but images are too old for it.
 
-    Release tags up to v0.10.6 ignore `ftp.hosts`; other tags (e.g., `dev`)
-    are assumed to support it.
+    Release tags up to v0.10.6 (with or without the `v`) ignore `ftp.hosts`;
+    other tags (e.g., `0.11.0` or `dev`) are assumed to support it.
 
     Args:
         tmp_path: A directory for a copy of the chart.
         args: Further `helm template` arguments (image tags).
-        keys: The keys of the old image tags that the warning names, or
-            `None` for both keys (the taskmaster's tag set to an old one
-            without the `v`).
+        keys: The keys of the old image tags that the warning names.
     """
     hosts = ("--set", "ftp.hosts={ftp.example.org}")
     text = notes(*hosts, *args, tmp_path=tmp_path)
-    expected = (
-        keys
-        if keys is not None
-        else [
-            "tesk.taskmaster.image.tag",
-            "tesk.filer.image.tag",
-        ]
-    )
-    if expected:
-        assert f"WARNING: ftp.hosts is set, but {' and '.join(expected)} " in text
+    if keys:
+        assert f"WARNING: ftp.hosts is set, but {' and '.join(keys)} " in text
     else:
         assert "ftp.hosts is set" not in text
     assert "ftp.hosts is set" not in notes(*args, tmp_path=tmp_path)
@@ -1570,6 +1570,17 @@ def test_filer_http_timeout_invalid(args: tuple[str, ...]) -> None:
             True,
         ),
         (("--set", "tesk.filer.image.tag=v0.10.6"), True),
+        (("--set", "tesk.filer.image.tag=0.10.6"), True),
+        (("--set", "tesk.taskmaster.image.tag=0.10.6"), True),
+        (
+            (
+                "--set",
+                "tesk.taskmaster.image.tag=0.11.0",
+                "--set",
+                "tesk.filer.image.tag=0.11.0",
+            ),
+            False,
+        ),
         (
             (
                 "--set",
@@ -2377,7 +2388,10 @@ def test_seconds_invalid_range(args: tuple[str, ...], message: str) -> None:
     [
         ((), False),
         (("--set", "tesk.taskmaster.image.tag=v0.10.6"), True),
+        (("--set", "tesk.taskmaster.image.tag=0.10.6"), True),
         (("--set", "tesk.taskmaster.image.tag=v0.11.0"), False),
+        (("--set", "tesk.taskmaster.image.tag=0.11.0"), False),
+        (("--set", "tesk.filer.image.tag=v0.10.6"), False),
         (("--set", "tesk.taskmaster.image.tag=dev"), False),
     ],
 )
@@ -2424,7 +2438,7 @@ def test_notes_max_queue_old_api(
         args: Further `helm template` arguments (image tags).
         warned: Whether the notes warn.
     """
-    new_taskmaster = ("--set", "tesk.taskmaster.image.tag=v0.11.0")
+    new_taskmaster = ("--set", "tesk.taskmaster.image.tag=0.11.0")
     text = notes(
         "--set", "tesk.maxQueueSeconds=3600", *new_taskmaster, *args, tmp_path=tmp_path
     )

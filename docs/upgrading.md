@@ -15,9 +15,10 @@ helm upgrade tesk charts/tesk --namespace tesk -f my-values.yaml -f secrets.yaml
 ### tesk-api 1.2.0, taskmaster and filer 0.11.0
 
 The chart deploys tesk-api 1.2.0 (its `appVersion`) and taskmaster and
-filer 0.11.0 by default now (were 1.1.0 and v0.10.6). With these images,
-the changes below that need "tesk-api 1.2.0" or "images newer than v0.10.6"
-take effect when you upgrade, unless your values pin older tags:
+filer 0.11.0 by default now (chart 0.1.1 deployed tesk-api 1.1.0 and
+taskmaster and filer v0.10.2). With these images, the changes below that
+need "tesk-api 1.2.0" or "images newer than v0.10.6" take effect when you
+upgrade, unless your values pin older tags:
 
 - **Act on this if your tasks use FTP with `ftp.username` and
   `ftp.password`:** the filer sends them only to `ftp.hosts` (see [FTP
@@ -32,6 +33,14 @@ take effect when you upgrade, unless your values pin older tags:
   the filer's HTTP(S) requests time out after 300 seconds without progress
   (see [Timeout of the filer's HTTP(S)
   requests](#timeout-of-the-filers-https-requests)).
+- `tesk.taskTtlSeconds` and `tesk.maxQueueSeconds` take effect if you set
+  them (see [Deleting finished tasks and a max queue
+  time](#deleting-finished-tasks-and-a-max-queue-time)).
+
+tesk-api and tesk-core have upgrade notes of their own, for changes that
+the chart's values don't cover (e.g., API responses, log formats, failed
+jobs): read the [upgrade notes of tesk-api](tesk-api/upgrading.md) and
+[of tesk-core](tesk-core/upgrading.md) too.
 
 **Image tags without `v`:** releases of tesk-core from 0.11.0 on tag their
 images `X.Y.Z` (e.g., `0.11.0`), as tesk-api does; earlier ones were tagged
@@ -382,12 +391,14 @@ GitHub release (see [From a release](deployment.md#from-a-release)).
 
 ### Taskmaster and filer v0.10.6
 
-The default taskmaster and filer are now v0.10.6 (were v0.10.2):
+Charts before 0.3.0 deployed taskmaster and filer v0.10.2 by default; this
+chart deploys 0.11.0 (see above), and these changes of v0.10.6 apply to it
+too:
 
 - Taskmaster v0.10.2 ends tasks in `SYSTEM_ERROR` on Kubernetes 1.31 or
   later, as it reads only the first condition of a job. If your values set
   `tesk.taskmaster.image.tag`, set it to v0.10.6 or later.
-- **Resource limits:** v0.10.6 sets the resources that a task requests
+- **Resource limits:** v0.10.6 and later set the resources that a task requests
   (`resources.cpu_cores`, `resources.ram_gb`) as the limits of its executors
   too. A task that uses more memory than it requested is now killed (OOM),
   and its CPU is throttled. Tasks that relied on using more than they
