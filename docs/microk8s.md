@@ -88,8 +88,8 @@ Ingress of MicroK8s without a host name or TLS:
 helm upgrade --install tesk charts/tesk \
     --namespace tesk --create-namespace --wait --timeout 10m -f - <<'YAML'
 ingress:
-  rules: true
-  ingressClassName: public
+  enabled: true
+  className: public
   # The chart's defaults ask cert-manager for a certificate, which MicroK8s
   # doesn't have; `null` removes them
   annotations: null

@@ -2,9 +2,11 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 #
-# The keys follow Helm's conventions (camelCase). The snake_case keys of
-# earlier versions of the chart (e.g., `host_name`) fail the installation:
-# see the upgrade notes (docs/upgrading.md) for the old and new keys.
+# The keys follow Helm's conventions (camelCase, `enabled` switches). The
+# keys of earlier versions of the chart (e.g., `host_name` or
+# `ingress.rules`) fail the installation, as do unknown keys of the chart's
+# own maps (`values.schema.json`): see the upgrade notes
+# (docs/upgrading.md) for the old and new keys.
 
 # The names of the chart's objects start with the release name, followed by
 # the chart's name (`tesk`) unless the release name contains it: e.g.,
@@ -59,9 +61,9 @@ tesk:
     # leaves the executors as their images say (often root). `fsGroup` also
     # gives executors access to the files that the filer stages on the
     # task's PVC, on volume types whose ownership Kubernetes manages. Not
-    # applied to the API (see `securityContext`), the taskmaster and the
-    # filer. tesk-api reads it at startup, so a change restarts the API's
-    # pod
+    # applied to the API (see `tesk.podSecurityContext`), the taskmaster
+    # and the filer. tesk-api reads it at startup, so a change restarts the
+    # API's pod
     securityContext: {}
   # Debug logging in the taskmasters
   debug: false
@@ -117,8 +119,21 @@ tesk:
   readinessProbe: {}
   livenessProbe: {}
 
+  # Security context of the API's pod and of its container: a non-root user
+  # (UID 1000) with the `RuntimeDefault` seccomp profile, no privilege
+  # escalation and no capabilities. Your values are merged with these; null
+  # removes a field (e.g., `podSecurityContext.runAsUser: null` on OpenShift,
+  # which assigns the user) or the whole context
+  podSecurityContext:
+    runAsUser: 1000
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
   securityContext:
-    enabled: true
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
 
   # Swagger UI of the API (at `ingress.path`): turning it on serves the
   # Swagger UI publicly; enable it only where needed. true or false only;
@@ -131,7 +146,7 @@ tesk:
 transfer:
   # Support for local file systems (`file:` URLs in inputs and outputs) on a
   # shared PVC
-  active: false
+  enabled: false
   # Path where the workflow engine sees the shared volume, e.g., `/data` for
   # WES-ELIXIR via docker-compose, `/tmp` for WES-ELIXIR run locally (change
   # `$wesBasePath` in minikubeStart accordingly)
@@ -147,7 +162,7 @@ auth:
   # Group model of LS Login (ELIXIR AAI): the base group and the subgroup of
   # this deployment (e.g., EBI or CSC) that grant access
   envSubgroup: CSC
-  envBasegroup: ECP_CLN
+  envBaseGroup: ECP_CLN
   # With mode auth: true lets GET /service-info answer without a token, false
   # requires a valid token for it. Needs tesk-api 1.2.0 or later
   # (`tesk.image.tag`); earlier versions ignore this and keep the endpoint
@@ -203,13 +218,14 @@ ftp:
   # which your pods see services running on your host (it depends on how you
   # installed Kubernetes; for VirtualBox, it is 192.168.99.1). Tasks can then
   # use it like this: ftp://ftp/file
-  hostip:
+  hostIp:
 
 ingress:
   # Creates an Ingress for `hostName`; false creates an OpenShift Route
   # instead, on OpenShift
-  rules: true
-  ingressClassName: ""
+  enabled: true
+  # Ingress class; empty uses the cluster's default class
+  className: ""
   # Path of the Ingress, and the context path of the API
   path: /
   # Secret with the TLS certificate of `hostName`; empty switches TLS off

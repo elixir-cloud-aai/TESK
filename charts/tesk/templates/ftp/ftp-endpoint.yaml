@@ -1,4 +1,4 @@
-{{- if .Values.ftp.hostip }}
+{{- if .Values.ftp.hostIp }}
 {{- /* Named as the Service (ftp-service.yaml) */}}
 apiVersion: v1
 kind: Endpoints
@@ -9,7 +9,7 @@ metadata:
 subsets:
 - addresses:
   # IP of the host as pods see it (e.g., IPv4 address from vboxnet0)
-  - ip: {{ .Values.ftp.hostip }}
+  - ip: {{ .Values.ftp.hostIp }}
   ports:
   - port: 21
 {{- end }}

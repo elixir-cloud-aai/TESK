@@ -100,7 +100,7 @@ REMOVED: list[tuple[tuple[str, ...], str]] = [
     (("--set", "auth.env_subgroup=EBI"), "auth.env_subgroup: use auth.envSubgroup"),
     (
         ("--set", "auth.env_basegroup=BASE"),
-        "auth.env_basegroup: use auth.envBasegroup",
+        "auth.env_basegroup: use auth.envBaseGroup",
     ),
     (
         ("--set", "auth.service_info_public=false"),
@@ -120,6 +120,22 @@ REMOVED: list[tuple[tuple[str, ...], str]] = [
     (
         ("--set", "ingress.tls_secret_name=tls"),
         "ingress.tls_secret_name: use ingress.tlsSecretName",
+    ),
+    (
+        ("--set", "tesk.securityContext.enabled=false"),
+        "tesk.securityContext.enabled: use tesk.podSecurityContext and"
+        " tesk.securityContext",
+    ),
+    (("--set", "transfer.active=true"), "transfer.active: use transfer.enabled"),
+    (
+        ("--set", "auth.envBasegroup=BASE"),
+        "auth.envBasegroup: use auth.envBaseGroup",
+    ),
+    (("--set", "ftp.hostip=10.0.0.1"), "ftp.hostip: use ftp.hostIp"),
+    (("--set", "ingress.rules=false"), "ingress.rules: use ingress.enabled"),
+    (
+        ("--set", "ingress.ingressClassName=nginx"),
+        "ingress.ingressClassName: use ingress.className",
     ),
 ]
 
@@ -226,7 +242,7 @@ def test_base_path(args: tuple[str, ...], expected: str | None) -> None:
 def test_auth_groups() -> None:
     """The groups that authorise users are passed on."""
     manifests = render(
-        "--set", "auth.envSubgroup=EBI", "--set", "auth.envBasegroup=BASE"
+        "--set", "auth.envSubgroup=EBI", "--set", "auth.envBaseGroup=BASE"
     )
     variables = env(manifests)
     assert variables["TESK_API_AUTHORISATION_ENV_SUBGROUP"] == "EBI"
@@ -310,15 +326,49 @@ def test_images() -> None:
 
 
 def test_security_context() -> None:
-    """The API runs as non-root without privileges, unless disabled."""
+    """The API runs as non-root without privileges by default."""
     manifests = render()
     pod = deployment(manifests)["spec"]["template"]["spec"]
-    assert pod["securityContext"]["runAsNonRoot"] is True
+    assert pod["securityContext"] == {
+        "runAsUser": 1000,
+        "runAsNonRoot": True,
+        "seccompProfile": {"type": "RuntimeDefault"},
+    }
     assert container(manifests)["securityContext"] == {
         "allowPrivilegeEscalation": False,
         "capabilities": {"drop": ["ALL"]},
     }
-    manifests = render("--set", "tesk.securityContext.enabled=false")
+
+
+def test_security_context_values() -> None:
+    """The security contexts are merged with the values; null removes a field."""
+    manifests = render(
+        "--set",
+        "tesk.podSecurityContext.runAsUser=null",
+        "--set",
+        "tesk.podSecurityContext.fsGroup=2000",
+        "--set",
+        "tesk.securityContext.readOnlyRootFilesystem=true",
+    )
+    pod = deployment(manifests)["spec"]["template"]["spec"]
+    # E.g., on OpenShift, which assigns the user
+    assert pod["securityContext"] == {
+        "fsGroup": 2000,
+        "runAsNonRoot": True,
+        "seccompProfile": {"type": "RuntimeDefault"},
+    }
+    assert container(manifests)["securityContext"] == {
+        "allowPrivilegeEscalation": False,
+        "capabilities": {"drop": ["ALL"]},
+        "readOnlyRootFilesystem": True,
+    }
+
+
+def test_security_context_null() -> None:
+    """Null removes the security contexts of the API's pod and container."""
+    manifests = render(
+        "--set", "tesk.podSecurityContext=null", "--set", "tesk.securityContext=null"
+    )
     pod = deployment(manifests)["spec"]["template"]["spec"]
     assert "securityContext" not in pod
     assert "securityContext" not in container(manifests)
@@ -897,10 +947,14 @@ def test_ingress() -> None:
         "--set",
         "hostName=tes.example.org",
         "--set",
-        "ingress.ingressClassName=nginx",
+        "ingress.className=nginx",
     )
     spec = get(manifests, "Ingress", "tesk")["spec"]
     assert spec["ingressClassName"] == "nginx"
+    # Also a class that YAML reads as 0; empty uses the cluster's default
+    zero = get(render("--set", "ingress.className=0"), "Ingress", "tesk")["spec"]
+    assert zero["ingressClassName"] == "0"
+    assert "ingressClassName" not in get(render(), "Ingress", "tesk")["spec"]
     assert "tls" not in spec
     assert spec["rules"][0]["host"] == "tes.example.org"
     backend = spec["rules"][0]["http"]["paths"][0]["backend"]["service"]
@@ -934,23 +988,30 @@ def test_ingress_path_and_annotations() -> None:
 
 
 def test_ingress_disabled() -> None:
-    """Without ingress rules, there is no ingress, nor a route outside OpenShift."""
-    manifests = render("--set", "ingress.rules=false")
+    """Without the ingress, there is no route either outside OpenShift."""
+    manifests = render("--set", "ingress.enabled=false")
     assert find(manifests, "Ingress", "tesk") is None
     assert find(manifests, "Route", "tesk") is None
 
 
 def test_openshift_route() -> None:
-    """On OpenShift, a route replaces the ingress, if its rules are disabled."""
+    """On OpenShift, a route replaces the ingress, if that is disabled."""
     openshift = ("--api-versions", "route.openshift.io/v1")
     manifests = render(
-        *openshift, "--set", "ingress.rules=false", "--set", "hostName=tes.example.org"
+        *openshift,
+        "--set",
+        "ingress.enabled=false",
+        "--set",
+        "hostName=tes.example.org",
     )
     route = get(manifests, "Route", "tesk")
     assert route["spec"]["host"] == "tes.example.org"
     assert route["spec"]["to"]["name"] == "tesk-api"
     assert route["spec"]["tls"]["termination"] == "edge"
     assert find(render(*openshift), "Route", "tesk") is None
+    # Only false creates a route, not a missing switch
+    manifests = render(*openshift, "--set", "ingress.enabled=null")
+    assert find(manifests, "Route", "tesk") is None
 
 
 def test_node_port() -> None:
@@ -1003,7 +1064,7 @@ def test_ftp() -> None:
         "--set",
         "ftp.netrcSecret=netrc",
         "--set",
-        "ftp.hostip=10.0.0.1",
+        "ftp.hostIp=10.0.0.1",
     )
     assert find(manifests, "Secret", "tesk-ftp") is None
     assert ".netrc" in get(manifests, "Secret", "netrc")["stringData"]
@@ -1314,7 +1375,7 @@ def test_transfer() -> None:
     """A shared file system for transfers is passed on."""
     manifests = render(
         "--set",
-        "transfer.active=true",
+        "transfer.enabled=true",
         "--set",
         "transfer.pvcName=shared",
     )
@@ -1530,7 +1591,7 @@ def test_images_null(args: tuple[str, ...], variable: str) -> None:
 # Values that render every object of the chart (but the OpenShift Route)
 ALL_OBJECTS = (
     "--set",
-    "ftp.hostip=10.0.0.1",
+    "ftp.hostIp=10.0.0.1",
     "--set",
     "ftp.netrcSecret=netrc",
     "--set",
@@ -1590,7 +1651,7 @@ def test_names_from_release(tmp_path: Path) -> None:
     manifests = render(*ALL_OBJECTS, "--set", "storage=s3", chart=chart)
     manifests += render(*ALL_OBJECTS, chart=chart)
     manifests += render(
-        "--api-versions", "route.openshift.io/v1", "--set", "ingress.rules=false"
+        "--api-versions", "route.openshift.io/v1", "--set", "ingress.enabled=false"
     )
     assert _names(manifests) == {
         ("ConfigMap", "tesk-executor"),
@@ -1700,7 +1761,7 @@ def test_names_passed_on() -> None:
             "--api-versions",
             "route.openshift.io/v1",
             "--set",
-            "ingress.rules=false",
+            "ingress.enabled=false",
             release="prod",
         ),
         "Route",
@@ -1878,7 +1939,7 @@ def test_invalid_prefix(release: str, args: tuple[str, ...]) -> None:
 def test_labels_openshift() -> None:
     """The OpenShift route has the standard labels too."""
     manifests = render(
-        "--api-versions", "route.openshift.io/v1", "--set", "ingress.rules=false"
+        "--api-versions", "route.openshift.io/v1", "--set", "ingress.enabled=false"
     )
     labels = get(manifests, "Route", "tesk")["metadata"]["labels"]
     assert labels.items() >= STANDARD_LABELS.items()
@@ -1934,14 +1995,113 @@ def test_schema_invalid(args: tuple[str, ...]) -> None:
         {"service": {"nodePort": "31567", "type": "NodePort"}},
         {"tesk": {"image": {"tag": 1.2}}},
         {"auth": {"serviceInfoPublic": "false"}},
-        {"extra": {"anything": True}, "tesk": {"extra": 1}},
+        {"global": {"anything": True}},
+        {"ingress": {"className": 123}},
+        {"tesk": {"resources": {"limits": {"nvidia.com/gpu": 1}}}},
+        {"tesk": {"podSecurityContext": {"fsGroup": 2000}}},
+        {"tesk": {"securityContext": {"readOnlyRootFilesystem": True}}},
+        {"tesk": {"readinessProbe": {"initialDelaySeconds": 5}}},
+        {"ingress": {"annotations": {"a.example.org/b": "c"}}},
     ],
 )
 def test_schema_permissive(values: dict[str, Any], tmp_path: Path) -> None:
-    """The schema accepts strings for scalars, and unknown keys."""
+    """The schema accepts strings for scalars, and keys of open maps.
+
+    Open maps are those with Kubernetes' keys (e.g., resources, security
+    contexts, probes, annotations), and `global`, which Helm passes on to
+    all charts.
+
+    Args:
+        values: The values.
+        tmp_path: A directory for the values file.
+    """
     path = tmp_path / "values.yaml"
     path.write_text(json.dumps(values))
     assert render("--values", str(path))
+
+
+@pytest.mark.parametrize(
+    "key",
+    [
+        "hostname",
+        "tesk.imagePullPolicy",
+        "tesk.image.digest",
+        "tesk.taskmaster.tag",
+        "tesk.filer.image.pullPolicy",
+        "tesk.executor.retries",
+        "tesk.swaggerUi.enable",
+        "transfer.pvc",
+        "auth.envSubGroup",
+        "service.port",
+        "ftp.hostIP",
+        "ingress.tls",
+    ],
+)
+def test_schema_unknown_keys(key: str) -> None:
+    """The schema rejects unknown keys (e.g., typos) of the chart's own maps.
+
+    Args:
+        key: The unknown key.
+    """
+    with pytest.raises(subprocess.CalledProcessError) as error:
+        render("--set", f"{key}=x")
+    assert "values don't meet the specifications of the schema" in error.value.stderr
+    assert "additional properties" in error.value.stderr.lower()
+
+
+def test_schema_removed_keys() -> None:
+    """The schema lets the removed keys through, for the chart's hints.
+
+    The templates fail on them with their replacements (`test_removed_keys`);
+    the schema describes them as removed.
+    """
+    schema = json.loads((CHART / "values.schema.json").read_text())
+    for key in _removed_keys_of_chart():
+        *maps, name = key.split(".")
+        node = schema
+        for part in maps:
+            node = node["properties"][part]
+        assert node["properties"][name] == {"$ref": "#/$defs/removed"}, key
+
+
+def test_dependency(tmp_path: Path) -> None:
+    """The chart renders as a dependency switched on by `condition: tesk.enabled`.
+
+    Parent charts set `tesk.enabled`, and Helm passes it on to the chart,
+    whose schema must accept it.
+
+    Args:
+        tmp_path: A directory for the parent chart.
+    """
+    parent = tmp_path / "parent"
+    (parent / "charts").mkdir(parents=True)
+    shutil.copytree(CHART, parent / "charts" / "tesk")
+    (parent / "Chart.yaml").write_text(
+        "apiVersion: v2\nname: parent\nversion: 0.1.0\n"
+        "dependencies:\n  - name: tesk\n"
+        f"    version: {METADATA['version']}\n    condition: tesk.enabled\n"
+    )
+    (parent / "values.yaml").write_text("tesk:\n  enabled: true\n")
+    manifests = render(chart=parent)
+    assert find(manifests, "Deployment", "tesk-api") is not None
+    (parent / "values.yaml").write_text("tesk:\n  enabled: false\n")
+    assert render(chart=parent) == []
+
+
+def test_file_names() -> None:
+    """The chart's files have dashed names and the extension `.yaml`.
+
+    Helm's conventions; the names of the partials (`_helpers.tpl`) start with
+    an underscore.
+    """
+    for path in CHART.rglob("*"):
+        if path.is_dir():
+            continue
+        name = path.name.removeprefix("_") if path.suffix == ".tpl" else path.name
+        assert "_" not in name, path
+        assert ".yml" not in name, path
+    template = yaml.safe_load((CHART / "tls-secret.yaml-TEMPLATE").read_text())
+    assert re.fullmatch(r"[a-z]([-a-z0-9]*[a-z0-9])?", template["metadata"]["name"])
 
 
 # Without a tag, tesk-api's version is the chart's appVersion (major and

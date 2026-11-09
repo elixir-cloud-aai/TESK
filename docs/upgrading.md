@@ -51,10 +51,11 @@ changes:
   tesk-api`, which the objects no longer have. Kubernetes doesn't allow
   changing the selector of a Deployment.
 
-- **Values:** the snake_case keys of earlier charts (e.g., `host_name`)
-  and `tesk.image` as a string are no longer read. The installation fails
-  if your values set any of them, with a list of those in use and their new
-  names (see the table below).
+- **Values:** the snake_case keys of earlier charts (e.g., `host_name`),
+  other keys renamed after Helm's conventions (e.g., `ingress.rules`) and
+  `tesk.image` as a string are no longer read. The installation fails if
+  your values set any of them, with a list of those in use and their new
+  names (see the table below), as do unknown keys (e.g., typos).
 
 #### Migrating a release
 
@@ -132,8 +133,9 @@ Things to check:
 #### Values renamed to camelCase
 
 The values of the chart follow Helm's conventions now: camelCase names,
-`image` blocks (`repository`, `tag`, `pullPolicy`) and a `resources` block.
-Rename them in your values files:
+`enabled` switches, `image` blocks (`repository`, `tag`, `pullPolicy`), a
+`resources` block, and the security contexts of the API as maps. Rename
+them in your values files:
 
 | Old name | New name |
 | --- | --- |
@@ -150,17 +152,23 @@ Rename them in your values files:
 | `tesk.limitsMemory` | `tesk.resources.limits.memory` |
 | `tesk.requestsCpu` | `tesk.resources.requests.cpu` |
 | `tesk.requestsMemory` | `tesk.resources.requests.memory` |
+| `tesk.securityContext.enabled` | `tesk.podSecurityContext` (the pod) and `tesk.securityContext` (the container), maps with the same defaults as before (see below) |
+| `transfer.active` | `transfer.enabled` |
 | `transfer.wes_base_path` | `transfer.wesBasePath` |
 | `transfer.tes_base_path` | `transfer.tesBasePath` |
 | `transfer.pvc_name` | `transfer.pvcName` |
 | `auth.env_subgroup` | `auth.envSubgroup` |
-| `auth.env_basegroup` | `auth.envBasegroup` |
+| `auth.env_basegroup` | `auth.envBaseGroup` |
+| `auth.envBasegroup` (a name of the chart on `dev` only) | `auth.envBaseGroup` |
 | `auth.service_info_public` | `auth.serviceInfoPublic` |
 | `auth.client_id` | `auth.clientId` |
 | `auth.client_secret` | none: `auth.clientSecret`, its new name, is deprecated itself; remove it (see [Swagger UI client secret deprecated](#swagger-ui-client-secret-deprecated)) |
 | `service.node_port` | `service.nodePort` |
 | `ftp.classic_ftp_secret` | `ftp.classicFtpSecret` |
 | `ftp.netrc_secret` | `ftp.netrcSecret` |
+| `ftp.hostip` | `ftp.hostIp` |
+| `ingress.rules` | `ingress.enabled` |
+| `ingress.ingressClassName` | `ingress.className` |
 | `ingress.tls_secret_name` | `ingress.tlsSecretName` |
 
 For example, these values
@@ -170,7 +178,11 @@ host_name: tes.example.org
 tesk:
   image: docker.io/elixircloud/tesk-api:1.2.0
   limitsMemory: 4Gi
+  securityContext:
+    enabled: false
 ingress:
+  rules: true
+  ingressClassName: nginx
   tls_secret_name: tesk-tls
 ```
 
@@ -184,14 +196,35 @@ tesk:
   resources:
     limits:
       memory: 4Gi
+  podSecurityContext: null
+  securityContext: null
 ingress:
+  enabled: true
+  className: nginx
   tlsSecretName: tesk-tls
 ```
 
-The chart checks the structure of the values (`values.schema.json`):
-e.g., a map where the chart expects a scalar fails the installation, as
-does a pull policy other than `Always`, `IfNotPresent` or `Never`. It
-accepts scalars of any type and unknown keys.
+`tesk.securityContext.enabled: false` was mostly used on OpenShift, which
+assigns the user of a pod: there, set only `tesk.podSecurityContext.runAsUser:
+null` instead, which keeps the rest of the security contexts. Your values
+are merged with the defaults of these maps, so `{}` changes nothing; `null`
+removes a field, or the whole context: to drop both, as `enabled: false`
+did, set `tesk.podSecurityContext` and `tesk.securityContext` to `null`.
+
+The chart checks the values (`values.schema.json`): e.g., a map where the
+chart expects a scalar fails the installation, as do a pull policy other
+than `Always`, `IfNotPresent` or `Never`, a value other than `true` or
+`false` for `ingress.enabled` and `transfer.enabled`, and unknown keys
+(e.g., typos) in the chart's own maps. Maps with Kubernetes' fields
+(`tesk.podSecurityContext`, `tesk.securityContext`, the probes,
+`tesk.resources.limits` and `requests`, `ingress.annotations`) take
+any keys. An empty `ingress.className` now leaves `ingressClassName` out
+of the Ingress (it was null before), so the cluster's default class
+applies as before.
+
+The template of a TLS secret in the chart directory is now
+`tls-secret.yaml-TEMPLATE` (was `tls_secret_name.yml-TEMPLATE`), with a
+valid name for the secret (`tesk-tls`).
 
 ### Deleting finished tasks and a max queue time
 
