@@ -71,8 +71,10 @@ images `X.Y.Z` (e.g., `0.11.0`), as tesk-api does; earlier ones were tagged
 `vX.Y.Z` (e.g., `v0.10.6`). If your values set `tesk.taskmaster.image.tag`
 or `tesk.filer.image.tag`, use `0.11.0`, not `v0.11.0`. Set both tags
 together, to the same release: from 0.11.0 on, the filer must be of the
-same version as the taskmaster (e.g., an older taskmaster pinned in your
-values with the default filer 0.11.0 doesn't work).
+same version as the taskmaster. The installation fails if the two tags
+are different releases and one of them is 0.11.0 or later (e.g., an older
+taskmaster pinned in your values with the default filer 0.11.0); tags that
+aren't release versions (e.g., `dev`) aren't checked.
 
 ### Creator labels of tesk-api 1.2.0
 
