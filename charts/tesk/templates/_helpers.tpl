@@ -226,7 +226,7 @@ Swagger UI's client as a public client, remove auth.clientSecret from your
 values, and rotate the secret at your identity provider; see
 https://tesk.readthedocs.io/en/latest/upgrading/#swagger-ui-client-secret-deprecated
 {{- end }}
-{{- /* Release tags (vX.Y.Z) up to v0.10.6 ignore ftp.hosts,
+{{- /* Release tags (X.Y.Z or vX.Y.Z) up to v0.10.6 ignore ftp.hosts,
 tesk.filerHttpTimeout, tesk.taskTtlSeconds and tesk.maxQueueSeconds; others
 (e.g., dev) are assumed to support them */ -}}
 {{- $oldImages := list -}}
