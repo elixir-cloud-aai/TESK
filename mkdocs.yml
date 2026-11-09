@@ -87,6 +87,10 @@ nav:
   - Configuration: configuration.md
   - API: api.md
   - Upgrading: upgrading.md
+  # The curated notes of each release (`docs/releases/<version>.md`), newest
+  # first (see "Releases" in `docs/development.md`)
+  - Releases:
+      - "0.3.0": releases/0.3.0.md
   - Guides:
       - Integration with WES: integrated_wes_tes.md
       - TESK on MicroK8s: microk8s.md
