@@ -12,6 +12,16 @@ helm upgrade tesk charts/tesk --namespace tesk -f my-values.yaml -f secrets.yaml
 
 ## 0.3.0
 
+**Breaking: install existing releases again.** Releases of charts before
+0.3.0 (e.g., 0.1.1) can't be upgraded in place: install them again (see
+[Resource names from the release name](#resource-names-from-the-release-name)
+and [Migrating a release](#migrating-a-release)), with your values
+adapted, as the installation fails on the keys of earlier charts (see
+[Values renamed to camelCase](#values-renamed-to-camelcase)). Charts from
+0.3.0 on are installed from their GitHub release, not from the Helm
+repository on `gh-pages` (see [Releases and chart
+versions](#releases-and-chart-versions)).
+
 ### tesk-api 1.2.0, taskmaster and filer 0.11.0
 
 The chart deploys tesk-api 1.2.0 (its `appVersion`) and taskmaster and
@@ -39,6 +49,10 @@ upgrade, unless your values pin older tags:
   the filer's HTTP(S) requests time out after 300 seconds without progress
   (see [Timeout of the filer's HTTP(S)
   requests](#timeout-of-the-filers-https-requests)).
+- **Act on this if your tasks use more CPU or memory than they request:**
+  the executors are limited to the resources that a task requests, and
+  are killed (OOM) or throttled beyond them (see [Taskmaster and filer
+  v0.10.6](#taskmaster-and-filer-v0106)).
 - `tesk.taskTtlSeconds` and `tesk.maxQueueSeconds` take effect if you set
   them (see [Deleting finished tasks and a max queue
   time](#deleting-finished-tasks-and-a-max-queue-time)).
@@ -60,11 +74,11 @@ created before you upgrade tesk-api no longer belong to their creators.
 Upgrade when no tasks run and the old ones are no longer needed, or set the
 new value `auth.legacyUserLabels` to `true` for a transition (see [Tasks
 created before tesk-api 1.2.0](deployment.md#tasks-created-before-tesk-api-120)).
-If you upgrade a release of this chart in place (releases of charts before
-0.3.0 are installed again, see [Migrating a
-release](#migrating-a-release)), the old and the new pod of the API run
-side by side for a moment, and creators may get `403 Forbidden` for their
-newest tasks until the new pod has taken over.
+Releases of charts before 0.3.0 are installed again (see [Migrating a
+release](#migrating-a-release)). When you later upgrade a release of 0.3.0
+or newer in place to change these settings, the old and the new pod of the
+API run side by side for a moment, and creators may get `403 Forbidden`
+for their newest tasks until the new pod has taken over.
 
 ### Resource names from the release name
 
@@ -406,9 +420,9 @@ too:
 - Taskmaster v0.10.2 ends tasks in `SYSTEM_ERROR` on Kubernetes 1.31 or
   later, as it reads only the first condition of a job. If your values set
   `tesk.taskmaster.image.tag`, set it to v0.10.6 or later.
-- **Resource limits:** v0.10.6 and later set the resources that a task requests
-  (`resources.cpu_cores`, `resources.ram_gb`) as the limits of its executors
-  too. A task that uses more memory than it requested is now killed (OOM),
+- **Resource limits:** v0.10.6 and later set the resources that a task
+  requests (`resources.cpu_cores`, `resources.ram_gb`) as the limits of its
+  executors too. A task that uses more memory than it requested is now killed (OOM),
   and its CPU is throttled. Tasks that relied on using more than they
   requested must request more.
 
@@ -434,6 +448,6 @@ The new value `tesk.swaggerUi.enabled` (default `false`) controls whether
 tesk-api serves the Swagger UI (see [Swagger UI](deployment.md#swagger-ui)).
 tesk-api before 1.2.0 ignores the value and always serves the Swagger UI;
 tesk-api 1.2.0 or later, the chart's default now, serves it only if the
-value is `true`. If you use the Swagger UI, set `tesk.swaggerUi.enabled:
-true` when you upgrade. Turning it on serves the
+value is `true`. If you use the Swagger UI, set
+`tesk.swaggerUi.enabled: true` when you upgrade. Turning it on serves the
 Swagger UI publicly; enable it only where needed.
