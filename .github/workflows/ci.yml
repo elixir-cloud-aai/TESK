@@ -1,6 +1,7 @@
 # Everything that must pass on pull requests and pushes to `dev`: the pull
 # request title, lint, the tests, the chart (lint, render, and install on a
-# kind cluster) and the docs. The gate `passed` ("CI passed") is the only
+# kind cluster), the docs and the release notes of a release in
+# preparation. The gate `passed` ("CI passed") is the only
 # required check. No `paths:` filters, so that the gate always reports; skip
 # jobs with `if:` instead (and allow the skip in the gate). Runs also when a
 # pull request is edited, so that the title check follows the title; all
@@ -179,6 +180,65 @@ jobs:
       - name: Build documentation
         run: mkdocs build --strict
 
+  # The release workflow's checks of the curated release notes, before the
+  # immutable tag exists (as in cloud-registry): for the version in
+  # `CITATION.cff` (set before a release, see "Releases" in
+  # `docs/development.md`) while it has no tag, or its tag is on this
+  # commit. On pull requests, findings are warnings (so that they don't fail
+  # the gate); on pushes, they fail the run, which the release workflow
+  # requires to pass for the release commit
+  readiness:
+    name: Release readiness
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # The script uses the standard library only
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.13"
+      - name: Check release notes
+        env:
+          EVENT: ${{ github.event_name }}
+          SHA: ${{ github.sha }}
+        run: |
+          version="$(sed -En "s/^version:[[:space:]]*[\"']?([0-9A-Za-z.+-]+)[\"']?[[:space:]]*(#.*)?$/\1/p" CITATION.cff)"
+          if [[ -z "${version}" ]]; then
+              echo "No version in CITATION.cff: no release in preparation"
+              exit 0
+          fi
+          # The commit of the (annotated) tag, if any: later commits are
+          # skipped, but not the tagged commit itself (e.g., if it was
+          # tagged before this job ran)
+          tagged="$(git ls-remote origin "refs/tags/v${version}^{}" | cut -f1)"
+          if [[ -n "${tagged}" && "${tagged}" != "${SHA}" ]]; then
+              echo "v${version} is tagged: no release in preparation"
+              exit 0
+          fi
+          level=error
+          if [[ "${EVENT}" == "pull_request" ]]; then
+              level=warning
+          fi
+          status=0
+          notes="docs/releases/${version}.md"
+          python scripts/release_notes.py require "${version}" 2> require.txt || status=1
+          sed "s/^::error::/::${level}::/" require.txt
+          if [[ -f "${notes}" ]]; then
+              if grep -n "TODO" "${notes}"; then
+                  echo "::${level}::${notes} contains TODO: finish the release notes before tagging v${version}"
+                  status=1
+              fi
+              python scripts/release_notes.py check "${notes}" 2> notes.txt || status=1
+              sed "s/^::error /::${level} /" notes.txt
+          fi
+          if [[ "${level}" == "error" ]]; then
+              exit "${status}"
+          fi
+
   # The only required check: fails if any job failed or was cancelled, or
   # was skipped where it must run (only `title` is skipped on pushes)
   passed:
@@ -186,7 +246,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     if: always()
-    needs: [title, lint, test, chart, chart-install, docs]
+    needs: [title, lint, test, chart, chart-install, docs, readiness]
     permissions: {}
     steps:
       - name: Check results of all jobs
