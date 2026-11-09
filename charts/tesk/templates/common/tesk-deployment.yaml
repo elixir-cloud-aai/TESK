@@ -2,6 +2,8 @@
 check is here because the Deployment is always rendered; it applies to the
 whole chart */ -}}
 {{- include "tesk.checkRemovedValues" . -}}
+{{- /* So do taskmaster and filer images of different releases */ -}}
+{{- include "tesk.checkImageReleases" . -}}
 {{- $tesk := .Values.tesk -}}
 {{- $repository := dig "image" "repository" "" $tesk | default "docker.io/elixircloud/tesk-api" -}}
 {{- $tag := dig "image" "tag" "" $tesk -}}

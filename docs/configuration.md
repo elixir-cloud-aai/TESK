@@ -40,14 +40,14 @@ take any keys.
 | Value | Default | Description |
 | --- | --- | --- |
 | `tesk.image.repository` | `docker.io/elixircloud/tesk-api` | Image of the API (tesk-api), without its tag. |
-| `tesk.image.tag` | `""` | Tag of the API's image; empty uses the chart's `appVersion` (`1.1.0`). |
+| `tesk.image.tag` | `""` | Tag of the API's image; empty uses the chart's `appVersion` (`1.2.0`). |
 | `tesk.image.pullPolicy` | `""` | Pull policy of the API's image: `Always`, `IfNotPresent` or `Never` (anything else fails the installation); empty leaves Kubernetes' default. |
 | `tesk.port` | `8080` | Port of the API's container and Service. |
 | `tesk.tesApiBasePath` | `/ga4gh/tes/v1` | Base path of the TES API; empty uses tesk-api's default. |
 | `tesk.taskmaster.image.repository` | `docker.io/elixircloud/tesk-core-taskmaster` | Image of the taskmaster (tesk-core), without its tag. |
-| `tesk.taskmaster.image.tag` | `v0.10.6` | Tag of the taskmaster image (see [Upgrading](upgrading.md#taskmaster-and-filer-v0106)). |
+| `tesk.taskmaster.image.tag` | `0.11.0` | Tag of the taskmaster image (see [Upgrading](upgrading.md#tesk-api-120-taskmaster-and-filer-0110)). |
 | `tesk.filer.image.repository` | `docker.io/elixircloud/tesk-core-filer` | Image of the filer (tesk-core), without its tag. |
-| `tesk.filer.image.tag` | `v0.10.6` | Tag of the filer image. |
+| `tesk.filer.image.tag` | `0.11.0` | Tag of the filer image; the same release as the taskmaster's (with or without `v`). Different releases fail the installation if one of them is 0.11.0 or later; tags that aren't release versions (e.g., `dev`) aren't checked. |
 | `tesk.executor.securityContext` | `{}` | Security context of the executors' pods: `runAsUser`, `runAsGroup`, `fsGroup` (integers from 0 to 2147483647) and `runAsNonRoot` (`true` or `false`); other fields fail the schema check. Empty leaves the executors as their images say. Applies only to the executors, not to the API (`tesk.podSecurityContext`, `tesk.securityContext`), the taskmasters or the filers. See [Executors as non-root users](deployment.md#executors-as-non-root-users). |
 | `tesk.debug` | `false` | Debug logging in the taskmasters. |
 | `tesk.executorRetries` | `2` | Retries of an executor's job on errors (its `backoffLimit`). |

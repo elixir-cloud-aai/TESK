@@ -6,9 +6,9 @@
 # newer docs of that repository
 tesk-api:
   repository: elixir-cloud-aai/tesk-api
-  # docs: add MkDocs docs and align the README (#77)
-  ref: "d60f1903c49383b09f055de48d51f94f38838988"
+  # v1.2.0: ci: create the GitHub release in the workflow (#140)
+  ref: "7150d951cb2e224ebe60988e8db98761f51d471f"
 tesk-core:
   repository: elixir-cloud-aai/tesk-core
-  # feat: fail tasks that stay unschedulable too long (#112)
-  ref: "3fa4ec6746a37176ecad357d3750dc8c94f23bfc"
+  # v0.11.0: docs: prepare the 0.11.0 release (#133)
+  ref: "2a4f0baa4c1a7d5b206083d0880dbc069623fdac"

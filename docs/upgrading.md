@@ -10,7 +10,71 @@ again):
 helm upgrade tesk charts/tesk --namespace tesk -f my-values.yaml -f secrets.yaml
 ```
 
-## Unreleased
+## 0.3.0
+
+**Breaking: install existing releases again.** Releases of charts before
+0.3.0 (e.g., 0.1.1) can't be upgraded in place: install them again (see
+[Resource names from the release name](#resource-names-from-the-release-name)
+and [Migrating a release](#migrating-a-release)), with your values
+adapted, as the installation fails on the keys of earlier charts (see
+[Values renamed to camelCase](#values-renamed-to-camelcase)). Charts from
+0.3.0 on are installed from their GitHub release, not from the Helm
+repository on `gh-pages` (see [Releases and chart
+versions](#releases-and-chart-versions)).
+
+### tesk-api 1.2.0, taskmaster and filer 0.11.0
+
+The chart deploys tesk-api 1.2.0 (its `appVersion`) and taskmaster and
+filer 0.11.0 by default now (chart 0.1.1 deployed tesk-api 1.1.0 and
+taskmaster and filer v0.10.2). With these images, the changes below that
+need "tesk-api 1.2.0" or "images newer than v0.10.6" take effect when you
+upgrade, unless your values pin older tags:
+
+- **Act on this if you use `auth.mode: auth`:** tasks created before the
+  upgrade no longer belong to their creators (see [Creator labels of
+  tesk-api 1.2.0](#creator-labels-of-tesk-api-120)).
+- **Act on this if your tasks use FTP with `ftp.username` and
+  `ftp.password`:** the filer sends them only to `ftp.hosts` (see [FTP
+  credentials go only to configured
+  hosts](#ftp-credentials-go-only-to-configured-hosts)).
+- **Act on this if you use the Swagger UI:** tesk-api serves it only with
+  `tesk.swaggerUi.enabled: true` (see [Swagger UI with tesk-api
+  1.2.0](#swagger-ui-with-tesk-api-120)).
+- **Act on this if you set `auth.clientSecret`:** tesk-api 1.2.0 ignores it
+  (see [Swagger UI client secret
+  deprecated](#swagger-ui-client-secret-deprecated)).
+- The taskmaster deletes the PVCs of failed and cancelled tasks (see
+  [Newer taskmaster images delete the PVCs of failed
+  tasks](#newer-taskmaster-images-delete-the-pvcs-of-failed-tasks)), and
+  the filer's HTTP(S) requests time out after 300 seconds without progress
+  (see [Timeout of the filer's HTTP(S)
+  requests](#timeout-of-the-filers-https-requests)).
+- **Act on this if your tasks use more CPU or memory than they request:**
+  the executors are limited to the resources that a task requests, and
+  are killed (OOM) or throttled beyond them (see [Taskmaster and filer
+  v0.10.6](#taskmaster-and-filer-v0106)).
+- **Act on this if your tasks leave symbolic links in their outputs:** the
+  filer 0.11.0 fails such outputs, and the task fails; executors must copy
+  the targets instead (see the [upgrade notes of
+  tesk-core](tesk-core/upgrading.md#outputs-cant-contain-symbolic-links)).
+- `tesk.taskTtlSeconds` and `tesk.maxQueueSeconds` take effect if you set
+  them (see [Deleting finished tasks and a max queue
+  time](#deleting-finished-tasks-and-a-max-queue-time)).
+
+tesk-api and tesk-core have upgrade notes of their own, for changes that
+the chart's values don't cover (e.g., API responses, log formats, failed
+jobs): read the [upgrade notes of tesk-api](tesk-api/upgrading.md) and
+[of tesk-core](tesk-core/upgrading.md) too.
+
+**Image tags without `v`:** releases of tesk-core from 0.11.0 on tag their
+images `X.Y.Z` (e.g., `0.11.0`), as tesk-api does; earlier ones were tagged
+`vX.Y.Z` (e.g., `v0.10.6`). If your values set `tesk.taskmaster.image.tag`
+or `tesk.filer.image.tag`, use `0.11.0`, not `v0.11.0`. Set both tags
+together, to the same release: from 0.11.0 on, the filer must be of the
+same version as the taskmaster. The installation fails if the two tags
+are different releases and one of them is 0.11.0 or later (e.g., an older
+taskmaster pinned in your values with the default filer 0.11.0); tags that
+aren't release versions (e.g., `dev`) aren't checked.
 
 ### Creator labels of tesk-api 1.2.0
 
@@ -19,9 +83,11 @@ created before you upgrade tesk-api no longer belong to their creators.
 Upgrade when no tasks run and the old ones are no longer needed, or set the
 new value `auth.legacyUserLabels` to `true` for a transition (see [Tasks
 created before tesk-api 1.2.0](deployment.md#tasks-created-before-tesk-api-120)).
-While the API's pod is replaced, the old and the new pod run side by side
-for a moment, and creators may get `403 Forbidden` for their newest tasks
-until the new pod has taken over.
+Releases of charts before 0.3.0 are installed again (see [Migrating a
+release](#migrating-a-release)). When you later upgrade a release of 0.3.0
+or newer in place to change these settings, the old and the new pod of the
+API run side by side for a moment, and creators may get `403 Forbidden`
+for their newest tasks until the new pod has taken over.
 
 ### Resource names from the release name
 
@@ -356,16 +422,19 @@ GitHub release (see [From a release](deployment.md#from-a-release)).
 
 ### Taskmaster and filer v0.10.6
 
-The default taskmaster and filer are now v0.10.6 (were v0.10.2):
+Charts before 0.3.0 deployed taskmaster and filer v0.10.2 by default; this
+chart deploys 0.11.0 (see above), and these changes of v0.10.6 apply to it
+too:
 
 - Taskmaster v0.10.2 ends tasks in `SYSTEM_ERROR` on Kubernetes 1.31 or
   later, as it reads only the first condition of a job. If your values set
-  `tesk.taskmaster.image.tag`, set it to v0.10.6 or later.
-- **Resource limits:** v0.10.6 sets the resources that a task requests
-  (`resources.cpu_cores`, `resources.ram_gb`) as the limits of its executors
-  too. A task that uses more memory than it requested is now killed (OOM),
-  and its CPU is throttled. Tasks that relied on using more than they
-  requested must request more.
+  `tesk.taskmaster.image.tag` or `tesk.filer.image.tag`, set both to the
+  same release, v0.10.6 or later.
+- **Resource limits:** v0.10.6 and later set the resources that a task
+  requests (`resources.cpu_cores`, `resources.ram_gb`) as the limits of its
+  executors too. A task that uses more memory than it requested is now
+  killed (OOM), and its CPU is throttled. Tasks that relied on using more
+  than they requested must request more.
 
 ### Public service info
 
@@ -387,9 +456,8 @@ which changes nothing; they need tesk-api 1.2.0 or later.
 
 The new value `tesk.swaggerUi.enabled` (default `false`) controls whether
 tesk-api serves the Swagger UI (see [Swagger UI](deployment.md#swagger-ui)).
-Upgrading the chart alone changes nothing: tesk-api before 1.2.0 (the
-chart's default `tesk.image.tag` is still 1.1.0) ignores the value and always
-serves the Swagger UI. tesk-api 1.2.0 or later serves it only if the value
-is `true`. If you use the Swagger UI, set `tesk.swaggerUi.enabled: true`
-when you upgrade to tesk-api 1.2.0 or later. Turning it on serves the
+tesk-api before 1.2.0 ignores the value and always serves the Swagger UI;
+tesk-api 1.2.0 or later, the chart's default now, serves it only if the
+value is `true`. If you use the Swagger UI, set
+`tesk.swaggerUi.enabled: true` when you upgrade. Turning it on serves the
 Swagger UI publicly; enable it only where needed.

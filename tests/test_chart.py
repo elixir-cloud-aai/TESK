@@ -1218,6 +1218,12 @@ def test_ftp_hosts_invalid(args: tuple[str, ...]) -> None:
         render(*args)
 
 
+# Filer tags for cases with a taskmaster of another tag: `dev` isn't a
+# release version, so the chart doesn't check that it is of the
+# taskmaster's release
+FILER_DEV = ("--set", "tesk.filer.image.tag=dev")
+FILER_OLD = ("--set", "tesk.filer.image.tag=v0.10.6")
+FILER_OLD_BARE = ("--set", "tesk.filer.image.tag=0.10.6")
 USER = ("--set", "ftp.username=user")
 PASSWORD = ("--set", "ftp.password=s3cr3t")
 
@@ -1283,9 +1289,42 @@ def test_notes_client_secret(
 @pytest.mark.parametrize(
     ("args", "keys"),
     [
-        ((), ["tesk.taskmaster.image.tag", "tesk.filer.image.tag"]),
-        (("--set", "tesk.filer.image.tag=v0.11.0"), ["tesk.taskmaster.image.tag"]),
-        (("--set", "tesk.taskmaster.image.tag=0.9.0"), None),
+        ((), []),
+        (
+            (
+                "--set",
+                "tesk.taskmaster.image.tag=v0.10.6",
+                "--set",
+                "tesk.filer.image.tag=v0.10.6",
+            ),
+            ["tesk.taskmaster.image.tag", "tesk.filer.image.tag"],
+        ),
+        (
+            ("--set", "tesk.taskmaster.image.tag=v0.10.6", *FILER_DEV),
+            ["tesk.taskmaster.image.tag"],
+        ),
+        (
+            ("--set", "tesk.taskmaster.image.tag=dev", *FILER_OLD),
+            ["tesk.filer.image.tag"],
+        ),
+        (
+            (
+                "--set",
+                "tesk.taskmaster.image.tag=0.9.0",
+                "--set",
+                "tesk.filer.image.tag=0.10.6",
+            ),
+            ["tesk.taskmaster.image.tag", "tesk.filer.image.tag"],
+        ),
+        (
+            (
+                "--set",
+                "tesk.taskmaster.image.tag=0.11.0",
+                "--set",
+                "tesk.filer.image.tag=0.11.0",
+            ),
+            [],
+        ),
         (
             (
                 "--set",
@@ -1298,32 +1337,22 @@ def test_notes_client_secret(
     ],
 )
 def test_notes_ftp_hosts_old_images(
-    tmp_path: Path, args: tuple[str, ...], keys: list[str] | None
+    tmp_path: Path, args: tuple[str, ...], keys: list[str]
 ) -> None:
     """The notes warn if `ftp.hosts` is set, but images are too old for it.
 
-    Release tags up to v0.10.6 ignore `ftp.hosts`; other tags (e.g., `dev`)
-    are assumed to support it.
+    Release tags up to v0.10.6 (with or without the `v`) ignore `ftp.hosts`;
+    other tags (e.g., `0.11.0` or `dev`) are assumed to support it.
 
     Args:
         tmp_path: A directory for a copy of the chart.
         args: Further `helm template` arguments (image tags).
-        keys: The keys of the old image tags that the warning names, or
-            `None` for both keys (the taskmaster's tag set to an old one
-            without the `v`).
+        keys: The keys of the old image tags that the warning names.
     """
     hosts = ("--set", "ftp.hosts={ftp.example.org}")
     text = notes(*hosts, *args, tmp_path=tmp_path)
-    expected = (
-        keys
-        if keys is not None
-        else [
-            "tesk.taskmaster.image.tag",
-            "tesk.filer.image.tag",
-        ]
-    )
-    if expected:
-        assert f"WARNING: ftp.hosts is set, but {' and '.join(expected)} " in text
+    if keys:
+        assert f"WARNING: ftp.hosts is set, but {' and '.join(keys)} " in text
     else:
         assert "ftp.hosts is set" not in text
     assert "ftp.hosts is set" not in notes(*args, tmp_path=tmp_path)
@@ -1542,8 +1571,28 @@ def test_filer_http_timeout_invalid(args: tuple[str, ...]) -> None:
 @pytest.mark.parametrize(
     ("args", "warned"),
     [
-        ((), True),
-        (("--set", "tesk.filer.image.tag=v0.11.0"), True),
+        ((), False),
+        (
+            (
+                "--set",
+                "tesk.taskmaster.image.tag=v0.10.6",
+                "--set",
+                "tesk.filer.image.tag=v0.10.6",
+            ),
+            True,
+        ),
+        (("--set", "tesk.taskmaster.image.tag=dev", *FILER_OLD), True),
+        (("--set", "tesk.taskmaster.image.tag=dev", *FILER_OLD_BARE), True),
+        (("--set", "tesk.taskmaster.image.tag=0.10.6", *FILER_DEV), True),
+        (
+            (
+                "--set",
+                "tesk.taskmaster.image.tag=0.11.0",
+                "--set",
+                "tesk.filer.image.tag=0.11.0",
+            ),
+            False,
+        ),
         (
             (
                 "--set",
@@ -2349,9 +2398,12 @@ def test_seconds_invalid_range(args: tuple[str, ...], message: str) -> None:
 @pytest.mark.parametrize(
     ("args", "warned"),
     [
-        ((), True),
-        (("--set", "tesk.taskmaster.image.tag=v0.10.6"), True),
+        ((), False),
+        (("--set", "tesk.taskmaster.image.tag=v0.10.6", *FILER_DEV), True),
+        (("--set", "tesk.taskmaster.image.tag=0.10.6", *FILER_DEV), True),
         (("--set", "tesk.taskmaster.image.tag=v0.11.0"), False),
+        (("--set", "tesk.taskmaster.image.tag=0.11.0"), False),
+        (("--set", "tesk.taskmaster.image.tag=dev", *FILER_OLD), False),
         (("--set", "tesk.taskmaster.image.tag=dev"), False),
     ],
 )
@@ -2398,7 +2450,7 @@ def test_notes_max_queue_old_api(
         args: Further `helm template` arguments (image tags).
         warned: Whether the notes warn.
     """
-    new_taskmaster = ("--set", "tesk.taskmaster.image.tag=v0.11.0")
+    new_taskmaster = ("--set", "tesk.taskmaster.image.tag=0.11.0")
     text = notes(
         "--set", "tesk.maxQueueSeconds=3600", *new_taskmaster, *args, tmp_path=tmp_path
     )
@@ -2477,3 +2529,74 @@ def test_role_rights(group: str, resource: str, verbs: set[str]) -> None:
         for verb in rule["verbs"]
     }
     assert verbs <= granted
+
+
+@pytest.mark.parametrize(
+    ("taskmaster", "filer"),
+    [
+        ("0.11.0", "0.11.0"),
+        ("v0.11.0", "0.11.0"),
+        ("v0.10.6", "v0.10.6"),
+        ("v0.10.2", "v0.10.6"),
+        ("0.10.6", "v0.10.2"),
+        ("dev", "0.11.0"),
+        ("v0.10.6", "latest"),
+    ],
+)
+def test_image_releases_match(taskmaster: str, filer: str) -> None:
+    """Taskmaster and filer of the same release, or tags that aren't releases.
+
+    Releases up to v0.10.6 could be mixed; tags that aren't release
+    versions (e.g., `dev`) are not checked.
+
+    Args:
+        taskmaster: The tag of the taskmaster image.
+        filer: The tag of the filer image.
+    """
+    variables = env(
+        render(
+            "--set",
+            f"tesk.taskmaster.image.tag={taskmaster}",
+            "--set",
+            f"tesk.filer.image.tag={filer}",
+        )
+    )
+    assert variables["TESK_API_TASKMASTER_IMAGE_VERSION"] == taskmaster
+    assert variables["TESK_API_TASKMASTER_FILER_IMAGE_VERSION"] == filer
+
+
+@pytest.mark.parametrize(
+    ("args", "taskmaster", "filer"),
+    [
+        (("--set", "tesk.taskmaster.image.tag=v0.10.6"), "v0.10.6", "0.11.0"),
+        (("--set", "tesk.filer.image.tag=0.10.6"), "0.11.0", "0.10.6"),
+        (
+            (
+                "--set",
+                "tesk.taskmaster.image.tag=0.12.0",
+                "--set",
+                "tesk.filer.image.tag=v0.11.0",
+            ),
+            "0.12.0",
+            "v0.11.0",
+        ),
+    ],
+)
+def test_image_releases_mismatch(
+    args: tuple[str, ...], taskmaster: str, filer: str
+) -> None:
+    """Taskmaster and filer of different releases from 0.11.0 on fail.
+
+    The filer of 0.11.0 and later must be of the taskmaster's release.
+
+    Args:
+        args: Further `helm template` arguments (image tags).
+        taskmaster: The taskmaster's tag that the message names.
+        filer: The filer's tag that the message names.
+    """
+    with pytest.raises(subprocess.CalledProcessError) as error:
+        render(*args)
+    assert (
+        f"tesk.taskmaster.image.tag ({taskmaster}) and tesk.filer.image.tag "
+        f"({filer}) must be the same release" in error.value.stderr
+    )

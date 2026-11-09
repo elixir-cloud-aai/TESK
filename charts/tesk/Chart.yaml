@@ -7,10 +7,10 @@ description: >-
 type: application
 # The chart's version; a release-prep pull request sets it to the version of
 # the next release (see "Releases" in docs/development.md)
-version: 0.1.1
+version: 0.3.0
 # The version of tesk-api that the chart deploys: the default tag of its
 # image (`tesk.image.tag`)
-appVersion: "1.1.0"
+appVersion: "1.2.0"
 home: https://tesk.readthedocs.io/
 icon: https://raw.githubusercontent.com/elixir-cloud-aai/TESK/dev/docs/images/TESKlogo.png
 sources:

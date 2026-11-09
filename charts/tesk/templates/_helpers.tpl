@@ -201,6 +201,26 @@ replacements, but not their values; renders nothing otherwise.
 {{- end -}}
 
 {{/*
+Fails if the taskmaster and the filer are of different releases, one of
+them 0.11.0 or later: from 0.11.0 on, the filer must be of the taskmaster's
+release, and a task with another one fails. Release tags are compared
+without their `v` (`v0.11.0` is `0.11.0`); releases up to v0.10.6 could be
+mixed, and tags that aren't release versions (e.g., `dev`) aren't checked.
+*/}}
+{{- define "tesk.checkImageReleases" -}}
+{{- $tags := dict -}}
+{{- range $component := list "taskmaster" "filer" -}}
+{{- $_ := set $tags $component (toString (dig $component "image" "tag" "" $.Values.tesk)) -}}
+{{- end -}}
+{{- $taskmaster := trimPrefix "v" $tags.taskmaster -}}
+{{- $filer := trimPrefix "v" $tags.filer -}}
+{{- $release := "^[0-9]+\\.[0-9]+\\.[0-9]+$" -}}
+{{- if and (regexMatch $release $taskmaster) (regexMatch $release $filer) (ne $taskmaster $filer) (or (semverCompare ">0.10.6" $taskmaster) (semverCompare ">0.10.6" $filer)) -}}
+{{- fail (printf "tesk.taskmaster.image.tag (%s) and tesk.filer.image.tag (%s) must be the same release: from 0.11.0 on, the filer must be of the taskmaster's release; see https://tesk.readthedocs.io/en/latest/upgrading/#tesk-api-120-taskmaster-and-filer-0110" $tags.taskmaster $tags.filer) -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
 The notes that `helm install` and `helm upgrade` print (`NOTES.txt`).
 */}}
 {{- define "tesk.notes" -}}
@@ -226,7 +246,7 @@ Swagger UI's client as a public client, remove auth.clientSecret from your
 values, and rotate the secret at your identity provider; see
 https://tesk.readthedocs.io/en/latest/upgrading/#swagger-ui-client-secret-deprecated
 {{- end }}
-{{- /* Release tags (vX.Y.Z) up to v0.10.6 ignore ftp.hosts,
+{{- /* Release tags (X.Y.Z or vX.Y.Z) up to v0.10.6 ignore ftp.hosts,
 tesk.filerHttpTimeout, tesk.taskTtlSeconds and tesk.maxQueueSeconds; others
 (e.g., dev) are assumed to support them */ -}}
 {{- $oldImages := list -}}

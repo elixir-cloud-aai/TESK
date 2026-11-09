@@ -15,9 +15,11 @@ This page covers the installation and the most common setups;
 
 - **A Kubernetes cluster.** TESK needs access to one namespace only, and
   works in multi-tenant clusters such as OpenShift. The chart's default
-  taskmaster and filer, v0.10.6, were tested on Kubernetes 1.30 and 1.36;
-  earlier versions of Kubernetes were not tested with them. On Kubernetes
-  1.31 or later, the taskmaster must be v0.10.6 or later (see
+  taskmaster and filer, 0.11.0, need Kubernetes 1.23 or later, and their
+  end-to-end tests run on Kubernetes 1.37 (see the [upgrade notes of
+  tesk-core](tesk-core/upgrading.md)). If you pin older images, set both
+  tags to the same release; on Kubernetes 1.31 or later, it must be v0.10.6
+  or later, which was tested on Kubernetes 1.30 and 1.36 (see
   [Upgrading](upgrading.md#taskmaster-and-filer-v0106)).
 - **[Helm](https://helm.sh/) 3.**
 - **A default storage class.** TESK creates a temporary PVC for each task
@@ -280,7 +282,7 @@ community, not a value that every account has. See [Authorisation
 without groups][claim-docs] in the docs of tesk-api for the rules and their
 security implications.
 
-[claim-docs]: https://github.com/elixir-cloud-aai/tesk-api/blob/dev/docs/access-control.md#authorisation-without-groups
+[claim-docs]: tesk-api/access-control.md#authorisation-without-groups
 
 To let users log in from the Swagger UI, register a public OIDC client
 (without a secret; implicit grant, or authorisation code if your provider
@@ -313,7 +315,7 @@ if it is on with such an image (`tesk.image.tag`). See
 [Creator labels][creator-labels] in the upgrade notes of tesk-api, also for
 how to list and delete the old tasks.
 
-[creator-labels]: https://github.com/elixir-cloud-aai/tesk-api/blob/dev/docs/upgrading.md
+[creator-labels]: tesk-api/upgrading.md
 
 ## Swagger UI
 

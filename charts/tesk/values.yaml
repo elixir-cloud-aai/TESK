@@ -47,12 +47,14 @@ tesk:
   taskmaster:
     image:
       repository: docker.io/elixircloud/tesk-core-taskmaster
-      tag: v0.10.6
-  # Image of the filer (tesk-core), which stages the inputs and outputs
+      tag: 0.11.0
+  # Image of the filer (tesk-core), which stages the inputs and outputs; its
+  # tag must be the same release as the taskmaster's (the installation
+  # fails otherwise, from 0.11.0 on)
   filer:
     image:
       repository: docker.io/elixircloud/tesk-core-filer
-      tag: v0.10.6
+      tag: 0.11.0
   # The executors, which run the task's commands
   executor:
     # Security context of the executors' pods, e.g., to run them as non-root
@@ -176,7 +178,7 @@ auth:
   # are no longer needed: while it is on, tesk-api filters lists of tasks
   # itself. false (or null) leaves it unset, so tesk-api's default (off)
   # applies. Needs tesk-api 1.2.0 or later; see
-  # https://github.com/elixir-cloud-aai/tesk-api/blob/dev/docs/upgrading.md
+  # https://github.com/elixir-cloud-aai/tesk-api/blob/v1.2.0/docs/upgrading.md
   legacyUserLabels: false
   # With mode auth: authorisation without groups, by a claim of the user info,
   # for providers whose groups don't fit the group model above (e.g., LS
@@ -186,7 +188,7 @@ auth:
   # who has one of the values can run any image on the cluster: choose an
   # entitlement that an administrator grants, not a value that every account
   # has. Needs tesk-api 1.2.0 or later (`tesk.image.tag`); see
-  # https://github.com/elixir-cloud-aai/tesk-api/blob/dev/docs/access-control.md#authorisation-without-groups
+  # https://github.com/elixir-cloud-aai/tesk-api/blob/v1.2.0/docs/access-control.md#authorisation-without-groups
   claim:
     enabled: false
     # e.g., eduperson_entitlement
