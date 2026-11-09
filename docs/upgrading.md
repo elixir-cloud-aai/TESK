@@ -20,6 +20,9 @@ taskmaster and filer v0.10.2). With these images, the changes below that
 need "tesk-api 1.2.0" or "images newer than v0.10.6" take effect when you
 upgrade, unless your values pin older tags:
 
+- **Act on this if you use `auth.mode: auth`:** tasks created before the
+  upgrade no longer belong to their creators (see [Creator labels of
+  tesk-api 1.2.0](#creator-labels-of-tesk-api-120)).
 - **Act on this if your tasks use FTP with `ftp.username` and
   `ftp.password`:** the filer sends them only to `ftp.hosts` (see [FTP
   credentials go only to configured
