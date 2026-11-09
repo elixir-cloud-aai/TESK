@@ -30,6 +30,9 @@ upgrade, unless your values pin older tags:
 - **Act on this if you use the Swagger UI:** tesk-api serves it only with
   `tesk.swaggerUi.enabled: true` (see [Swagger UI with tesk-api
   1.2.0](#swagger-ui-with-tesk-api-120)).
+- **Act on this if you set `auth.clientSecret`:** tesk-api 1.2.0 ignores it
+  (see [Swagger UI client secret
+  deprecated](#swagger-ui-client-secret-deprecated)).
 - The taskmaster deletes the PVCs of failed and cancelled tasks (see
   [Newer taskmaster images delete the PVCs of failed
   tasks](#newer-taskmaster-images-delete-the-pvcs-of-failed-tasks)), and
@@ -57,9 +60,11 @@ created before you upgrade tesk-api no longer belong to their creators.
 Upgrade when no tasks run and the old ones are no longer needed, or set the
 new value `auth.legacyUserLabels` to `true` for a transition (see [Tasks
 created before tesk-api 1.2.0](deployment.md#tasks-created-before-tesk-api-120)).
-While the API's pod is replaced, the old and the new pod run side by side
-for a moment, and creators may get `403 Forbidden` for their newest tasks
-until the new pod has taken over.
+If you upgrade a release of this chart in place (releases of charts before
+0.3.0 are installed again, see [Migrating a
+release](#migrating-a-release)), the old and the new pod of the API run
+side by side for a moment, and creators may get `403 Forbidden` for their
+newest tasks until the new pod has taken over.
 
 ### Resource names from the release name
 
