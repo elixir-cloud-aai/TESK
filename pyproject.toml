@@ -86,7 +86,7 @@ known-first-party = ["tests"]
 convention = "google"
 
 [tool.mypy]
-files = ["docs/hooks.py", "tests"]
+files = ["docs/hooks.py", "scripts", "tests"]
 python_version = "3.13"
 # Complete type hints: all functions annotated, generic types parametrized
 disallow_untyped_defs = true
@@ -97,9 +97,12 @@ warn_unused_ignores = true
 testpaths = ["tests"]
 
 [tool.coverage.run]
-source = ["docs"]
+source = ["docs", "scripts"]
 
 [tool.coverage.report]
+# The entry point of the scripts, which the tests also run as a process
+# (as in cloud-registry)
+exclude_also = ['if __name__ == "__main__":']
 # All code must be covered (see also `codecov.yml`)
 fail_under = 100
 show_missing = true
