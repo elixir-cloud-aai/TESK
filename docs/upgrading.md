@@ -56,7 +56,7 @@ upgrade, unless your values pin older tags:
 - **Act on this if your tasks leave symbolic links in their outputs:** the
   filer 0.11.0 fails such outputs, and the task fails; executors must copy
   the targets instead (see the [upgrade notes of
-  tesk-core](tesk-core/upgrading.md)).
+  tesk-core](tesk-core/upgrading.md#outputs-cant-contain-symbolic-links)).
 - `tesk.taskTtlSeconds` and `tesk.maxQueueSeconds` take effect if you set
   them (see [Deleting finished tasks and a max queue
   time](#deleting-finished-tasks-and-a-max-queue-time)).
@@ -430,9 +430,9 @@ too:
   same release, v0.10.6 or later.
 - **Resource limits:** v0.10.6 and later set the resources that a task
   requests (`resources.cpu_cores`, `resources.ram_gb`) as the limits of its
-  executors too. A task that uses more memory than it requested is now killed (OOM),
-  and its CPU is throttled. Tasks that relied on using more than they
-  requested must request more.
+  executors too. A task that uses more memory than it requested is now
+  killed (OOM), and its CPU is throttled. Tasks that relied on using more
+  than they requested must request more.
 
 ### Public service info
 

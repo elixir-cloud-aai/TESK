@@ -282,7 +282,7 @@ community, not a value that every account has. See [Authorisation
 without groups][claim-docs] in the docs of tesk-api for the rules and their
 security implications.
 
-[claim-docs]: https://github.com/elixir-cloud-aai/tesk-api/blob/dev/docs/access-control.md#authorisation-without-groups
+[claim-docs]: tesk-api/access-control.md#authorisation-without-groups
 
 To let users log in from the Swagger UI, register a public OIDC client
 (without a secret; implicit grant, or authorisation code if your provider
