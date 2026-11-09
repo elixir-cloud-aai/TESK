@@ -891,6 +891,72 @@ def test_auth_claim_invalid(claim: str) -> None:
     assert "values don't meet the specifications of the schema" in error.value.stderr
 
 
+LEGACY_USER_LABELS = "TESK_API_AUTHORISATION_LEGACY_USER_LABELS"
+
+
+@pytest.mark.parametrize(
+    "args",
+    [
+        (),
+        ("--set", "auth.legacyUserLabels=false"),
+        ("--set-string", "auth.legacyUserLabels=false"),
+        ("--set-json", "auth.legacyUserLabels=null"),
+        ("--set", "auth.mode=noauth", "--set", "auth.legacyUserLabels=true"),
+    ],
+)
+def test_auth_legacy_user_labels_off(args: tuple[str, ...]) -> None:
+    """Off by default, and with mode noauth: tesk-api's default (off) applies.
+
+    Rendered with mode auth, unless the arguments set noauth: with mode
+    noauth, all endpoints are open, so tasks aren't matched to creators.
+
+    Args:
+        args: The `helm template` arguments.
+    """
+    variables = env(render("--set", "auth.mode=auth", *args))
+    assert LEGACY_USER_LABELS not in variables
+
+
+@pytest.mark.parametrize(
+    "args",
+    [
+        ("--set", "auth.legacyUserLabels=true"),
+        ("--set-string", "auth.legacyUserLabels=true"),
+    ],
+)
+def test_auth_legacy_user_labels(args: tuple[str, ...]) -> None:
+    """With mode auth, `auth.legacyUserLabels: true` turns the setting on.
+
+    Args:
+        args: The `helm template` arguments.
+    """
+    variables = env(render("--set", "auth.mode=auth", *args))
+    assert variables[LEGACY_USER_LABELS] == "true"
+
+
+def test_auth_legacy_user_labels_values_file(tmp_path: Path) -> None:
+    """A boolean from a values file is passed on as the string `true`.
+
+    Args:
+        tmp_path: A directory for the values file.
+    """
+    values = tmp_path / "values.yaml"
+    values.write_text("auth:\n  mode: auth\n  legacyUserLabels: true\n")
+    assert env(render("-f", str(values)))[LEGACY_USER_LABELS] == "true"
+
+
+@pytest.mark.parametrize("value", ['"yes"', "1", "[]", '{"enabled": true}'])
+def test_auth_legacy_user_labels_invalid(value: str) -> None:
+    """The schema accepts only booleans (also as strings) and null.
+
+    Args:
+        value: `auth.legacyUserLabels`, as JSON.
+    """
+    with pytest.raises(subprocess.CalledProcessError) as error:
+        render("--set-json", f"auth.legacyUserLabels={value}")
+    assert "values don't meet the specifications of the schema" in error.value.stderr
+
+
 @pytest.mark.parametrize(
     ("args", "expected"),
     [

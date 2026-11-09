@@ -168,6 +168,14 @@ auth:
   # (`tesk.image.tag`); earlier versions ignore this and keep the endpoint
   # public. No effect with mode noauth, where all endpoints are open.
   serviceInfoPublic: true
+  # With mode auth: true matches tasks created by tesk-api before 1.2.0 to
+  # their creators too, by the label in which these versions recorded the
+  # creator. tesk-api 1.2.0 records creators without loss in other labels,
+  # so these tasks only belong to their creators with this setting. Turn it
+  # on for a transition after the upgrade, and off again once the old tasks
+  # are no longer needed. Needs tesk-api 1.2.0 or later; see
+  # https://github.com/elixir-cloud-aai/tesk-api/blob/dev/docs/upgrading.md
+  legacyUserLabels: false
   # With mode auth: authorisation without groups, by a claim of the user info,
   # for providers whose groups don't fit the group model above (e.g., LS
   # Login). Off by default, and ignored with mode noauth. With `enabled:

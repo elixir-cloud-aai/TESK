@@ -289,6 +289,26 @@ allows it for public clients) with your provider and put its ID into
 tesk-api 1.2.0 and later ignore it (see
 [Upgrading](upgrading.md#swagger-ui-client-secret-deprecated)).
 
+### Tasks created before tesk-api 1.2.0
+
+tesk-api 1.2.0 records the creator of a task without loss, in labels other
+than those of earlier versions. With `auth.mode: auth`, tasks created by an
+earlier version therefore no longer belong to their creators, who can't
+list, get or cancel them any more (team admins and super admins still see
+them). To keep them their creators' for a transition after the upgrade, set:
+
+```yaml
+auth:
+  legacyUserLabels: true
+```
+
+Set it back to `false` once the old tasks are no longer needed (e.g., after
+`tesk.taskTtlSeconds`). It has no effect with `auth.mode: noauth`. See
+[Creator labels][creator-labels] in the upgrade notes of tesk-api, also for
+how to list and delete the old tasks.
+
+[creator-labels]: https://github.com/elixir-cloud-aai/tesk-api/blob/dev/docs/upgrading.md
+
 ## Swagger UI
 
 tesk-api can serve a Swagger UI, at the root path of the deployment (`/`

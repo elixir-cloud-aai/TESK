@@ -12,6 +12,25 @@ helm upgrade tesk charts/tesk --namespace tesk -f my-values.yaml -f secrets.yaml
 
 ## Unreleased
 
+### Creator labels of tesk-api 1.2.0
+
+**Act on this if you use `auth.mode: auth`.** tesk-api 1.2.0 records the
+creator of a task without loss, in labels other than those of earlier
+versions. Tasks created before you upgrade tesk-api no longer belong to
+their creators, who can't list, get or cancel them any more (team admins
+and super admins still see them). Either upgrade when no tasks run and the
+old ones are no longer needed, or set the new value
+`auth.legacyUserLabels` to `true` for a transition (see [Tasks created
+before tesk-api 1.2.0](deployment.md#tasks-created-before-tesk-api-120)),
+and back to `false` once the old tasks are no longer needed. While the
+API's pod is replaced, old and new pods may run side by side for a moment,
+and creators may get `403 Forbidden` for their newest tasks until the new
+pod has taken over. See [Creator labels][creator-labels] in the upgrade
+notes of tesk-api, also for how to list and delete the old tasks. The
+value is off by default and has no effect with `auth.mode: noauth`.
+
+[creator-labels]: https://github.com/elixir-cloud-aai/tesk-api/blob/dev/docs/upgrading.md
+
 ### Resource names from the release name
 
 **Breaking: install existing releases again.** The chart follows Helm's
