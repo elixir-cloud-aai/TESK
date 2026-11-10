@@ -150,16 +150,19 @@ The workflow `Release` (`.github/workflows/release.yml`) runs on pushed
 
 1. **Prepare release:** checks that the tag is annotated, signed (verified by
    GitHub), on `main` and matches the chart's `version` and the `version` of
-   `CITATION.cff`, and that `CI` passed for a push of the tagged commit;
-   lints, renders and installs the chart as `CI` does, and packages it.
+   `CITATION.cff`, that the release has curated notes (see below), and that
+   `CI` passed for a push of the tagged commit; lints, renders and installs
+   the chart as `CI` does, and packages it.
 2. **Publish release**, after a maintainer approved it in the `release`
    environment: attests the provenance of the packaged chart (GitHub
    artifact attestation), signs it (Sigstore bundle `*.sigstore.json`), and
-   creates the GitHub release, with the chart and its bundle attached and
-   generated notes, which list the pull requests since the previous release:
-   the highest version among the tags in the history of the release commit
-   with a published release, for a stable release among the stable ones
-   (for the first release from this workflow, `v0.2`). Releases are
+   creates the GitHub release, with the chart and its bundle attached. Its
+   notes are the curated notes, then, under `## Commits`, GitHub's generated
+   notes without their `## What's Changed` header, which list the pull
+   requests since the previous release (the highest version among the tags
+   in the history of the release commit with a published release, for a
+   stable release among the stable ones; for the first release from this
+   workflow, `v0.2`), and their `**Full Changelog**` line last. Releases are
    immutable once published: the release is created as a draft, the files
    are uploaded, and then it is published. A stable release becomes the
    latest release only if no stable release tag on `main` has a higher
@@ -172,13 +175,44 @@ admin rights keep: the `release` environment with required reviewers,
 limited to `v*` tags; tag rulesets that allow only `v*` tags and make them
 immutable; and immutable releases.
 
+### Release notes
+
+Every release needs curated notes, `docs/releases/X.Y.Z.md` (e.g.,
+`docs/releases/0.3.0.md`, or `1.0.0-rc.1.md` for a pre-release), listed
+under "Releases" in the `nav` of `mkdocs.yml` (the strict docs build fails
+otherwise). They are published as written, in the format of all of the
+organization's repositories, which `scripts/release_notes.py check` checks:
+
+1. An intro paragraph saying what the release brings, with a link to the
+   upgrade notes if there are any.
+2. Sections, empty ones left out, in this order: `## Breaking changes`,
+   `## Features`, `## Security`, `## Fixes`, `## Documentation`,
+   `## Maintenance`. They hold bullets only, each ending with its issue and
+   pull request numbers, e.g., `(#12, #34)`.
+
+The release workflow adds `## Commits` and the `**Full Changelog**` line;
+the notes must not have them. Links must not point to versions that move
+(e.g., the `latest` docs or branch `dev`), as the published notes don't
+change: link the release (e.g., `blob/vX.Y.Z/`). Notes with `TODO` fail the
+release. The job `Release readiness` of `CI` checks the notes of the version
+in `CITATION.cff` until it is tagged: as warnings on pull requests, as
+errors on pushes to `dev`, which the release needs to pass. Notes of a
+published release can still be edited on GitHub, but a fix of
+`docs/releases/` reaches only later releases.
+
+### Releasing
+
 To release version X.Y.Z:
 
 1. In a pull request to `dev`, set `version` in `charts/tesk/Chart.yaml`, and
    `version` and `date-released` in `CITATION.cff`, to X.Y.Z and the release
-   date; merge it once CI passed. (`appVersion` in `Chart.yaml` is not the
-   release version: it is the version of tesk-api that the chart deploys,
-   the default tag of its image.)
+   date, and add the curated notes, `docs/releases/X.Y.Z.md`, with their
+   entry in the `nav` of `mkdocs.yml` (see above); check them with
+   `python scripts/release_notes.py check docs/releases/X.Y.Z.md`. Merge
+   the pull request once CI passed.
+   (`appVersion` in `Chart.yaml` is not the release version: it is the
+   version of tesk-api that the chart deploys, the default tag of its
+   image.)
 2. Once `CI` passed for the push of that commit (`<sha>`) to `dev` (the
    check needs a commit that was pushed to `dev`, not one only tested in a
    pull request), move `main` forward to it (`main` only ever moves forward
@@ -191,8 +225,7 @@ To release version X.Y.Z:
     git push origin vX.Y.Z
     ```
 
-3. Approve the release in the `release` environment, then edit the notes of
-   the published release.
+3. Approve the release in the `release` environment.
 
 If a run fails before publishing, fix the cause and re-run it: a re-run
 completes a draft that a failed run left. If the tagged commit is wrong,

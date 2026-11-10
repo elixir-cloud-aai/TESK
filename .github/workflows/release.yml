@@ -3,16 +3,21 @@
 # is pushed, as cloud-registry and proTES release their charts: check that
 # the tag is annotated, signed (verified by GitHub) and on `main`, that it
 # matches the chart's `version` (tag `vX.Y.Z` = chart X.Y.Z) and the version
-# of `CITATION.cff`, and that CI passed for its commit; lint, render and
-# install the chart as CI does (`.github/actions/test-chart` and
-# `install-chart`), and package it (`prepare`). After a maintainer approved
-# the release in the `release` environment (required reviewers, release tags
-# only), attest and sign the packaged chart (GitHub artifact attestation,
-# Sigstore bundle) and create the GitHub release with the chart and its
-# signature attached, with notes since the previous release (`publish`). Releases are immutable once published, so
-# the release is created as a draft, the files are uploaded, and only then is
-# it published; a re-run of a failed run picks up a draft it left. See
-# "Releases" in `docs/development.md`.
+# of `CITATION.cff`, that its curated release notes
+# (`docs/releases/X.Y.Z.md`) exist, are finished (no `TODO`) and in the
+# agreed format (`scripts/release_notes.py`), and that CI passed for its
+# commit; lint, render and install the chart as CI does
+# (`.github/actions/test-chart` and `install-chart`), and package it
+# (`prepare`). After a maintainer approved the release in the `release`
+# environment (required reviewers, release tags only), attest and sign the
+# packaged chart (GitHub artifact attestation, Sigstore bundle) and create
+# the GitHub release with the chart and its signature attached; its notes
+# are the curated ones, then GitHub's generated notes since the previous
+# release under `## Commits`, then their `**Full Changelog**` line
+# (`publish`). Releases are immutable once published, so the release is
+# created as a draft, the files are uploaded, and only then is it published;
+# a re-run of a failed run picks up a draft it left. See "Releases" in
+# `docs/development.md`.
 
 name: Release
 
@@ -133,6 +138,20 @@ jobs:
               echo "::error::CITATION.cff has no date-released"
               exit 1
           fi
+      # Curated release notes are published as written, so every release
+      # needs them, finished (no `TODO`) and in the agreed format, before
+      # anything is published (`scripts/release_notes.py`, standard library
+      # only)
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.13"
+      - name: Check release notes
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          python scripts/release_notes.py require "${VERSION}"
+          python scripts/release_notes.py check "docs/releases/${VERSION}.md"
       # The checks here don't run all of CI: require a successful run of the
       # CI workflow for a push of the release commit (to `dev`, which `main`
       # follows); runs for pull requests test merge commits, not the commit
@@ -286,24 +305,30 @@ jobs:
         uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-path: dist/${{ needs.prepare.outputs.chart_file }}
+      # For `scripts/release_notes.py` (standard library only)
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.13"
       - name: Install cosign
         uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
       - name: Sign chart
         run: cosign sign-blob --yes --bundle "dist/${FILE}.sigstore.json" "dist/${FILE}"
       # Assets of a published immutable release (a repository setting) can't
       # be added or replaced, so the release is created as a draft, gets its
-      # files, and is published last, with the notes generated since the
-      # previous release (on every run, so that a draft of an earlier run
-      # gets current ones), its title and flags. The release of the tag is
-      # looked up among all releases, drafts included: a re-run completes
-      # the draft of a failed run; a release that is already published
-      # (e.g., by hand) gets nothing, but must have both files, or the step
-      # fails
+      # files, and is published last, with its title, flags and notes: the
+      # curated ones, then the ones generated since the previous release
+      # (generated on every run, so that a draft of an earlier run gets
+      # current ones). The release of the tag is looked up among all
+      # releases, drafts included: a re-run completes the draft of a failed
+      # run; a release that is already published (e.g., by hand) gets
+      # nothing, but must have both files, or the step fails
       - name: Create release
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           TAG: ${{ github.ref_name }}
+          VERSION: ${{ needs.prepare.outputs.version }}
           PRERELEASE: ${{ needs.prepare.outputs.prerelease }}
           PREVIOUS: ${{ steps.releases.outputs.previous }}
           LATEST: ${{ steps.releases.outputs.latest }}
@@ -326,15 +351,21 @@ jobs:
               echo "::notice::Release ${TAG} is already published"
               exit 0
           fi
-          notes="$(mktemp)"
+          generated="$(mktemp)"
           if [[ -n "${PREVIOUS}" ]]; then
               gh api "repos/${GH_REPO}/releases/generate-notes" \
                   -f "tag_name=${TAG}" -f "previous_tag_name=${PREVIOUS}" \
-                  --jq .body > "${notes}"
+                  --jq .body > "${generated}"
           else
               gh api "repos/${GH_REPO}/releases/generate-notes" \
-                  -f "tag_name=${TAG}" --jq .body > "${notes}"
+                  -f "tag_name=${TAG}" --jq .body > "${generated}"
           fi
+          # The curated notes (checked in `prepare`), then the generated ones
+          # under `## Commits`, without their `## What's Changed` header, and
+          # their `**Full Changelog**` line last (`scripts/release_notes.py`)
+          notes="$(mktemp)"
+          python scripts/release_notes.py body "docs/releases/${VERSION}.md" "${generated}" \
+              > "${notes}"
           if [[ "${count}" -eq 0 ]]; then
               gh release create "${TAG}" \
                   --draft \
