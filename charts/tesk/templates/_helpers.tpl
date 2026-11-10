@@ -297,6 +297,16 @@ WARNING: tesk.filerHttpTimeout is set, but {{ join " and " $oldImages }} {{ tern
 v0.10.6 or older, which ignores it: HTTP(S) requests of the filer have no
 timeout, as before. Use images newer than v0.10.6.
 {{- end }}
+{{- /* auth.envBaseGroup replaces the parent group and the subgroup in
+tesk-api */ -}}
+{{- if and (include "tesk.isSet" (dig "groups" "parentGroup" "" .Values.auth)) (include "tesk.isSet" .Values.auth.envBaseGroup) }}
+
+WARNING: auth.groups.parentGroup is set, but tesk-api ignores it, as
+auth.envBaseGroup is set too, which replaces it and auth.envSubgroup. Set
+auth.envBaseGroup to the full name of the environment group, or set it to
+"" to use auth.groups.parentGroup and auth.envSubgroup; see
+https://tesk.readthedocs.io/en/latest/deployment/#ls-login-and-other-providers
+{{- end }}
 {{- end -}}
 
 {{/*

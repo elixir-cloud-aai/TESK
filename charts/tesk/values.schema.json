@@ -372,13 +372,51 @@
           "$ref": "#/$defs/scalar",
           "description": "auth requires OIDC access tokens; noauth leaves all endpoints open"
         },
+        "userInfoUri": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^(https?://[^/?#\\s]+[^\\s]*)?$",
+          "description": "User info endpoint of the OIDC provider, at which tesk-api validates tokens and reads the groups or the claim (an HTTP(S) URL); empty uses tesk-api's default (ELIXIR AAI)"
+        },
+        "groups": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "description": "Group model of tesk-api (tesk-api docs/access-control.md#configuration); empty values use tesk-api's defaults (ELIXIR AAI)",
+          "additionalProperties": false,
+          "properties": {
+            "claim": {
+              "$ref": "#/$defs/scalar",
+              "description": "Claim of the user info with the group memberships"
+            },
+            "prefix": {
+              "$ref": "#/$defs/scalar",
+              "description": "Text before the group names in the claim"
+            },
+            "suffix": {
+              "$ref": "#/$defs/scalar",
+              "description": "Text after the group names in the claim"
+            },
+            "parentGroup": {
+              "$ref": "#/$defs/scalar",
+              "description": "Parent group of the environment group; only used if envBaseGroup is empty"
+            },
+            "adminSubgroup": {
+              "$ref": "#/$defs/scalar",
+              "description": "Subgroup of the admins, below the environment group and each team group"
+            }
+          }
+        },
         "envSubgroup": {
           "$ref": "#/$defs/scalar",
-          "description": "Subgroup of the base group for this deployment"
+          "description": "Environment group below groups.parentGroup; only used if envBaseGroup is empty"
         },
         "envBaseGroup": {
           "$ref": "#/$defs/scalar",
-          "description": "Base group of the LS Login group model that grants access"
+          "description": "Full name of the environment group (without prefix and suffix); replaces groups.parentGroup and envSubgroup"
         },
         "serviceInfoPublic": {
           "$ref": "#/$defs/scalar",
@@ -439,6 +477,39 @@
         "clientSecret": {
           "$ref": "#/$defs/scalar",
           "description": "Deprecated: secret of the OIDC client of the Swagger UI, ignored by tesk-api 1.2.0 and later (the Swagger UI is a public client); only passed on to older tesk-api images"
+        },
+        "swaggerOauth": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "description": "Endpoints of the OIDC provider for the Swagger UI's client, and its scopes; empty values use tesk-api's defaults (ELIXIR AAI)",
+          "additionalProperties": false,
+          "properties": {
+            "authorizationEndpoint": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "pattern": "^(https?://[^/?#\\s]+[^\\s]*)?$",
+              "description": "Authorisation endpoint of the provider (an HTTP(S) URL)"
+            },
+            "tokenEndpoint": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "pattern": "^(https?://[^/?#\\s]+[^\\s]*)?$",
+              "description": "Token endpoint of the provider (an HTTP(S) URL); only used with the authorisation code grant"
+            },
+            "scopes": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Comma-separated scopes that the Swagger UI offers, each as <scope>:<description>"
+            }
+          }
         },
         "envBasegroup": {
           "$ref": "#/$defs/removed"

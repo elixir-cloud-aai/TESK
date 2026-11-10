@@ -106,10 +106,28 @@ spec:
         - name: TESK_API_TASKMASTER_ENVIRONMENT_NETRC_SECRET_NAME
           value: {{ . }}
         {{- end }}
-        - name: TESK_API_AUTHORISATION_ENV_SUBGROUP
-          value: {{ .Values.auth.envSubgroup }}
-        - name: TESK_API_AUTHORISATION_BASE_GROUP
-          value: {{ .Values.auth.envBaseGroup }}
+        {{- /* The OIDC provider and its group names: only when set (also
+        if YAML reads them as 0 or false), so that tesk-api's defaults apply
+        otherwise */}}
+        {{- $groups := default dict .Values.auth.groups }}
+        {{- $swaggerOauth := default dict .Values.auth.swaggerOauth }}
+        {{- range $variable, $value := dict
+          "SECURITY_OAUTH2_RESOURCE_USER_INFO_URI" .Values.auth.userInfoUri
+          "TESK_API_AUTHORISATION_GROUPS_CLAIM" $groups.claim
+          "TESK_API_AUTHORISATION_GROUP_PREFIX" $groups.prefix
+          "TESK_API_AUTHORISATION_GROUP_SUFFIX" $groups.suffix
+          "TESK_API_AUTHORISATION_PARENT_GROUP" $groups.parentGroup
+          "TESK_API_AUTHORISATION_ENV_SUBGROUP" .Values.auth.envSubgroup
+          "TESK_API_AUTHORISATION_BASE_GROUP" .Values.auth.envBaseGroup
+          "TESK_API_AUTHORISATION_ADMIN_SUBGROUP" $groups.adminSubgroup
+          "TESK_API_SWAGGER_OAUTH_AUTHORIZATION_ENDPOINT" $swaggerOauth.authorizationEndpoint
+          "TESK_API_SWAGGER_OAUTH_TOKEN_ENDPOINT" $swaggerOauth.tokenEndpoint
+          "TESK_API_SWAGGER_OAUTH_SCOPES" $swaggerOauth.scopes }}
+        {{- if include "tesk.isSet" $value }}
+        - name: {{ $variable }}
+          value: {{ toString $value | quote }}
+        {{- end }}
+        {{- end }}
         - name: SPRING_PROFILES_ACTIVE
           value: {{ .Values.auth.mode }}
         {{- if not (kindIs "invalid" .Values.auth.serviceInfoPublic) }}
@@ -176,8 +194,6 @@ spec:
         {{- end }}
         - name: TESK_API_TASKMASTER_DEBUG
           value: "{{ $tesk.debug }}"
-        - name: TESK_API_SWAGGER-OAUTH_SCOPES
-          value: openid:Standard openid,eduperson_entitlement:Access to groups membership,profile:Identity info about user,email:Email
         - name: TESK_API_SWAGGER_OAUTH_CLIENT_ID
           valueFrom:
             secretKeyRef:
