@@ -51,10 +51,12 @@ helm upgrade --install tesk charts/tesk \
   FTP account (`ftp.username`, `ftp.password`) and the OIDC client of the
   Swagger UI (`auth.clientId`). Keep it out of version control. It is
   optional: leave out `-f secrets.yaml` if you need none of these.
+- Describe your deployment in the service info that `GET /service-info`
+  answers with (`serviceInfo` in `my-values.yaml`, see [Service
+  info](configuration.md#service-info-serviceinfo)): at least its `id`,
+  `organization`, `contactUrl` and `environment`.
 - Some settings are files in the chart directory rather than values: the
-  service info (`charts/tesk/service-info/service-info.yaml`, see [Service
-  info](configuration.md#service-info)), the `.netrc` file for FTP
-  (`charts/tesk/ftp/.netrc`) and the S3 configuration
+  `.netrc` file for FTP (`charts/tesk/ftp/.netrc`) and the S3 configuration
   (`charts/tesk/s3-config/`). Edit or add them before installing.
 
 The names of the objects start with the release name (e.g., `tesk-api` and

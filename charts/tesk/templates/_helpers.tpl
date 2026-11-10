@@ -226,6 +226,14 @@ The notes that `helm install` and `helm upgrade` print (`NOTES.txt`).
 {{- define "tesk.notes" -}}
 TESK is deployed as release {{ .Release.Name }} in namespace {{ .Release.Namespace }}.
 See https://tesk.readthedocs.io/en/latest/deployment/ to check the installation.
+{{- $serviceInfo := default dict .Values.serviceInfo -}}
+{{- if and (not (include "tesk.isSet" $serviceInfo.existingConfigMap)) (eq (toString $serviceInfo.id) "uk.ac.ebi.tsc.tesk") }}
+
+NOTE: serviceInfo.id is the chart's default, so GET /service-info describes
+no particular deployment. Set serviceInfo.id, serviceInfo.organization,
+serviceInfo.contactUrl and serviceInfo.environment for yours; see
+https://tesk.readthedocs.io/en/latest/configuration/#service-info-serviceinfo
+{{- end }}
 {{- /* Any user name, also one that YAML reads as 0 or false */ -}}
 {{- $username := .Values.ftp.username -}}
 {{- $hasUsername := include "tesk.isSet" $username -}}
@@ -297,6 +305,86 @@ WARNING: tesk.filerHttpTimeout is set, but {{ join " and " $oldImages }} {{ tern
 v0.10.6 or older, which ignores it: HTTP(S) requests of the filer have no
 timeout, as before. Use images newer than v0.10.6.
 {{- end }}
+{{- end -}}
+
+{{/*
+The service info (`serviceInfo`) as the YAML file that tesk-api reads
+(`TesServiceInfo`), or nothing with `serviceInfo.existingConfigMap`. Text
+fields are quoted (`tesk.yamlText`), so that tesk-api reads them as
+text whatever they look like; `createdAt` and `updatedAt` are YAML
+timestamps, unquoted, as tesk-api reads them as dates. Empty optional
+fields are left out; the fields that the GA4GH service-info specification
+requires fail if empty. `type` (TES 1.0.0, which tesk-api implements) and
+`version` (the tag of tesk-api's image) are set here.
+*/}}
+{{- define "tesk.serviceInfo" -}}
+{{- $info := default dict .Values.serviceInfo -}}
+{{- if not (include "tesk.isSet" $info.existingConfigMap) -}}
+{{- $organization := default dict $info.organization -}}
+{{- range $field, $value := dict "id" $info.id "name" $info.name "organization.name" $organization.name "organization.url" $organization.url -}}
+{{- if not (include "tesk.isSet" $value) -}}
+{{- fail (printf "serviceInfo.%s must be set: the GA4GH service-info specification requires it" $field) -}}
+{{- end -}}
+{{- end -}}
+{{- $timestamp := "^[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}(([Tt]|[ \t]+)[0-9]{1,2}:[0-9]{2}:[0-9]{2}(\\.[0-9]*)?([ \t]*(Z|[-+][0-9]{1,2}(:[0-9]{2})?))?)?$" -}}
+{{- range $field := list "createdAt" "updatedAt" -}}
+{{- $value := index $info $field -}}
+{{- if and (include "tesk.isSet" $value) (not (regexMatch $timestamp (toString $value))) -}}
+{{- fail (printf "serviceInfo.%s must be a date (e.g., 2026-11-10) or a date and time (e.g., 2026-11-10T12:00:00Z), not %q" $field (toString $value)) -}}
+{{- end -}}
+{{- end -}}
+{{- $tag := dig "image" "tag" "" .Values.tesk -}}
+{{- if or (kindIs "invalid" $tag) (eq (toString $tag) "") -}}
+{{- $tag = .Chart.AppVersion -}}
+{{- end -}}
+id: {{ include "tesk.yamlText" $info.id }}
+name: {{ include "tesk.yamlText" $info.name }}
+type:
+  group: "org.ga4gh"
+  artifact: "TES"
+  version: "1.0.0"
+{{- if include "tesk.isSet" $info.description }}
+description: {{ include "tesk.yamlText" $info.description }}
+{{- end }}
+organization:
+  name: {{ include "tesk.yamlText" $organization.name }}
+  url: {{ include "tesk.yamlText" $organization.url }}
+{{- range $field := list "contactUrl" "documentationUrl" }}
+{{- $value := index $info . }}
+{{- if include "tesk.isSet" $value }}
+{{ $field }}: {{ include "tesk.yamlText" $value }}
+{{- end }}
+{{- end }}
+{{- range $field := list "createdAt" "updatedAt" }}
+{{- $value := index $info . }}
+{{- if include "tesk.isSet" $value }}
+{{ $field }}: {{ toString $value }}
+{{- end }}
+{{- end }}
+{{- if include "tesk.isSet" $info.environment }}
+environment: {{ include "tesk.yamlText" $info.environment }}
+{{- end }}
+version: {{ include "tesk.yamlText" $tag }}
+{{- with $info.storage }}
+storage:
+{{- range . }}
+- {{ include "tesk.yamlText" . }}
+{{- end }}
+{{- end }}
+{{- end -}}
+{{- end -}}
+
+{{/*
+A value as a quoted YAML string (a JSON string, which YAML reads as a
+double-quoted scalar). Whole numbers, which Helm reads from values files
+as floats, are rendered as written (e.g., 12345678, not 1.2345678e+07).
+*/}}
+{{- define "tesk.yamlText" -}}
+{{- if and (kindIs "float64" .) (eq (floor .) .) -}}
+{{- printf "%.0f" . | toJson -}}
+{{- else -}}
+{{- toString . | toJson -}}
+{{- end -}}
 {{- end -}}
 
 {{/*

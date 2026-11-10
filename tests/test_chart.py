@@ -10,6 +10,7 @@ pinned Helm version only.
 from __future__ import annotations
 
 import base64
+import datetime
 import hashlib
 import json
 import os
@@ -386,7 +387,8 @@ def test_security_context_null() -> None:
 def test_executor_security_context_default(args: tuple[str, ...]) -> None:
     """Without a security context, executors run as before.
 
-    No ConfigMap, no `CONFIGMAP`, and no checksum annotation.
+    No ConfigMap, no `CONFIGMAP`, and no checksum annotation of the
+    executors.
 
     Args:
         args: The `helm template` arguments.
@@ -394,8 +396,8 @@ def test_executor_security_context_default(args: tuple[str, ...]) -> None:
     manifests = render(*args)
     assert find(manifests, "ConfigMap", "tesk-executor") is None
     assert "CONFIGMAP" not in env(manifests)
-    annotations = deployment(manifests)["spec"]["template"]["metadata"]
-    assert "annotations" not in annotations
+    metadata = deployment(manifests)["spec"]["template"]["metadata"]
+    assert "checksum/executor-config" not in metadata.get("annotations", {})
 
 
 @pytest.mark.parametrize(
@@ -1013,10 +1015,10 @@ def test_swagger_ui_invalid(args: tuple[str, ...]) -> None:
 
 
 def test_service_info() -> None:
-    """The service info is mounted from the chart's `service-info/`."""
+    """The service info is rendered from the values into a ConfigMap."""
     manifests = render()
     config = get(manifests, "ConfigMap", "tesk-service-info")
-    assert "service-info.yaml" in config["data"]
+    assert list(config["data"]) == ["service-info.yaml"]
     assert container(manifests)["volumeMounts"] == [
         {"name": "service-info", "mountPath": "/etc/tesk/service-info"}
     ]
@@ -1024,6 +1026,255 @@ def test_service_info() -> None:
     assert volumes == [
         {"name": "service-info", "configMap": {"name": "tesk-service-info"}}
     ]
+    assert (
+        env(manifests)["TESK_API_SERVICE_INFO_LOCATION"]
+        == "file:///etc/tesk/service-info/service-info.yaml"
+    )
+
+
+def _service_info(*args: str) -> tuple[dict[str, Any], str]:
+    """Render the service info.
+
+    Args:
+        args: More `helm template` arguments.
+
+    Returns:
+        The service info, parsed, and its text.
+    """
+    config = get(render(*args), "ConfigMap", "tesk-service-info")
+    text: str = config["data"]["service-info.yaml"]
+    info: dict[str, Any] = yaml.safe_load(text)
+    return info, text
+
+
+def test_service_info_defaults() -> None:
+    """The defaults are those of the file of earlier charts.
+
+    Except for the contact and documentation URLs, which point to this
+    repository and its docs, and `type` and `version`, which the chart sets.
+    """
+    info, text = _service_info()
+    assert info == {
+        "id": "uk.ac.ebi.tsc.tesk",
+        "name": "TESK",
+        "type": {"group": "org.ga4gh", "artifact": "TES", "version": "1.0.0"},
+        "description": "GA4GH TES Server implementation for Kubernetes",
+        "organization": {"name": "EMBL-EBI", "url": "https://www.ebi.ac.uk/"},
+        "contactUrl": "https://github.com/elixir-cloud-aai/TESK/issues",
+        "documentationUrl": "https://tesk.readthedocs.io/",
+        "createdAt": datetime.date(2021, 4, 6),
+        "environment": "dev",
+        "version": str(METADATA["appVersion"]),
+        "storage": ["ftp://ftp-private.ebi.ac.uk"],
+    }
+    # A YAML timestamp, as tesk-api reads `createdAt` (a quoted string fails)
+    assert "\ncreatedAt: 2021-04-06\n" in text
+    values = VALUES["serviceInfo"]
+    assert values["existingConfigMap"] == ""
+    assert values["createdAt"] == "2021-04-06"
+
+
+def test_service_info_values(tmp_path: Path) -> None:
+    """All fields of the service info come from the values.
+
+    Args:
+        tmp_path: A directory for the values file.
+    """
+    service_info: dict[str, Any] = {
+        "id": "org.example.tes",
+        "name": "Example TES",
+        "description": 'Text with "quotes", # and: colons',
+        "organization": {"name": "Example", "url": "https://example.org/"},
+        "contactUrl": "mailto:tes@example.org",
+        "documentationUrl": "https://example.org/docs",
+        "createdAt": "2026-11-10T12:00:00Z",
+        "updatedAt": "2026-11-11",
+        "environment": "prod",
+        "storage": ["s3://bucket", "ftp://ftp.example.org"],
+    }
+    values = {"tesk": {"image": {"tag": "1.2.1"}}, "serviceInfo": service_info}
+    path = tmp_path / "values.yaml"
+    path.write_text(yaml.safe_dump(values))
+    info, text = _service_info("--values", str(path))
+    expected = dict(service_info)
+    expected["createdAt"] = datetime.datetime(2026, 11, 10, 12, tzinfo=datetime.UTC)
+    expected["updatedAt"] = datetime.date(2026, 11, 11)
+    expected["type"] = {"group": "org.ga4gh", "artifact": "TES", "version": "1.0.0"}
+    expected["version"] = "1.2.1"
+    assert info == expected
+    assert "\ncreatedAt: 2026-11-10T12:00:00Z\n" in text
+
+
+@pytest.mark.parametrize(
+    "args",
+    [
+        ("--set", "serviceInfo.description="),
+        ("--set", "serviceInfo.description=null"),
+    ],
+)
+def test_service_info_optional(args: tuple[str, ...]) -> None:
+    """Optional fields that are empty or null are left out.
+
+    Args:
+        args: More `helm template` arguments.
+    """
+    info, _ = _service_info(
+        *args,
+        "--set",
+        "serviceInfo.contactUrl=",
+        "--set",
+        "serviceInfo.documentationUrl=null",
+        "--set",
+        "serviceInfo.createdAt=",
+        "--set",
+        "serviceInfo.environment=",
+        "--set-json",
+        "serviceInfo.storage=[]",
+    )
+    for field in (
+        "description",
+        "contactUrl",
+        "documentationUrl",
+        "createdAt",
+        "updatedAt",
+        "environment",
+        "storage",
+    ):
+        assert field not in info, field
+    assert set(info) == {"id", "name", "type", "organization", "version"}
+
+
+@pytest.mark.parametrize(
+    ("args", "value"),
+    [
+        (("--set", "serviceInfo.id=12345"), "12345"),
+        (("--set", "serviceInfo.name=true"), "true"),
+        (("--set-string", "serviceInfo.environment=2026-11-10"), "2026-11-10"),
+    ],
+)
+def test_service_info_strings(args: tuple[str, ...], value: str) -> None:
+    """Text fields stay strings, also if YAML would read them otherwise.
+
+    tesk-api reads them as strings; a date would fail as one.
+
+    Args:
+        args: More `helm template` arguments.
+        value: The expected text.
+    """
+    info, _ = _service_info(*args)
+    assert value in info.values()
+
+
+@pytest.mark.parametrize(
+    "field",
+    ["id", "name", "organization.name", "organization.url"],
+)
+def test_service_info_required(field: str) -> None:
+    """The fields that the service info specification requires must be set.
+
+    Args:
+        field: The field under `serviceInfo`.
+    """
+    with pytest.raises(subprocess.CalledProcessError) as error:
+        render("--set", f"serviceInfo.{field}=")
+    assert f"serviceInfo.{field} must be set" in error.value.stderr
+
+
+@pytest.mark.parametrize(
+    "args",
+    [
+        ("--set", "serviceInfo.createdAt=yesterday"),
+        ("--set", "serviceInfo.updatedAt=2026-13-01x"),
+        ("--set", "serviceInfo.createdAt=10.11.2026"),
+        ("--set-json", "serviceInfo.storage=[1]"),
+        ("--set-json", "serviceInfo.organization=[]"),
+        ("--set-json", "serviceInfo.storage={}"),
+        ("--set", "serviceInfo.organization.email=a@example.org"),
+        ("--set", "serviceInfo.type.group=org.example"),
+        ("--set", "serviceInfo.version=2"),
+    ],
+)
+def test_service_info_invalid(args: tuple[str, ...]) -> None:
+    """The schema rejects dates that aren't YAML timestamps, and unknown keys.
+
+    tesk-api can't read the file otherwise, and answers without service
+    info; `type` and `version` are set by the chart.
+
+    Args:
+        args: More `helm template` arguments.
+    """
+    with pytest.raises(subprocess.CalledProcessError) as error:
+        render(*args)
+    assert "values don't meet the specifications of the schema" in error.value.stderr
+
+
+def test_service_info_invalid_without_schema() -> None:
+    """The templates check the dates too, also without the schema."""
+    with pytest.raises(subprocess.CalledProcessError) as error:
+        render("--skip-schema-validation", "--set", "serviceInfo.createdAt=today")
+    assert "serviceInfo.createdAt must be a date" in error.value.stderr
+
+
+def test_service_info_existing_config_map() -> None:
+    """An existing ConfigMap replaces the chart's."""
+    manifests = render("--set", "serviceInfo.existingConfigMap=my-service-info")
+    assert find(manifests, "ConfigMap", "tesk-service-info") is None
+    volumes = deployment(manifests)["spec"]["template"]["spec"]["volumes"]
+    assert volumes == [
+        {"name": "service-info", "configMap": {"name": "my-service-info"}}
+    ]
+    annotations = deployment(manifests)["spec"]["template"]["metadata"].get(
+        "annotations", {}
+    )
+    assert "checksum/service-info" not in annotations
+
+
+def test_service_info_checksum() -> None:
+    """A change of the service info restarts the API's pod.
+
+    tesk-api reads the file at startup, and then only every hour.
+    """
+
+    def checksum(*args: str) -> str:
+        meta = deployment(render(*args))["spec"]["template"]["metadata"]
+        value: str = meta["annotations"]["checksum/service-info"]
+        return value
+
+    assert checksum() == checksum()
+    assert checksum() != checksum("--set", "serviceInfo.environment=prod")
+    # Together with the executors' checksum
+    meta = deployment(
+        render("--set-json", 'tesk.executor.securityContext={"runAsUser": 1000}')
+    )["spec"]["template"]["metadata"]
+    assert set(meta["annotations"]) == {
+        "checksum/service-info",
+        "checksum/executor-config",
+    }
+
+
+@pytest.mark.parametrize(
+    ("args", "noted"),
+    [
+        ((), True),
+        (("--set", "serviceInfo.id=org.example.tes"), False),
+        (("--set", "serviceInfo.existingConfigMap=mine"), False),
+    ],
+)
+def test_notes_service_info(tmp_path: Path, args: tuple[str, ...], noted: bool) -> None:
+    """The notes remind operators to describe their deployment.
+
+    Args:
+        tmp_path: A directory for a copy of the chart.
+        args: More `helm template` arguments.
+        noted: Whether the notes have the reminder.
+    """
+    text = notes(*args, tmp_path=tmp_path)
+    assert ("NOTE: serviceInfo.id is the chart's default" in text) == noted
+
+
+def test_service_info_file_removed() -> None:
+    """The service info no longer comes from a file of the chart."""
+    assert not (CHART / "service-info").exists()
 
 
 def test_ingress() -> None:

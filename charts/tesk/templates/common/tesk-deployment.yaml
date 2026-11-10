@@ -13,6 +13,7 @@ whole chart */ -}}
 {{- end -}}
 {{- $ftpSecretName := include "tesk.ftpSecretName" . -}}
 {{- $executorSecurityContext := include "tesk.executorSecurityContext" . -}}
+{{- $serviceInfo := include "tesk.serviceInfo" . -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -28,10 +29,16 @@ spec:
     metadata:
       labels:
         {{- include "tesk.selectorLabels" . | nindent 8 }}
-      {{- /* tesk-api reads the ConfigMap only at startup */}}
-      {{- with $executorSecurityContext }}
+      {{- /* tesk-api reads the executors' ConfigMap only at startup, and
+      the service info at startup and then every hour */}}
+      {{- if or $executorSecurityContext $serviceInfo }}
       annotations:
+        {{- with $executorSecurityContext }}
         checksum/executor-config: {{ sha256sum . }}
+        {{- end }}
+        {{- with $serviceInfo }}
+        checksum/service-info: {{ sha256sum . }}
+        {{- end }}
       {{- end }}
     spec:
       serviceAccountName: {{ include "tesk.taskmasterName" . }}
@@ -209,7 +216,11 @@ spec:
       volumes:
       - name: service-info
         configMap:
+          {{- with (default dict .Values.serviceInfo).existingConfigMap }}
+          name: {{ toString . | quote }}
+          {{- else }}
           name: {{ include "tesk.serviceInfoName" . }}
+          {{- end }}
       {{- with $tesk.podSecurityContext }}
       securityContext:
         {{- toYaml . | nindent 8 }}
