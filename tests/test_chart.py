@@ -284,6 +284,7 @@ def test_auth_provider_defaults() -> None:
     tesk-api's defaults (of ELIXIR AAI) apply then, also for the scopes of
     the Swagger UI, which follow the groups claim.
     """
+    assert PROVIDER.keys() == PROVIDER_VALUES.keys()
     for mode in ("noauth", "auth"):
         variables = env(render("--set", f"auth.mode={mode}"))
         for variable in PROVIDER.values():
@@ -391,7 +392,7 @@ def test_auth_provider_null(args: tuple[str, ...]) -> None:
 def test_auth_provider_scalars(
     args: tuple[str, ...], variable: str, expected: str
 ) -> None:
-    """Group settings that YAML reads as numbers or booleans keep their text.
+    """Group settings that `--set` reads as numbers or booleans keep their text.
 
     Args:
         args: More `helm template` arguments.
@@ -404,6 +405,21 @@ def test_auth_provider_scalars(
     for var in container(manifests)["env"]:
         if "value" in var:
             assert isinstance(var["value"], str), var
+
+
+def test_auth_provider_numbers_values_file(tmp_path: Path) -> None:
+    """Whole numbers from a values file aren't rendered in scientific notation.
+
+    Helm reads numbers in values files as floats.
+
+    Args:
+        tmp_path: A directory for the values file.
+    """
+    path = tmp_path / "values.yaml"
+    path.write_text("auth:\n  envSubgroup: 12345678\n  groups:\n    adminSubgroup: 0\n")
+    variables = env(render("--values", str(path)))
+    assert variables["TESK_API_AUTHORISATION_ENV_SUBGROUP"] == "12345678"
+    assert variables["TESK_API_AUTHORISATION_ADMIN_SUBGROUP"] == "0"
 
 
 @pytest.mark.parametrize(
@@ -450,6 +466,7 @@ def test_auth_parent_group() -> None:
     [
         (("--set", "auth.groups.parentGroup=vo:tesk"), True),
         (("--set", "auth.envBaseGroup=", "--set", "auth.groups.parentGroup=v"), False),
+        (("--set", "auth.groups=null"), False),
         ((), False),
     ],
 )

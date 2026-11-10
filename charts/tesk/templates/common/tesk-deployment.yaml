@@ -108,7 +108,8 @@ spec:
         {{- end }}
         {{- /* The OIDC provider and its group names: only when set (also
         if YAML reads them as 0 or false), so that tesk-api's defaults apply
-        otherwise */}}
+        otherwise. Whole numbers from values files are rendered as written,
+        as the secrets are (tesk.secretValue), not in scientific notation */}}
         {{- $groups := default dict .Values.auth.groups }}
         {{- $swaggerOauth := default dict .Values.auth.swaggerOauth }}
         {{- range $variable, $value := dict
@@ -125,7 +126,7 @@ spec:
           "TESK_API_SWAGGER_OAUTH_SCOPES" $swaggerOauth.scopes }}
         {{- if include "tesk.isSet" $value }}
         - name: {{ $variable }}
-          value: {{ toString $value | quote }}
+          value: {{ include "tesk.secretValue" $value }}
         {{- end }}
         {{- end }}
         - name: SPRING_PROFILES_ACTIVE

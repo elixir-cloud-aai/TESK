@@ -256,13 +256,13 @@ control](tesk-api/access-control.md), for the group model.
 
 ### LS Login and other providers
 
-For LS Login, set the user info endpoint and the group names that LS Login
-releases (in the claim `eduperson_entitlement`, as
-`urn:geant:lifescience-ri.eu:group:<group>#aai.lifescience-ri.eu`, where
-`<group>` is the short name of the virtual organisation, followed by the
-full name of the group in it, whose levels are separated by `:`). For the
-Swagger UI's
-login, also set its endpoints. All endpoints are in LS Login's [discovery
+For LS Login, set the user info endpoint and the form of the group names
+that LS Login releases in the claim `eduperson_entitlement`:
+`urn:geant:lifescience-ri.eu:group:<group>#aai.lifescience-ri.eu`. Here,
+`<group>` is the short name of the virtual organisation, then the full name
+of the group in it, with `:` between the levels (e.g., `my-vo:tesk:my-team`).
+For the Swagger UI's login, also set its endpoints. All endpoints are in LS
+Login's [discovery
 document](https://login.aai.lifescience-ri.eu/oidc/.well-known/openid-configuration):
 
 ```yaml
@@ -285,9 +285,13 @@ auth:
 Quote the prefix and the suffix, as YAML reads a value that starts with `#`
 as a comment. LS Login releases a group only to services that the group is
 assigned to, and only to clients with the scope `eduperson_entitlement`:
-check the claim in the user info of a test user. Users need to be members
-of a team group below the environment group to create tasks (see [Endpoint
-permissions](tesk-api/access-control.md#endpoint-permissions)); for
+check the claim in the user info of a test user. Assign the environment
+group itself (`my-vo:tesk`), its team groups and the `ADMIN` groups to the
+service's resource in Perun: users need the environment group in the claim
+and a team group below it to create and cancel tasks (see [Endpoint
+permissions](tesk-api/access-control.md#endpoint-permissions)). Give the
+group names as they appear in the claim, where LS Login URL-encodes them
+(e.g., `%20` for a space), as tesk-api compares them as plain text. For
 access without the group model, see [Authorisation by a
 claim](#authorisation-by-a-claim).
 
