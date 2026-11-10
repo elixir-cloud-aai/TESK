@@ -422,6 +422,20 @@ def test_auth_provider_numbers_values_file(tmp_path: Path) -> None:
     assert variables["TESK_API_AUTHORISATION_ADMIN_SUBGROUP"] == "0"
 
 
+def test_auth_provider_number_too_large(tmp_path: Path) -> None:
+    """A whole number too large to be exact fails, instead of changing.
+
+    Args:
+        tmp_path: A directory for the values file.
+    """
+    path = tmp_path / "values.yaml"
+    path.write_text("auth:\n  envSubgroup: 12345678901234567890\n")
+    with pytest.raises(subprocess.CalledProcessError) as error:
+        render("--values", str(path))
+    assert "provider or group value under auth" in error.value.stderr
+    assert "too large" in error.value.stderr
+
+
 @pytest.mark.parametrize(
     ("key", "variable"),
     [
