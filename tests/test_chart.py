@@ -499,6 +499,27 @@ def test_notes_parent_group(
 
 
 @pytest.mark.parametrize(
+    ("value", "warned"),
+    [
+        ("http://keycloak.auth.svc/realms/tes/protocol/openid-connect/userinfo", True),
+        ("https://login.example.org/userinfo", False),
+        ("", False),
+        ("null", False),
+    ],
+)
+def test_notes_user_info_http(tmp_path: Path, value: str, warned: bool) -> None:
+    """The notes warn if tokens go to the user info endpoint unencrypted.
+
+    Args:
+        tmp_path: A directory for a copy of the chart.
+        value: `auth.userInfoUri`, as a `--set` value.
+        warned: Whether the notes warn.
+    """
+    text = notes("--set", f"auth.userInfoUri={value}", tmp_path=tmp_path)
+    assert ("WARNING: auth.userInfoUri is an http:// URL" in text) == warned
+
+
+@pytest.mark.parametrize(
     "args",
     [
         ("--set", "auth.userInfoUri=login.example.org/oidc/userinfo"),

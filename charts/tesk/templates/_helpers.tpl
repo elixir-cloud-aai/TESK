@@ -307,6 +307,13 @@ auth.envBaseGroup to the full name of the environment group, or set it to
 "" to use auth.groups.parentGroup and auth.envSubgroup; see
 https://tesk.readthedocs.io/en/latest/deployment/#ls-login-and-other-providers
 {{- end }}
+{{- /* tesk-api sends every request's token to the user info endpoint */ -}}
+{{- if hasPrefix "http://" (toString (default "" .Values.auth.userInfoUri)) }}
+
+WARNING: auth.userInfoUri is an http:// URL: tesk-api sends the access token
+of every request to it unencrypted. Use https://, unless the endpoint is
+reached only within a trusted network (e.g., a provider in the cluster).
+{{- end }}
 {{- end -}}
 
 {{/*
