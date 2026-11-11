@@ -161,8 +161,41 @@ transfer:
 auth:
   # `auth` requires OIDC access tokens; `noauth` leaves all endpoints open
   mode: noauth
-  # Group model of LS Login (ELIXIR AAI): the base group and the subgroup of
-  # this deployment (e.g., EBI or CSC) that grant access
+  # The OIDC provider and its group names. Empty values aren't passed on, so
+  # tesk-api's defaults apply: those of ELIXIR AAI (the provider before LS
+  # Login, at login.elixir-czech.org). For LS Login or another provider, set
+  # `userInfoUri`, `groups.prefix` and `groups.suffix`, and the endpoints of
+  # `swaggerOauth` if the Swagger UI is on; see the deployment guide
+  # (docs/deployment.md, "LS Login and other providers") for an example.
+  #
+  # User info endpoint of the provider, at which tesk-api validates tokens
+  # and reads the groups (or `claim`), e.g.,
+  # https://login.aai.lifescience-ri.eu/oidc/userinfo for LS Login
+  userInfoUri: ""
+  # Group model: users need a membership of the environment group of this
+  # deployment, and of a team group below it; see
+  # https://github.com/elixir-cloud-aai/tesk-api/blob/v1.2.0/docs/access-control.md#configuration
+  groups:
+    # Claim of the user info with the groups (tesk-api's default:
+    # eduperson_entitlement); the default scopes of the Swagger UI follow it
+    claim: ""
+    # Text before and after each group name in the claim (tesk-api's
+    # defaults: urn:geant:elixir-europe.org:group:elixir: and
+    # #perun.elixir-czech.cz), e.g., urn:geant:lifescience-ri.eu:group: and
+    # #aai.lifescience-ri.eu for LS Login
+    prefix: ""
+    suffix: ""
+    # Parent group of the environment group (tesk-api's default:
+    # GA4GH:GA4GH-CAP), with `envSubgroup` below it. Only used if
+    # `envBaseGroup` is empty, as that replaces both
+    parentGroup: ""
+    # Subgroup of the admins, below the environment group and below each
+    # team group (tesk-api's default: ADMIN)
+    adminSubgroup: ""
+  # The environment group: `envBaseGroup` is its full name (without prefix
+  # and suffix) and replaces `groups.parentGroup` and `envSubgroup`, which
+  # make it up as `<parentGroup>:<envSubgroup>` only if `envBaseGroup` is
+  # empty
   envSubgroup: CSC
   envBaseGroup: ECP_CLN
   # With mode auth: true lets GET /service-info answer without a token, false
@@ -199,6 +232,19 @@ auth:
   # values file (secrets.yaml), not into this one. The Swagger UI is a public
   # client, which needs no secret: `clientSecret` is deprecated, and
   # ignored by tesk-api 1.2.0 and later; leave it unset
+  #
+  # The provider's endpoints for the Swagger UI's client, and the scopes
+  # that it offers; empty uses tesk-api's defaults (ELIXIR AAI's endpoints;
+  # openid, the groups claim, profile and email)
+  swaggerOauth:
+    # e.g., https://login.aai.lifescience-ri.eu/oidc/authorize
+    authorizationEndpoint: ""
+    # e.g., https://login.aai.lifescience-ri.eu/oidc/token; only used with
+    # the authorisation code grant
+    tokenEndpoint: ""
+    # Comma-separated `<scope>:<description>` pairs, e.g.,
+    # "openid:Standard openid,eduperson_entitlement:Access to groups membership"
+    scopes: ""
 
 service:
   # Type of the API's Service: `NodePort` to expose the API directly,

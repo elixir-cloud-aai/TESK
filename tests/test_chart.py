@@ -249,6 +249,351 @@ def test_auth_groups() -> None:
     assert variables["TESK_API_AUTHORISATION_BASE_GROUP"] == "BASE"
 
 
+# The settings of the OIDC provider and the group model, by value under
+# `auth`, and the variable of tesk-api that each sets
+PROVIDER = {
+    "userInfoUri": "SECURITY_OAUTH2_RESOURCE_USER_INFO_URI",
+    "groups.claim": "TESK_API_AUTHORISATION_GROUPS_CLAIM",
+    "groups.prefix": "TESK_API_AUTHORISATION_GROUP_PREFIX",
+    "groups.suffix": "TESK_API_AUTHORISATION_GROUP_SUFFIX",
+    "groups.parentGroup": "TESK_API_AUTHORISATION_PARENT_GROUP",
+    "groups.adminSubgroup": "TESK_API_AUTHORISATION_ADMIN_SUBGROUP",
+    "swaggerOauth.authorizationEndpoint": (
+        "TESK_API_SWAGGER_OAUTH_AUTHORIZATION_ENDPOINT"
+    ),
+    "swaggerOauth.tokenEndpoint": "TESK_API_SWAGGER_OAUTH_TOKEN_ENDPOINT",
+    "swaggerOauth.scopes": "TESK_API_SWAGGER_OAUTH_SCOPES",
+}
+# Valid values of each
+PROVIDER_VALUES = {
+    "userInfoUri": "https://login.example.org/oidc/userinfo",
+    "groups.claim": "entitlements",
+    "groups.prefix": "urn:geant:example.org:group:",
+    "groups.suffix": "#aai.example.org",
+    "groups.parentGroup": "vo:tesk",
+    "groups.adminSubgroup": "MANAGERS",
+    "swaggerOauth.authorizationEndpoint": "https://login.example.org/oidc/authorize",
+    "swaggerOauth.tokenEndpoint": "https://login.example.org/oidc/token",
+    "swaggerOauth.scopes": "openid:Standard openid,entitlements:Groups",
+}
+
+
+def test_auth_provider_defaults() -> None:
+    """By default, the chart leaves tesk-api's provider and group settings.
+
+    tesk-api's defaults (of ELIXIR AAI) apply then, also for the scopes of
+    the Swagger UI, which follow the groups claim.
+    """
+    assert PROVIDER.keys() == PROVIDER_VALUES.keys()
+    for mode in ("noauth", "auth"):
+        variables = env(render("--set", f"auth.mode={mode}"))
+        for variable in PROVIDER.values():
+            assert variable not in variables
+        assert "TESK_API_SWAGGER-OAUTH_SCOPES" not in variables
+        assert "TESK_API_AUTHORISATION_DELIMITER" not in variables
+        assert (
+            variables["TESK_API_AUTHORISATION_ENV_SUBGROUP"]
+            == VALUES["auth"]["envSubgroup"]
+        )
+        assert (
+            variables["TESK_API_AUTHORISATION_BASE_GROUP"]
+            == VALUES["auth"]["envBaseGroup"]
+        )
+    for key in PROVIDER:
+        *maps, name = key.split(".")
+        node = VALUES["auth"]
+        for part in maps:
+            node = node[part]
+        assert node[name] == "", key
+
+
+@pytest.mark.parametrize("mode", ["noauth", "auth"])
+@pytest.mark.parametrize("key", list(PROVIDER))
+def test_auth_provider(key: str, mode: str) -> None:
+    """Each provider or group setting is passed on as it is, when set.
+
+    Args:
+        key: The value under `auth`.
+        mode: `auth.mode`.
+    """
+    value = PROVIDER_VALUES[key]
+    # `--set` separates values by commas
+    escaped = value.replace(",", "\\,")
+    variables = env(
+        render("--set", f"auth.mode={mode}", "--set-string", f"auth.{key}={escaped}")
+    )
+    assert variables[PROVIDER[key]] == value
+    others = set(PROVIDER.values()) - {PROVIDER[key]}
+    assert not others & set(variables)
+
+
+def test_auth_provider_all(tmp_path: Path) -> None:
+    """All provider and group settings together, from a values file.
+
+    Args:
+        tmp_path: A directory for the values file.
+    """
+    values: dict[str, Any] = {"auth": {"mode": "auth"}}
+    for key, value in PROVIDER_VALUES.items():
+        *maps, name = key.split(".")
+        node = values["auth"]
+        for part in maps:
+            node = node.setdefault(part, {})
+        node[name] = value
+    path = tmp_path / "values.yaml"
+    path.write_text(yaml.safe_dump(values))
+    variables = env(render("--values", str(path)))
+    for key, variable in PROVIDER.items():
+        assert variables[variable] == PROVIDER_VALUES[key]
+
+
+@pytest.mark.parametrize(
+    "args",
+    [
+        ("--set", "auth.userInfoUri=null"),
+        ("--set", "auth.groups=null"),
+        ("--set", "auth.groups.prefix=null"),
+        ("--set", "auth.swaggerOauth=null"),
+        ("--set", "auth.swaggerOauth.scopes=null"),
+    ],
+)
+def test_auth_provider_null(args: tuple[str, ...]) -> None:
+    """Null maps and values leave tesk-api's defaults too.
+
+    Args:
+        args: More `helm template` arguments.
+    """
+    variables = env(render(*args))
+    for variable in PROVIDER.values():
+        assert variable not in variables
+
+
+@pytest.mark.parametrize(
+    ("args", "variable", "expected"),
+    [
+        (
+            ("--set", "auth.groups.adminSubgroup=0"),
+            "TESK_API_AUTHORISATION_ADMIN_SUBGROUP",
+            "0",
+        ),
+        (
+            ("--set", "auth.groups.parentGroup=false"),
+            "TESK_API_AUTHORISATION_PARENT_GROUP",
+            "false",
+        ),
+        (
+            ("--set", "auth.groups.suffix=123"),
+            "TESK_API_AUTHORISATION_GROUP_SUFFIX",
+            "123",
+        ),
+        (("--set", "auth.envSubgroup=0"), "TESK_API_AUTHORISATION_ENV_SUBGROUP", "0"),
+    ],
+)
+def test_auth_provider_scalars(
+    args: tuple[str, ...], variable: str, expected: str
+) -> None:
+    """Group settings that `--set` reads as numbers or booleans keep their text.
+
+    Args:
+        args: More `helm template` arguments.
+        variable: The variable of tesk-api.
+        expected: Its value.
+    """
+    manifests = render(*args)
+    assert env(manifests)[variable] == expected
+    # Rendered as strings, as Kubernetes requires
+    for var in container(manifests)["env"]:
+        if "value" in var:
+            assert isinstance(var["value"], str), var
+
+
+def test_auth_provider_numbers_values_file(tmp_path: Path) -> None:
+    """Whole numbers from a values file aren't rendered in scientific notation.
+
+    Helm reads numbers in values files as floats.
+
+    Args:
+        tmp_path: A directory for the values file.
+    """
+    path = tmp_path / "values.yaml"
+    path.write_text("auth:\n  envSubgroup: 12345678\n  groups:\n    adminSubgroup: 0\n")
+    variables = env(render("--values", str(path)))
+    assert variables["TESK_API_AUTHORISATION_ENV_SUBGROUP"] == "12345678"
+    assert variables["TESK_API_AUTHORISATION_ADMIN_SUBGROUP"] == "0"
+
+
+def test_auth_provider_number_too_large(tmp_path: Path) -> None:
+    """A whole number too large to be exact fails, instead of changing.
+
+    Args:
+        tmp_path: A directory for the values file.
+    """
+    path = tmp_path / "values.yaml"
+    path.write_text("auth:\n  envSubgroup: 12345678901234567890\n")
+    with pytest.raises(subprocess.CalledProcessError) as error:
+        render("--values", str(path))
+    assert "provider or group value under auth" in error.value.stderr
+    assert "too large" in error.value.stderr
+
+
+@pytest.mark.parametrize(
+    ("key", "variable"),
+    [
+        ("envSubgroup", "TESK_API_AUTHORISATION_ENV_SUBGROUP"),
+        ("envBaseGroup", "TESK_API_AUTHORISATION_BASE_GROUP"),
+    ],
+)
+@pytest.mark.parametrize("value", ["", "null"])
+def test_auth_groups_unset(key: str, variable: str, value: str) -> None:
+    """An empty or null environment group leaves tesk-api's default.
+
+    So that `auth.groups.parentGroup` and `auth.envSubgroup` make up the
+    environment group without `auth.envBaseGroup`, which replaces both.
+
+    Args:
+        key: The value under `auth`.
+        variable: The variable of tesk-api.
+        value: The empty value, as a `--set` value.
+    """
+    assert variable not in env(render("--set", f"auth.{key}={value}"))
+
+
+def test_auth_parent_group() -> None:
+    """Without `auth.envBaseGroup`, the parent group and subgroup are passed on."""
+    variables = env(
+        render(
+            "--set",
+            "auth.envBaseGroup=",
+            "--set",
+            "auth.groups.parentGroup=vo:tesk",
+            "--set",
+            "auth.envSubgroup=prod",
+        )
+    )
+    assert variables["TESK_API_AUTHORISATION_PARENT_GROUP"] == "vo:tesk"
+    assert variables["TESK_API_AUTHORISATION_ENV_SUBGROUP"] == "prod"
+    assert "TESK_API_AUTHORISATION_BASE_GROUP" not in variables
+
+
+@pytest.mark.parametrize(
+    ("args", "warned"),
+    [
+        (("--set", "auth.groups.parentGroup=vo:tesk"), True),
+        (("--set", "auth.envBaseGroup=", "--set", "auth.groups.parentGroup=v"), False),
+        (("--set", "auth.groups=null"), False),
+        ((), False),
+    ],
+)
+def test_notes_parent_group(
+    tmp_path: Path, args: tuple[str, ...], warned: bool
+) -> None:
+    """The notes warn if `auth.envBaseGroup` overrides the parent group.
+
+    Args:
+        tmp_path: A directory for a copy of the chart.
+        args: More `helm template` arguments.
+        warned: Whether the notes warn.
+    """
+    text = notes(*args, tmp_path=tmp_path)
+    assert ("WARNING: auth.groups.parentGroup is set" in text) == warned
+
+
+@pytest.mark.parametrize(
+    ("value", "warned"),
+    [
+        ("http://keycloak.auth.svc/realms/tes/protocol/openid-connect/userinfo", True),
+        ("https://login.example.org/userinfo", False),
+        ("", False),
+        ("null", False),
+    ],
+)
+def test_notes_user_info_http(tmp_path: Path, value: str, warned: bool) -> None:
+    """The notes warn if tokens go to the user info endpoint unencrypted.
+
+    Args:
+        tmp_path: A directory for a copy of the chart.
+        value: `auth.userInfoUri`, as a `--set` value.
+        warned: Whether the notes warn.
+    """
+    text = notes("--set", f"auth.userInfoUri={value}", tmp_path=tmp_path)
+    assert ("WARNING: auth.userInfoUri is an http:// URL" in text) == warned
+
+
+@pytest.mark.parametrize(
+    "args",
+    [
+        ("--set", "auth.userInfoUri=login.example.org/oidc/userinfo"),
+        ("--set", "auth.userInfoUri=ftp://login.example.org/userinfo"),
+        ("--set", "auth.swaggerOauth.authorizationEndpoint=/oidc/authorize"),
+        ("--set", "auth.swaggerOauth.tokenEndpoint=https://"),
+        ("--set-json", "auth.userInfoUri=[]"),
+        ("--set-json", "auth.groups=[]"),
+        ("--set-json", "auth.groups.prefix={}"),
+        ("--set-json", "auth.swaggerOauth=true"),
+        ("--set-json", 'auth.swaggerOauth.scopes=["openid"]'),
+    ],
+)
+def test_auth_provider_invalid(args: tuple[str, ...]) -> None:
+    """The schema rejects endpoints that aren't HTTP(S) URLs, and wrong types.
+
+    Args:
+        args: More `helm template` arguments.
+    """
+    with pytest.raises(subprocess.CalledProcessError) as error:
+        render(*args)
+    assert "values don't meet the specifications of the schema" in error.value.stderr
+
+
+def _yaml_block(path: Path, heading: str) -> dict[str, Any]:
+    """Get the first YAML code block below a heading of a Markdown file.
+
+    Args:
+        path: The Markdown file.
+        heading: The heading, with its `#` signs.
+
+    Returns:
+        The block, parsed.
+    """
+    text = path.read_text()
+    assert f"\n{heading}\n" in text, heading
+    section = text.split(f"\n{heading}\n", 1)[1]
+    match = re.search(r"```yaml\n(.*?)```", section, re.DOTALL)
+    assert match is not None, heading
+    block: dict[str, Any] = yaml.safe_load(match[1])
+    return block
+
+
+def test_auth_ls_login_example(tmp_path: Path) -> None:
+    """The LS Login example of the deployment guide renders as documented.
+
+    Its endpoints are those of LS Login's discovery document
+    (https://login.aai.lifescience-ri.eu/oidc/.well-known/openid-configuration).
+
+    Args:
+        tmp_path: A directory for the values file.
+    """
+    values = _yaml_block(
+        CHART.parents[1] / "docs" / "deployment.md", "### LS Login and other providers"
+    )
+    path = tmp_path / "values.yaml"
+    path.write_text(yaml.safe_dump(values))
+    variables = env(render("--values", str(path)))
+    login = "https://login.aai.lifescience-ri.eu/oidc"
+    assert variables["SPRING_PROFILES_ACTIVE"] == "auth"
+    assert variables["SECURITY_OAUTH2_RESOURCE_USER_INFO_URI"] == f"{login}/userinfo"
+    assert variables["TESK_API_AUTHORISATION_GROUPS_CLAIM"] == "eduperson_entitlement"
+    assert (
+        variables["TESK_API_AUTHORISATION_GROUP_PREFIX"]
+        == "urn:geant:lifescience-ri.eu:group:"
+    )
+    assert variables["TESK_API_AUTHORISATION_GROUP_SUFFIX"] == "#aai.lifescience-ri.eu"
+    assert (
+        variables["TESK_API_SWAGGER_OAUTH_AUTHORIZATION_ENDPOINT"]
+        == f"{login}/authorize"
+    )
+    assert variables["TESK_API_SWAGGER_OAUTH_TOKEN_ENDPOINT"] == f"{login}/token"
+
+
 def test_resources() -> None:
     """The API container's resources come from the values."""
     manifests = render(
@@ -2167,6 +2512,9 @@ def test_schema_permissive(values: dict[str, Any], tmp_path: Path) -> None:
         "tesk.swaggerUi.enable",
         "transfer.pvc",
         "auth.envSubGroup",
+        "auth.groups.delimiter",
+        "auth.swaggerOauth.implicit",
+        "auth.userInfoURI",
         "service.port",
         "ftp.hostIP",
         "ingress.tls",

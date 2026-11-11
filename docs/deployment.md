@@ -243,12 +243,72 @@ auth`, the API requires an OIDC access token (`Authorization: Bearer`) for
 every endpoint except `GET /service-info`, which stays public unless
 `auth.serviceInfoPublic` is `false` (tesk-api 1.2.0 or later), the API
 description (`GET /v2/api-docs`), and the [Swagger UI](#swagger-ui) if it is
-on. TESK works with any OIDC provider; authorisation follows the group model
-of LS Login (formerly ELIXIR AAI), configured with `auth.envBaseGroup` and
-`auth.envSubgroup`. See the [tesk-api section](tesk-api/index.md) and the
-[authentication and authorisation
-guide](https://github.com/elixir-cloud-aai/tesk-api/blob/master/auth.md) of
-tesk-api.
+on. tesk-api validates tokens at the user info endpoint of the OIDC provider
+(`auth.userInfoUri`) and authorises users by their groups in a claim of the
+user info, following a group model of nested groups (`auth.groups.*`,
+`auth.envBaseGroup`, `auth.envSubgroup`), or by a claim (see [Authorisation
+by a claim](#authorisation-by-a-claim)). Values left empty use tesk-api's
+defaults, which are those of ELIXIR AAI (`login.elixir-czech.org`, the
+provider before LS Login); for any other provider, set them as in [LS Login
+and other providers](#ls-login-and-other-providers). See the [tesk-api
+section](tesk-api/index.md), in particular [Access
+control](tesk-api/access-control.md), for the group model.
+
+### LS Login and other providers
+
+For LS Login, set the user info endpoint and the form of the group names
+that LS Login releases in the claim `eduperson_entitlement`:
+`urn:geant:lifescience-ri.eu:group:<group>#aai.lifescience-ri.eu`. Here,
+`<group>` is the short name of the virtual organisation, then the full name
+of the group in it, with `:` between the levels (e.g., `my-vo:tesk:my-team`).
+For the Swagger UI's login, also set its endpoints. All endpoints are in LS
+Login's [discovery
+document](https://login.aai.lifescience-ri.eu/oidc/.well-known/openid-configuration):
+
+```yaml
+auth:
+  mode: auth
+  userInfoUri: https://login.aai.lifescience-ri.eu/oidc/userinfo
+  groups:
+    claim: eduperson_entitlement
+    prefix: "urn:geant:lifescience-ri.eu:group:"
+    suffix: "#aai.lifescience-ri.eu"
+  # The environment group of this deployment, without prefix and suffix:
+  # its team groups are below it (e.g., my-vo:tesk:my-team), and its
+  # admins in my-vo:tesk:ADMIN
+  envBaseGroup: my-vo:tesk
+  swaggerOauth:
+    authorizationEndpoint: https://login.aai.lifescience-ri.eu/oidc/authorize
+    tokenEndpoint: https://login.aai.lifescience-ri.eu/oidc/token
+```
+
+Quote the prefix and the suffix, as YAML reads a value that starts with `#`
+as a comment. LS Login releases a group only to services that the group is
+assigned to, and only to clients with the scope `eduperson_entitlement`:
+check the claim in the user info of a test user. Assign the environment
+group itself (`my-vo:tesk`), its team groups and the `ADMIN` groups to the
+service's resource in Perun: users need the environment group in the claim
+and a team group below it to create and cancel tasks (see [Endpoint
+permissions](tesk-api/access-control.md#endpoint-permissions)). Give the
+group names as they appear in the claim, where LS Login URL-encodes them
+(e.g., `%20` for a space), as tesk-api compares them as plain text. For
+access without the group model, see [Authorisation by a
+claim](#authorisation-by-a-claim).
+
+`auth.envBaseGroup` is the full name of the environment group; if it is
+empty, tesk-api makes it up from `auth.groups.parentGroup` and
+`auth.envSubgroup` (`<parentGroup>:<envSubgroup>`); the notes of `helm
+install` warn if `auth.groups.parentGroup` is set while `auth.envBaseGroup`
+replaces it. `auth.groups.adminSubgroup` renames the admin subgroups
+(default `ADMIN`). The chart doesn't set tesk-api's delimiter of the group
+levels, as tesk-api recognises team groups by `:` whatever it is.
+
+The Swagger UI offers the scopes of `auth.swaggerOauth.scopes`, a
+comma-separated list of `<scope>:<description>`; by default, those of
+tesk-api: `openid`, the groups claim (`auth.groups.claim`), `profile` and
+`email`. The same settings work for other providers: their discovery
+document (`<issuer>/.well-known/openid-configuration`) has the endpoints, and
+their docs say how they name groups.
 
 ### Authorisation by a claim
 
@@ -337,7 +397,9 @@ can use `"true"` and `"false"`). It needs tesk-api 1.2.0 or later
 (`tesk.image.tag`); earlier versions ignore it and always serve the Swagger UI.
 Users log in from the Swagger UI with the OIDC client of
 `auth.clientId` (see [Authentication and
-authorisation](#authentication-and-authorisation)).
+authorisation](#authentication-and-authorisation)), at the provider's
+endpoints of `auth.swaggerOauth` (see [LS Login and other
+providers](#ls-login-and-other-providers); ELIXIR AAI's by default).
 
 ## Resources
 
