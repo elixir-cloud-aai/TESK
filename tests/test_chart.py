@@ -1102,6 +1102,22 @@ def test_service_info_version_number(tmp_path: Path) -> None:
     assert info["version"] == "20261110"
 
 
+def test_image_tag_number_too_large(tmp_path: Path) -> None:
+    """A numeric tag that a float can't hold exactly fails with its key.
+
+    Helm would otherwise render a rounded tag, for the image and the
+    version of the service info.
+
+    Args:
+        tmp_path: A directory for the values file.
+    """
+    path = tmp_path / "values.yaml"
+    path.write_text("tesk:\n  image:\n    tag: 12345678901234567890\n")
+    with pytest.raises(subprocess.CalledProcessError) as error:
+        render("--values", str(path))
+    assert "tesk.image.tag is a number too large" in error.value.stderr
+
+
 @pytest.mark.parametrize("character", ["\\u0081", "\\u009f", "\\ufffe"])
 def test_service_info_control_characters(character: str) -> None:
     """Characters that YAML doesn't allow, and JSON doesn't escape, fail.
@@ -1287,6 +1303,43 @@ def test_service_info_invalid_without_schema(value: str) -> None:
     with pytest.raises(subprocess.CalledProcessError) as error:
         render("--skip-schema-validation", "--set", f"serviceInfo.createdAt={value}")
     assert "serviceInfo.createdAt must be a date" in error.value.stderr
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "2021-02-30",
+        "2021-13-01",
+        "2021-2-30T12:00:00Z",
+        "2021-04-06T24:00:00Z",
+        "2021-04-06T12:60:00Z",
+        "2021-04-06T12:00:60Z",
+    ],
+)
+def test_service_info_impossible_dates(value: str) -> None:
+    """Dates and times that don't exist fail, though they look like timestamps.
+
+    SnakeYAML would read them as other dates (e.g., 2021-02-30 as
+    2021-03-02).
+
+    Args:
+        value: `serviceInfo.createdAt`.
+    """
+    with pytest.raises(subprocess.CalledProcessError) as error:
+        render("--set-string", f"serviceInfo.createdAt={value}")
+    assert "serviceInfo.createdAt must be a date" in error.value.stderr
+
+
+def test_service_info_existing_config_map_schema() -> None:
+    """With an existing ConfigMap, the other fields are still checked."""
+    with pytest.raises(subprocess.CalledProcessError) as error:
+        render(
+            "--set",
+            "serviceInfo.existingConfigMap=my-service-info",
+            "--set",
+            "serviceInfo.createdAt=today",
+        )
+    assert "values don't meet the specifications of the schema" in error.value.stderr
 
 
 @pytest.mark.parametrize(

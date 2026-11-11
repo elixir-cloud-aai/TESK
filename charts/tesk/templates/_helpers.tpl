@@ -75,7 +75,8 @@ false) or the chart's (`tesk.serviceInfoName`, rendered only then).
 The tag of the API's image (tesk-api): `tesk.image.tag`, or the chart's
 `appVersion` if it is unset or empty (not `default`, which would replace a
 tag of 0). Whole numbers, which Helm reads from values files as floats,
-are rendered as written (e.g., 20261110, not 2.026111e+07).
+are rendered as written (e.g., 20261110, not 2.026111e+07) up to 2^53, and
+fail above, where they would be rounded (as in `tesk.yamlText`).
 */}}
 {{- define "tesk.apiImageTag" -}}
 {{- $tag := dig "image" "tag" "" .Values.tesk -}}
@@ -83,6 +84,9 @@ are rendered as written (e.g., 20261110, not 2.026111e+07).
 {{- $tag = .Chart.AppVersion -}}
 {{- end -}}
 {{- if and (kindIs "float64" $tag) (eq (floor $tag) $tag) -}}
+{{- if not (and (lt $tag 9007199254740992.0) (gt $tag -9007199254740992.0)) -}}
+{{- fail "tesk.image.tag is a number too large to be exact: quote it in the values file or use --set-string" -}}
+{{- end -}}
 {{- printf "%.0f" $tag -}}
 {{- else -}}
 {{- toString $tag -}}
@@ -364,8 +368,23 @@ values.schema.json, which checks them first */ -}}
 {{- $timestamp := "^([0-9]{4}-[0-9]{2}-[0-9]{2}|[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}([Tt]|[ \t]+)[0-9]{1,2}:[0-9]{2}:[0-9]{2}(\\.[0-9]*)?([ \t]*(Z|[-+][0-9]{1,2}(:[0-9]{2})?))?)$" -}}
 {{- range $field := list "createdAt" "updatedAt" -}}
 {{- $value := index $info $field -}}
-{{- if and (include "tesk.isSet" $value) (not (regexMatch $timestamp (toString $value))) -}}
-{{- fail (printf "serviceInfo.%s must be a date (e.g., 2026-11-10) or a date and time (e.g., 2026-11-10T12:00:00Z), not %q" $field (toString $value)) -}}
+{{- if include "tesk.isSet" $value -}}
+{{- $text := toString $value -}}
+{{- /* Dates and times that don't exist (e.g., 2021-02-30, 24:00:00),
+which SnakeYAML would read as other ones, fail too: Go's parser rejects
+them, and `toDate` then gives the zero time. The date part has no colons,
+so the first match of the time pattern is the time */ -}}
+{{- $valid := regexMatch $timestamp $text -}}
+{{- if $valid -}}
+{{- $valid = not (toDate "2006-1-2" (regexFind "^[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}" $text)).IsZero -}}
+{{- end -}}
+{{- $time := regexFind "[0-9]{1,2}:[0-9]{2}:[0-9]{2}" $text -}}
+{{- if and $valid $time -}}
+{{- $valid = not (toDate "15:04:05" $time).IsZero -}}
+{{- end -}}
+{{- if not $valid -}}
+{{- fail (printf "serviceInfo.%s must be a date (e.g., 2026-11-10) or a date and time (e.g., 2026-11-10T12:00:00Z), not %q" $field $text) -}}
+{{- end -}}
 {{- end -}}
 {{- end -}}
 id: {{ include "tesk.yamlText" (dict "value" $info.id "key" "serviceInfo.id") }}

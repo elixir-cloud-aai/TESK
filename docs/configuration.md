@@ -148,7 +148,7 @@ API. The defaults describe no particular deployment, so set at least `id`,
 | `serviceInfo.updatedAt` | `""` | When the service was last updated, in the same form. |
 | `serviceInfo.environment` | `dev` | Environment of the service, e.g., `test`, `staging` or `prod`. |
 | `serviceInfo.storage` | `[ftp://ftp-private.ebi.ac.uk]` | Storage locations that tasks can use, e.g., `[s3://bucket]`. |
-| `serviceInfo.existingConfigMap` | `""` | Name of a ConfigMap of your own, in the release's namespace, with the key `service-info.yaml`, instead of the chart's; the fields above are then ignored. |
+| `serviceInfo.existingConfigMap` | `""` | Name of a ConfigMap of your own, in the release's namespace, with the key `service-info.yaml`, instead of the chart's; the fields above are then not used, but still checked against the schema. |
 
 Empty optional fields are left out of the service info; the required ones
 fail the installation if they are empty. The chart passes text on as text,

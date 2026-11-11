@@ -482,7 +482,7 @@
             "string",
             "null"
           ],
-          "description": "Name of a ConfigMap of your own with the key service-info.yaml, instead of the chart's; the other fields are then ignored"
+          "description": "Name of a ConfigMap of your own with the key service-info.yaml, instead of the chart's; the other fields are then not used, but still checked"
         },
         "id": {
           "$ref": "#/$defs/scalar",

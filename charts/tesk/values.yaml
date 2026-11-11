@@ -208,7 +208,7 @@ auth:
 serviceInfo:
   # Name of a ConfigMap of your own with the key `service-info.yaml`, in the
   # release's namespace, instead of the chart's; the other fields are then
-  # ignored
+  # not used, but still checked against the schema
   existingConfigMap: ""
   # Unique ID of this deployment, in reverse domain notation, e.g.,
   # org.example.tes (required). The notes remind you while it is this
