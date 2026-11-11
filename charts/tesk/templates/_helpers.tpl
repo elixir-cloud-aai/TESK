@@ -74,14 +74,19 @@ false) or the chart's (`tesk.serviceInfoName`, rendered only then).
 {{/*
 The tag of the API's image (tesk-api): `tesk.image.tag`, or the chart's
 `appVersion` if it is unset or empty (not `default`, which would replace a
-tag of 0).
+tag of 0). Whole numbers, which Helm reads from values files as floats,
+are rendered as written (e.g., 20261110, not 2.026111e+07).
 */}}
 {{- define "tesk.apiImageTag" -}}
 {{- $tag := dig "image" "tag" "" .Values.tesk -}}
 {{- if or (kindIs "invalid" $tag) (eq (toString $tag) "") -}}
 {{- $tag = .Chart.AppVersion -}}
 {{- end -}}
+{{- if and (kindIs "float64" $tag) (eq (floor $tag) $tag) -}}
+{{- printf "%.0f" $tag -}}
+{{- else -}}
 {{- toString $tag -}}
+{{- end -}}
 {{- end -}}
 
 {{- define "tesk.oauthClientName" -}}
@@ -363,22 +368,22 @@ values.schema.json, which checks them first */ -}}
 {{- fail (printf "serviceInfo.%s must be a date (e.g., 2026-11-10) or a date and time (e.g., 2026-11-10T12:00:00Z), not %q" $field (toString $value)) -}}
 {{- end -}}
 {{- end -}}
-id: {{ include "tesk.yamlText" $info.id }}
-name: {{ include "tesk.yamlText" $info.name }}
+id: {{ include "tesk.yamlText" (dict "value" $info.id "key" "serviceInfo.id") }}
+name: {{ include "tesk.yamlText" (dict "value" $info.name "key" "serviceInfo.name") }}
 type:
   group: "org.ga4gh"
   artifact: "TES"
   version: "1.0.0"
 {{- if include "tesk.isSet" $info.description }}
-description: {{ include "tesk.yamlText" $info.description }}
+description: {{ include "tesk.yamlText" (dict "value" $info.description "key" "serviceInfo.description") }}
 {{- end }}
 organization:
-  name: {{ include "tesk.yamlText" $organization.name }}
-  url: {{ include "tesk.yamlText" $organization.url }}
+  name: {{ include "tesk.yamlText" (dict "value" $organization.name "key" "serviceInfo.organization.name") }}
+  url: {{ include "tesk.yamlText" (dict "value" $organization.url "key" "serviceInfo.organization.url") }}
 {{- range $field := list "contactUrl" "documentationUrl" }}
 {{- $value := index $info . }}
 {{- if include "tesk.isSet" $value }}
-{{ $field }}: {{ include "tesk.yamlText" $value }}
+{{ $field }}: {{ include "tesk.yamlText" (dict "value" $value "key" (printf "serviceInfo.%s" $field)) }}
 {{- end }}
 {{- end }}
 {{- range $field := list "createdAt" "updatedAt" }}
@@ -388,13 +393,13 @@ organization:
 {{- end }}
 {{- end }}
 {{- if include "tesk.isSet" $info.environment }}
-environment: {{ include "tesk.yamlText" $info.environment }}
+environment: {{ include "tesk.yamlText" (dict "value" $info.environment "key" "serviceInfo.environment") }}
 {{- end }}
 version: {{ include "tesk.apiImageTag" . | toJson }}
 {{- with $info.storage }}
 storage:
 {{- range . }}
-- {{ include "tesk.yamlText" . }}
+- {{ include "tesk.yamlText" (dict "value" . "key" "serviceInfo.storage") }}
 {{- end }}
 {{- end }}
 {{- end -}}
@@ -403,18 +408,26 @@ storage:
 {{/*
 A value as a quoted YAML string (a JSON string, which YAML reads as a
 double-quoted scalar, with DEL and NEL escaped too, which JSON leaves as
-they are and YAML doesn't allow). Whole numbers, which Helm reads from
-values files as floats, are rendered as written (e.g., 12345678, not
-1.2345678e+07) up to 2^53, and fail above, where they would be rounded:
-quote them in the values file. Decimals lose trailing zeros (1.10 is 1.1).
+they are and Helm's YAML parser rejects). Other characters that YAML
+doesn't allow and JSON doesn't escape (the other C1 controls, U+FFFE and
+U+FFFF) fail with the value's key. Whole numbers, which Helm reads from values files as floats,
+are rendered as written (e.g., 12345678, not 1.2345678e+07) up to 2^53,
+and fail above, where they would be rounded: quote them in the values
+file. Decimals lose trailing zeros (1.10 is 1.1).
+
+Takes the value (`value`) and its key (`key`), for the errors.
 */}}
 {{- define "tesk.yamlText" -}}
-{{- $text := toString . -}}
-{{- if and (kindIs "float64" .) (eq (floor .) .) -}}
-{{- if not (and (lt . 9007199254740992.0) (gt . -9007199254740992.0)) -}}
-{{- fail "a value under serviceInfo is a number too large to be exact: quote it in the values file or use --set-string" -}}
+{{- $value := .value -}}
+{{- $text := toString $value -}}
+{{- if and (kindIs "float64" $value) (eq (floor $value) $value) -}}
+{{- if not (and (lt $value 9007199254740992.0) (gt $value -9007199254740992.0)) -}}
+{{- fail (printf "%s is a number too large to be exact: quote it in the values file or use --set-string" .key) -}}
 {{- end -}}
-{{- $text = printf "%.0f" . -}}
+{{- $text = printf "%.0f" $value -}}
+{{- end -}}
+{{- if regexMatch "[\u0080-\u0084\u0086-\u009f\ufffe\uffff]" $text -}}
+{{- fail (printf "%s has a control character that YAML doesn't allow (U+0080 to U+009F but U+0085, U+FFFE or U+FFFF)" .key) -}}
 {{- end -}}
 {{- toJson $text | replace "\u007f" "\\u007f" | replace "\u0085" "\\u0085" -}}
 {{- end -}}

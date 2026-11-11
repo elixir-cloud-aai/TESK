@@ -1087,6 +1087,33 @@ def test_service_info_version(tag: str) -> None:
     assert yaml.safe_load(config["data"]["service-info.yaml"])["version"] == tag
 
 
+def test_service_info_version_number(tmp_path: Path) -> None:
+    """A numeric tag from a values file is the image's tag and version as written.
+
+    Args:
+        tmp_path: A directory for the values file.
+    """
+    path = tmp_path / "values.yaml"
+    path.write_text("tesk:\n  image:\n    tag: 20261110\n")
+    manifests = render("--values", str(path))
+    assert container(manifests)["image"].endswith(":20261110")
+    config = get(manifests, "ConfigMap", "tesk-service-info")
+    info = yaml.safe_load(config["data"]["service-info.yaml"])
+    assert info["version"] == "20261110"
+
+
+@pytest.mark.parametrize("character", ["\\u0081", "\\u009f", "\\ufffe"])
+def test_service_info_control_characters(character: str) -> None:
+    """Characters that YAML doesn't allow, and JSON doesn't escape, fail.
+
+    Args:
+        character: The character, as a JSON escape.
+    """
+    with pytest.raises(subprocess.CalledProcessError) as error:
+        render("--set-json", f'serviceInfo.description="a{character}b"')
+    assert "serviceInfo.description has a control character" in error.value.stderr
+
+
 def test_service_info_values(tmp_path: Path) -> None:
     """All fields of the service info come from the values.
 
@@ -1200,7 +1227,7 @@ def test_service_info_numbers_values_file(tmp_path: Path) -> None:
     path.write_text("serviceInfo:\n  id: 12345678901234567890\n")
     with pytest.raises(subprocess.CalledProcessError) as error:
         render("--values", str(path))
-    assert "a value under serviceInfo is a number too large" in error.value.stderr
+    assert "serviceInfo.id is a number too large" in error.value.stderr
 
 
 @pytest.mark.parametrize(
