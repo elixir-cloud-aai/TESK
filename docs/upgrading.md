@@ -489,6 +489,27 @@ The new value `auth.serviceInfoPublic` (default `true`) controls whether
 The default keeps the endpoint public; set it to `false` to require a
 token.
 
+### OIDC provider and group names
+
+The new values `auth.userInfoUri`, `auth.groups.*` (`claim`, `prefix`,
+`suffix`, `parentGroup`, `adminSubgroup`) and `auth.swaggerOauth.*`
+(`authorizationEndpoint`, `tokenEndpoint`, `scopes`) set the OIDC provider
+and the names of its groups, e.g., for LS Login (see [LS Login and other
+providers](deployment.md#ls-login-and-other-providers)). They are empty by
+default, which leaves tesk-api's defaults (ELIXIR AAI), as before. Also:
+
+- `auth.envBaseGroup` and `auth.envSubgroup` are no longer passed on when
+  they are empty or null, so that tesk-api's defaults apply (before, they
+  were passed on as empty text). Their defaults are unchanged.
+  `auth.envBaseGroup` replaces `auth.groups.parentGroup` and
+  `auth.envSubgroup` in tesk-api, as before: to make up the environment
+  group from those two, set `auth.envBaseGroup: ""`.
+- The chart no longer sets the scopes of the Swagger UI itself (it set
+  tesk-api's default scopes, in a variable that differed from tesk-api's
+  documented one, `TESK_API_SWAGGER_OAUTH_SCOPES`): unless
+  `auth.swaggerOauth.scopes` is set, tesk-api's default scopes apply, which
+  are the same, and follow `auth.groups.claim`.
+
 ### Authorisation by a claim
 
 The new values `auth.claim.enabled`, `auth.claim.name` and

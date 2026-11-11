@@ -18,11 +18,14 @@ on:
 permissions:
   contents: read
 
-# Cancel superseded runs of a pull request; runs for pushes get their own
-# group, so that queued runs for successive pushes are not dropped. Runs for
-# edits that leave the title unchanged (e.g. of the description, also by
-# bots) get a group of their own, so that they don't cancel a run for new
-# commits
+# Only a new head commit of a pull request cancels its runs in progress
+# (action `synchronize`, first attempt); runs for other actions and reruns
+# wait, so that a run on the same commit never leaves a cancelled, failed
+# `CI passed` (see "Cancelled runs" in `actions/gate/README.md` of
+# `elixir-cloud-aai/.github`). Runs for pushes get their own group, so that
+# none is dropped. Runs for edits that leave the title unchanged (e.g. of
+# the description, also by bots) share a group of their own, so that they
+# don't wait for the run for the pull request's commit
 concurrency:
   group: >-
     ${{ github.workflow }}-${{
@@ -30,7 +33,10 @@ concurrency:
       github.event.action == 'edited' && !github.event.changes.title &&
         format('{0}-edited', github.ref) ||
       github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  cancel-in-progress: >-
+    ${{ github.event_name == 'pull_request'
+    && github.event.action == 'synchronize'
+    && github.run_attempt == 1 }}
 
 jobs:
 

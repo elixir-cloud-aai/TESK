@@ -341,6 +341,23 @@ WARNING: tesk.filerHttpTimeout is set, but {{ join " and " $oldImages }} {{ tern
 v0.10.6 or older, which ignores it: HTTP(S) requests of the filer have no
 timeout, as before. Use images newer than v0.10.6.
 {{- end }}
+{{- /* auth.envBaseGroup replaces the parent group and the subgroup in
+tesk-api */ -}}
+{{- if and (include "tesk.isSet" (dig "groups" "parentGroup" "" .Values.auth)) (include "tesk.isSet" .Values.auth.envBaseGroup) }}
+
+WARNING: auth.groups.parentGroup is set, but tesk-api ignores it, as
+auth.envBaseGroup is set too, which replaces it and auth.envSubgroup. Set
+auth.envBaseGroup to the full name of the environment group, or set it to
+"" to use auth.groups.parentGroup and auth.envSubgroup; see
+https://tesk.readthedocs.io/en/latest/deployment/#ls-login-and-other-providers
+{{- end }}
+{{- /* tesk-api sends every request's token to the user info endpoint */ -}}
+{{- if hasPrefix "http://" (toString (default "" .Values.auth.userInfoUri)) }}
+
+WARNING: auth.userInfoUri is an http:// URL: tesk-api sends the access token
+of every request to it unencrypted. Use https://, unless the endpoint is
+reached only within a trusted network (e.g., a provider in the cluster).
+{{- end }}
 {{- end -}}
 
 {{/*
@@ -492,14 +509,15 @@ A secret value as a quoted YAML string. Helm parses numbers in values
 files as floats, which Go renders in scientific notation from 1e21 (and
 rounds above 2^53); whole numbers up to 2^53 are rendered as written, and
 larger ones fail: quote them in the values file (e.g., `"12345678901234567890"`)
-or set them with `--set-string`.
+or set them with `--set-string`. Also used for the provider and group values
+under `auth`, which tesk-api compares as text.
 */}}
 {{- define "tesk.secretValue" -}}
 {{- if and (kindIs "float64" .) (eq (floor .) .) -}}
 {{- if and (lt . 9007199254740992.0) (gt . -9007199254740992.0) -}}
 {{- printf "%.0f" . | quote -}}
 {{- else -}}
-{{- fail "a secret value is a number too large to be exact: quote it in the values file or use --set-string" -}}
+{{- fail "a value (a secret, or a provider or group value under auth) is a number too large to be exact: quote it in the values file or use --set-string" -}}
 {{- end -}}
 {{- else -}}
 {{- quote . -}}

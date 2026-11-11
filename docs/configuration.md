@@ -113,8 +113,14 @@ requests to a pod that isn't ready.
 | Value | Default | Description |
 | --- | --- | --- |
 | `auth.mode` | `noauth` | `auth` requires OIDC access tokens (see [Authentication and authorisation](deployment.md#authentication-and-authorisation)); `noauth` leaves all endpoints open. |
-| `auth.envBaseGroup` | `ECP_CLN` | Base group of the LS Login (ELIXIR AAI) group model that grants access. |
-| `auth.envSubgroup` | `CSC` | Subgroup of the base group for this deployment. |
+| `auth.userInfoUri` | `""` | User info endpoint of the OIDC provider, at which tesk-api validates tokens and reads the groups or the claim (an HTTP(S) URL), e.g., `https://login.aai.lifescience-ri.eu/oidc/userinfo` for LS Login (see [LS Login and other providers](deployment.md#ls-login-and-other-providers)). Empty uses tesk-api's default, ELIXIR AAI's `https://login.elixir-czech.org/oidc/userinfo`. tesk-api sends every request's token to it: the notes warn about `http://` URLs. |
+| `auth.groups.claim` | `""` | Claim of the user info with the user's groups; empty uses tesk-api's default, `eduperson_entitlement`. The default scopes of the Swagger UI (`auth.swaggerOauth.scopes`) follow it. |
+| `auth.groups.prefix` | `""` | Text before the group names in the claim, e.g., `urn:geant:lifescience-ri.eu:group:` for LS Login; empty uses tesk-api's default, ELIXIR AAI's `urn:geant:elixir-europe.org:group:elixir:`. |
+| `auth.groups.suffix` | `""` | Text after the group names in the claim, e.g., `#aai.lifescience-ri.eu` for LS Login (quote it in YAML); empty uses tesk-api's default, ELIXIR AAI's `#perun.elixir-czech.cz`. |
+| `auth.groups.parentGroup` | `""` | Parent group of the environment group, without prefix and suffix; only used if `auth.envBaseGroup` is empty. Empty uses tesk-api's default, `GA4GH:GA4GH-CAP`. |
+| `auth.groups.adminSubgroup` | `""` | Name of the admins' subgroups, below the environment group (super admins) and below each team group (team admins); empty uses tesk-api's default, `ADMIN`. |
+| `auth.envBaseGroup` | `ECP_CLN` | Full name of the environment group of this deployment, without prefix and suffix, below which the team groups are; replaces `auth.groups.parentGroup` and `auth.envSubgroup`. Empty lets tesk-api make it up as `<auth.groups.parentGroup>:<auth.envSubgroup>`. |
+| `auth.envSubgroup` | `CSC` | Name of the environment group below `auth.groups.parentGroup`; only used if `auth.envBaseGroup` is empty. Empty uses tesk-api's default, `EBI`. |
 | `auth.serviceInfoPublic` | `true` | With `auth.mode: auth`: `true` lets `GET /service-info` answer without a token, `false` requires a valid token for it. Needs tesk-api 1.2.0 or later; earlier versions ignore it and keep the endpoint public. No effect with `noauth`. |
 | `auth.legacyUserLabels` | `false` | With `auth.mode: auth`: `true` also matches tasks created by tesk-api before 1.2.0 to their creators, by the creator label of those versions; for a transition after upgrading to tesk-api 1.2.0 (see [Tasks created before tesk-api 1.2.0](deployment.md#tasks-created-before-tesk-api-120)). Needs tesk-api 1.2.0 or later; no effect with `noauth`. |
 | `auth.claim.enabled` | `false` | With `auth.mode: auth`: `true` authorises users without groups, by a claim of the user info (see [Authorisation by a claim](deployment.md#authorisation-by-a-claim)). Needs `auth.claim.name` and `auth.claim.values`, and tesk-api 1.2.0 or later; ignored with `auth.mode: noauth`. |
@@ -122,6 +128,16 @@ requests to a pod that isn't ready.
 | `auth.claim.values` | `[]` | Values of the claim, one of which a user needs (compared exactly); non-blank, without commas. |
 | `auth.clientId` | none | ID of the OIDC client of the Swagger UI (with `auth.mode: auth`; put it into `secrets.yaml`). |
 | `auth.clientSecret` | none | Deprecated: the Swagger UI is a public client, which needs no secret, and tesk-api 1.2.0 and later ignore it; register its client as a public client and leave this unset (see [Upgrading](upgrading.md#swagger-ui-client-secret-deprecated)). |
+| `auth.swaggerOauth.authorizationEndpoint` | `""` | Authorisation endpoint of the OIDC provider for the Swagger UI's login (an HTTP(S) URL); empty uses tesk-api's default, ELIXIR AAI's. |
+| `auth.swaggerOauth.tokenEndpoint` | `""` | Token endpoint of the provider for the Swagger UI (an HTTP(S) URL), used only with the authorisation code grant; empty uses tesk-api's default, ELIXIR AAI's. |
+| `auth.swaggerOauth.scopes` | `""` | Scopes that the Swagger UI offers, comma-separated, each as `<scope>:<description>`; empty uses tesk-api's default: `openid`, the groups claim, `profile` and `email`. |
+
+The values of the provider and the group model (`auth.userInfoUri`,
+`auth.groups.*`, `auth.envBaseGroup`, `auth.envSubgroup`,
+`auth.swaggerOauth.*`) are passed on to tesk-api as they are, also with
+`auth.mode: noauth` (where tesk-api doesn't use them), and only if they are
+set: empty or null values leave tesk-api's defaults (see [Access
+control](tesk-api/access-control.md#configuration) of tesk-api).
 
 ### Service info (`serviceInfo`)
 
