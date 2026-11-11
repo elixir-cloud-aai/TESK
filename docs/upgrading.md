@@ -436,6 +436,51 @@ too:
   killed (OOM), and its CPU is throttled. Tasks that relied on using more
   than they requested must request more.
 
+### Service info from values
+
+The service info comes from the values under `serviceInfo` now, so that it
+can be set when installing a packaged chart (see [Service
+info](configuration.md#service-info-serviceinfo)). The file
+`charts/tesk/service-info/service-info.yaml` is gone, and the chart no
+longer reads it. If you edited that file, move its fields into your values
+file:
+
+```yaml
+serviceInfo:
+  id: org.example.tes
+  name: TESK
+  description: TES of Example
+  organization:
+    name: Example
+    url: https://example.org/
+  contactUrl: mailto:tes@example.org
+  documentationUrl: https://example.org/tes/
+  createdAt: "2026-11-10"
+  environment: prod
+  storage:
+    - s3://example-tes
+```
+
+To keep managing the file yourself instead, create a ConfigMap from it
+(`kubectl create configmap my-service-info -n tesk
+--from-file=service-info.yaml`) and set `serviceInfo.existingConfigMap:
+my-service-info`.
+
+The defaults are those of the old file, except for these fields:
+
+- `contactUrl` and `documentationUrl` point to this repository's issues
+  and to these docs, not to the former repository.
+- The chart now sets `type.version` to `1.0.0` (the TES version that
+  tesk-api implements; was `1.0`) and `version` to the tag of tesk-api's
+  image (`tesk.image.tag`, by default the chart's `appVersion`; was `1.0`).
+  Values can't override either.
+
+All other defaults are unchanged, including `id`, `organization` (EMBL-EBI),
+`environment: dev` and `storage`: a release installed without your own
+`serviceInfo` still describes no particular deployment. The notes of `helm
+install` remind you to describe yours while `serviceInfo.id` is the default. A change of the service info now restarts
+the API's pod, so that it takes effect at once.
+
 ### Public service info
 
 The new value `auth.serviceInfoPublic` (default `true`) controls whether

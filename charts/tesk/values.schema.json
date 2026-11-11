@@ -47,6 +47,14 @@
     },
     "switch": {
       "type": "boolean"
+    },
+    "timestamp": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^([0-9]{4}-[0-9]{2}-[0-9]{2}|[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}([Tt]|[ \\t]+)[0-9]{1,2}:[0-9]{2}:[0-9]{2}(\\.[0-9]*)?([ \\t]*(Z|[-+][0-9]{1,2}(:[0-9]{2})?))?)?$",
+      "$comment": "A YAML 1.1 timestamp, as tesk-api's SnakeYAML resolves it (two-digit month and day without a time), or empty; the same pattern as in tesk.serviceInfo (templates/_helpers.tpl)"
     }
   },
   "properties": {
@@ -531,6 +539,83 @@
         }
       },
       "additionalProperties": false
+    },
+    "serviceInfo": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "Service info, the answer of GET /service-info (GA4GH service-info specification); type and version are set by the chart",
+      "additionalProperties": false,
+      "properties": {
+        "existingConfigMap": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Name of a ConfigMap of your own with the key service-info.yaml, instead of the chart's; the other fields are then not used, but still checked"
+        },
+        "id": {
+          "$ref": "#/$defs/scalar",
+          "description": "Unique ID of the deployment, in reverse domain notation (required)"
+        },
+        "name": {
+          "$ref": "#/$defs/scalar",
+          "description": "Name of the service (required)"
+        },
+        "description": {
+          "$ref": "#/$defs/scalar",
+          "description": "Description of the service"
+        },
+        "organization": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "description": "The organisation that runs the service",
+          "additionalProperties": false,
+          "properties": {
+            "name": {
+              "$ref": "#/$defs/scalar",
+              "description": "Name of the organisation (required)"
+            },
+            "url": {
+              "$ref": "#/$defs/scalar",
+              "description": "URL of the organisation (required)"
+            }
+          }
+        },
+        "contactUrl": {
+          "$ref": "#/$defs/scalar",
+          "description": "Where users get support, e.g., a mailto: URL"
+        },
+        "documentationUrl": {
+          "$ref": "#/$defs/scalar",
+          "description": "Documentation for users of the service"
+        },
+        "createdAt": {
+          "$ref": "#/$defs/timestamp",
+          "description": "When the service was created: a date (2026-11-10) or a date and time (2026-11-10T12:00:00Z)"
+        },
+        "updatedAt": {
+          "$ref": "#/$defs/timestamp",
+          "description": "When the service was last updated: a date or a date and time"
+        },
+        "environment": {
+          "$ref": "#/$defs/scalar",
+          "description": "Environment of the service, e.g., test or prod"
+        },
+        "storage": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "description": "Storage locations that tasks can use, e.g., s3://bucket"
+        }
+      }
     },
     "service": {
       "type": "object",

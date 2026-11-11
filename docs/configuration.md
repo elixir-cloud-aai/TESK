@@ -139,6 +139,62 @@ The values of the provider and the group model (`auth.userInfoUri`,
 set: empty or null values leave tesk-api's defaults (see [Access
 control](tesk-api/access-control.md#configuration) of tesk-api).
 
+### Service info (`serviceInfo`)
+
+`GET /service-info` answers with the service info of the deployment, in
+the format of the [GA4GH service-info
+specification](https://github.com/ga4gh-discovery/ga4gh-service-info),
+which registries and clients read to find out what the service is and who
+runs it. The chart renders it from these values into a ConfigMap (see
+[Names of the objects](#names-of-the-objects)), which it mounts into the
+API. The defaults describe no particular deployment, so set at least `id`,
+`organization`, `contactUrl` and `environment` for yours; the notes of
+`helm install` remind you while `id` is the default.
+
+| Value | Default | Description |
+| --- | --- | --- |
+| `serviceInfo.id` | `uk.ac.ebi.tsc.tesk` | Unique ID of the deployment, in reverse domain notation, e.g., `org.example.tes`. Required. |
+| `serviceInfo.name` | `TESK` | Name of the service. Required. |
+| `serviceInfo.description` | `GA4GH TES Server implementation for Kubernetes` | Description of the service. |
+| `serviceInfo.organization.name` | `EMBL-EBI` | Name of the organisation that runs the service. Required. |
+| `serviceInfo.organization.url` | `https://www.ebi.ac.uk/` | URL of the organisation. Required. |
+| `serviceInfo.contactUrl` | `https://github.com/elixir-cloud-aai/TESK/issues` | Where users get support, e.g., `mailto:tes@example.org`. |
+| `serviceInfo.documentationUrl` | `https://tesk.readthedocs.io/` | Documentation for users of the service. |
+| `serviceInfo.createdAt` | `"2021-04-06"` | When the service was created: a date (`2026-11-10`, with two-digit month and day) or a date and time (`2026-11-10T12:00:00Z`), as YAML timestamps; other text fails the installation, as tesk-api couldn't read it. |
+| `serviceInfo.updatedAt` | `""` | When the service was last updated, in the same form. |
+| `serviceInfo.environment` | `dev` | Environment of the service, e.g., `test`, `staging` or `prod`. |
+| `serviceInfo.storage` | `[ftp://ftp-private.ebi.ac.uk]` | Storage locations that tasks can use, e.g., `[s3://bucket]`. |
+| `serviceInfo.existingConfigMap` | `""` | Name of a ConfigMap of your own, in the release's namespace, with the key `service-info.yaml`, instead of the chart's; the fields above are then not used, but still checked against the schema. |
+
+Empty optional fields are left out of the service info; the required ones
+fail the installation if they are empty. The chart passes text on as text,
+but YAML reads unquoted numbers in values files as numbers first: quote
+text that looks like a number (e.g., `id: "1.10"`, which would otherwise
+become `1.1`). The chart sets two fields itself:
+`type` (`org.ga4gh`, `TES`, version `1.0.0`, which tesk-api implements) and
+`version` (the tag of tesk-api's image, `tesk.image.tag`, by default the
+chart's `appVersion`). A change of the service info restarts the API's pod
+(tesk-api reads the file at startup, and then only every hour); with
+`serviceInfo.existingConfigMap`, changes of your ConfigMap take effect within
+an hour, or when you restart the pod. Service info is public by default,
+also with `auth.mode: auth` (see `auth.serviceInfoPublic`).
+
+```yaml
+serviceInfo:
+  id: org.example.tes
+  name: Example TES
+  description: TES of Example for the members of its research groups
+  organization:
+    name: Example
+    url: https://example.org/
+  contactUrl: mailto:tes@example.org
+  documentationUrl: https://example.org/tes/
+  createdAt: "2026-11-10"
+  environment: prod
+  storage:
+    - s3://example-tes
+```
+
 ### Service (`service`)
 
 | Value | Default | Description |
@@ -195,7 +251,7 @@ and a `nameOverride` with capital letters, fail the installation unless
 | --- | --- | --- | --- |
 | Deployment and Service of the API | `<prefix>-api` | `tesk-api` | `prod-tesk-api` |
 | ServiceAccount, Role and RoleBinding of the API and the taskmasters | `<prefix>-taskmaster` | `tesk-taskmaster` | `prod-tesk-taskmaster` |
-| ConfigMap with the service info | `<prefix>-service-info` | `tesk-service-info` | `prod-tesk-service-info` |
+| ConfigMap with the service info (none with `serviceInfo.existingConfigMap`) | `<prefix>-service-info` | `tesk-service-info` | `prod-tesk-service-info` |
 | ConfigMap with the executors' security context (`tesk.executor.securityContext`) | `<prefix>-executor` | `tesk-executor` | `prod-tesk-executor` |
 | Secret with the OIDC client (`auth.mode: auth`) | `<prefix>-oauth-client` | `tesk-oauth-client` | `prod-tesk-oauth-client` |
 | Secret with the FTP credentials | `ftp.classicFtpSecret`, or `<prefix>-ftp` if it is null (none if it is empty or `false`) | `tesk-ftp` | `prod-tesk-ftp` |
@@ -233,16 +289,6 @@ of Helm charts (`app.kubernetes.io/version`, `app.kubernetes.io/managed-by`,
     Install releases that must be kept apart in namespaces of their own.
 
 ## Files
-
-### Service info
-
-The response of `GET /service-info` comes from
-`charts/tesk/service-info/service-info.yaml`, mounted into the API. Edit it
-for your deployment before installing: at least `id` (unique, in reverse
-domain notation), `name`, `organization`, `contactUrl` and `environment`.
-See the [TES
-specification](https://github.com/ga4gh/task-execution-schemas) for its
-fields.
 
 ### Secrets
 

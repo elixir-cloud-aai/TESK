@@ -1,8 +1,13 @@
+{{- /* The service info from `serviceInfo`, unless an existing ConfigMap
+replaces it (`serviceInfo.existingConfigMap`) */ -}}
+{{- with include "tesk.serviceInfo" . }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ include "tesk.serviceInfoName" . }}
+  name: {{ include "tesk.serviceInfoName" $ }}
   labels:
-    {{- include "tesk.labels" . | nindent 4 }}
+    {{- include "tesk.labels" $ | nindent 4 }}
 data:
-{{ (.Files.Glob "service-info/*").AsConfig | indent 2 }}
+  service-info.yaml: |
+    {{- . | nindent 4 }}
+{{- end }}

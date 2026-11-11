@@ -57,6 +57,42 @@ secret) from its environment.
 {{- include "tesk.fullname" . }}-service-info
 {{- end -}}
 
+{{/*
+The ConfigMap with the service info that the API mounts: the operator's
+(`serviceInfo.existingConfigMap`, if set, also if YAML reads it as 0 or
+false) or the chart's (`tesk.serviceInfoName`, rendered only then).
+*/}}
+{{- define "tesk.serviceInfoConfigMapName" -}}
+{{- $existing := (default dict .Values.serviceInfo).existingConfigMap -}}
+{{- if include "tesk.isSet" $existing -}}
+{{- toString $existing -}}
+{{- else -}}
+{{- include "tesk.serviceInfoName" . -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+The tag of the API's image (tesk-api): `tesk.image.tag`, or the chart's
+`appVersion` if it is unset or empty (not `default`, which would replace a
+tag of 0). Whole numbers, which Helm reads from values files as floats,
+are rendered as written (e.g., 20261110, not 2.026111e+07) up to 2^53, and
+fail above, where they would be rounded (as in `tesk.yamlText`).
+*/}}
+{{- define "tesk.apiImageTag" -}}
+{{- $tag := dig "image" "tag" "" .Values.tesk -}}
+{{- if or (kindIs "invalid" $tag) (eq (toString $tag) "") -}}
+{{- $tag = .Chart.AppVersion -}}
+{{- end -}}
+{{- if and (kindIs "float64" $tag) (eq (floor $tag) $tag) -}}
+{{- if not (and (lt $tag 9007199254740992.0) (gt $tag -9007199254740992.0)) -}}
+{{- fail "tesk.image.tag is a number too large to be exact: quote it in the values file or use --set-string" -}}
+{{- end -}}
+{{- printf "%.0f" $tag -}}
+{{- else -}}
+{{- toString $tag -}}
+{{- end -}}
+{{- end -}}
+
 {{- define "tesk.oauthClientName" -}}
 {{- include "tesk.fullname" . }}-oauth-client
 {{- end -}}
@@ -226,6 +262,14 @@ The notes that `helm install` and `helm upgrade` print (`NOTES.txt`).
 {{- define "tesk.notes" -}}
 TESK is deployed as release {{ .Release.Name }} in namespace {{ .Release.Namespace }}.
 See https://tesk.readthedocs.io/en/latest/deployment/ to check the installation.
+{{- $serviceInfo := default dict .Values.serviceInfo -}}
+{{- if and (not (include "tesk.isSet" $serviceInfo.existingConfigMap)) (eq (toString $serviceInfo.id) "uk.ac.ebi.tsc.tesk") }}
+
+NOTE: serviceInfo.id is the chart's default, so GET /service-info describes
+no particular deployment. Set serviceInfo.id, serviceInfo.organization,
+serviceInfo.contactUrl and serviceInfo.environment for yours; see
+https://tesk.readthedocs.io/en/latest/configuration/#service-info-serviceinfo
+{{- end }}
 {{- /* Any user name, also one that YAML reads as 0 or false */ -}}
 {{- $username := .Values.ftp.username -}}
 {{- $hasUsername := include "tesk.isSet" $username -}}
@@ -314,6 +358,114 @@ WARNING: auth.userInfoUri is an http:// URL: tesk-api sends the access token
 of every request to it unencrypted. Use https://, unless the endpoint is
 reached only within a trusted network (e.g., a provider in the cluster).
 {{- end }}
+{{- end -}}
+
+{{/*
+The service info (`serviceInfo`) as the YAML file that tesk-api reads
+(`TesServiceInfo`), or nothing with `serviceInfo.existingConfigMap`. Text
+fields are quoted (`tesk.yamlText`), so that tesk-api reads them as
+text whatever they look like; `createdAt` and `updatedAt` are YAML
+timestamps, unquoted, as tesk-api reads them as dates. Empty optional
+fields are left out; the fields that the GA4GH service-info specification
+requires fail if empty. `type` (TES 1.0.0, which tesk-api implements) and
+`version` (the tag of tesk-api's image) are set here.
+*/}}
+{{- define "tesk.serviceInfo" -}}
+{{- $info := default dict .Values.serviceInfo -}}
+{{- if not (include "tesk.isSet" $info.existingConfigMap) -}}
+{{- $organization := default dict $info.organization -}}
+{{- range $field, $value := dict "id" $info.id "name" $info.name "organization.name" $organization.name "organization.url" $organization.url -}}
+{{- if not (include "tesk.isSet" $value) -}}
+{{- fail (printf "serviceInfo.%s must be set: the GA4GH service-info specification requires it" $field) -}}
+{{- end -}}
+{{- end -}}
+{{- /* YAML 1.1 timestamps, as SnakeYAML resolves them (two-digit month
+and day without a time); the same pattern as `$defs/timestamp` in
+values.schema.json, which checks them first */ -}}
+{{- $timestamp := "^([0-9]{4}-[0-9]{2}-[0-9]{2}|[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}([Tt]|[ \t]+)[0-9]{1,2}:[0-9]{2}:[0-9]{2}(\\.[0-9]*)?([ \t]*(Z|[-+][0-9]{1,2}(:[0-9]{2})?))?)$" -}}
+{{- range $field := list "createdAt" "updatedAt" -}}
+{{- $value := index $info $field -}}
+{{- if include "tesk.isSet" $value -}}
+{{- $text := toString $value -}}
+{{- /* Dates and times that don't exist (e.g., 2021-02-30, 24:00:00),
+which SnakeYAML would read as other ones, fail too: Go's parser rejects
+them, and `toDate` then gives the zero time. The date part has no colons,
+so the first match of the time pattern is the time */ -}}
+{{- $valid := regexMatch $timestamp $text -}}
+{{- if $valid -}}
+{{- $valid = not (toDate "2006-1-2" (regexFind "^[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}" $text)).IsZero -}}
+{{- end -}}
+{{- $time := regexFind "[0-9]{1,2}:[0-9]{2}:[0-9]{2}" $text -}}
+{{- if and $valid $time -}}
+{{- $valid = not (toDate "15:04:05" $time).IsZero -}}
+{{- end -}}
+{{- if not $valid -}}
+{{- fail (printf "serviceInfo.%s must be a date (e.g., 2026-11-10) or a date and time (e.g., 2026-11-10T12:00:00Z), not %q" $field $text) -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+id: {{ include "tesk.yamlText" (dict "value" $info.id "key" "serviceInfo.id") }}
+name: {{ include "tesk.yamlText" (dict "value" $info.name "key" "serviceInfo.name") }}
+type:
+  group: "org.ga4gh"
+  artifact: "TES"
+  version: "1.0.0"
+{{- if include "tesk.isSet" $info.description }}
+description: {{ include "tesk.yamlText" (dict "value" $info.description "key" "serviceInfo.description") }}
+{{- end }}
+organization:
+  name: {{ include "tesk.yamlText" (dict "value" $organization.name "key" "serviceInfo.organization.name") }}
+  url: {{ include "tesk.yamlText" (dict "value" $organization.url "key" "serviceInfo.organization.url") }}
+{{- range $field := list "contactUrl" "documentationUrl" }}
+{{- $value := index $info . }}
+{{- if include "tesk.isSet" $value }}
+{{ $field }}: {{ include "tesk.yamlText" (dict "value" $value "key" (printf "serviceInfo.%s" $field)) }}
+{{- end }}
+{{- end }}
+{{- range $field := list "createdAt" "updatedAt" }}
+{{- $value := index $info . }}
+{{- if include "tesk.isSet" $value }}
+{{ $field }}: {{ toString $value }}
+{{- end }}
+{{- end }}
+{{- if include "tesk.isSet" $info.environment }}
+environment: {{ include "tesk.yamlText" (dict "value" $info.environment "key" "serviceInfo.environment") }}
+{{- end }}
+version: {{ include "tesk.apiImageTag" . | toJson }}
+{{- with $info.storage }}
+storage:
+{{- range . }}
+- {{ include "tesk.yamlText" (dict "value" . "key" "serviceInfo.storage") }}
+{{- end }}
+{{- end }}
+{{- end -}}
+{{- end -}}
+
+{{/*
+A value as a quoted YAML string (a JSON string, which YAML reads as a
+double-quoted scalar, with DEL and NEL escaped too, which JSON leaves as
+they are and Helm's YAML parser rejects). Other characters that YAML
+doesn't allow and JSON doesn't escape (the other C1 controls, U+FFFE and
+U+FFFF) fail with the value's key. Whole numbers, which Helm reads from values files as floats,
+are rendered as written (e.g., 12345678, not 1.2345678e+07) up to 2^53,
+and fail above, where they would be rounded: quote them in the values
+file. Decimals lose trailing zeros (1.10 is 1.1).
+
+Takes the value (`value`) and its key (`key`), for the errors.
+*/}}
+{{- define "tesk.yamlText" -}}
+{{- $value := .value -}}
+{{- $text := toString $value -}}
+{{- if and (kindIs "float64" $value) (eq (floor $value) $value) -}}
+{{- if not (and (lt $value 9007199254740992.0) (gt $value -9007199254740992.0)) -}}
+{{- fail (printf "%s is a number too large to be exact: quote it in the values file or use --set-string" .key) -}}
+{{- end -}}
+{{- $text = printf "%.0f" $value -}}
+{{- end -}}
+{{- if regexMatch "[\u0080-\u0084\u0086-\u009f\ufffe\uffff]" $text -}}
+{{- fail (printf "%s has a control character that YAML doesn't allow (U+0080 to U+009F but U+0085, U+FFFE or U+FFFF)" .key) -}}
+{{- end -}}
+{{- toJson $text | replace "\u007f" "\\u007f" | replace "\u0085" "\\u0085" -}}
 {{- end -}}
 
 {{/*

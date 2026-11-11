@@ -246,6 +246,42 @@ auth:
     # "openid:Standard openid,eduperson_entitlement:Access to groups membership"
     scopes: ""
 
+# Service info, the answer of GET /service-info (GA4GH service-info
+# specification), rendered into a ConfigMap. The defaults describe no
+# particular deployment: set at least `id`, `organization`, `contactUrl` and
+# `environment` for yours. The chart sets `type` (TES 1.0.0) and `version`
+# (the tag of tesk-api's image) itself. Empty optional fields are left out
+serviceInfo:
+  # Name of a ConfigMap of your own with the key `service-info.yaml`, in the
+  # release's namespace, instead of the chart's; the other fields are then
+  # not used, but still checked against the schema
+  existingConfigMap: ""
+  # Unique ID of this deployment, in reverse domain notation, e.g.,
+  # org.example.tes (required). The notes remind you while it is this
+  # default (`tesk.notes` in templates/_helpers.tpl). Quote text that YAML
+  # would read as a number (e.g., "1.10")
+  id: uk.ac.ebi.tsc.tesk
+  # Name of the service (required)
+  name: TESK
+  description: GA4GH TES Server implementation for Kubernetes
+  # The organisation that runs the service (both required)
+  organization:
+    name: EMBL-EBI
+    url: https://www.ebi.ac.uk/
+  # Where users get support (a URL, e.g., mailto:tes@example.org)
+  contactUrl: https://github.com/elixir-cloud-aai/TESK/issues
+  # Documentation for users of the service
+  documentationUrl: https://tesk.readthedocs.io/
+  # When the service was created and last updated: a date with two-digit
+  # month and day (2026-11-10) or a date and time (2026-11-10T12:00:00Z)
+  createdAt: "2021-04-06"
+  updatedAt: ""
+  # e.g., test, staging or prod
+  environment: dev
+  # Storage locations that tasks can use, e.g., [s3://bucket]
+  storage:
+    - ftp://ftp-private.ebi.ac.uk
+
 service:
   # Type of the API's Service: `NodePort` to expose the API directly,
   # `LoadBalancer` on clusters of cloud providers, or empty for `ClusterIP`

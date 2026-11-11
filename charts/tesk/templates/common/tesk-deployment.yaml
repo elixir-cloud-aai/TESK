@@ -6,13 +6,11 @@ whole chart */ -}}
 {{- include "tesk.checkImageReleases" . -}}
 {{- $tesk := .Values.tesk -}}
 {{- $repository := dig "image" "repository" "" $tesk | default "docker.io/elixircloud/tesk-api" -}}
-{{- $tag := dig "image" "tag" "" $tesk -}}
-{{- /* Not `default`, which would replace a tag of 0 */ -}}
-{{- if or (kindIs "invalid" $tag) (eq (toString $tag) "") -}}
-{{- $tag = .Chart.AppVersion -}}
-{{- end -}}
+{{- /* Also the version of the service info */ -}}
+{{- $tag := include "tesk.apiImageTag" . -}}
 {{- $ftpSecretName := include "tesk.ftpSecretName" . -}}
 {{- $executorSecurityContext := include "tesk.executorSecurityContext" . -}}
+{{- $serviceInfo := include "tesk.serviceInfo" . -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -28,10 +26,16 @@ spec:
     metadata:
       labels:
         {{- include "tesk.selectorLabels" . | nindent 8 }}
-      {{- /* tesk-api reads the ConfigMap only at startup */}}
-      {{- with $executorSecurityContext }}
+      {{- /* tesk-api reads the executors' ConfigMap only at startup, and
+      the service info at startup and then every hour */}}
+      {{- if or $executorSecurityContext $serviceInfo }}
       annotations:
+        {{- with $executorSecurityContext }}
         checksum/executor-config: {{ sha256sum . }}
+        {{- end }}
+        {{- with $serviceInfo }}
+        checksum/service-info: {{ sha256sum . }}
+        {{- end }}
       {{- end }}
     spec:
       serviceAccountName: {{ include "tesk.taskmasterName" . }}
@@ -226,7 +230,7 @@ spec:
       volumes:
       - name: service-info
         configMap:
-          name: {{ include "tesk.serviceInfoName" . }}
+          name: {{ include "tesk.serviceInfoConfigMapName" . | quote }}
       {{- with $tesk.podSecurityContext }}
       securityContext:
         {{- toYaml . | nindent 8 }}
