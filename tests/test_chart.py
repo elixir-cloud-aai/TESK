@@ -1048,11 +1048,14 @@ def _service_info(*args: str) -> tuple[dict[str, Any], str]:
 
 
 def test_service_info_defaults() -> None:
-    """The defaults are those of the file of earlier charts.
+    """The defaults describe EMBL-EBI's deployment, as the file of 0.1.x did.
 
     Except for the contact and documentation URLs, which point to this
-    repository and its docs, and `type` and `version`, which the chart sets.
+    repository and its docs, and `type` and `version`, which the chart sets
+    (`version` to the tag of the API's image).
     """
+    manifests = render()
+    assert container(manifests)["image"].endswith(f":{METADATA['appVersion']}")
     info, text = _service_info()
     assert info == {
         "id": "uk.ac.ebi.tsc.tesk",
@@ -1069,9 +1072,19 @@ def test_service_info_defaults() -> None:
     }
     # A YAML timestamp, as tesk-api reads `createdAt` (a quoted string fails)
     assert "\ncreatedAt: 2021-04-06\n" in text
-    values = VALUES["serviceInfo"]
-    assert values["existingConfigMap"] == ""
-    assert values["createdAt"] == "2021-04-06"
+
+
+@pytest.mark.parametrize("tag", ["1.2.1", "dev", "0"])
+def test_service_info_version(tag: str) -> None:
+    """The version of the service info is the tag of the API's image.
+
+    Args:
+        tag: `tesk.image.tag`.
+    """
+    manifests = render("--set-string", f"tesk.image.tag={tag}")
+    assert container(manifests)["image"].endswith(f":{tag}")
+    config = get(manifests, "ConfigMap", "tesk-service-info")
+    assert yaml.safe_load(config["data"]["service-info.yaml"])["version"] == tag
 
 
 def test_service_info_values(tmp_path: Path) -> None:
@@ -1145,24 +1158,49 @@ def test_service_info_optional(args: tuple[str, ...]) -> None:
 
 
 @pytest.mark.parametrize(
-    ("args", "value"),
+    ("field", "args", "value"),
     [
-        (("--set", "serviceInfo.id=12345"), "12345"),
-        (("--set", "serviceInfo.name=true"), "true"),
-        (("--set-string", "serviceInfo.environment=2026-11-10"), "2026-11-10"),
+        ("id", ("--set", "serviceInfo.id=12345"), "12345"),
+        ("name", ("--set", "serviceInfo.name=true"), "true"),
+        (
+            "environment",
+            ("--set-string", "serviceInfo.environment=2026-11-10"),
+            "2026-11-10",
+        ),
+        ("name", ("--set-json", 'serviceInfo.name="a\\u007fb\\u0085c"'), "a\x7fb\x85c"),
+        ("description", ("--set-json", 'serviceInfo.description="a\\nb"'), "a\nb"),
     ],
 )
-def test_service_info_strings(args: tuple[str, ...], value: str) -> None:
+def test_service_info_strings(field: str, args: tuple[str, ...], value: str) -> None:
     """Text fields stay strings, also if YAML would read them otherwise.
 
-    tesk-api reads them as strings; a date would fail as one.
+    tesk-api reads them as strings; a date would fail as one. Characters that
+    YAML doesn't allow as they are (DEL, NEL) are escaped.
 
     Args:
+        field: The field of the service info.
         args: More `helm template` arguments.
         value: The expected text.
     """
     info, _ = _service_info(*args)
-    assert value in info.values()
+    assert isinstance(info[field], str)
+    assert info[field] == value
+
+
+def test_service_info_numbers_values_file(tmp_path: Path) -> None:
+    """Whole numbers from a values file are rendered as written, up to 2^53.
+
+    Args:
+        tmp_path: A directory for the values files.
+    """
+    path = tmp_path / "values.yaml"
+    path.write_text("serviceInfo:\n  id: 12345678\n")
+    info, _ = _service_info("--values", str(path))
+    assert info["id"] == "12345678"
+    path.write_text("serviceInfo:\n  id: 12345678901234567890\n")
+    with pytest.raises(subprocess.CalledProcessError) as error:
+        render("--values", str(path))
+    assert "a value under serviceInfo is a number too large" in error.value.stderr
 
 
 @pytest.mark.parametrize(
@@ -1186,6 +1224,10 @@ def test_service_info_required(field: str) -> None:
         ("--set", "serviceInfo.createdAt=yesterday"),
         ("--set", "serviceInfo.updatedAt=2026-13-01x"),
         ("--set", "serviceInfo.createdAt=10.11.2026"),
+        # YAML 1.1 reads dates with one-digit months or days as text
+        ("--set", "serviceInfo.createdAt=2026-1-5"),
+        ("--set", "serviceInfo.updatedAt=2026-11-1"),
+        ("--set", "serviceInfo.existingConfigMap=false"),
         ("--set-json", "serviceInfo.storage=[1]"),
         ("--set-json", "serviceInfo.organization=[]"),
         ("--set-json", "serviceInfo.storage={}"),
@@ -1208,11 +1250,62 @@ def test_service_info_invalid(args: tuple[str, ...]) -> None:
     assert "values don't meet the specifications of the schema" in error.value.stderr
 
 
-def test_service_info_invalid_without_schema() -> None:
-    """The templates check the dates too, also without the schema."""
+@pytest.mark.parametrize("value", ["today", "2026-1-5"])
+def test_service_info_invalid_without_schema(value: str) -> None:
+    """The templates check the dates too, also without the schema.
+
+    Args:
+        value: `serviceInfo.createdAt`.
+    """
     with pytest.raises(subprocess.CalledProcessError) as error:
-        render("--skip-schema-validation", "--set", "serviceInfo.createdAt=today")
+        render("--skip-schema-validation", "--set", f"serviceInfo.createdAt={value}")
     assert "serviceInfo.createdAt must be a date" in error.value.stderr
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        ("2026-11-10", datetime.date(2026, 11, 10)),
+        (
+            "2026-1-5T1:00:00Z",
+            datetime.datetime(2026, 1, 5, 1, tzinfo=datetime.UTC),
+        ),
+        (
+            "2026-11-10 12:00:00.5 +01:00",
+            datetime.datetime(
+                2026,
+                11,
+                10,
+                12,
+                0,
+                0,
+                500000,
+                tzinfo=datetime.timezone(datetime.timedelta(hours=1)),
+            ),
+        ),
+    ],
+)
+def test_service_info_timestamps(value: str, expected: datetime.date) -> None:
+    """Dates that pass the checks are YAML 1.1 timestamps.
+
+    PyYAML resolves timestamps as SnakeYAML, which tesk-api uses, does.
+
+    Args:
+        value: `serviceInfo.createdAt`.
+        expected: The timestamp that YAML reads.
+    """
+    info, _ = _service_info("--set-string", f"serviceInfo.createdAt={value}")
+    assert info["createdAt"] == expected
+
+
+def test_service_info_existing_config_map_unset() -> None:
+    """Without the schema, `existingConfigMap: false` is set, consistently."""
+    manifests = render(
+        "--skip-schema-validation", "--set", "serviceInfo.existingConfigMap=false"
+    )
+    assert find(manifests, "ConfigMap", "tesk-service-info") is None
+    volumes = deployment(manifests)["spec"]["template"]["spec"]["volumes"]
+    assert volumes[0]["configMap"] == {"name": "false"}
 
 
 def test_service_info_existing_config_map() -> None:
@@ -1268,6 +1361,8 @@ def test_notes_service_info(tmp_path: Path, args: tuple[str, ...], noted: bool) 
         args: More `helm template` arguments.
         noted: Whether the notes have the reminder.
     """
+    # The notes compare the ID with the default of `values.yaml`
+    assert VALUES["serviceInfo"]["id"] == "uk.ac.ebi.tsc.tesk"
     text = notes(*args, tmp_path=tmp_path)
     assert ("NOTE: serviceInfo.id is the chart's default" in text) == noted
 

@@ -6,11 +6,8 @@ whole chart */ -}}
 {{- include "tesk.checkImageReleases" . -}}
 {{- $tesk := .Values.tesk -}}
 {{- $repository := dig "image" "repository" "" $tesk | default "docker.io/elixircloud/tesk-api" -}}
-{{- $tag := dig "image" "tag" "" $tesk -}}
-{{- /* Not `default`, which would replace a tag of 0 */ -}}
-{{- if or (kindIs "invalid" $tag) (eq (toString $tag) "") -}}
-{{- $tag = .Chart.AppVersion -}}
-{{- end -}}
+{{- /* Also the version of the service info */ -}}
+{{- $tag := include "tesk.apiImageTag" . -}}
 {{- $ftpSecretName := include "tesk.ftpSecretName" . -}}
 {{- $executorSecurityContext := include "tesk.executorSecurityContext" . -}}
 {{- $serviceInfo := include "tesk.serviceInfo" . -}}
@@ -216,11 +213,7 @@ spec:
       volumes:
       - name: service-info
         configMap:
-          {{- with (default dict .Values.serviceInfo).existingConfigMap }}
-          name: {{ toString . | quote }}
-          {{- else }}
-          name: {{ include "tesk.serviceInfoName" . }}
-          {{- end }}
+          name: {{ include "tesk.serviceInfoConfigMapName" . | quote }}
       {{- with $tesk.podSecurityContext }}
       securityContext:
         {{- toYaml . | nindent 8 }}

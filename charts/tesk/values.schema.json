@@ -47,6 +47,14 @@
     },
     "switch": {
       "type": "boolean"
+    },
+    "timestamp": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^([0-9]{4}-[0-9]{2}-[0-9]{2}|[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}([Tt]|[ \\t]+)[0-9]{1,2}:[0-9]{2}:[0-9]{2}(\\.[0-9]*)?([ \\t]*(Z|[-+][0-9]{1,2}(:[0-9]{2})?))?)?$",
+      "$comment": "A YAML 1.1 timestamp, as tesk-api's SnakeYAML resolves it (two-digit month and day without a time), or empty; the same pattern as in tesk.serviceInfo (templates/_helpers.tpl)"
     }
   },
   "properties": {
@@ -470,7 +478,10 @@
       "additionalProperties": false,
       "properties": {
         "existingConfigMap": {
-          "$ref": "#/$defs/scalar",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Name of a ConfigMap of your own with the key service-info.yaml, instead of the chart's; the other fields are then ignored"
         },
         "id": {
@@ -512,19 +523,11 @@
           "description": "Documentation for users of the service"
         },
         "createdAt": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "pattern": "^([0-9]{4}-[0-9]{1,2}-[0-9]{1,2}(([Tt]|[ \\t]+)[0-9]{1,2}:[0-9]{2}:[0-9]{2}(\\.[0-9]*)?([ \\t]*(Z|[-+][0-9]{1,2}(:[0-9]{2})?))?)?)?$",
+          "$ref": "#/$defs/timestamp",
           "description": "When the service was created: a date (2026-11-10) or a date and time (2026-11-10T12:00:00Z)"
         },
         "updatedAt": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "pattern": "^([0-9]{4}-[0-9]{1,2}-[0-9]{1,2}(([Tt]|[ \\t]+)[0-9]{1,2}:[0-9]{2}:[0-9]{2}(\\.[0-9]*)?([ \\t]*(Z|[-+][0-9]{1,2}(:[0-9]{2})?))?)?)?$",
+          "$ref": "#/$defs/timestamp",
           "description": "When the service was last updated: a date or a date and time"
         },
         "environment": {

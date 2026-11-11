@@ -144,14 +144,17 @@ API. The defaults describe no particular deployment, so set at least `id`,
 | `serviceInfo.organization.url` | `https://www.ebi.ac.uk/` | URL of the organisation. Required. |
 | `serviceInfo.contactUrl` | `https://github.com/elixir-cloud-aai/TESK/issues` | Where users get support, e.g., `mailto:tes@example.org`. |
 | `serviceInfo.documentationUrl` | `https://tesk.readthedocs.io/` | Documentation for users of the service. |
-| `serviceInfo.createdAt` | `"2021-04-06"` | When the service was created: a date (`2026-11-10`) or a date and time (`2026-11-10T12:00:00Z`); other text fails the installation, as tesk-api couldn't read it. |
+| `serviceInfo.createdAt` | `"2021-04-06"` | When the service was created: a date (`2026-11-10`, with two-digit month and day) or a date and time (`2026-11-10T12:00:00Z`), as YAML timestamps; other text fails the installation, as tesk-api couldn't read it. |
 | `serviceInfo.updatedAt` | `""` | When the service was last updated, in the same form. |
 | `serviceInfo.environment` | `dev` | Environment of the service, e.g., `test`, `staging` or `prod`. |
 | `serviceInfo.storage` | `[ftp://ftp-private.ebi.ac.uk]` | Storage locations that tasks can use, e.g., `[s3://bucket]`. |
 | `serviceInfo.existingConfigMap` | `""` | Name of a ConfigMap of your own, in the release's namespace, with the key `service-info.yaml`, instead of the chart's; the fields above are then ignored. |
 
 Empty optional fields are left out of the service info; the required ones
-fail the installation if they are empty. The chart sets two fields itself:
+fail the installation if they are empty. The chart passes text on as text,
+but YAML reads unquoted numbers in values files as numbers first: quote
+text that looks like a number (e.g., `id: "1.10"`, which would otherwise
+become `1.1`). The chart sets two fields itself:
 `type` (`org.ga4gh`, `TES`, version `1.0.0`, which tesk-api implements) and
 `version` (the tag of tesk-api's image, `tesk.image.tag`, by default the
 chart's `appVersion`). A change of the service info restarts the API's pod

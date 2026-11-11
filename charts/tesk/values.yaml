@@ -211,7 +211,9 @@ serviceInfo:
   # ignored
   existingConfigMap: ""
   # Unique ID of this deployment, in reverse domain notation, e.g.,
-  # org.example.tes (required)
+  # org.example.tes (required). The notes remind you while it is this
+  # default (`tesk.notes` in templates/_helpers.tpl). Quote text that YAML
+  # would read as a number (e.g., "1.10")
   id: uk.ac.ebi.tsc.tesk
   # Name of the service (required)
   name: TESK
@@ -224,8 +226,8 @@ serviceInfo:
   contactUrl: https://github.com/elixir-cloud-aai/TESK/issues
   # Documentation for users of the service
   documentationUrl: https://tesk.readthedocs.io/
-  # When the service was created and last updated: a date (2026-11-10) or a
-  # date and time (2026-11-10T12:00:00Z), quoted
+  # When the service was created and last updated: a date with two-digit
+  # month and day (2026-11-10) or a date and time (2026-11-10T12:00:00Z)
   createdAt: "2021-04-06"
   updatedAt: ""
   # e.g., test, staging or prod

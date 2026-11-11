@@ -472,10 +472,13 @@ The defaults are those of the old file, except for these fields:
   and to these docs, not to the former repository.
 - The chart now sets `type.version` to `1.0.0` (the TES version that
   tesk-api implements; was `1.0`) and `version` to the tag of tesk-api's
-  image (`1.2.0` by default; was `1.0`). Values can't override either.
+  image (`tesk.image.tag`, by default the chart's `appVersion`; was `1.0`).
+  Values can't override either.
 
-The notes of `helm install` remind you to describe your deployment while
-`serviceInfo.id` is the default. A change of the service info now restarts
+All other defaults are unchanged, including `id`, `organization` (EMBL-EBI),
+`environment: dev` and `storage`: a release installed without your own
+`serviceInfo` still describes no particular deployment. The notes of `helm
+install` remind you to describe yours while `serviceInfo.id` is the default. A change of the service info now restarts
 the API's pod, so that it takes effect at once.
 
 ### Public service info
