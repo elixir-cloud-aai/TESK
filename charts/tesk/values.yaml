@@ -125,7 +125,8 @@ tesk:
   # (UID 1000) with the `RuntimeDefault` seccomp profile, no privilege
   # escalation and no capabilities. Your values are merged with these; null
   # removes a field (e.g., `podSecurityContext.runAsUser: null` on OpenShift,
-  # which assigns the user) or the whole context
+  # which assigns the user, and `podSecurityContext.seccompProfile: null` on
+  # clusters that set their own seccomp profile) or the whole context
   podSecurityContext:
     runAsUser: 1000
     runAsNonRoot: true

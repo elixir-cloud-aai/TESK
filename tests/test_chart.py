@@ -709,6 +709,38 @@ def test_security_context_values() -> None:
     }
 
 
+@pytest.mark.parametrize(
+    ("args", "expected"),
+    [
+        ((), {"runAsUser": 1000, "runAsNonRoot": True}),
+        (
+            ("--set", "tesk.podSecurityContext.runAsUser=null"),
+            {"runAsNonRoot": True},
+        ),
+    ],
+)
+def test_security_context_own_seccomp(
+    args: tuple[str, ...], expected: dict[str, Any]
+) -> None:
+    """Without the seccomp profile, the rest of the contexts is kept.
+
+    As documented for clusters that set their own seccomp profile, and assign
+    the user or not (`docs/deployment.md`).
+
+    Args:
+        args: More `helm template` arguments.
+        expected: The expected security context of the pod.
+    """
+    manifests = render(*args, "--set", "tesk.podSecurityContext.seccompProfile=null")
+    pod = deployment(manifests)["spec"]["template"]["spec"]
+    assert pod["securityContext"] == expected
+    assert container(manifests)["securityContext"] == {
+        "allowPrivilegeEscalation": False,
+        "capabilities": {"drop": ["ALL"]},
+    }
+    assert "seccomp" not in yaml.safe_dump_all(manifests).lower()
+
+
 def test_security_context_null() -> None:
     """Null removes the security contexts of the API's pod and container."""
     manifests = render(
