@@ -369,6 +369,9 @@ timestamps, unquoted, as tesk-api reads them as dates. Empty optional
 fields are left out; the fields that the GA4GH service-info specification
 requires fail if empty. `type` (TES 1.0.0, which tesk-api implements) and
 `version` (the tag of tesk-api's image) are set here.
+`type.artifact` is `TES`, the name of tesk-api's Java enum constant, which
+it reads with SnakeYAML and serves as `tes` (the TES specification's
+artifact); with `tes` here, tesk-api can't read the service info.
 */}}
 {{- define "tesk.serviceInfo" -}}
 {{- $info := default dict .Values.serviceInfo -}}
@@ -408,6 +411,7 @@ id: {{ include "tesk.yamlText" (dict "value" $info.id "key" "serviceInfo.id") }}
 name: {{ include "tesk.yamlText" (dict "value" $info.name "key" "serviceInfo.name") }}
 type:
   group: "org.ga4gh"
+  {{- /* tesk-api serves "tes"; see above */}}
   artifact: "TES"
   version: "1.0.0"
 {{- if include "tesk.isSet" $info.description }}
