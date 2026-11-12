@@ -211,7 +211,7 @@ serviceInfo:
 | `ftp.classicFtpSecret` | null | Name of the secret with the FTP username and password, created from `ftp.username` and `ftp.password` if one of them is set (none without credentials); null uses `<prefix>-ftp`, empty or `false` creates none. |
 | `ftp.netrcSecret` | empty | Name of the secret with a `.netrc` file, created from `charts/tesk/ftp/.netrc`; empty creates none. |
 | `ftp.hosts` | `[]` | Hosts that the filer sends the credentials of `ftp.classicFtpSecret` to, e.g. `[ftp.example.org]` (see below); empty sends them to no host. Not needed for `.netrc`. |
-| `ftp.username` | none | FTP username (put it into `secrets.yaml`). Without both a username and a password, the chart creates no FTP secret, and tesk-api gets none; either one is enough to create it. |
+| `ftp.username` | none | FTP username (put it into `secrets.yaml`). If neither a username nor a password is set, the chart creates no FTP secret, and tesk-api gets none; either one creates it. |
 | `ftp.password` | none | FTP password (put it into `secrets.yaml`). |
 | `ftp.hostIp` | empty | IP of an FTP server outside the cluster, as pods see the host; creates a Service `ftp` for it, so that tasks can use `ftp://ftp/...` (see [Local FTP server](local_ftp.md)). |
 

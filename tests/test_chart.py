@@ -2068,6 +2068,12 @@ def test_notes_ftp_secret_without_credentials(
     """
     text = notes(*args, tmp_path=tmp_path)
     assert ("ftp.classicFtpSecret is set" in text) is warned
+    # The section of the upgrade notes that the warning links
+    anchor = "#no-ftp-secret-without-credentials"
+    assert (anchor in text) is warned
+    heading = "### No FTP secret without credentials"
+    assert heading in (CHART.parents[1] / "docs" / "upgrading.md").read_text()
+    assert "s3cr3t" not in text
 
 
 @pytest.mark.parametrize(
