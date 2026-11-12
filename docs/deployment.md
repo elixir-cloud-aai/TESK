@@ -187,24 +187,26 @@ seccomp profile for pods and reject pods that ask for another one: there,
 the API's Deployment gets no pod, and the events of its ReplicaSet
 (`kubectl describe replicaset --namespace tesk -l
 app.kubernetes.io/instance=tesk`) name the seccomp profile as the reason.
-On such clusters, remove the profile too, next to the user, so that the
-cluster's own profile applies:
+On such clusters, remove the profile, so that the cluster's own profile
+applies:
 
 ```yaml
 tesk:
   podSecurityContext:
-    runAsUser: null
     seccompProfile: null
 ```
 
+Keep the fixed user unless the cluster assigns the user too: then (e.g., on
+OpenShift) set `runAsUser: null` next to `seccompProfile: null`, as above.
 The rest of the security contexts (non-root, no privilege escalation, no
 capabilities) stays as it is. Before installing, check that the rendered
 manifests ask for no seccomp profile: with your values, the following
-command prints `0` (with the defaults, it prints `1`):
+commands print `0` (with the defaults, `1`); the count runs only if the
+chart rendered:
 
 ```bash
 helm template tesk charts/tesk --namespace tesk \
-    -f my-values.yaml | grep -ci seccomp
+    -f my-values.yaml > rendered.yaml && grep -ci seccomp rendered.yaml
 ```
 
 ## Storage backends
