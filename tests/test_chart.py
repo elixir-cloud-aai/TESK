@@ -170,7 +170,6 @@ def test_defaults() -> None:
         ("Ingress", "tesk"),
         ("Role", "tesk-taskmaster"),
         ("RoleBinding", "tesk-taskmaster"),
-        ("Secret", "tesk-ftp"),
         ("Service", "tesk-api"),
         ("ServiceAccount", "tesk-taskmaster"),
     ]
@@ -202,9 +201,9 @@ def test_defaults() -> None:
     assert variables["TESK_API_K8S_NAMESPACE"] == NAMESPACE
     assert variables["SPRING_PROFILES_ACTIVE"] == "noauth"
     assert variables["TESK_API_SERVICE_INFO_PUBLIC"] == "true"
-    assert variables["TESK_API_TASKMASTER_FTP_SECRET_NAME"] == "tesk-ftp"  # noqa: S105 (a name)
     assert variables["OPENAPI_TASKEXECUTIONSERVICE_BASE_PATH"] == "/ga4gh/tes/v1"
     for name in (
+        "TESK_API_TASKMASTER_FTP_SECRET_NAME",
         "TESK_API_TASKMASTER_ENVIRONMENT_NETRC_SECRET_NAME",
         "TESK_API_TASKMASTER_ENVIRONMENT_TRANSFER_PVC_NAME",
         "TESK_API_TASKMASTER_ENVIRONMENT_STORAGE_CLASS_NAME",
@@ -2147,6 +2146,43 @@ def test_ftp_secret() -> None:
     manifests = render("--set", "ftp.username=user", "--set", "ftp.password=pass")
     secret = get(manifests, "Secret", "tesk-ftp")
     assert secret["stringData"] == {"username": "user", "password": "pass"}
+    assert env(manifests)["TESK_API_TASKMASTER_FTP_SECRET_NAME"] == "tesk-ftp"  # noqa: S105 (a name)
+
+
+@pytest.mark.parametrize(
+    ("args", "created"),
+    [
+        ((), False),
+        (("--set", "ftp.username=user"), True),
+        (("--set", "ftp.password=pass"), True),
+        (("--set", "ftp.username=0"), True),
+        (("--set", "ftp.username=false"), True),
+        (("--set", "ftp.username=", "--set", "ftp.password="), False),
+        (("--set", "ftp.username=null", "--set", "ftp.password=null"), False),
+        (("--set", "ftp.netrcSecret=netrc"), False),
+        (("--set", "ftp.hosts={ftp.example.org}"), False),
+    ],
+)
+def test_ftp_secret_credentials(args: tuple[str, ...], created: bool) -> None:
+    """The FTP secret is created only with credentials, and passed on then.
+
+    A user name or a password counts, also one that YAML reads as 0 or false;
+    null or empty ones don't. Without them, the API gets no FTP secret, as with
+    an empty `ftp.classicFtpSecret`.
+
+    Args:
+        args: The `helm template` arguments.
+        created: Whether the secret is created.
+    """
+    manifests = render(*args)
+    secret = find(manifests, "Secret", "tesk-ftp")
+    variable = env(manifests).get("TESK_API_TASKMASTER_FTP_SECRET_NAME")
+    if created:
+        assert secret is not None
+        assert variable == "tesk-ftp"
+    else:
+        assert secret is None
+        assert variable is None
 
 
 TRICKY_VALUES = [
@@ -2243,14 +2279,13 @@ def test_secret_numbers_values_file(
 def test_secret_unset() -> None:
     """Unset credentials render as before: null, the client secret empty.
 
-    The FTP credentials and the client ID stay null, not empty strings; the
-    deprecated client secret is empty, so that an upgrade clears it.
+    Without FTP credentials, there is no FTP secret (see
+    `test_ftp_secret_credentials`). The client ID stays null, not an empty
+    string; the deprecated client secret is empty, so that an upgrade clears
+    it.
     """
     manifests = render("--set", "auth.mode=auth")
-    assert get(manifests, "Secret", "tesk-ftp")["stringData"] == {
-        "username": None,
-        "password": None,
-    }
+    assert find(manifests, "Secret", "tesk-ftp") is None
     assert get(manifests, "Secret", "tesk-oauth-client")["stringData"] == {
         "id": None,
         "secret": "",
@@ -2509,6 +2544,8 @@ def test_images_null(args: tuple[str, ...], variable: str) -> None:
 # Values that render every object of the chart (but the OpenShift Route)
 ALL_OBJECTS = (
     "--set",
+    "ftp.username=user",
+    "--set",
     "ftp.hostIp=10.0.0.1",
     "--set",
     "ftp.netrcSecret=netrc",
@@ -2704,7 +2741,8 @@ def test_ftp_secret_name(
 ) -> None:
     """The FTP secret is `<fullname>-ftp`, unless named; empty creates none.
 
-    False (as in earlier versions of the chart) creates none too.
+    False (as in earlier versions of the chart) creates none too. With FTP
+    credentials, as there is no secret without them.
 
     Args:
         args: The `helm template` arguments; `--values null` stands for a
@@ -2716,7 +2754,7 @@ def test_ftp_secret_name(
         values = tmp_path / "values.yaml"
         values.write_text("ftp:\n  classicFtpSecret: null\n")
         args = ("--values", str(values))
-    manifests = render(*args)
+    manifests = render(*args, *USER)
     secrets = {m["metadata"]["name"] for m in manifests if m["kind"] == "Secret"}
     variable = env(manifests).get("TESK_API_TASKMASTER_FTP_SECRET_NAME")
     assert variable == name

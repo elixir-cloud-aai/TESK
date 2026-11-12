@@ -128,14 +128,21 @@ files as floats, which YAML would render as, e.g., 1e+06), and
 {{/*
 Name of the secret with the FTP credentials: `ftp.classicFtpSecret`, or
 `<fullname>-ftp` if it is null (unset); empty (no secret) if it is empty or
-otherwise false (e.g., `false`), as in earlier versions of the chart.
+otherwise false (e.g., `false`), as in earlier versions of the chart. Also
+empty without credentials: neither `ftp.username` nor `ftp.password` is set
+(any value counts, also one that YAML reads as 0 or false), so that the
+chart creates no secret with empty credentials and tesk-api gets no FTP
+secret.
 */}}
 {{- define "tesk.ftpSecretName" -}}
 {{- $name := .Values.ftp.classicFtpSecret -}}
+{{- $credentials := or (include "tesk.isSet" .Values.ftp.username) (include "tesk.isSet" .Values.ftp.password) -}}
+{{- if $credentials -}}
 {{- if kindIs "invalid" $name -}}
 {{- include "tesk.fullname" . }}-ftp
 {{- else if $name -}}
 {{- toString $name -}}
+{{- end -}}
 {{- end -}}
 {{- end -}}
 

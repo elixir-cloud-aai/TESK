@@ -10,6 +10,24 @@ again):
 helm upgrade tesk charts/tesk --namespace tesk -f my-values.yaml -f secrets.yaml
 ```
 
+## Unreleased
+
+### No FTP secret without credentials
+
+The chart creates the FTP secret (`ftp.classicFtpSecret`, by default
+`<prefix>-ftp`) only if `ftp.username` or `ftp.password` is set, and
+passes it on to tesk-api only then; before, it created the secret with
+empty credentials also without FTP. Releases that use FTP with
+`ftp.username` and `ftp.password` keep their secret as it is, as long as
+you upgrade with the same values (e.g., `-f secrets.yaml`, as above).
+
+Without FTP credentials, `helm upgrade` deletes the secret, and the API
+restarts without an FTP secret, so that tasks get none; as the secret held
+no credentials, FTP works as before (anonymously, or with a `.netrc` file).
+**Act on this if you put credentials into the secret by hand** (e.g., with
+`kubectl edit`) instead of the values: `helm upgrade` would delete it. Move
+them into `ftp.username` and `ftp.password` (in `secrets.yaml`) first.
+
 ## 0.3.0
 
 **Breaking: install existing releases again.** Releases of charts before

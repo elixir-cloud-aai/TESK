@@ -295,7 +295,8 @@ ftp:
   # secrets.yaml), named `classicFtpSecret`, or `<prefix>-ftp` if that is
   # null; or the name of a secret created from the file `ftp/.netrc` (e.g.,
   # `netrc-secret`, with `classicFtpSecret` empty, which creates no FTP
-  # secret)
+  # secret). Without `ftp.username` and `ftp.password`, the chart creates no
+  # FTP secret either
   classicFtpSecret:
   netrcSecret:
   # The hosts that the filer sends the credentials of `classicFtpSecret` to,
