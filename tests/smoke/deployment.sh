@@ -18,9 +18,14 @@
 #   port forward); by default, the token is only sent over HTTPS
 # - `TASK_TIMEOUT`: seconds to wait for each state of a task (default 600;
 #   the first task on a node may wait for image pulls)
+# - `IMAGE`: the image of the tasks' executors, which needs `echo` and
+#   `sleep` (default: Alpine, which runs as root; e.g., an image with a
+#   non-root user for executors with `runAsNonRoot` but no `runAsUser`)
 #
 # The token is read from the environment only and goes to curl on its
-# standard input, so that it doesn't show up in the process list. Each
+# standard input, so that it doesn't show up in the process list; the
+# script removes `TOKEN` from its environment, so that curl doesn't inherit
+# it. Each
 # request has a limit of 60 seconds. The two tasks stay in the task list,
 # as TES has no way to delete tasks (see "Deleting finished tasks" in
 # `docs/deployment.md`); if the script stops early, it cancels the task
@@ -30,6 +35,7 @@ set -euo pipefail
 api="${1:?usage: $0 <base URL of the TES API>}"
 api="${api%/}"
 token="${TOKEN:-}"
+unset TOKEN
 task_timeout="${TASK_TIMEOUT:-600}"
 if [[ ! "${task_timeout}" =~ ^[1-9][0-9]*$ ]]; then
   echo "::error::TASK_TIMEOUT must be a positive number of seconds"
@@ -40,10 +46,10 @@ if [[ -n "${token}" && "${api}" != https://* \
   echo "::error::${api} isn't an HTTPS URL: set ALLOW_HTTP=true to send TOKEN to it"
   exit 1
 fi
-# The image of the tasks, pinned by digest (to update it, take the digest of
-# the index of a newer tag, e.g., from `docker buildx imagetools inspect
-# alpine:<tag>`)
-image='alpine:3.22@sha256:2e0b81d60597f449baa56dc25d355367869d2dca4cd57e866f1e2b52af3eb55f'
+# The image of the tasks, by default pinned by digest (to update it, take the
+# digest of the index of a newer tag, e.g., from `docker buildx imagetools
+# inspect alpine:<tag>`)
+image="${IMAGE:-alpine:3.22@sha256:2e0b81d60597f449baa56dc25d355367869d2dca4cd57e866f1e2b52af3eb55f}"
 final_states=(COMPLETE EXECUTOR_ERROR SYSTEM_ERROR CANCELED)
 # Seconds that SYSTEM_ERROR must last to count as an end (see `await_state`)
 system_error_grace=10
@@ -59,6 +65,11 @@ cleanup() {
   if [[ -n "${running}" ]]; then
     echo "Cancelling task ${running}"
     request "${token}" POST "/tasks/${running}:cancel" || true
+    if [[ "${status}" != 200 ]]; then
+      echo "::warning::POST /tasks/${running}:cancel: status ${status}; cancel the task yourself"
+      head -c 4000 "${body}" || true
+      echo
+    fi
   fi
   rm -f "${body}"
 }
@@ -132,7 +143,7 @@ create_task() {
 # status of a task's jobs (e.g., right after the task was created, or when
 # its taskmaster ends), so SYSTEM_ERROR only counts as an end once it has
 # lasted `system_error_grace` seconds. Clears `running` once the task has
-# ended
+# ended in another state than SYSTEM_ERROR
 await_state() {
   local id="$1" wanted="$2" state="" final ended since=""
   local deadline=$((SECONDS + task_timeout))
@@ -153,7 +164,8 @@ await_state() {
     else
       since=""
     fi
-    if [[ "${ended}" == true ]]; then
+    # A task in SYSTEM_ERROR may still have pods, so cleanup cancels it
+    if [[ "${ended}" == true && "${state}" != SYSTEM_ERROR ]]; then
       running=""
     fi
     if [[ "${state}" == "${wanted}" ]]; then
@@ -173,6 +185,12 @@ echo "Checking the TES API at ${api}"
 
 # The service info (with the token, in case it isn't public:
 # `auth.serviceInfoPublic: false`)
+if [[ -z "${token}" ]]; then
+  request "" GET /service-info
+  if [[ "${status}" == 401 || "${status}" == 403 ]]; then
+    fail "GET /service-info: status ${status}: the instance needs a token; set TOKEN"
+  fi
+fi
 check "GET /service-info answers with the service info of a TES" \
   "${token}" GET /service-info 200 \
   '(.id | type == "string" and length > 0) and .type.group == "org.ga4gh"

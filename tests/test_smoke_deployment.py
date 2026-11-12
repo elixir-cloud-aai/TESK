@@ -48,6 +48,9 @@ class FakeTes:
         cancellable: Whether cancelling a task ends it CANCELED.
         cancel_status: The HTTP status of the answer to a cancel.
         artifact: The artifact of the service info's type.
+        service_info_public: Whether the service info needs no token (with
+            `auth`).
+        images: The executor images of the tasks created, in order.
         tasks: Tasks by identifier: their command and state.
         cancels: The identifiers of the tasks cancelled, in order.
         authorizations: The `Authorization` headers received.
@@ -60,6 +63,8 @@ class FakeTes:
     cancellable: bool = True
     cancel_status: int = 200
     artifact: str = "tes"
+    service_info_public: bool = True
+    images: list[str] = field(default_factory=list)
     tasks: dict[str, dict[str, Any]] = field(default_factory=dict)
     cancels: list[str] = field(default_factory=list)
     authorizations: list[str] = field(default_factory=list)
@@ -118,6 +123,8 @@ def _handler(fake: FakeTes) -> type[BaseHTTPRequestHandler]:
             url = urlsplit(self.path)
             path = url.path.removeprefix(BASE)
             if path == "/service-info":
+                if not fake.service_info_public and not self._authorized():
+                    return
                 self._send(
                     200,
                     {
@@ -161,6 +168,7 @@ def _handler(fake: FakeTes) -> type[BaseHTTPRequestHandler]:
                 task = json.loads(self.rfile.read(length))
                 task_id = f"task-{len(fake.tasks) + 1}"
                 command = task["executors"][0]["command"]
+                fake.images.append(task["executors"][0]["image"])
                 states = fake.echo_states if command[0] == "echo" else fake.sleep_states
                 fake.tasks[task_id] = {"command": command, "states": states, "polls": 0}
                 self._send(200, {"id": task_id})
@@ -198,7 +206,7 @@ def _run(url: str, **env: str) -> subprocess.CompletedProcess[str]:
     Args:
         url: The base URL of the TES API.
         **env: Environment variables of the script, which replace those of
-            the tests' environment (without `TOKEN` and `ALLOW_HTTP`).
+            the tests' environment (without `TOKEN`, `ALLOW_HTTP` and `IMAGE`).
 
     Returns:
         The finished process, with its output.
@@ -206,7 +214,7 @@ def _run(url: str, **env: str) -> subprocess.CompletedProcess[str]:
     environment = {
         name: value
         for name, value in os.environ.items()
-        if name not in {"TOKEN", "ALLOW_HTTP"}
+        if name not in {"TOKEN", "ALLOW_HTTP", "IMAGE"}
     }
     return subprocess.run(  # noqa: S603
         [str(SCRIPT), url],
@@ -373,7 +381,8 @@ def test_fails_on_lasting_system_error(fake: tuple[FakeTes, str]) -> None:
     result = _run(url)
     assert result.returncode == 1
     assert "task task-1 ended SYSTEM_ERROR, expected COMPLETE" in result.stdout
-    assert not state.cancels
+    # It may still have pods
+    assert state.cancels == ["task-1"]
 
 
 def test_fails_if_cancel_is_refused(fake: tuple[FakeTes, str]) -> None:
@@ -383,6 +392,7 @@ def test_fails_if_cancel_is_refused(fake: tuple[FakeTes, str]) -> None:
     result = _run(url)
     assert result.returncode == 1
     assert "POST /tasks/task-2:cancel: status 400, expected 200" in result.stdout
+    assert "POST /tasks/task-2:cancel: status 400; cancel the task" in result.stdout
     assert state.cancels == ["task-2", "task-2"]
 
 
@@ -395,3 +405,32 @@ def test_fails_if_cancelled_task_completes(fake: tuple[FakeTes, str]) -> None:
     assert result.returncode == 1
     assert "task task-2 ended COMPLETE, expected CANCELED" in result.stdout
     assert state.cancels == ["task-2"]
+
+
+def test_fails_without_token_if_service_info_needs_one(
+    fake: tuple[FakeTes, str],
+) -> None:
+    """Without TOKEN, a service info that needs a token fails with a hint."""
+    state, url = fake
+    state.auth = True
+    state.service_info_public = False
+    result = _run(url)
+    assert result.returncode == 1
+    assert "GET /service-info: status 401: the instance needs a token" in result.stdout
+
+
+def test_passes_with_private_service_info(fake: tuple[FakeTes, str]) -> None:
+    """With TOKEN, the service info may need a token too."""
+    state, url = fake
+    state.auth = True
+    state.service_info_public = False
+    result = _run(url, TOKEN=TOKEN, ALLOW_HTTP="true")
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_uses_image(fake: tuple[FakeTes, str]) -> None:
+    """IMAGE replaces the image of the tasks."""
+    state, url = fake
+    result = _run(url, IMAGE="example.org/busybox:1")
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert state.images == ["example.org/busybox:1", "example.org/busybox:1"]

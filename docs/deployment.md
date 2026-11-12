@@ -169,10 +169,17 @@ tests/smoke/deployment.sh http://localhost:8080/ga4gh/tes/v1
 - It waits up to `TASK_TIMEOUT` seconds (default 600) for each state of a
   task; the first task on a node may wait for the images of the
   taskmaster, the filer and the executor (`alpine`) to be pulled.
+- `IMAGE` replaces the executor image of the tasks (Alpine, pinned by
+  digest), e.g., with an image of a non-root user if
+  `tesk.executor.securityContext` sets `runAsNonRoot` but no `runAsUser`,
+  which Alpine's root user doesn't pass. It needs `echo` and `sleep`.
 - The two tasks (named `deployment check: complete` and `deployment
   check: cancel`) stay in the namespace, as the TES API can't delete tasks:
   see [Deleting finished tasks](#deleting-finished-tasks). If the script
-  stops early, it cancels the task that hasn't ended yet.
+  stops early, it cancels the task that hasn't ended yet (and warns if
+  that fails). With a `tesk.taskTtlSeconds` of less than a few minutes,
+  a task can be gone from the API before the script has read its final
+  state and logs, and the check fails.
 
 CI runs the script against the chart's default values on a kind cluster
 (see [Continuous integration](development.md#continuous-integration)).
