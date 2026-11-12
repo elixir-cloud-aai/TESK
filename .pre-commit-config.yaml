@@ -29,6 +29,13 @@ repos:
         exclude: ^source/
       - id: ruff-format
         exclude: ^source/
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: 745eface02aef23e168a8afb6b5737818efbea95  # frozen: v0.11.0.1
+    hooks:
+      # The shell scripts of this repository (e.g., `tests/smoke/`), not the
+      # copy of tesk-core in `source/`
+      - id: shellcheck
+        exclude: ^source/
   - repo: https://github.com/gitleaks/gitleaks
     rev: 83d9cd684c87d95d656c1458ef04895a7f1cbd8e  # frozen: v8.30.1
     hooks:
