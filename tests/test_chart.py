@@ -2045,6 +2045,34 @@ def test_notes_ftp_hosts(tmp_path: Path, args: tuple[str, ...], warned: bool) ->
 @pytest.mark.parametrize(
     ("args", "warned"),
     [
+        (("--set", "ftp.classicFtpSecret=ftp-secret"), True),
+        ((), False),
+        (("--set", "ftp.classicFtpSecret="), False),
+        (("--set", "ftp.classicFtpSecret=false"), False),
+        (("--set", "ftp.classicFtpSecret=ftp-secret", *USER), False),
+        (("--set", "ftp.classicFtpSecret=ftp-secret", *PASSWORD), False),
+    ],
+)
+def test_notes_ftp_secret_without_credentials(
+    tmp_path: Path, args: tuple[str, ...], warned: bool
+) -> None:
+    """The notes warn about a named FTP secret without credentials.
+
+    The chart creates and passes on no FTP secret then, also not one of that
+    name made outside the chart; an unset or empty name needs no warning.
+
+    Args:
+        tmp_path: A directory for a copy of the chart.
+        args: The `helm template` arguments.
+        warned: Whether the notes warn.
+    """
+    text = notes(*args, tmp_path=tmp_path)
+    assert ("ftp.classicFtpSecret is set" in text) is warned
+
+
+@pytest.mark.parametrize(
+    ("args", "warned"),
+    [
         ((), False),
         (("--set", "auth.clientSecret="), False),
         (("--set", "auth.clientSecret=s3cr3t"), True),

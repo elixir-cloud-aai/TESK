@@ -288,6 +288,18 @@ host, and logs in anonymously. Set ftp.hosts to the hosts of the FTP
 account, or use a .netrc file (ftp.netrcSecret); see
 https://tesk.readthedocs.io/en/latest/upgrading/#ftp-credentials-go-only-to-configured-hosts
 {{- end }}
+{{- /* A secret named in the values, but no credentials for it: the chart
+creates and passes on none (`tesk.ftpSecretName`), also not a secret of
+that name made outside the chart */ -}}
+{{- $ftpSecret := .Values.ftp.classicFtpSecret -}}
+{{- if and $ftpSecret (not (include "tesk.ftpSecretName" .)) }}
+
+WARNING: ftp.classicFtpSecret is set, but neither ftp.username nor
+ftp.password is: the chart creates no FTP secret, and tasks get none, also
+if a secret of that name exists. Put the FTP credentials into the values
+(secrets.yaml); see
+https://tesk.readthedocs.io/en/latest/upgrading/#no-ftp-secret-without-credentials
+{{- end }}
 {{- /* Any client secret, also one that YAML reads as 0 or false */ -}}
 {{- if include "tesk.isSet" .Values.auth.clientSecret }}
 

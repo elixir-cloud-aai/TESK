@@ -27,6 +27,10 @@ no credentials, FTP works as before (anonymously, or with a `.netrc` file).
 **Act on this if you put credentials into the secret by hand** (e.g., with
 `kubectl edit`) instead of the values: `helm upgrade` would delete it. Move
 them into `ftp.username` and `ftp.password` (in `secrets.yaml`) first.
+The same applies to a secret of the name in `ftp.classicFtpSecret` that is
+made outside the chart: without credentials in the values, tesk-api doesn't
+get it. The notes that `helm upgrade` prints warn if `ftp.classicFtpSecret`
+is set, but neither `ftp.username` nor `ftp.password`.
 
 ## 0.3.0
 
@@ -211,7 +215,12 @@ Things to check:
   a release named `tesk`.
 - **FTP secret:** to keep the name of the FTP secret, set
   `ftp.classicFtpSecret: ftp-secret`; by default, it is `<prefix>-ftp`.
-  `ftp.classicFtpSecret: ""` still creates no secret.
+  `ftp.classicFtpSecret: ""` still creates no secret. Put the credentials
+  into `ftp.username` and `ftp.password` (in `secrets.yaml`): from the
+  release after 0.3.0 on, the chart creates the secret and passes it on to
+  tesk-api only with them, so a secret of that name restored by hand isn't
+  used (see [No FTP secret without
+  credentials](#no-ftp-secret-without-credentials)).
 - **TLS secret:** the secret named in `ingress.tlsSecretName` isn't part of
   the release and stays. With cert-manager, the certificate is issued again
   for the new Ingress if the secret was removed.
