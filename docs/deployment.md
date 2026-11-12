@@ -344,7 +344,9 @@ on. tesk-api validates tokens at the user info endpoint of the OIDC provider
 (`auth.userInfoUri`) and authorises users by their groups in a claim of the
 user info, following a group model of nested groups (`auth.groups.*`,
 `auth.envBaseGroup`, `auth.envSubgroup`), or by a claim (see [Authorisation
-by a claim](#authorisation-by-a-claim)). Values left empty use tesk-api's
+by a claim](#authorisation-by-a-claim)); tokens of allow-listed services can
+be checked without the user info (see [Tokens of
+services](#tokens-of-services)). Values left empty use tesk-api's
 defaults, which are those of ELIXIR AAI (`login.elixir-czech.org`, the
 provider before LS Login); for any other provider, set them as in [LS Login
 and other providers](#ls-login-and-other-providers). See the [tesk-api
@@ -447,6 +449,79 @@ allows it for public clients) with your provider and put its ID into
 `auth.clientId` (in `secrets.yaml`). `auth.clientSecret` is deprecated:
 tesk-api 1.2.0 and later ignore it (see
 [Upgrading](upgrading.md#swagger-ui-client-secret-deprecated)).
+
+### Tokens of services
+
+Gateways and other services call TESK with access tokens of their own,
+obtained with the OAuth 2.0 client credentials grant (e.g., a TES gateway
+in front of several TES instances). Such tokens have no user, so the user
+info endpoint may refuse them and releases no groups. With
+`auth.tokenClients`, tesk-api accepts the access tokens of the clients that
+you list, without the user info (a tesk-api release after 1.2.0; off by
+default, and needs `auth.mode: auth`):
+
+```yaml
+auth:
+  mode: auth
+  tokenClients:
+    enabled: true
+    # Compared exactly with the claim iss of the tokens
+    issuer: https://login.example.org/oidc/
+    # The token's aud must contain it
+    audience: https://tes.example.org
+    clients:
+      - my-gateway
+```
+
+tesk-api checks a bearer token that is a JWT itself first: its signature
+against the keys of the issuer (from `auth.tokenClients.jwksUri`, or by
+default from the issuer's discovery document,
+`<issuer>/.well-known/openid-configuration`), the issuer, the expiry, the
+audience (`auth.tokenClients.audience`), the type `at+jwt` in
+the header (RFC 9068; `auth.tokenClients.requireAtJwt: false` turns this
+off for providers that don't set it), the client ID in the claim
+`auth.tokenClients.claim` (default `client_id`; some providers use `azp`),
+and that the claim `sub` is the client ID too, as in tokens of the client
+credentials grant (RFC 9068). If all hold, the request is the client's: it
+may create tasks, and list, get and cancel the tasks it created; no group
+rules apply. Other tokens (not a JWT, of another issuer, of a client that
+isn't listed, or with another `sub`, such as tokens of users obtained
+through a listed client) go to the user info endpoint as before, so users'
+tokens keep working. For providers whose client tokens have another `sub`
+(e.g., the ID of a service account user), set
+`auth.tokenClients.requireClientSubject: false`; then tokens of users
+obtained through a listed client count as the client's too, so list only
+clients that users can't log in with. The chart fails if the setting is on
+without an issuer, without an audience (unless
+`auth.tokenClients.allowAnyAudience` is `true`), without client IDs, or
+with an `auth.mode` other than `auth`; the issuer and the JWKS URI must be HTTPS URLs, and client IDs
+mustn't contain commas (quote numeric ones, as they must be strings).
+tesk-api 1.2.0 and older ignore the setting and refuse the clients' tokens:
+`helm install` and `helm upgrade` print a warning if it is on with such an
+image (`tesk.image.tag` as a version number, by default the chart's
+`appVersion`).
+
+Every holder of a listed client's credentials can run any image with any
+command on the cluster: list only clients that you trust, such as your own
+gateway, and keep their secrets as safe as an admin's login. Whoever
+controls the issuer's discovery document or keys can sign tokens for a
+listed client, which is why the chart accepts only HTTPS URLs for them. Set
+`auth.tokenClients.audience` to a value that the provider puts into the
+tokens for this deployment only (e.g., its URL), so that tokens which the
+same clients get for other services are refused; providers such as LS
+Login let you configure the audience per client. Only if your provider
+can't, set `auth.tokenClients.allowAnyAudience: true` and leave the
+audience empty: then every service that a listed client calls with its
+tokens can use them to run tasks here.
+
+To revoke a client, remove it from `auth.tokenClients.clients` and upgrade
+the release: tesk-api reads the list at startup, so the old pod keeps
+accepting the client's tokens until the rollout has completed and the old
+pod is gone (`kubectl rollout status deployment/<prefix>-api`). Also
+disable the client or rotate its secret at the provider, so that it gets
+no new tokens; those it already has stay valid at other services that
+accept them until they expire. See [Access
+control](tesk-api/access-control.md) in the docs of tesk-api for the rules.
 
 ### Tasks created before tesk-api 1.2.0
 

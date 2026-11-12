@@ -478,6 +478,97 @@
             }
           }
         },
+        "tokenClients": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "description": "With mode auth: access tokens of allow-listed clients, checked by tesk-api without the user info (docs/deployment.md, Tokens of services)",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "enum": [
+                true,
+                false,
+                "true",
+                "false",
+                null
+              ],
+              "description": "Whether tokens of the listed clients are accepted; needs issuer, clients and mode auth"
+            },
+            "issuer": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "pattern": "^(https://[^/?#\\s]+[^\\s]*)?$",
+              "description": "Issuer of the tokens (an HTTPS URL), compared exactly with the claim iss"
+            },
+            "jwksUri": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "pattern": "^(https://[^/?#\\s]+[^\\s]*)?$",
+              "description": "JWKS URI of the issuer (an HTTPS URL); empty uses the one of the issuer's discovery document"
+            },
+            "audience": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Audience that the claim aud must contain; required unless allowAnyAudience is true"
+            },
+            "allowAnyAudience": {
+              "enum": [
+                true,
+                false,
+                "true",
+                "false",
+                null
+              ],
+              "description": "Whether tokens for any audience are accepted if audience is empty (also tokens a listed client got for other services)"
+            },
+            "claim": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Claim of the token with the client ID; empty uses tesk-api's default, client_id"
+            },
+            "clients": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string",
+                "pattern": "^[^,]*[^,\\s][^,]*$"
+              },
+              "description": "IDs of the clients whose tokens are accepted; non-blank, without commas"
+            },
+            "requireAtJwt": {
+              "enum": [
+                true,
+                false,
+                "true",
+                "false",
+                null
+              ],
+              "description": "Whether the token's header must have the type at+jwt (RFC 9068); null leaves tesk-api's default (true)"
+            },
+            "requireClientSubject": {
+              "enum": [
+                true,
+                false,
+                "true",
+                "false",
+                null
+              ],
+              "description": "Whether the token's sub must be the client ID; null leaves tesk-api's default (true)"
+            }
+          }
+        },
         "clientId": {
           "$ref": "#/$defs/scalar",
           "description": "ID of the OIDC client of the Swagger UI"
