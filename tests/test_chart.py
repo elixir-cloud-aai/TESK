@@ -1419,6 +1419,19 @@ def test_service_info_defaults() -> None:
     assert "\ncreatedAt: 2021-04-06\n" in text
 
 
+def test_service_info_type_artifact() -> None:
+    """The artifact of the service info's type is `TES`, in capitals.
+
+    The TES specification and clients use `tes`, but `TES` is right here:
+    tesk-api reads `service-info.yaml` with SnakeYAML, which matches the
+    name of the Java enum constant `TES`, and serves `"artifact": "tes"`.
+    With `tes` in the file, tesk-api (1.2.0) can't read the service info
+    and serves an empty body (elixir-cloud-aai/TESK#290).
+    """
+    info, _ = _service_info()
+    assert info["type"] == {"group": "org.ga4gh", "artifact": "TES", "version": "1.0.0"}
+
+
 @pytest.mark.parametrize("tag", ["1.2.1", "dev", "0"])
 def test_service_info_version(tag: str) -> None:
     """The version of the service info is the tag of the API's image.

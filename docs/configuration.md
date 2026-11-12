@@ -171,7 +171,9 @@ fail the installation if they are empty. The chart passes text on as text,
 but YAML reads unquoted numbers in values files as numbers first: quote
 text that looks like a number (e.g., `id: "1.10"`, which would otherwise
 become `1.1`). The chart sets two fields itself:
-`type` (`org.ga4gh`, `TES`, version `1.0.0`, which tesk-api implements) and
+`type` (group `org.ga4gh`, artifact `tes`, version `1.0.0`, which
+tesk-api implements; the ConfigMap holds the artifact as `TES`, the form
+that tesk-api reads, and tesk-api serves it as `tes`) and
 `version` (the tag of tesk-api's image, `tesk.image.tag`, by default the
 chart's `appVersion`). A change of the service info restarts the API's pod
 (tesk-api reads the file at startup, and then only every hour); with
