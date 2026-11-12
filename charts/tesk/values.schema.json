@@ -639,7 +639,7 @@
       "properties": {
         "classicFtpSecret": {
           "$ref": "#/$defs/scalar",
-          "description": "Name of the secret with the FTP username and password; null uses <prefix>-ftp, empty creates none"
+          "description": "Name of the secret with the FTP username and password, created if one of them is set; null uses <prefix>-ftp, empty creates none"
         },
         "netrcSecret": {
           "$ref": "#/$defs/scalar",

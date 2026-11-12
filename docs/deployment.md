@@ -223,7 +223,8 @@ credentials in one of two ways:
 
 - **Username and password** (default): the chart creates the secret named in
   `ftp.classicFtpSecret` (by default `<prefix>-ftp`, e.g., `tesk-ftp`)
-  from `ftp.username` and `ftp.password` (in `secrets.yaml`). List the
+  from `ftp.username` and `ftp.password` (in `secrets.yaml`), if either
+  is set; if neither is, it creates no FTP secret. List the
   hosts of the account in `ftp.hosts` (e.g., `[ftp.example.org]`): the
   filer sends the credentials only to them, and logs in anonymously
   elsewhere.
