@@ -128,14 +128,21 @@ files as floats, which YAML would render as, e.g., 1e+06), and
 {{/*
 Name of the secret with the FTP credentials: `ftp.classicFtpSecret`, or
 `<fullname>-ftp` if it is null (unset); empty (no secret) if it is empty or
-otherwise false (e.g., `false`), as in earlier versions of the chart.
+otherwise false (e.g., `false`), as in earlier versions of the chart. Also
+empty without credentials: neither `ftp.username` nor `ftp.password` is set
+(any value counts, also one that YAML reads as 0 or false), so that the
+chart creates no secret with empty credentials and tesk-api gets no FTP
+secret.
 */}}
 {{- define "tesk.ftpSecretName" -}}
 {{- $name := .Values.ftp.classicFtpSecret -}}
+{{- $credentials := or (include "tesk.isSet" .Values.ftp.username) (include "tesk.isSet" .Values.ftp.password) -}}
+{{- if $credentials -}}
 {{- if kindIs "invalid" $name -}}
 {{- include "tesk.fullname" . }}-ftp
 {{- else if $name -}}
 {{- toString $name -}}
+{{- end -}}
 {{- end -}}
 {{- end -}}
 
@@ -280,6 +287,18 @@ filer images newer than v0.10.6, the filer sends the FTP credentials to no
 host, and logs in anonymously. Set ftp.hosts to the hosts of the FTP
 account, or use a .netrc file (ftp.netrcSecret); see
 https://tesk.readthedocs.io/en/latest/upgrading/#ftp-credentials-go-only-to-configured-hosts
+{{- end }}
+{{- /* A secret named in the values, but no credentials for it: the chart
+creates and passes on none (`tesk.ftpSecretName`), also not a secret of
+that name made outside the chart */ -}}
+{{- $ftpSecret := .Values.ftp.classicFtpSecret -}}
+{{- if and $ftpSecret (not (include "tesk.ftpSecretName" .)) }}
+
+WARNING: ftp.classicFtpSecret is set, but neither ftp.username nor
+ftp.password is: the chart creates no FTP secret, and tasks get none, also
+if a secret of that name exists. Put the FTP credentials into the values
+(secrets.yaml); see
+https://tesk.readthedocs.io/en/latest/upgrading/#no-ftp-secret-without-credentials
 {{- end }}
 {{- /* Any client secret, also one that YAML reads as 0 or false */ -}}
 {{- if include "tesk.isSet" .Values.auth.clientSecret }}

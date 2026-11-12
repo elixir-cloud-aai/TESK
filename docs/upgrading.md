@@ -12,6 +12,29 @@ helm upgrade tesk charts/tesk --namespace tesk -f my-values.yaml -f secrets.yaml
 
 ## Unreleased
 
+### No FTP secret without credentials
+
+The chart creates the FTP secret (`ftp.classicFtpSecret`, by default
+`<prefix>-ftp`) only if `ftp.username` or `ftp.password` is set, and
+passes it on to tesk-api only then; before, it created the secret with
+empty credentials also without FTP. Releases that use FTP with
+`ftp.username` and `ftp.password` keep their secret as it is, as long as
+you upgrade with the same values (e.g., `-f secrets.yaml`, as above).
+
+Without FTP credentials, `helm upgrade` deletes the secret, and the API
+restarts without an FTP secret, so that tasks get none; as the secret held
+no credentials, FTP works as before (anonymously, or with a `.netrc` file).
+**Act on this if you put credentials into the secret by hand** (e.g., with
+`kubectl edit`) instead of the values: `helm upgrade` would delete it. Move
+them into `ftp.username` and `ftp.password` (in `secrets.yaml`) first.
+The same applies to a secret of the name in `ftp.classicFtpSecret` that is
+made outside the chart: without credentials in the values, tesk-api doesn't
+get it. The notes that `helm upgrade` prints warn if `ftp.classicFtpSecret`
+is set, but neither `ftp.username` nor `ftp.password`; they don't warn for
+the default name (`ftp.classicFtpSecret` null), and they are printed only
+after the upgrade. To see them before, run `helm upgrade --dry-run` with
+the same values.
+
 ### Tokens of services
 
 The chart can let tesk-api accept the access tokens of allow-listed
@@ -206,7 +229,12 @@ Things to check:
   a release named `tesk`.
 - **FTP secret:** to keep the name of the FTP secret, set
   `ftp.classicFtpSecret: ftp-secret`; by default, it is `<prefix>-ftp`.
-  `ftp.classicFtpSecret: ""` still creates no secret.
+  `ftp.classicFtpSecret: ""` still creates no secret. Put the credentials
+  into `ftp.username` and `ftp.password` (in `secrets.yaml`): from the
+  release in [Unreleased](#unreleased) on, the chart creates the secret
+  and passes it on to tesk-api only with them, so a secret of that name
+  restored by hand isn't used (see [No FTP secret without
+  credentials](#no-ftp-secret-without-credentials)).
 - **TLS secret:** the secret named in `ingress.tlsSecretName` isn't part of
   the release and stays. With cert-manager, the certificate is issued again
   for the new Ingress if the secret was removed.
