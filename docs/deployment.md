@@ -118,6 +118,72 @@ curl http://localhost:8080/ga4gh/tes/v1/service-info
 kill %1  # stop the port forward
 ```
 
+### Checking a deployment
+
+Once the API is reachable (see [Exposing the API](#exposing-the-api)),
+check the deployment from outside the cluster, e.g., after each
+installation or upgrade, with
+[`tests/smoke/deployment.sh`](https://github.com/elixir-cloud-aai/TESK/blob/dev/tests/smoke/deployment.sh)
+from a checkout of this repository (the script isn't part of the
+packaged chart). It needs Bash, curl and jq, and takes the base URL of the
+TES API. It checks, in this order:
+
+1. `GET /service-info` answers with the service info of a TES.
+2. Access control: with an access token in `TOKEN`, requests to `/tasks`
+   without a token and with an invalid one are refused (401), and requests
+   with the token answer. Without `TOKEN`, these checks are skipped, for
+   instances with `auth.mode: noauth`; the script then stops with a hint if
+   the instance needs a token.
+3. A task that runs `echo` ends `COMPLETE`, with exit code 0 and its output
+   in the executor's log (`GET /tasks/{id}?view=FULL`).
+4. A task that runs `sleep` is cancelled once it is `RUNNING`, and the API
+   reports it `CANCELED`. tesk-api reports this as soon as it has marked
+   the task's taskmaster job as cancelled; that the pods of the task stop
+   is up to the taskmaster, which the script can't see from outside.
+
+While it waits for a state, `SYSTEM_ERROR` only counts as the end of a
+task once it has lasted 10 seconds, as tesk-api reports it for a moment
+while Kubernetes updates the status of a task's jobs.
+
+It prints one line per check and stops with a non-zero exit code at the
+first check that fails, with the response that failed it. For an instance
+with `auth.mode: auth`, put an access token of a user who may run tasks
+into `TOKEN`, in the environment rather than on the command line, so that
+it stays out of the shell history and the process list (`read -s` prompts
+for it without showing it):
+
+```bash
+read -rs TOKEN && export TOKEN  # paste the token, then press Enter
+tests/smoke/deployment.sh https://tes.example.org/ga4gh/tes/v1
+unset TOKEN
+```
+
+For an instance without auth, e.g., through the port forward above:
+
+```bash
+tests/smoke/deployment.sh http://localhost:8080/ga4gh/tes/v1
+```
+
+- The script sends `TOKEN` over HTTPS only; set `ALLOW_HTTP=true` to send
+  it to an `http` URL, e.g., through a port forward.
+- It waits up to `TASK_TIMEOUT` seconds (default 600) for each state of a
+  task; the first task on a node may wait for the images of the
+  taskmaster, the filer and the executor (`alpine`) to be pulled.
+- `IMAGE` replaces the executor image of the tasks (Alpine, pinned by
+  digest), e.g., with an image of a non-root user if
+  `tesk.executor.securityContext` sets `runAsNonRoot` but no `runAsUser`,
+  which Alpine's root user doesn't pass. It needs `echo` and `sleep`.
+- The two tasks (named `deployment check: complete` and `deployment
+  check: cancel`) stay in the namespace, as the TES API can't delete tasks:
+  see [Deleting finished tasks](#deleting-finished-tasks). If the script
+  stops early, it cancels the task that hasn't ended yet (and warns if
+  that fails). With a `tesk.taskTtlSeconds` of less than a few minutes,
+  a task can be gone from the API before the script has read its final
+  state and logs, and the check fails.
+
+CI runs the script against the chart's default values on a kind cluster
+(see [Continuous integration](development.md#continuous-integration)).
+
 ## Exposing the API
 
 With the default values, the chart creates an Ingress (`ingress.enabled`), but

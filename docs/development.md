@@ -15,9 +15,9 @@ does, and run the checks that CI runs:
 uv sync --locked --group dev --group docs  # the tools, in `.venv`
 source .venv/bin/activate  # or `activate.fish` etc.
 pre-commit install  # run the checks on every commit
-pre-commit run --all-files  # whitespace, YAML/JSON, ruff, mypy, actionlint
+pre-commit run --all-files  # whitespace, YAML/JSON, ruff, mypy, actionlint, shellcheck
 pre-commit run --all-files --hook-stage manual gitleaks-all  # secrets
-pytest  # the tests of the docs hooks and, with helm, of the chart
+pytest  # the tests of the docs hooks, the check script and, with helm, the chart
 helm lint charts/tesk --strict
 mkdocs build --strict  # the docs, as CI and Read the Docs build them
 ```
@@ -49,8 +49,13 @@ The workflow `CI` (`.github/workflows/ci.yml`) runs on every pull request to
   ones), that references between the objects follow them, and that keys of
   earlier versions of the chart fail with their replacements.
 - **Chart install:** installs the chart with its default values on a
-  [kind](https://kind.sigs.k8s.io/) cluster and checks that
-  `GET /ga4gh/tes/v1/service-info` answers.
+  [kind](https://kind.sigs.k8s.io/) cluster, checks that
+  `GET /ga4gh/tes/v1/service-info` answers, and runs the check script for
+  deployed instances, `tests/smoke/deployment.sh` (see [Checking a
+  deployment](deployment.md#checking-a-deployment)), without a token: a
+  task that completes and one that is cancelled. The tests of the script
+  itself (`tests/test_smoke_deployment.py`, in **Test**) run it against a
+  fake TES API, also with a token.
 - **Docs:** builds the documentation strictly (`mkdocs build --strict`).
 - **CI passed:** the only required check; it fails if any of the other jobs
   failed, or was skipped where it must run.
