@@ -1,6 +1,9 @@
 # Install the chart with its default values on a kind cluster, wait until
 # the API is ready and check that `GET /ga4gh/tes/v1/service-info` answers
-# (through a port forward; the default Ingress has no controller on kind).
+# (through a port forward; the default Ingress has no controller on kind),
+# then run the check script for deployed instances
+# (`tests/smoke/deployment.sh`, without auth: the default values have
+# `auth.mode: noauth`), which runs a task to completion and cancels one.
 # Used by the `chart-install` job of `ci.yml` and by `release.yml`. Needs a
 # checkout of the repository.
 
@@ -67,3 +70,28 @@ runs:
         kubectl get all -n "${NAMESPACE}"
         kubectl logs -n "${NAMESPACE}" deployment/tesk-api --tail=100 || true
         exit 1
+    - name: Check deployment
+      env:
+        NAMESPACE: ${{ inputs.namespace }}
+      shell: bash
+      # The API answers now; a port forward of its own, on another port than
+      # the step above, so that one left over doesn't answer instead. The
+      # objects and the logs of the pods help if a task doesn't end as
+      # expected
+      run: |
+        log="${RUNNER_TEMP}/port-forward-check.log"
+        kubectl port-forward -n "${NAMESPACE}" service/tesk-api 8081:8080 \
+            > "${log}" 2>&1 &
+        pid=$!
+        trap 'kill "${pid}" 2> /dev/null || true' EXIT
+        sleep 2
+        if ! tests/smoke/deployment.sh http://localhost:8081/ga4gh/tes/v1; then
+          cat "${log}"
+          kubectl get pods,jobs,pvc -n "${NAMESPACE}"
+          for pod in $(kubectl get pods -n "${NAMESPACE}" -o name); do
+            echo "::group::${pod}"
+            kubectl logs -n "${NAMESPACE}" "${pod}" --all-containers --tail=50 || true
+            echo "::endgroup::"
+          done
+          exit 1
+        fi
