@@ -2153,14 +2153,15 @@ def test_ftp_secret() -> None:
     ("args", "created"),
     [
         ((), False),
-        (("--set", "ftp.username=user"), True),
-        (("--set", "ftp.password=pass"), True),
+        (USER, True),
+        (PASSWORD, True),
         (("--set", "ftp.username=0"), True),
         (("--set", "ftp.username=false"), True),
         (("--set", "ftp.username=", "--set", "ftp.password="), False),
         (("--set", "ftp.username=null", "--set", "ftp.password=null"), False),
         (("--set", "ftp.netrcSecret=netrc"), False),
         (("--set", "ftp.hosts={ftp.example.org}"), False),
+        (("--set", "ftp.classicFtpSecret=ftp-secret"), False),
     ],
 )
 def test_ftp_secret_credentials(args: tuple[str, ...], created: bool) -> None:
@@ -2175,13 +2176,19 @@ def test_ftp_secret_credentials(args: tuple[str, ...], created: bool) -> None:
         created: Whether the secret is created.
     """
     manifests = render(*args)
-    secret = find(manifests, "Secret", "tesk-ftp")
+    # The secrets but the `.netrc` one (`ftp.netrcSecret`)
+    secrets = {
+        m["metadata"]["name"]
+        for m in manifests
+        if m["kind"] == "Secret" and m["metadata"]["name"] != "netrc"
+    }
     variable = env(manifests).get("TESK_API_TASKMASTER_FTP_SECRET_NAME")
     if created:
-        assert secret is not None
+        assert secrets == {"tesk-ftp"}
         assert variable == "tesk-ftp"
     else:
-        assert secret is None
+        # Also none of a name of its own (`ftp.classicFtpSecret`)
+        assert not secrets
         assert variable is None
 
 
@@ -2741,8 +2748,9 @@ def test_ftp_secret_name(
 ) -> None:
     """The FTP secret is `<fullname>-ftp`, unless named; empty creates none.
 
-    False (as in earlier versions of the chart) creates none too. With FTP
-    credentials, as there is no secret without them.
+    False (as in earlier versions of the chart) creates none too. Rendered
+    with `USER`, as there is no FTP secret without credentials (see
+    `test_ftp_secret_credentials`).
 
     Args:
         args: The `helm template` arguments; `--values null` stands for a
