@@ -429,10 +429,10 @@ clients that users can't log in with. The chart fails if the setting is on
 without an issuer, without client IDs, or with an `auth.mode` other than
 `auth`; the issuer and the JWKS URI must be HTTPS URLs, and client IDs
 mustn't contain commas (quote numeric ones, as they must be strings).
-tesk-api 1.2.0
-and older ignore the setting and refuse the clients' tokens: `helm install`
-and `helm upgrade` print a warning if it is on with such an image
-(`tesk.image.tag`, by default the chart's `appVersion`).
+tesk-api 1.2.0 and older ignore the setting and refuse the clients' tokens:
+`helm install` and `helm upgrade` print a warning if it is on with such an
+image (`tesk.image.tag` as a version number, by default the chart's
+`appVersion`).
 
 Every holder of a listed client's credentials can run any image with any
 command on the cluster: list only clients that you trust, such as your own
