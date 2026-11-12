@@ -14,6 +14,7 @@ import json
 import os
 from pathlib import Path
 import shutil
+import socket
 import subprocess
 import threading
 from typing import Any
@@ -26,8 +27,10 @@ SCRIPT = ROOT / "tests/smoke/deployment.sh"
 BASE = "/ga4gh/tes/v1"
 TOKEN = "a-valid-token"  # noqa: S105
 
+# Skipped locally without the tools, but not in CI, where the tests must run
 pytestmark = pytest.mark.skipif(
-    not all(shutil.which(tool) for tool in ("bash", "curl", "jq")),
+    not all(shutil.which(tool) for tool in ("bash", "curl", "jq"))
+    and not os.environ.get("CI"),
     reason="needs bash, curl and jq",
 )
 
@@ -38,9 +41,12 @@ class FakeTes:
 
     Attributes:
         auth: Whether the task endpoints need the token `TOKEN`.
-        final_state: The state in which tasks that echo end.
+        echo_states: The states of tasks that echo, one per poll; the last
+            one stays.
+        sleep_states: The states of tasks that sleep, likewise.
         stdout: The stdout of tasks that echo; None echoes their argument.
         cancellable: Whether cancelling a task ends it CANCELED.
+        cancel_status: The HTTP status of the answer to a cancel.
         artifact: The artifact of the service info's type.
         tasks: Tasks by identifier: their command and state.
         cancels: The identifiers of the tasks cancelled, in order.
@@ -48,9 +54,11 @@ class FakeTes:
     """
 
     auth: bool = False
-    final_state: str = "COMPLETE"
+    echo_states: list[str] = field(default_factory=lambda: ["RUNNING", "COMPLETE"])
+    sleep_states: list[str] = field(default_factory=lambda: ["RUNNING"])
     stdout: str | None = None
     cancellable: bool = True
+    cancel_status: int = 200
     artifact: str = "tes"
     tasks: dict[str, dict[str, Any]] = field(default_factory=dict)
     cancels: list[str] = field(default_factory=list)
@@ -129,12 +137,13 @@ def _handler(fake: FakeTes) -> type[BaseHTTPRequestHandler]:
                 return
             task_id = path.removeprefix("/tasks/")
             task = fake.tasks[task_id]
-            # Each poll moves a task on: QUEUED, RUNNING, then its end
-            if task["state"] == "QUEUED":
-                task["state"] = "RUNNING"
-            elif task["state"] == "RUNNING" and task["command"][0] == "echo":
-                task["state"] = fake.final_state
-            answer: dict[str, Any] = {"id": task_id, "state": task["state"]}
+            # Each poll moves a task on to its next state
+            states = task["states"]
+            answer: dict[str, Any] = {
+                "id": task_id,
+                "state": states[min(task["polls"], len(states) - 1)],
+            }
+            task["polls"] += 1
             if "view=FULL" in url.query:
                 stdout = fake.stdout
                 if stdout is None:
@@ -151,17 +160,16 @@ def _handler(fake: FakeTes) -> type[BaseHTTPRequestHandler]:
                 length = int(self.headers["Content-Length"])
                 task = json.loads(self.rfile.read(length))
                 task_id = f"task-{len(fake.tasks) + 1}"
-                fake.tasks[task_id] = {
-                    "command": task["executors"][0]["command"],
-                    "state": "QUEUED",
-                }
+                command = task["executors"][0]["command"]
+                states = fake.echo_states if command[0] == "echo" else fake.sleep_states
+                fake.tasks[task_id] = {"command": command, "states": states, "polls": 0}
                 self._send(200, {"id": task_id})
                 return
             task_id = path.removeprefix("/tasks/").removesuffix(":cancel")
             fake.cancels.append(task_id)
-            if fake.cancellable:
-                fake.tasks[task_id]["state"] = "CANCELED"
-            self._send(200)
+            if fake.cancellable and fake.cancel_status == 200:
+                fake.tasks[task_id].update(states=["CANCELED"], polls=0)
+            self._send(fake.cancel_status)
 
     return Handler
 
@@ -232,8 +240,13 @@ def test_passes_with_auth(fake: tuple[FakeTes, str]) -> None:
     assert "ok: GET /tasks without a token is refused (401)" in result.stdout
     assert "ok: GET /tasks with an invalid token is refused (401)" in result.stdout
     assert "ok: GET /tasks with TOKEN answers (200)" in result.stdout
+    assert result.stdout.endswith("Deployment checks passed\n")
+    assert state.cancels == ["task-2"]
     assert TOKEN not in result.stdout + result.stderr
-    assert f"Bearer {TOKEN}" in state.authorizations
+    # Only the two checks of the refusal go without the token
+    assert state.authorizations.count("") == 1
+    assert state.authorizations.count("Bearer not-a-token") == 1
+    assert set(state.authorizations) == {"", "Bearer not-a-token", f"Bearer {TOKEN}"}
 
 
 def test_fails_if_auth_is_not_enforced(fake: tuple[FakeTes, str]) -> None:
@@ -273,7 +286,11 @@ def test_rejects_invalid_timeout(fake: tuple[FakeTes, str]) -> None:
 
 def test_fails_without_response() -> None:
     """A URL that doesn't answer fails at the service info."""
-    result = _run("http://127.0.0.1:9/ga4gh/tes/v1")
+    # A port that was free a moment ago, so that nothing listens on it
+    with socket.socket() as free:
+        free.bind(("127.0.0.1", 0))
+        port = free.getsockname()[1]
+    result = _run(f"http://127.0.0.1:{port}/ga4gh/tes/v1")
     assert result.returncode == 1
     assert "GET /service-info: status 000, expected 200" in result.stdout
 
@@ -291,11 +308,12 @@ def test_fails_on_other_service_info(fake: tuple[FakeTes, str]) -> None:
 def test_fails_if_task_fails(fake: tuple[FakeTes, str]) -> None:
     """A task that ends in another state fails, with the task."""
     state, url = fake
-    state.final_state = "EXECUTOR_ERROR"
+    state.echo_states = ["RUNNING", "EXECUTOR_ERROR"]
     result = _run(url)
     assert result.returncode == 1
     assert "task task-1 ended EXECUTOR_ERROR, expected COMPLETE" in result.stdout
     assert '"state": "EXECUTOR_ERROR"' in result.stdout
+    assert not state.cancels
 
 
 def test_fails_on_other_output(fake: tuple[FakeTes, str]) -> None:
@@ -307,6 +325,18 @@ def test_fails_on_other_output(fake: tuple[FakeTes, str]) -> None:
     assert "?view=FULL: the response doesn't match" in result.stdout
 
 
+def test_cancels_first_task_on_timeout(fake: tuple[FakeTes, str]) -> None:
+    """A task that doesn't complete in time fails, and is cancelled."""
+    state, url = fake
+    state.echo_states = ["RUNNING"]
+    result = _run(url, TASK_TIMEOUT="3")
+    assert result.returncode == 1
+    assert "task task-1 is RUNNING after 3 s, expected COMPLETE" in result.stdout
+    assert "Cancelling task task-1" in result.stdout
+    assert state.cancels == ["task-1"]
+    assert list(state.tasks) == ["task-1"]
+
+
 def test_cancels_task_on_timeout(fake: tuple[FakeTes, str]) -> None:
     """A task that isn't cancelled in time fails, and is cancelled again."""
     state, url = fake
@@ -316,3 +346,52 @@ def test_cancels_task_on_timeout(fake: tuple[FakeTes, str]) -> None:
     assert "task task-2 is RUNNING after 3 s, expected CANCELED" in result.stdout
     assert "Cancelling task task-2" in result.stdout
     assert state.cancels == ["task-2", "task-2"]
+
+
+def test_waits_through_transient_states(fake: tuple[FakeTes, str]) -> None:
+    """INITIALIZING, QUEUED and a SYSTEM_ERROR of a moment don't end a task."""
+    state, url = fake
+    state.echo_states = [
+        "SYSTEM_ERROR",
+        "QUEUED",
+        "INITIALIZING",
+        "RUNNING",
+        "SYSTEM_ERROR",
+        "COMPLETE",
+    ]
+    state.sleep_states = ["SYSTEM_ERROR", "INITIALIZING", "RUNNING"]
+    result = _run(url)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "ok: task task-1 ended COMPLETE" in result.stdout
+    assert "ok: task task-2 ended CANCELED" in result.stdout
+
+
+def test_fails_on_lasting_system_error(fake: tuple[FakeTes, str]) -> None:
+    """A SYSTEM_ERROR that lasts ends the task, which isn't cancelled then."""
+    state, url = fake
+    state.echo_states = ["RUNNING", "SYSTEM_ERROR"]
+    result = _run(url)
+    assert result.returncode == 1
+    assert "task task-1 ended SYSTEM_ERROR, expected COMPLETE" in result.stdout
+    assert not state.cancels
+
+
+def test_fails_if_cancel_is_refused(fake: tuple[FakeTes, str]) -> None:
+    """A cancel that isn't accepted fails, and the task is cancelled again."""
+    state, url = fake
+    state.cancel_status = 400
+    result = _run(url)
+    assert result.returncode == 1
+    assert "POST /tasks/task-2:cancel: status 400, expected 200" in result.stdout
+    assert state.cancels == ["task-2", "task-2"]
+
+
+def test_fails_if_cancelled_task_completes(fake: tuple[FakeTes, str]) -> None:
+    """A task that ends COMPLETE despite the cancel fails."""
+    state, url = fake
+    state.cancellable = False
+    state.sleep_states = ["RUNNING", "RUNNING", "COMPLETE"]
+    result = _run(url)
+    assert result.returncode == 1
+    assert "task task-2 ended COMPLETE, expected CANCELED" in result.stdout
+    assert state.cancels == ["task-2"]

@@ -73,19 +73,34 @@ runs:
     - name: Check deployment
       env:
         NAMESPACE: ${{ inputs.namespace }}
+        # Shorter than the default, so that a stuck task fails within the
+        # job's timeout, with the diagnostics below
+        TASK_TIMEOUT: "300"
       shell: bash
-      # The API answers now; a port forward of its own, on another port than
-      # the step above, so that one left over doesn't answer instead. The
-      # objects and the logs of the pods help if a task doesn't end as
+      # A port forward of its own, on another port than the step above, so
+      # that one left over doesn't answer instead; restarted whenever it
+      # ends (e.g., on a refused connection), as the checks take minutes.
+      # The objects and the logs of the pods help if a task doesn't end as
       # expected
       run: |
         log="${RUNNER_TEMP}/port-forward-check.log"
-        kubectl port-forward -n "${NAMESPACE}" service/tesk-api 8081:8080 \
-            > "${log}" 2>&1 &
+        url=http://localhost:8081/ga4gh/tes/v1
+        (
+          while true; do
+            kubectl port-forward -n "${NAMESPACE}" service/tesk-api 8081:8080 \
+                >> "${log}" 2>&1 || true
+            sleep 1
+          done
+        ) &
         pid=$!
-        trap 'kill "${pid}" 2> /dev/null || true' EXIT
-        sleep 2
-        if ! tests/smoke/deployment.sh http://localhost:8081/ga4gh/tes/v1; then
+        trap 'pkill -P "${pid}" 2> /dev/null || true; kill "${pid}" 2> /dev/null || true' EXIT
+        for _ in $(seq 30); do
+          if curl --fail --silent --max-time 10 --output /dev/null "${url}/service-info"; then
+            break
+          fi
+          sleep 2
+        done
+        if ! tests/smoke/deployment.sh "${url}"; then
           cat "${log}"
           kubectl get pods,jobs,pvc -n "${NAMESPACE}"
           for pod in $(kubectl get pods -n "${NAMESPACE}" -o name); do

@@ -23,8 +23,8 @@
 # standard input, so that it doesn't show up in the process list. Each
 # request has a limit of 60 seconds. The two tasks stay in the task list,
 # as TES has no way to delete tasks (see "Deleting finished tasks" in
-# `docs/deployment.md`); if the script stops early, it cancels the second
-# task.
+# `docs/deployment.md`); if the script stops early, it cancels the task
+# that hasn't ended yet.
 set -euo pipefail
 
 api="${1:?usage: $0 <base URL of the TES API>}"
@@ -40,15 +40,19 @@ if [[ -n "${token}" && "${api}" != https://* \
   echo "::error::${api} isn't an HTTPS URL: set ALLOW_HTTP=true to send TOKEN to it"
   exit 1
 fi
-# The image of the tasks, pinned by digest
+# The image of the tasks, pinned by digest (to update it, take the digest of
+# the index of a newer tag, e.g., from `docker buildx imagetools inspect
+# alpine:<tag>`)
 image='alpine:3.22@sha256:2e0b81d60597f449baa56dc25d355367869d2dca4cd57e866f1e2b52af3eb55f'
 final_states=(COMPLETE EXECUTOR_ERROR SYSTEM_ERROR CANCELED)
+# Seconds that SYSTEM_ERROR must last to count as an end (see `await_state`)
+system_error_grace=10
 # The last response body and status
 body="$(mktemp)"
 status=""
 # The identifier of the task that `create_task` created
 task_id=""
-# The running task to cancel if the script stops early
+# The task that hasn't ended yet, to cancel if the script stops early
 running=""
 
 cleanup() {
@@ -110,7 +114,7 @@ check() {
 }
 
 # Create a task with one executor that runs a command (JSON array); sets
-# `task_id`
+# `task_id` and `running`
 create_task() {
   local name="$1" command="$2" task
   task="$(jq -cn --arg name "${name}" --arg image "${image}" \
@@ -119,24 +123,46 @@ create_task() {
   check "" "${token}" POST /tasks 200 '.id | type == "string" and length > 0' \
     "${task}"
   task_id="$(jq -r .id "${body}")"
+  running="${task_id}"
   echo "ok: POST /tasks created task ${task_id}"
 }
 
-# Wait until a task has a state; fails if it ends in another one first
+# Wait until a task has a state; fails if it ends in another one first.
+# tesk-api reports SYSTEM_ERROR for a moment while Kubernetes updates the
+# status of a task's jobs (e.g., right after the task was created, or when
+# its taskmaster ends), so SYSTEM_ERROR only counts as an end once it has
+# lasted `system_error_grace` seconds. Clears `running` once the task has
+# ended
 await_state() {
-  local id="$1" wanted="$2" state="" deadline=$((SECONDS + task_timeout))
+  local id="$1" wanted="$2" state="" final ended since=""
+  local deadline=$((SECONDS + task_timeout))
   while ((SECONDS < deadline)); do
     check "" "${token}" GET "/tasks/${id}?view=MINIMAL" 200 '.state | type == "string"'
     state="$(jq -r .state "${body}")"
+    ended=false
+    for final in "${final_states[@]}"; do
+      if [[ "${state}" == "${final}" ]]; then
+        ended=true
+      fi
+    done
+    if [[ "${state}" == SYSTEM_ERROR ]]; then
+      since="${since:-${SECONDS}}"
+      if ((SECONDS - since < system_error_grace)); then
+        ended=false
+      fi
+    else
+      since=""
+    fi
+    if [[ "${ended}" == true ]]; then
+      running=""
+    fi
     if [[ "${state}" == "${wanted}" ]]; then
       return
     fi
-    for final in "${final_states[@]}"; do
-      if [[ "${state}" == "${final}" ]]; then
-        request "${token}" GET "/tasks/${id}?view=FULL"
-        fail "task ${id} ended ${state}, expected ${wanted}"
-      fi
-    done
+    if [[ "${ended}" == true ]]; then
+      request "${token}" GET "/tasks/${id}?view=FULL"
+      fail "task ${id} ended ${state}, expected ${wanted}"
+    fi
     sleep 2
   done
   request "${token}" GET "/tasks/${id}?view=FULL"
@@ -184,13 +210,11 @@ check "task ${id} has exit code 0 and the expected output in its logs" \
 # A task that is cancelled while it runs
 create_task "deployment check: cancel" '["sleep", "600"]'
 id="${task_id}"
-running="${id}"
 await_state "${id}" RUNNING
 echo "ok: task ${id} is RUNNING"
 check "POST /tasks/${id}:cancel answers (200)" \
   "${token}" POST "/tasks/${id}:cancel" 200
 await_state "${id}" CANCELED
-running=""
 echo "ok: task ${id} ended CANCELED"
 
 echo "Deployment checks passed"
