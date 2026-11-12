@@ -710,6 +710,27 @@ def test_security_context_values() -> None:
     }
 
 
+def test_security_context_own_seccomp() -> None:
+    """Without the user and the seccomp profile, the rest is kept.
+
+    As documented for clusters that assign the user and set their own seccomp
+    profile (`docs/deployment.md`).
+    """
+    manifests = render(
+        "--set",
+        "tesk.podSecurityContext.runAsUser=null",
+        "--set",
+        "tesk.podSecurityContext.seccompProfile=null",
+    )
+    pod = deployment(manifests)["spec"]["template"]["spec"]
+    assert pod["securityContext"] == {"runAsNonRoot": True}
+    assert container(manifests)["securityContext"] == {
+        "allowPrivilegeEscalation": False,
+        "capabilities": {"drop": ["ALL"]},
+    }
+    assert "seccomp" not in yaml.safe_dump_all(manifests).lower()
+
+
 def test_security_context_null() -> None:
     """Null removes the security contexts of the API's pod and container."""
     manifests = render(
