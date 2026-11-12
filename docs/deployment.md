@@ -413,21 +413,32 @@ default from the issuer's discovery document,
 `<issuer>/.well-known/openid-configuration`), the issuer, the expiry, the
 audience (if `auth.tokenClients.audience` is set), the type `at+jwt` in
 the header (RFC 9068; `auth.tokenClients.requireAtJwt: false` turns this
-off for providers that don't set it), and the client ID in the claim
-`auth.tokenClients.claim` (default `client_id`; some providers use `azp`).
-If all hold, the request is the client's: it may create tasks, and list,
-get and cancel the tasks it created; no group rules apply. Other tokens
-(not a JWT, of another issuer, or of a client that isn't listed) go to the
-user info endpoint as before, so users' tokens keep working. The chart
-fails if the setting is on without an issuer, without client IDs, or with
-`auth.mode: noauth`; client IDs mustn't contain commas. tesk-api 1.2.0
+off for providers that don't set it), the client ID in the claim
+`auth.tokenClients.claim` (default `client_id`; some providers use `azp`),
+and that the claim `sub` is the client ID too, as in tokens of the client
+credentials grant (RFC 9068). If all hold, the request is the client's: it
+may create tasks, and list, get and cancel the tasks it created; no group
+rules apply. Other tokens (not a JWT, of another issuer, of a client that
+isn't listed, or with another `sub`, such as tokens of users obtained
+through a listed client) go to the user info endpoint as before, so users'
+tokens keep working. For providers whose client tokens have another `sub`
+(e.g., the ID of a service account user), set
+`auth.tokenClients.requireClientSubject: false`; then tokens of users
+obtained through a listed client count as the client's too, so list only
+clients that users can't log in with. The chart fails if the setting is on
+without an issuer, without client IDs, or with an `auth.mode` other than
+`auth`; the issuer and the JWKS URI must be HTTPS URLs, and client IDs
+mustn't contain commas (quote numeric ones, as they must be strings).
+tesk-api 1.2.0
 and older ignore the setting and refuse the clients' tokens: `helm install`
 and `helm upgrade` print a warning if it is on with such an image
 (`tesk.image.tag`, by default the chart's `appVersion`).
 
 Every holder of a listed client's credentials can run any image with any
 command on the cluster: list only clients that you trust, such as your own
-gateway, and keep their secrets as safe as an admin's login. Set
+gateway, and keep their secrets as safe as an admin's login. Whoever
+controls the issuer's discovery document or keys can sign tokens for a
+listed client, which is why the chart accepts only HTTPS URLs for them. Set
 `auth.tokenClients.audience` to a value that the provider puts into the
 tokens for this deployment only (e.g., its URL), so that tokens which the
 same clients get for other services are refused; providers such as LS

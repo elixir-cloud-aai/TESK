@@ -501,16 +501,16 @@
                 "string",
                 "null"
               ],
-              "pattern": "^(https?://[^/?#\\s]+[^\\s]*)?$",
-              "description": "Issuer of the tokens (an HTTP(S) URL), compared exactly with the claim iss"
+              "pattern": "^(https://[^/?#\\s]+[^\\s]*)?$",
+              "description": "Issuer of the tokens (an HTTPS URL), compared exactly with the claim iss"
             },
             "jwksUri": {
               "type": [
                 "string",
                 "null"
               ],
-              "pattern": "^(https?://[^/?#\\s]+[^\\s]*)?$",
-              "description": "JWKS URI of the issuer (an HTTP(S) URL); empty uses the one of the issuer's discovery document"
+              "pattern": "^(https://[^/?#\\s]+[^\\s]*)?$",
+              "description": "JWKS URI of the issuer (an HTTPS URL); empty uses the one of the issuer's discovery document"
             },
             "audience": {
               "type": [
@@ -546,6 +546,16 @@
                 null
               ],
               "description": "Whether the token's header must have the type at+jwt (RFC 9068); null leaves tesk-api's default (true)"
+            },
+            "requireClientSubject": {
+              "enum": [
+                true,
+                false,
+                "true",
+                "false",
+                null
+              ],
+              "description": "Whether the token's sub must be the client ID; null leaves tesk-api's default (true)"
             }
           }
         },

@@ -1279,6 +1279,9 @@ TOKEN_CLIENTS = {
     "claim": "TESK_API_AUTHORISATION_SERVICE_CLIENTS_CLIENT_CLAIM",
     "clients": "TESK_API_AUTHORISATION_SERVICE_CLIENTS_CLIENT_IDS",
     "requireAtJwt": "TESK_API_AUTHORISATION_SERVICE_CLIENTS_REQUIRE_ACCESS_TOKEN_TYPE",
+    "requireClientSubject": (
+        "TESK_API_AUTHORISATION_SERVICE_CLIENTS_REQUIRE_CLIENT_SUBJECT"
+    ),
 }
 ISSUER = "https://login.example.org/oidc/"
 
@@ -1332,8 +1335,9 @@ def test_auth_token_clients_off(args: tuple[str, ...]) -> None:
 def test_auth_token_clients_minimal() -> None:
     """An issuer and clients turn it on, with the claim `client_id`.
 
-    The JWKS URI, the audience and the `typ` check are left to tesk-api's
-    defaults (discovery, no audience, `at+jwt` required).
+    The JWKS URI, the audience, the `typ` check and the `sub` check are left
+    to tesk-api's defaults (discovery, no audience, `at+jwt` required, `sub`
+    the client ID).
     """
     variables = env(render(*token_clients(clients=["gateway", "other"])))
     assert {key: variables.get(name) for key, name in TOKEN_CLIENTS.items()} == {
@@ -1344,6 +1348,7 @@ def test_auth_token_clients_minimal() -> None:
         "claim": "client_id",
         "clients": "gateway,other",
         "requireAtJwt": None,
+        "requireClientSubject": None,
     }
 
 
@@ -1361,6 +1366,7 @@ def test_auth_token_clients_all(enabled: bool | str) -> None:
         claim="azp",
         clients=[" a ", "\u000b", "b c"],
         requireAtJwt=False,
+        requireClientSubject="false",
     )
     variables = env(render(*args))
     assert {key: variables.get(name) for key, name in TOKEN_CLIENTS.items()} == {
@@ -1371,6 +1377,7 @@ def test_auth_token_clients_all(enabled: bool | str) -> None:
         "claim": "azp",
         "clients": "a,b c",
         "requireAtJwt": "false",
+        "requireClientSubject": "false",
     }
 
 
@@ -1380,7 +1387,11 @@ def test_auth_token_clients_all(enabled: bool | str) -> None:
         ({"requireAtJwt": True}, "true"),
         ({"requireAtJwt": "true"}, "true"),
         ({"requireAtJwt": "false"}, "false"),
+        ({"requireClientSubject": True}, "true"),
+        ({"requireClientSubject": False}, "false"),
         ({"claim": ""}, None),
+        ({"claim": "  "}, None),
+        ({"claim": " azp "}, "azp"),
         ({"claim": None}, "client_id"),
         ({"jwksUri": ""}, None),
         ({"audience": ""}, None),
@@ -1447,6 +1458,10 @@ def test_auth_token_clients_with_claim() -> None:
             (*token_clients(), "--set", "auth.mode=noauth"),
             "auth.tokenClients.enabled needs auth.mode auth",
         ),
+        (
+            (*token_clients()[2:], "--set-json", "auth.mode=null"),
+            "auth.tokenClients.enabled needs auth.mode auth",
+        ),
         (token_clients(issuer=None), "auth.tokenClients.enabled needs"),
         (token_clients(issuer=""), "auth.tokenClients.enabled needs"),
         (token_clients(clients=None), "auth.tokenClients.enabled needs"),
@@ -1475,6 +1490,9 @@ def test_auth_token_clients_incomplete(args: tuple[str, ...], message: str) -> N
         {"issuer": "login.example.org"},
         {"issuer": ["https://login.example.org"]},
         {"jwksUri": "ftp://login.example.org/jwk"},
+        {"issuer": "http://login.example.org/oidc/"},
+        {"jwksUri": "http://login.example.org/jwk"},
+        {"requireClientSubject": "no"},
         {"clients": "gateway"},
         {"clients": ["a,b"]},
         {"clients": [""]},
@@ -3627,9 +3645,12 @@ def test_notes_legacy_user_labels_old_api(
 @pytest.mark.parametrize(
     ("args", "warned"),
     [
-        ((), True),
         (("--set", "tesk.image.tag=1.2.0"), True),
         (("--set", "tesk.image.tag=v1.1.0"), True),
+        (("--set", "tesk.image.tag=1.2.0-rc.1"), True),
+        (("--set", "tesk.image.tag=1.1.0-beta"), True),
+        # The first release with the setting is still open (tesk-api#153)
+        (("--set", "tesk.image.tag=1.2.1-rc.1"), False),
         (("--set", "tesk.image.tag=1.3.0-rc.1"), False),
         (("--set", "tesk.image.tag=1.3.0"), False),
         (("--set", "tesk.image.tag=dev"), False),
