@@ -401,7 +401,7 @@ auth:
     enabled: true
     # Compared exactly with the claim iss of the tokens
     issuer: https://login.example.org/oidc/
-    # Recommended: the token's aud must contain it
+    # The token's aud must contain it
     audience: https://tes.example.org
     clients:
       - my-gateway
@@ -411,7 +411,7 @@ tesk-api checks a bearer token that is a JWT itself first: its signature
 against the keys of the issuer (from `auth.tokenClients.jwksUri`, or by
 default from the issuer's discovery document,
 `<issuer>/.well-known/openid-configuration`), the issuer, the expiry, the
-audience (if `auth.tokenClients.audience` is set), the type `at+jwt` in
+audience (`auth.tokenClients.audience`), the type `at+jwt` in
 the header (RFC 9068; `auth.tokenClients.requireAtJwt: false` turns this
 off for providers that don't set it), the client ID in the claim
 `auth.tokenClients.claim` (default `client_id`; some providers use `azp`),
@@ -426,8 +426,9 @@ tokens keep working. For providers whose client tokens have another `sub`
 `auth.tokenClients.requireClientSubject: false`; then tokens of users
 obtained through a listed client count as the client's too, so list only
 clients that users can't log in with. The chart fails if the setting is on
-without an issuer, without client IDs, or with an `auth.mode` other than
-`auth`; the issuer and the JWKS URI must be HTTPS URLs, and client IDs
+without an issuer, without an audience (unless
+`auth.tokenClients.allowAnyAudience` is `true`), without client IDs, or
+with an `auth.mode` other than `auth`; the issuer and the JWKS URI must be HTTPS URLs, and client IDs
 mustn't contain commas (quote numeric ones, as they must be strings).
 tesk-api 1.2.0 and older ignore the setting and refuse the clients' tokens:
 `helm install` and `helm upgrade` print a warning if it is on with such an
@@ -442,7 +443,18 @@ listed client, which is why the chart accepts only HTTPS URLs for them. Set
 `auth.tokenClients.audience` to a value that the provider puts into the
 tokens for this deployment only (e.g., its URL), so that tokens which the
 same clients get for other services are refused; providers such as LS
-Login let you configure the audience per client. See [Access
+Login let you configure the audience per client. Only if your provider
+can't, set `auth.tokenClients.allowAnyAudience: true` and leave the
+audience empty: then every service that a listed client calls with its
+tokens can use them to run tasks here.
+
+To revoke a client, remove it from `auth.tokenClients.clients` and upgrade
+the release: tesk-api reads the list at startup, so the old pod keeps
+accepting the client's tokens until the rollout has completed and the old
+pod is gone (`kubectl rollout status deployment/<prefix>-api`). Also
+disable the client or rotate its secret at the provider, so that it gets
+no new tokens; those it already has stay valid at other services that
+accept them until they expire. See [Access
 control](tesk-api/access-control.md) in the docs of tesk-api for the rules.
 
 ### Tasks created before tesk-api 1.2.0

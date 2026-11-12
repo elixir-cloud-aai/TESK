@@ -1284,19 +1284,26 @@ TOKEN_CLIENTS = {
     ),
 }
 ISSUER = "https://login.example.org/oidc/"
+AUDIENCE = "https://tes.example.org"
 
 
 def token_clients(**values: Any) -> tuple[str, ...]:
     """`helm template` arguments with mode auth and `auth.tokenClients`.
 
     Args:
-        values: Keys of `auth.tokenClients` on top of an issuer and one
-            client, with the setting on; None removes a key.
+        values: Keys of `auth.tokenClients` on top of an issuer, an audience
+            and one client, with the setting on; None removes a key.
 
     Returns:
         The arguments.
     """
-    settings = {"enabled": True, "issuer": ISSUER, "clients": ["gateway"], **values}
+    settings = {
+        "enabled": True,
+        "issuer": ISSUER,
+        "audience": AUDIENCE,
+        "clients": ["gateway"],
+        **values,
+    }
     settings = {key: value for key, value in settings.items() if value is not None}
     return (
         "--set",
@@ -1333,18 +1340,17 @@ def test_auth_token_clients_off(args: tuple[str, ...]) -> None:
 
 
 def test_auth_token_clients_minimal() -> None:
-    """An issuer and clients turn it on, with the claim `client_id`.
+    """An issuer, an audience and clients turn it on, with the claim `client_id`.
 
-    The JWKS URI, the audience, the `typ` check and the `sub` check are left
-    to tesk-api's defaults (discovery, no audience, `at+jwt` required, `sub`
-    the client ID).
+    The JWKS URI, the `typ` check and the `sub` check are left to tesk-api's
+    defaults (discovery, `at+jwt` required, `sub` the client ID).
     """
     variables = env(render(*token_clients(clients=["gateway", "other"])))
     assert {key: variables.get(name) for key, name in TOKEN_CLIENTS.items()} == {
         "enabled": "true",
         "issuer": ISSUER,
         "jwksUri": None,
-        "audience": None,
+        "audience": AUDIENCE,
         "claim": "client_id",
         "clients": "gateway,other",
         "requireAtJwt": None,
@@ -1394,7 +1400,6 @@ def test_auth_token_clients_all(enabled: bool | str) -> None:
         ({"claim": " azp "}, "azp"),
         ({"claim": None}, "client_id"),
         ({"jwksUri": ""}, None),
-        ({"audience": ""}, None),
     ],
 )
 def test_auth_token_clients_optional(
@@ -1412,6 +1417,29 @@ def test_auth_token_clients_optional(
     assert variables[TOKEN_CLIENTS["enabled"]] == "true"
 
 
+@pytest.mark.parametrize(
+    ("values", "expected"),
+    [
+        ({"audience": "", "allowAnyAudience": True}, None),
+        ({"audience": None, "allowAnyAudience": "true"}, None),
+        ({"allowAnyAudience": True}, AUDIENCE),
+        ({"allowAnyAudience": False}, AUDIENCE),
+    ],
+)
+def test_auth_token_clients_any_audience(
+    values: dict[str, Any], expected: str | None
+) -> None:
+    """Without an audience only with `allowAnyAudience`; a set one is passed on.
+
+    Args:
+        values: `audience` and `allowAnyAudience` of `auth.tokenClients`.
+        expected: The audience passed on, or None if it is left out.
+    """
+    variables = env(render(*token_clients(**values)))
+    assert variables.get(TOKEN_CLIENTS["audience"]) == expected
+    assert variables[TOKEN_CLIENTS["enabled"]] == "true"
+
+
 def test_auth_token_clients_values_file(tmp_path: Path) -> None:
     """Booleans and a client ID that YAML reads as a number, from a file.
 
@@ -1425,6 +1453,7 @@ def test_auth_token_clients_values_file(tmp_path: Path) -> None:
         "  tokenClients:\n"
         "    enabled: true\n"
         f"    issuer: {ISSUER}\n"
+        f"    audience: {AUDIENCE}\n"
         "    clients: [gateway, '12345']\n"
         "    requireAtJwt: true\n"
     )
@@ -1462,6 +1491,12 @@ def test_auth_token_clients_with_claim() -> None:
             (*token_clients()[2:], "--set-json", "auth.mode=null"),
             "auth.tokenClients.enabled needs auth.mode auth",
         ),
+        (token_clients(audience=None), "auth.tokenClients.enabled needs"),
+        (token_clients(audience=""), "auth.tokenClients.enabled needs"),
+        (
+            token_clients(audience="", allowAnyAudience=False),
+            "auth.tokenClients.enabled needs",
+        ),
         (token_clients(issuer=None), "auth.tokenClients.enabled needs"),
         (token_clients(issuer=""), "auth.tokenClients.enabled needs"),
         (token_clients(clients=None), "auth.tokenClients.enabled needs"),
@@ -1493,6 +1528,7 @@ def test_auth_token_clients_incomplete(args: tuple[str, ...], message: str) -> N
         {"issuer": "http://login.example.org/oidc/"},
         {"jwksUri": "http://login.example.org/jwk"},
         {"requireClientSubject": "no"},
+        {"allowAnyAudience": "yes"},
         {"clients": "gateway"},
         {"clients": ["a,b"]},
         {"clients": [""]},

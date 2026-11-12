@@ -564,11 +564,12 @@ The environment variables of tesk-api's tokens of allow-listed clients
 (`auth.tokenClients`), as YAML entries of `env`, or nothing if the setting
 is off. The names of the variables are only here. Fails if it is on without
 mode auth (noauth leaves all endpoints open, so no token would be checked),
-an issuer or a non-blank client ID. Client IDs are trimmed, blank ones left
-out, and joined with commas, as tesk-api splits them; empty or null optional
-keys (and a blank claim) leave tesk-api's defaults: the JWKS URI from the
-issuer's discovery document, no audience, the claim client_id, the type
-at+jwt required and `sub` required to be the client ID.
+an issuer, a non-blank client ID, or an audience (unless allowAnyAudience is
+true). Client IDs are trimmed, blank ones left out, and joined with commas,
+as tesk-api splits them; empty or null optional keys (and a blank claim)
+leave tesk-api's defaults: the JWKS URI from the issuer's discovery
+document, the claim client_id, the type at+jwt required and `sub` required
+to be the client ID.
 */}}
 {{- define "tesk.tokenClientsEnv" -}}
 {{- $tokenClients := default dict .Values.auth.tokenClients -}}
@@ -584,6 +585,11 @@ at+jwt required and `sub` required to be the client ID.
 {{- end -}}
 {{- if or (not (include "tesk.isSet" $tokenClients.issuer)) (not $clients) -}}
 {{- fail "auth.tokenClients.enabled needs auth.tokenClients.issuer and at least one client ID in auth.tokenClients.clients" -}}
+{{- end -}}
+{{- /* Without an audience, tokens that a listed client got for other
+services would be accepted too: only on purpose */ -}}
+{{- if and (not (include "tesk.isSet" $tokenClients.audience)) (ne (toString $tokenClients.allowAnyAudience) "true") -}}
+{{- fail "auth.tokenClients.enabled needs auth.tokenClients.audience, or auth.tokenClients.allowAnyAudience: true to accept tokens for any audience" -}}
 {{- end -}}
 {{- $flags := dict -}}
 {{- range $key := list "requireAtJwt" "requireClientSubject" -}}

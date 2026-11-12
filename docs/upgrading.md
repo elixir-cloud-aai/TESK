@@ -43,8 +43,9 @@ grant (`auth.tokenClients`, see [Tokens of
 services](deployment.md#tokens-of-services)). It is off by default, and the
 rendered manifests are unchanged until you turn it on. It needs a tesk-api
 release after 1.2.0 (`tesk.image.tag`); with `auth.mode: noauth`, without
-an issuer or without client IDs, the chart fails instead of starting
-tesk-api with the setting.
+an issuer, without an audience (unless `allowAnyAudience: true`) or
+without client IDs, the chart fails instead of starting tesk-api with the
+setting.
 
 ## 0.3.0
 

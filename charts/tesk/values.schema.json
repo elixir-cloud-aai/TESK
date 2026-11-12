@@ -517,7 +517,17 @@
                 "string",
                 "null"
               ],
-              "description": "Audience that the claim aud must contain (recommended); empty leaves aud unchecked"
+              "description": "Audience that the claim aud must contain; required unless allowAnyAudience is true"
+            },
+            "allowAnyAudience": {
+              "enum": [
+                true,
+                false,
+                "true",
+                "false",
+                null
+              ],
+              "description": "Whether tokens for any audience are accepted if audience is empty (also tokens a listed client got for other services)"
             },
             "claim": {
               "type": [
