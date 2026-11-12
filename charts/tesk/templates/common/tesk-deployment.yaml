@@ -169,6 +169,12 @@ spec:
         - name: TESK_API_AUTHORISATION_CLAIM_VALUES
           value: {{ join "," $claimValues | quote }}
         {{- end }}
+        {{- /* Tokens of allow-listed clients (e.g., of a gateway with the
+        client credentials grant), which tesk-api checks without the user
+        info: only when on, with mode auth (tesk.tokenClientsEnv) */}}
+        {{- with include "tesk.tokenClientsEnv" . }}
+        {{- . | nindent 8 }}
+        {{- end }}
         {{- /* Null leaves tesk-api's default (off). tesk-api stops at
         startup on anything but true or false (in any case), so fail here
         instead; strings are accepted for tools that set only strings */}}

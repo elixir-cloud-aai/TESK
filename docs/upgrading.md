@@ -10,6 +10,19 @@ again):
 helm upgrade tesk charts/tesk --namespace tesk -f my-values.yaml -f secrets.yaml
 ```
 
+## Unreleased
+
+### Tokens of services
+
+The chart can let tesk-api accept the access tokens of allow-listed
+clients, e.g., of a gateway that calls TESK with the client credentials
+grant (`auth.tokenClients`, see [Tokens of
+services](deployment.md#tokens-of-services)). It is off by default, and the
+rendered manifests are unchanged until you turn it on. It needs a tesk-api
+release after 1.2.0 (`tesk.image.tag`); with `auth.mode: noauth`, without
+an issuer or without client IDs, the chart fails instead of starting
+tesk-api with the setting.
+
 ## 0.3.0
 
 **Breaking: install existing releases again.** Releases of charts before

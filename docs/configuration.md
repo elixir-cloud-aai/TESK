@@ -126,6 +126,13 @@ requests to a pod that isn't ready.
 | `auth.claim.enabled` | `false` | With `auth.mode: auth`: `true` authorises users without groups, by a claim of the user info (see [Authorisation by a claim](deployment.md#authorisation-by-a-claim)). Needs `auth.claim.name` and `auth.claim.values`, and tesk-api 1.2.0 or later; ignored with `auth.mode: noauth`. |
 | `auth.claim.name` | `""` | Name of the claim, e.g., `eduperson_entitlement`. |
 | `auth.claim.values` | `[]` | Values of the claim, one of which a user needs (compared exactly); non-blank, without commas. |
+| `auth.tokenClients.enabled` | `false` | With `auth.mode: auth`: `true` accepts access tokens (JWTs) of the clients in `auth.tokenClients.clients`, e.g., of a gateway with the client credentials grant, without the user info (see [Tokens of services](deployment.md#tokens-of-services)). Needs `auth.tokenClients.issuer` and `auth.tokenClients.clients`, and a tesk-api release after 1.2.0; the chart fails with `auth.mode: noauth`. |
+| `auth.tokenClients.issuer` | `""` | Issuer of the tokens (an HTTP(S) URL), compared exactly with their claim `iss`, e.g., `https://login.aai.lifescience-ri.eu/oidc/` for LS Login. |
+| `auth.tokenClients.jwksUri` | `""` | JWKS URI of the issuer, with the keys that sign the tokens (an HTTP(S) URL); empty uses the one of the issuer's discovery document. |
+| `auth.tokenClients.audience` | `""` | Audience that the claim `aud` of the tokens must contain, e.g., the URL of this deployment; recommended, so that tokens for other services are refused. Empty leaves `aud` unchecked. |
+| `auth.tokenClients.claim` | `client_id` | Claim of the tokens with the client ID (RFC 9068); some providers use `azp`. Empty uses tesk-api's default, `client_id`. |
+| `auth.tokenClients.clients` | `[]` | IDs of the clients whose tokens are accepted (compared exactly); non-blank, without commas. |
+| `auth.tokenClients.requireAtJwt` | `null` | Whether the tokens' header must have the type `at+jwt` (RFC 9068), so that ID tokens aren't accepted as access tokens; `false` for providers that don't set it. Null uses tesk-api's default, `true`. |
 | `auth.clientId` | none | ID of the OIDC client of the Swagger UI (with `auth.mode: auth`; put it into `secrets.yaml`). |
 | `auth.clientSecret` | none | Deprecated: the Swagger UI is a public client, which needs no secret, and tesk-api 1.2.0 and later ignore it; register its client as a public client and leave this unset (see [Upgrading](upgrading.md#swagger-ui-client-secret-deprecated)). |
 | `auth.swaggerOauth.authorizationEndpoint` | `""` | Authorisation endpoint of the OIDC provider for the Swagger UI's login (an HTTP(S) URL); empty uses tesk-api's default, ELIXIR AAI's. |

@@ -228,6 +228,37 @@ auth:
     name: ""
     # e.g., [urn:geant:example.org:group:tesk#example.org]; no commas
     values: []
+  # With mode auth: access tokens of allow-listed clients, e.g., of a TES
+  # gateway that calls TESK with tokens of the client credentials grant.
+  # tesk-api checks such a JWT itself (signature against the issuer's keys,
+  # `iss`, `exp`, the audience and the client claim): a listed client may
+  # run tasks and see its own, without the user info and without groups.
+  # Other tokens are checked at the user info endpoint as before. Off by
+  # default; with `enabled: true`, the chart needs `issuer`, `clients` and
+  # mode auth. Everyone who holds the credentials of a listed client can run
+  # any image on the cluster. Needs a tesk-api version with this setting
+  # (`tesk.image.tag`); see the deployment guide (docs/deployment.md,
+  # "Tokens of services")
+  tokenClients:
+    enabled: false
+    # Issuer of the tokens, compared exactly with `iss`, e.g.,
+    # https://login.aai.lifescience-ri.eu/oidc/ for LS Login
+    issuer: ""
+    # JWKS URI of the issuer; empty uses the one of its discovery document
+    jwksUri: ""
+    # Audience that the token's `aud` must contain, e.g., the URL of this
+    # deployment; recommended, so that tokens meant for other services are
+    # refused. Empty leaves `aud` unchecked
+    audience: ""
+    # Claim of the token with the client ID (RFC 9068: client_id; some
+    # providers use azp); empty uses tesk-api's default, client_id
+    claim: client_id
+    # IDs of the clients whose tokens are accepted, e.g., [my-gateway]; no
+    # commas
+    clients: []
+    # Whether the token's header must have the type at+jwt (RFC 9068), so
+    # that ID tokens aren't accepted; null leaves tesk-api's default (true)
+    requireAtJwt: null
   # The OIDC client of the Swagger UI (`clientId`): put it into a separate
   # values file (secrets.yaml), not into this one. The Swagger UI is a public
   # client, which needs no secret: `clientSecret` is deprecated, and

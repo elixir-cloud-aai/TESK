@@ -335,6 +335,16 @@ WARNING: auth.legacyUserLabels is on, but tesk-api {{ $apiTag }} (tesk.image.tag
 ignores it. It is for tesk-api 1.2.0 or later; see
 https://tesk.readthedocs.io/en/latest/deployment/#tasks-created-before-tesk-api-120
 {{- end }}
+{{- /* tesk-api 1.2.0 and older ignore the tokens of allow-listed clients,
+which the chart only passes on with mode auth (and fails without it) */ -}}
+{{- $tokenClientsOn := eq (toString (dig "tokenClients" "enabled" "" .Values.auth)) "true" -}}
+{{- if and $tokenClientsOn (regexMatch "^[0-9]+\\.[0-9]+(\\.[0-9]+)?([-+][0-9A-Za-z.+-]*)?$" $apiTag) (semverCompare "<=1.2.0" $apiTag) }}
+
+WARNING: auth.tokenClients is on, but tesk-api {{ $apiTag }} (tesk.image.tag)
+ignores it and refuses the clients' tokens. It is for tesk-api releases after
+1.2.0; see
+https://tesk.readthedocs.io/en/latest/deployment/#tokens-of-services
+{{- end }}
 {{- if and .Values.tesk.filerHttpTimeout $oldImages }}
 
 WARNING: tesk.filerHttpTimeout is set, but {{ join " and " $oldImages }} {{ ternary "is" "are" (eq (len $oldImages) 1) }}
@@ -525,6 +535,52 @@ under `auth`, which tesk-api compares as text.
 {{- end -}}
 {{- else -}}
 {{- quote . -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+The environment variables of tesk-api's tokens of allow-listed clients
+(`auth.tokenClients`), as YAML entries of `env`, or nothing if the setting
+is off. The names of the variables are only here. Fails if it is on without
+mode auth (noauth leaves all endpoints open, so no token would be checked),
+an issuer or a non-blank client ID. Client IDs are trimmed, blank ones left
+out, and joined with commas, as tesk-api splits them; empty or null optional
+keys leave tesk-api's defaults: the JWKS URI from the issuer's discovery
+document, no audience, the claim client_id and the type at+jwt required.
+*/}}
+{{- define "tesk.tokenClientsEnv" -}}
+{{- $tokenClients := default dict .Values.auth.tokenClients -}}
+{{- if eq (toString $tokenClients.enabled) "true" -}}
+{{- if ne (toString .Values.auth.mode) "auth" -}}
+{{- fail (printf "auth.tokenClients.enabled needs auth.mode auth, not %q" (toString .Values.auth.mode)) -}}
+{{- end -}}
+{{- $clients := list -}}
+{{- range (default list $tokenClients.clients) -}}
+{{- with trim (toString .) -}}
+{{- $clients = append $clients . -}}
+{{- end -}}
+{{- end -}}
+{{- if or (not (include "tesk.isSet" $tokenClients.issuer)) (not $clients) -}}
+{{- fail "auth.tokenClients.enabled needs auth.tokenClients.issuer and at least one client ID in auth.tokenClients.clients" -}}
+{{- end -}}
+{{- $requireAtJwt := "" -}}
+{{- if not (kindIs "invalid" $tokenClients.requireAtJwt) -}}
+{{- $requireAtJwt = lower (toString $tokenClients.requireAtJwt) -}}
+{{- end -}}
+{{- $variables := list
+  (list "TESK_API_AUTHORISATION_SERVICE_CLIENTS_ENABLED" "true")
+  (list "TESK_API_AUTHORISATION_SERVICE_CLIENTS_ISSUER" $tokenClients.issuer)
+  (list "TESK_API_AUTHORISATION_SERVICE_CLIENTS_JWKS_URI" $tokenClients.jwksUri)
+  (list "TESK_API_AUTHORISATION_SERVICE_CLIENTS_AUDIENCE" $tokenClients.audience)
+  (list "TESK_API_AUTHORISATION_SERVICE_CLIENTS_CLIENT_CLAIM" $tokenClients.claim)
+  (list "TESK_API_AUTHORISATION_SERVICE_CLIENTS_CLIENT_IDS" (join "," $clients))
+  (list "TESK_API_AUTHORISATION_SERVICE_CLIENTS_REQUIRE_ACCESS_TOKEN_TYPE" $requireAtJwt) -}}
+{{- range $variables }}
+{{- if include "tesk.isSet" (index . 1) }}
+- name: {{ index . 0 }}
+  value: {{ include "tesk.secretValue" (index . 1) }}
+{{- end }}
+{{- end }}
 {{- end -}}
 {{- end -}}
 
