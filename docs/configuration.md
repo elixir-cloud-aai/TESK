@@ -60,7 +60,7 @@ take any keys.
 | `tesk.startupProbe` | every 5 s, 5 s timeout, up to 60 failures (5 minutes) | Startup probe of the API's container: it holds off the other probes while the API starts, which takes about a minute (see [Probes](#probes)). |
 | `tesk.readinessProbe` | every 10 s, 5 s timeout, 3 failures | Readiness probe: the Service and Ingress send requests to the pod, and `helm install --wait` returns, once it succeeds (see [Probes](#probes)). |
 | `tesk.livenessProbe` | every 20 s, 5 s timeout, 3 failures | Liveness probe: Kubernetes restarts the container if it fails (see [Probes](#probes)). |
-| `tesk.podSecurityContext` | `runAsUser: 1000`, `runAsNonRoot: true`, `seccompProfile` `RuntimeDefault` | Security context of the API's pod (fields of a Kubernetes `PodSecurityContext`). Your values are merged with the defaults; null removes a field (e.g., `runAsUser: null` on OpenShift, which assigns the user) or, for `tesk.podSecurityContext: null`, the whole context. Applies only to the API's pod; for the executors, see `tesk.executor.securityContext`. |
+| `tesk.podSecurityContext` | `runAsUser: 1000`, `runAsNonRoot: true`, `seccompProfile` `RuntimeDefault` | Security context of the API's pod (fields of a Kubernetes `PodSecurityContext`). Your values are merged with the defaults; null removes a field (e.g., `runAsUser: null` on OpenShift, which assigns the user, and `seccompProfile: null` on clusters that set their own seccomp profile, see [OpenShift and other restricted clusters](deployment.md#openshift-and-other-restricted-clusters)) or, for `tesk.podSecurityContext: null`, the whole context. Applies only to the API's pod; for the executors, see `tesk.executor.securityContext`. |
 | `tesk.securityContext` | `allowPrivilegeEscalation: false`, `capabilities.drop: [ALL]` | Security context of the API's container (fields of a Kubernetes `SecurityContext`), merged with the defaults like `tesk.podSecurityContext`. |
 | `tesk.swaggerUi.enabled` | `false` | `true` serves the Swagger UI (at the root path of the deployment, `ingress.path`, see [Swagger UI](deployment.md#swagger-ui)). Turning it on serves the Swagger UI publicly; enable it only where needed. `true` or `false` only (also as strings, in any case; anything else fails the installation); null leaves tesk-api's default (off). Needs tesk-api 1.2.0 or later; earlier versions ignore it and always serve the Swagger UI. |
 
@@ -208,10 +208,10 @@ serviceInfo:
 
 | Value | Default | Description |
 | --- | --- | --- |
-| `ftp.classicFtpSecret` | null | Name of the secret with the FTP username and password, created from `ftp.username` and `ftp.password`; null uses `<prefix>-ftp`, empty or `false` creates none. |
+| `ftp.classicFtpSecret` | null | Name of the secret with the FTP username and password, created from `ftp.username` and `ftp.password` if one of them is set (none without credentials); null uses `<prefix>-ftp`, empty or `false` creates none. |
 | `ftp.netrcSecret` | empty | Name of the secret with a `.netrc` file, created from `charts/tesk/ftp/.netrc`; empty creates none. |
 | `ftp.hosts` | `[]` | Hosts that the filer sends the credentials of `ftp.classicFtpSecret` to, e.g. `[ftp.example.org]` (see below); empty sends them to no host. Not needed for `.netrc`. |
-| `ftp.username` | none | FTP username (put it into `secrets.yaml`). |
+| `ftp.username` | none | FTP username (put it into `secrets.yaml`). If neither a username nor a password is set, the chart creates no FTP secret, and tesk-api gets none; either one creates it. |
 | `ftp.password` | none | FTP password (put it into `secrets.yaml`). |
 | `ftp.hostIp` | empty | IP of an FTP server outside the cluster, as pods see the host; creates a Service `ftp` for it, so that tasks can use `ftp://ftp/...` (see [Local FTP server](local_ftp.md)). |
 
@@ -256,7 +256,7 @@ and a `nameOverride` with capital letters, fail the installation unless
 | ConfigMap with the service info (none with `serviceInfo.existingConfigMap`) | `<prefix>-service-info` | `tesk-service-info` | `prod-tesk-service-info` |
 | ConfigMap with the executors' security context (`tesk.executor.securityContext`) | `<prefix>-executor` | `tesk-executor` | `prod-tesk-executor` |
 | Secret with the OIDC client (`auth.mode: auth`) | `<prefix>-oauth-client` | `tesk-oauth-client` | `prod-tesk-oauth-client` |
-| Secret with the FTP credentials | `ftp.classicFtpSecret`, or `<prefix>-ftp` if it is null (none if it is empty or `false`) | `tesk-ftp` | `prod-tesk-ftp` |
+| Secret with the FTP credentials (`ftp.username`, `ftp.password`) | `ftp.classicFtpSecret`, or `<prefix>-ftp` if it is null (none if it is empty or `false`) | `tesk-ftp` | `prod-tesk-ftp` |
 | Ingress, or OpenShift Route | `<prefix>` | `tesk` | `prod-tesk` |
 | StorageClass (`storage: openstack`) | `<prefix>-gold` | `tesk-gold` | `prod-tesk-gold` |
 | Secret with the `.netrc` file | `ftp.netrcSecret` | | |

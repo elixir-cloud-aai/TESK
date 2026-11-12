@@ -233,7 +233,7 @@ Minikube). On clusters of cloud providers, `service.type: LoadBalancer` gets
 an external IP (see the [Kubernetes
 docs](https://kubernetes.io/docs/tasks/access-application-cluster/create-external-load-balancer/)).
 
-### OpenShift
+### OpenShift and other restricted clusters
 
 On OpenShift, set `ingress.enabled: false`: the chart then creates a Route
 for `hostName`, with TLS terminated at the router. OpenShift assigns the
@@ -245,6 +245,34 @@ ingress:
 tesk:
   podSecurityContext:
     runAsUser: null
+```
+
+By default, the API's pod asks for the `RuntimeDefault` seccomp profile
+(`tesk.podSecurityContext.seccompProfile`). Some clusters set their own
+seccomp profile for pods and reject pods that ask for another one: there,
+the API's Deployment gets no pod, and the events of its ReplicaSet
+(`kubectl describe replicaset --namespace tesk -l
+app.kubernetes.io/instance=tesk`) name the seccomp profile as the reason.
+On such clusters, remove the profile, so that the cluster's own profile
+applies:
+
+```yaml
+tesk:
+  podSecurityContext:
+    seccompProfile: null
+```
+
+Keep the fixed user unless the cluster assigns the user too: then (e.g., on
+OpenShift) set `runAsUser: null` next to `seccompProfile: null`, as above.
+The rest of the security contexts (non-root, no privilege escalation, no
+capabilities) stays as it is. Before installing, check that the rendered
+manifests ask for no seccomp profile: with your values, the following
+commands print `0` (with the defaults, `1`); the count runs only if the
+chart rendered:
+
+```bash
+helm template tesk charts/tesk --namespace tesk \
+    -f my-values.yaml > rendered.yaml && grep -ci seccomp rendered.yaml
 ```
 
 ## Storage backends
@@ -261,7 +289,8 @@ credentials in one of two ways:
 
 - **Username and password** (default): the chart creates the secret named in
   `ftp.classicFtpSecret` (by default `<prefix>-ftp`, e.g., `tesk-ftp`)
-  from `ftp.username` and `ftp.password` (in `secrets.yaml`). List the
+  from `ftp.username` and `ftp.password` (in `secrets.yaml`), if either
+  is set; if neither is, it creates no FTP secret. List the
   hosts of the account in `ftp.hosts` (e.g., `[ftp.example.org]`): the
   filer sends the credentials only to them, and logs in anonymously
   elsewhere.
