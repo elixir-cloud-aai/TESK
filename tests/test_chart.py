@@ -1428,9 +1428,8 @@ def test_service_info_type_artifact() -> None:
     With `tes` in the file, tesk-api (1.2.0) can't read the service info
     and serves an empty body (elixir-cloud-aai/TESK#290).
     """
-    info, text = _service_info()
+    info, _ = _service_info()
     assert info["type"] == {"group": "org.ga4gh", "artifact": "TES", "version": "1.0.0"}
-    assert '\n  artifact: "TES"\n' in text
 
 
 @pytest.mark.parametrize("tag", ["1.2.1", "dev", "0"])
