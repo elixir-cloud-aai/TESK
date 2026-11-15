@@ -24,12 +24,14 @@ spec:
   replicas: 1
   {{- /* Recreate by default, so that no older API serves tasks of a newer
   taskmaster during an upgrade; null leaves the strategy to Kubernetes
-  (RollingUpdate). Kubernetes removes the rollingUpdate that it set by
-  default when the type changes to Recreate (the strategy's patch strategy
-  is retainKeys), but rejects one given with Recreate */}}
+  (RollingUpdate). Kubernetes rejects a rollingUpdate (also an empty one)
+  with Recreate. On upgrades with client-side apply (Helm 3), it removes the
+  rollingUpdate that it set by default (the strategy's patch strategy is
+  retainKeys); with server-side apply, it keeps it, and the upgrade fails
+  (see "API update strategy Recreate" in docs/upgrading.md) */}}
   {{- $strategy := default dict $tesk.strategy }}
   {{- if $strategy }}
-  {{- if and (eq (toString $strategy.type) "Recreate") $strategy.rollingUpdate }}
+  {{- if and (eq (toString $strategy.type) "Recreate") (not (kindIs "invalid" $strategy.rollingUpdate)) }}
   {{- fail "tesk.strategy.rollingUpdate needs tesk.strategy.type RollingUpdate (Kubernetes rejects it with Recreate)" }}
   {{- end }}
   strategy:

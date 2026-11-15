@@ -760,6 +760,18 @@ def test_strategy() -> None:
     assert deployment(render())["spec"]["strategy"] == {"type": "Recreate"}
 
 
+def test_strategy_empty(tmp_path: Path) -> None:
+    """An empty map keeps the default, as Helm merges it with the default.
+
+    Args:
+        tmp_path: A directory for the values file.
+    """
+    path = tmp_path / "values.yaml"
+    path.write_text(json.dumps({"tesk": {"strategy": {}}}))
+    strategy = deployment(render("--values", str(path)))["spec"]["strategy"]
+    assert strategy == {"type": "Recreate"}
+
+
 @pytest.mark.parametrize(
     ("args", "expected"),
     [
@@ -791,6 +803,16 @@ def test_strategy() -> None:
             ),
             {"rollingUpdate": {"maxSurge": 1}},
         ),
+        (
+            (
+                "--set",
+                "tesk.strategy.type=RollingUpdate",
+                "--set-json",
+                "tesk.strategy.rollingUpdate=null",
+            ),
+            # Kubernetes takes null as unset
+            {"type": "RollingUpdate", "rollingUpdate": None},
+        ),
     ],
 )
 def test_strategy_values(args: tuple[str, ...], expected: dict[str, Any]) -> None:
@@ -819,10 +841,29 @@ def test_strategy_none(args: tuple[str, ...]) -> None:
     assert "strategy" not in deployment(render(*args))["spec"]
 
 
-def test_strategy_recreate_with_rolling_update() -> None:
-    """`rollingUpdate` with `Recreate` fails, as Kubernetes would reject it."""
+@pytest.mark.parametrize(
+    "args",
+    [
+        # With the default type
+        ("--set", "tesk.strategy.rollingUpdate.maxSurge=1"),
+        (
+            "--set",
+            "tesk.strategy.type=Recreate",
+            "--set",
+            "tesk.strategy.rollingUpdate.maxUnavailable=1",
+        ),
+        # Kubernetes rejects an empty one too
+        ("--set-json", "tesk.strategy.rollingUpdate={}"),
+    ],
+)
+def test_strategy_recreate_with_rolling_update(args: tuple[str, ...]) -> None:
+    """`rollingUpdate` with `Recreate` fails, as Kubernetes would reject it.
+
+    Args:
+        args: More `helm template` arguments.
+    """
     with pytest.raises(subprocess.CalledProcessError) as error:
-        render("--set", "tesk.strategy.rollingUpdate.maxSurge=1")
+        render(*args)
     assert (
         "tesk.strategy.rollingUpdate needs tesk.strategy.type RollingUpdate"
         in error.value.stderr

@@ -308,7 +308,7 @@
             "object",
             "null"
           ],
-          "description": "Update strategy of the API's Deployment (the fields of a Kubernetes DeploymentStrategy), merged with the default (type Recreate); null or empty leaves Kubernetes' default (RollingUpdate). The templates reject rollingUpdate with type Recreate",
+          "description": "Update strategy of the API's Deployment (the fields of a Kubernetes DeploymentStrategy), merged with the default (type Recreate, so an empty map keeps it); null, or type null without rollingUpdate, leaves Kubernetes' default (RollingUpdate). The templates reject rollingUpdate with type Recreate",
           "properties": {
             "type": {
               "enum": [
