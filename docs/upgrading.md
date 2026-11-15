@@ -17,8 +17,9 @@ helm upgrade tesk charts/tesk --namespace tesk -f my-values.yaml -f secrets.yaml
 The API's Deployment uses the update strategy `Recreate` by default
 (`tesk.strategy`, see [Configuration](configuration.md)): on every
 rollout, Kubernetes stops the old API pod before it starts the new one, so
-the API is down for a short time (until the new pod is ready: about a
-minute, at most the 5 minutes of the default startup probe). Charts up to 0.3.0 set no strategy, so Kubernetes used
+the API is down until the new pod is ready: usually about a minute (the
+default startup probe gives the API up to 5 minutes to start, after the
+image pull). Charts up to 0.3.0 set no strategy, so Kubernetes used
 `RollingUpdate`, which keeps the old pod serving until the new one is
 ready.
 
@@ -50,11 +51,13 @@ filer tags. With `Recreate`, one upgrade is enough.
 `helm upgrade` with Helm 3 (client-side apply) replaces the strategy of a
 release of an earlier chart in place: Kubernetes removes the
 `rollingUpdate` settings that it had set by default. **Act on this if
-you deploy with server-side apply** (e.g., Helm 4, which uses it for new
-releases, Flux, or Argo CD with `ServerSideApply=true`): there, Kubernetes
-keeps those settings, and the upgrade fails with `spec.strategy.rollingUpdate:
-Forbidden: may not be specified when strategy type is 'Recreate'`. Replace
-the strategy once before the upgrade (this doesn't restart the API):
+you upgrade a release of a chart up to 0.3.0 with server-side apply**
+(e.g., Flux, Argo CD with `ServerSideApply=true`, or Helm 4 for a release
+that it installed): there, Kubernetes keeps those settings, and the
+upgrade fails with `spec.strategy.rollingUpdate: Forbidden: may not be
+specified when strategy type is 'Recreate'`. Releases installed with this
+chart's default never have them. Replace the strategy once before the
+upgrade (this doesn't restart the API):
 
 ```bash
 kubectl patch deployment tesk-api --namespace tesk --type=json \
