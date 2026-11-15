@@ -12,6 +12,62 @@ helm upgrade tesk charts/tesk --namespace tesk -f my-values.yaml -f secrets.yaml
 
 ## Unreleased
 
+### API update strategy Recreate
+
+The API's Deployment uses the update strategy `Recreate` by default
+(`tesk.strategy`, see [Configuration](configuration.md)): on every
+rollout, Kubernetes stops the old API pod before it starts the new one, so
+the API is down until the new pod is ready: usually about a minute (the
+default startup probe gives the API up to 5 minutes to start, after the
+image pull). Charts up to 0.3.0 set no strategy, so Kubernetes used
+`RollingUpdate`, which keeps the old pod serving until the new one is
+ready.
+
+The reason is the upgrade to tesk-api 2.0.0 and the taskmaster and filer of
+tesk-core 0.12.0. The new taskmaster also labels the filer jobs with
+`taskmaster-name`
+([tesk-core#147](https://github.com/elixir-cloud-aai/tesk-core/issues/147)),
+and tesk-api 2.0.0 selects a task's executor jobs by
+`taskmaster-name=<task>,job-type=executor`
+([tesk-api#183](https://github.com/elixir-cloud-aai/tesk-api/pull/183)).
+An older API that reads tasks started by the new taskmaster takes the
+filer jobs for executors, and reports wrong task states. So the TESK API
+must be upgraded first, then the taskmaster; see the upgrade notes of
+[tesk-api](tesk-api/upgrading.md) and [tesk-core](tesk-core/upgrading.md).
+In this chart, the API's pod starts the tasks with the taskmaster and filer
+images of `tesk.taskmaster.image` and `tesk.filer.image`, so one `helm
+upgrade` that brings both switches them together: with `Recreate`, no old
+API pod serves while the new one starts tasks with the new taskmaster.
+
+**Act on this if the API must stay available during rollouts:** set
+`tesk.strategy.type: RollingUpdate` (optionally with
+`tesk.strategy.rollingUpdate`), but not for an upgrade that brings
+tesk-api 2.0.0 and taskmaster 0.12.0 together. Upgrade in two steps
+instead: first the API (`tesk.image.tag`) with the old taskmaster and
+filer tags, then, once the rollout is done and no old API pod is left
+(`kubectl rollout status deployment/<prefix>-api`), the taskmaster and
+filer tags. With `Recreate`, one upgrade is enough.
+
+`helm upgrade` with Helm 3 (client-side apply) replaces the strategy of a
+release of an earlier chart in place: Kubernetes removes the
+`rollingUpdate` settings that it had set by default. **Act on this if
+you upgrade a release of a chart up to 0.3.0 with server-side apply**
+(e.g., Flux, Argo CD with `ServerSideApply=true`, or Helm 4 for a release
+that it installed): there, Kubernetes keeps those settings, and the
+upgrade fails with `spec.strategy.rollingUpdate: Forbidden: may not be
+specified when strategy type is 'Recreate'`. Releases installed with this
+chart's default never have them. Replace the strategy once before the
+upgrade (this doesn't restart the API):
+
+```bash
+kubectl patch deployment tesk-api --namespace tesk --type=json \
+    -p '[{"op": "replace", "path": "/spec/strategy", "value": {"type": "Recreate"}}]'
+```
+
+with the name of your API's Deployment (`<prefix>-api`, e.g., `tesk-api`
+for the release `tesk`) and its namespace. Alternatively, keep
+`RollingUpdate` (see above).
+
 ### No FTP secret without credentials
 
 The chart creates the FTP secret (`ftp.classicFtpSecret`, by default

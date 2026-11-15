@@ -69,6 +69,13 @@ releases can share a namespace, but they then see each other's tasks:
 install releases that must be kept apart into namespaces of their own. The
 commands on this page assume the release `tesk` in the namespace `tesk`.
 
+Each change of the API's pod (e.g., `helm upgrade` with a new image or new
+settings) stops the old pod before the new one starts, so the API is down
+until the new pod is ready, usually about a minute: the API's Deployment
+uses the update strategy `Recreate` (`tesk.strategy`). See [API update
+strategy Recreate](upgrading.md#api-update-strategy-recreate) for why, and
+when `RollingUpdate` is safe.
+
 ### From a release
 
 Each [release](https://github.com/elixir-cloud-aai/TESK/releases) from

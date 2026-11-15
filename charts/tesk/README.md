@@ -14,7 +14,8 @@ The documentation is on [Read the Docs](https://tesk.readthedocs.io/):
   affect existing deployments (e.g., the names of the objects derive from
   the release name, so releases of earlier charts must be installed again;
   since taskmaster v0.10.6, a task that uses more memory than it requested
-  is killed).
+  is killed; the API's Deployment uses the update strategy `Recreate`, so
+  the API is down briefly on every rollout).
 
 The default values are in [`values.yaml`](values.yaml). In short, from a
 checkout of the repository:

@@ -751,6 +751,125 @@ def test_security_context_null() -> None:
     assert "securityContext" not in container(manifests)
 
 
+def test_strategy() -> None:
+    """The API's Deployment replaces its pod (`Recreate`) by default.
+
+    So that no older API serves tasks of a newer taskmaster during an
+    upgrade.
+    """
+    assert deployment(render())["spec"]["strategy"] == {"type": "Recreate"}
+
+
+def test_strategy_empty(tmp_path: Path) -> None:
+    """An empty map keeps the default, as Helm merges it with the default.
+
+    Args:
+        tmp_path: A directory for the values file.
+    """
+    path = tmp_path / "values.yaml"
+    path.write_text(json.dumps({"tesk": {"strategy": {}}}))
+    strategy = deployment(render("--values", str(path)))["spec"]["strategy"]
+    assert strategy == {"type": "Recreate"}
+
+
+@pytest.mark.parametrize(
+    ("args", "expected"),
+    [
+        (
+            ("--set", "tesk.strategy.type=RollingUpdate"),
+            {"type": "RollingUpdate"},
+        ),
+        (
+            (
+                "--set",
+                "tesk.strategy.type=RollingUpdate",
+                "--set",
+                "tesk.strategy.rollingUpdate.maxSurge=0",
+                "--set-string",
+                "tesk.strategy.rollingUpdate.maxUnavailable=100%",
+            ),
+            {
+                "type": "RollingUpdate",
+                "rollingUpdate": {"maxSurge": 0, "maxUnavailable": "100%"},
+            },
+        ),
+        # Kubernetes' default type, `RollingUpdate`
+        (
+            (
+                "--set",
+                "tesk.strategy.type=null",
+                "--set",
+                "tesk.strategy.rollingUpdate.maxSurge=1",
+            ),
+            {"rollingUpdate": {"maxSurge": 1}},
+        ),
+        (
+            (
+                "--set",
+                "tesk.strategy.type=RollingUpdate",
+                "--set-json",
+                "tesk.strategy.rollingUpdate=null",
+            ),
+            # Kubernetes takes null as unset
+            {"type": "RollingUpdate", "rollingUpdate": None},
+        ),
+    ],
+)
+def test_strategy_values(args: tuple[str, ...], expected: dict[str, Any]) -> None:
+    """The values replace the API's update strategy.
+
+    Args:
+        args: More `helm template` arguments.
+        expected: The expected strategy of the Deployment.
+    """
+    assert deployment(render(*args))["spec"]["strategy"] == expected
+
+
+@pytest.mark.parametrize(
+    "args",
+    [
+        ("--set-json", "tesk.strategy=null"),
+        ("--set-json", "tesk.strategy.type=null"),
+    ],
+)
+def test_strategy_none(args: tuple[str, ...]) -> None:
+    """Null leaves the strategy to Kubernetes, as charts up to 0.3.0 did.
+
+    Args:
+        args: More `helm template` arguments.
+    """
+    assert "strategy" not in deployment(render(*args))["spec"]
+
+
+@pytest.mark.parametrize(
+    "args",
+    [
+        # With the default type
+        ("--set", "tesk.strategy.rollingUpdate.maxSurge=1"),
+        (
+            "--set",
+            "tesk.strategy.type=Recreate",
+            "--set",
+            "tesk.strategy.rollingUpdate.maxUnavailable=1",
+        ),
+        # Kubernetes rejects an empty one too
+        ("--set-json", "tesk.strategy.rollingUpdate={}"),
+    ],
+)
+def test_strategy_recreate_with_rolling_update(args: tuple[str, ...]) -> None:
+    """`rollingUpdate` with `Recreate` fails, as Kubernetes would reject it.
+
+    Args:
+        args: More `helm template` arguments.
+    """
+    with pytest.raises(subprocess.CalledProcessError) as error:
+        render(*args)
+    assert (
+        "tesk.strategy.rollingUpdate needs tesk.strategy.type RollingUpdate"
+        in error.value.stderr
+    )
+
+
 @pytest.mark.parametrize(
     "args",
     [
@@ -3291,6 +3410,10 @@ def test_chart_metadata() -> None:
         ("--set-json", "hostName={}"),
         ("--set-json", "auth.serviceInfoPublic=[]"),
         ("--set", "tesk.image.pullPolicy=Sometimes"),
+        ("--set-json", "tesk.strategy=[]"),
+        ("--set", "tesk.strategy.type=BlueGreen"),
+        ("--set-json", "tesk.strategy.rollingUpdate=[]"),
+        ("--set-json", "tesk.strategy.rollingUpdate.maxSurge=[]"),
     ],
 )
 def test_schema_invalid(args: tuple[str, ...]) -> None:
@@ -3343,6 +3466,8 @@ def test_schema_permissive(values: dict[str, Any], tmp_path: Path) -> None:
         "tesk.filer.image.pullPolicy",
         "tesk.executor.retries",
         "tesk.swaggerUi.enable",
+        "tesk.strategy.maxSurge",
+        "tesk.strategy.rollingUpdate.surge",
         "transfer.pvc",
         "auth.envSubGroup",
         "auth.groups.delimiter",

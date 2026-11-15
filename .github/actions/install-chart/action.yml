@@ -1,7 +1,9 @@
-# Install the chart with its default values on a kind cluster, wait until
-# the API is ready and check that `GET /ga4gh/tes/v1/service-info` answers
-# (through a port forward; the default Ingress has no controller on kind),
-# then run the check script for deployed instances
+# Install the chart with its default values on a kind cluster, check the
+# upgrade from the update strategy of earlier charts to the default one,
+# wait until the API is ready and check that
+# `GET /ga4gh/tes/v1/service-info` answers (through a port forward; the
+# default Ingress has no controller on kind), then run the check script for
+# deployed instances
 # (`tests/smoke/deployment.sh`, without auth: the default values have
 # `auth.mode: noauth`), which runs a task to completion and cancels one.
 # Used by the `chart-install` job of `ci.yml` and by `release.yml`. Needs a
@@ -35,6 +37,35 @@ runs:
       run: |
         helm install tesk charts/tesk --namespace "${NAMESPACE}" \
             --create-namespace --wait --timeout 600s
+    # Releases of charts up to 0.3.0 have Kubernetes' default strategy
+    # (`RollingUpdate`, with a `rollingUpdate` that Kubernetes sets); an
+    # upgrade to the chart's default (`Recreate`) must replace it (with
+    # Helm 3's client-side apply; see docs/upgrading.md for server-side
+    # apply)
+    - name: Upgrade strategy
+      env:
+        NAMESPACE: ${{ inputs.namespace }}
+      shell: bash
+      run: |
+        strategy() {
+          kubectl get deployment tesk-api -n "${NAMESPACE}" \
+              -o jsonpath='{.spec.strategy}'
+        }
+        helm upgrade tesk charts/tesk --namespace "${NAMESPACE}" \
+            --reset-values --set-json tesk.strategy=null --wait --timeout 600s
+        before="$(strategy)"
+        if ! jq -e '.type == "RollingUpdate" and .rollingUpdate != null' \
+            <<< "${before}" > /dev/null; then
+          echo "::error::Unexpected strategy without a value: ${before}"
+          exit 1
+        fi
+        helm upgrade tesk charts/tesk --namespace "${NAMESPACE}" \
+            --reset-values --wait --timeout 600s
+        after="$(strategy)"
+        if ! jq -e '. == {"type": "Recreate"}' <<< "${after}" > /dev/null; then
+          echo "::error::Unexpected strategy after the upgrade: ${after}"
+          exit 1
+        fi
     - name: Check service info
       env:
         NAMESPACE: ${{ inputs.namespace }}
