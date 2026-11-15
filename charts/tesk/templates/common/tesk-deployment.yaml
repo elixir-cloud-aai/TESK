@@ -22,6 +22,19 @@ spec:
     matchLabels:
       {{- include "tesk.selectorLabels" . | nindent 6 }}
   replicas: 1
+  {{- /* Recreate by default, so that no older API serves tasks of a newer
+  taskmaster during an upgrade; null leaves the strategy to Kubernetes
+  (RollingUpdate). Kubernetes removes the rollingUpdate that it set by
+  default when the type changes to Recreate (the strategy's patch strategy
+  is retainKeys), but rejects one given with Recreate */}}
+  {{- $strategy := default dict $tesk.strategy }}
+  {{- if $strategy }}
+  {{- if and (eq (toString $strategy.type) "Recreate") $strategy.rollingUpdate }}
+  {{- fail "tesk.strategy.rollingUpdate needs tesk.strategy.type RollingUpdate (Kubernetes rejects it with Recreate)" }}
+  {{- end }}
+  strategy:
+    {{- toYaml $strategy | nindent 4 }}
+  {{- end }}
   template:
     metadata:
       labels:

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft-07/schema#",
-  "$comment": "Checks the structure of the values (maps where the templates expect maps, scalars where they expect scalars) and rejects unknown keys of the chart's own maps (e.g., typos). Scalars are of any scalar type, as tools may set strings, except for the switches ingress.enabled and transfer.enabled (booleans) and values with ranges. Open on purpose: the maps with Kubernetes' fields (tesk.podSecurityContext, tesk.securityContext, the probes, the resource lists of tesk.resources, ingress.annotations), as in foca-common, and global and enabled, which Helm and parent charts (condition: tesk.enabled) set. Keys of earlier versions of the chart ($defs/removed) pass here, and fail in the templates with their replacements (see tesk.removedValues in templates/_helpers.tpl)",
+  "$comment": "Checks the structure of the values (maps where the templates expect maps, scalars where they expect scalars) and rejects unknown keys of the chart's own maps (e.g., typos). Scalars are of any scalar type, as tools may set strings, except for the switches ingress.enabled and transfer.enabled (booleans) and values with ranges. tesk.strategy is closed, as a Kubernetes DeploymentStrategy has two fields only. Open on purpose: the maps with Kubernetes' fields (tesk.podSecurityContext, tesk.securityContext, the probes, the resource lists of tesk.resources, ingress.annotations), as in foca-common, and global and enabled, which Helm and parent charts (condition: tesk.enabled) set. Keys of earlier versions of the chart ($defs/removed) pass here, and fail in the templates with their replacements (see tesk.removedValues in templates/_helpers.tpl)",
   "type": "object",
   "$defs": {
     "scalar": {
@@ -302,6 +302,46 @@
             "null"
           ],
           "description": "Security context of the API's pod (fields of a Kubernetes PodSecurityContext), merged with the defaults; null removes it"
+        },
+        "strategy": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "description": "Update strategy of the API's Deployment (the fields of a Kubernetes DeploymentStrategy), merged with the default (type Recreate); null or empty leaves Kubernetes' default (RollingUpdate). The templates reject rollingUpdate with type Recreate",
+          "properties": {
+            "type": {
+              "enum": [
+                "Recreate",
+                "RollingUpdate",
+                null
+              ]
+            },
+            "rollingUpdate": {
+              "type": [
+                "object",
+                "null"
+              ],
+              "properties": {
+                "maxSurge": {
+                  "type": [
+                    "integer",
+                    "string",
+                    "null"
+                  ]
+                },
+                "maxUnavailable": {
+                  "type": [
+                    "integer",
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
         },
         "tes_api_base_path": {
           "$ref": "#/$defs/removed"

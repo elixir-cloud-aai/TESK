@@ -94,6 +94,18 @@ tesk:
   # tasks correctly; older ones report them as COMPLETE
   maxQueueSeconds: ""
 
+  # Update strategy of the API's Deployment (`type` and `rollingUpdate` of a
+  # Kubernetes DeploymentStrategy). `Recreate` stops the old API pod before
+  # the new one starts, a short downtime of the API on every rollout, so that
+  # no older API serves tasks of a newer taskmaster: needed when one upgrade
+  # brings tesk-api 2.0.0 and taskmaster 0.12.0 (see the upgrade notes,
+  # docs/upgrading.md). Operators who upgrade the API first, in a rollout of
+  # its own, may set `type: RollingUpdate` (and `rollingUpdate`, which
+  # `Recreate` doesn't take); null leaves Kubernetes' default
+  # (`RollingUpdate`)
+  strategy:
+    type: Recreate
+
   # Resources of the API's container
   resources:
     limits:
