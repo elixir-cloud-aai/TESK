@@ -17,8 +17,8 @@ helm upgrade tesk charts/tesk --namespace tesk -f my-values.yaml -f secrets.yaml
 The API's Deployment uses the update strategy `Recreate` by default
 (`tesk.strategy`, see [Configuration](configuration.md)): on every
 rollout, Kubernetes stops the old API pod before it starts the new one, so
-the API is down for a short time (until the new pod is ready, about a
-minute). Charts up to 0.3.0 set no strategy, so Kubernetes used
+the API is down for a short time (until the new pod is ready: about a
+minute, at most the 5 minutes of the default startup probe). Charts up to 0.3.0 set no strategy, so Kubernetes used
 `RollingUpdate`, which keeps the old pod serving until the new one is
 ready.
 
@@ -47,9 +47,23 @@ filer tags, then, once the rollout is done and no old API pod is left
 (`kubectl rollout status deployment/<prefix>-api`), the taskmaster and
 filer tags. With `Recreate`, one upgrade is enough.
 
-The upgrade from a release of an earlier chart replaces the strategy in
-place; Kubernetes removes the `rollingUpdate` settings that it had set by
-default.
+`helm upgrade` with Helm 3 (client-side apply) replaces the strategy of a
+release of an earlier chart in place: Kubernetes removes the
+`rollingUpdate` settings that it had set by default. **Act on this if
+you deploy with server-side apply** (e.g., Helm 4, which uses it for new
+releases, Flux, or Argo CD with `ServerSideApply=true`): there, Kubernetes
+keeps those settings, and the upgrade fails with `spec.strategy.rollingUpdate:
+Forbidden: may not be specified when strategy type is 'Recreate'`. Replace
+the strategy once before the upgrade (this doesn't restart the API):
+
+```bash
+kubectl patch deployment tesk-api --namespace tesk --type=json \
+    -p '[{"op": "replace", "path": "/spec/strategy", "value": {"type": "Recreate"}}]'
+```
+
+with the name of your API's Deployment (`<prefix>-api`, e.g., `tesk-api`
+for the release `tesk`) and its namespace. Alternatively, keep
+`RollingUpdate` (see above).
 
 ### No FTP secret without credentials
 
