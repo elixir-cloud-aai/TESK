@@ -354,16 +354,16 @@ WARNING: auth.legacyUserLabels is on, but tesk-api {{ $apiTag }} (tesk.image.tag
 ignores it. It is for tesk-api 1.2.0 or later; see
 https://tesk.readthedocs.io/en/latest/deployment/#tasks-created-before-tesk-api-120
 {{- end }}
-{{- /* tesk-api 1.2.0 and older ignore the tokens of allow-listed clients,
-which the chart only passes on with mode auth (and fails without it); also
-their pre-releases. Set the constraint to the first release with the
-setting (tesk-api#153) once it is known */ -}}
+{{- /* tesk-api before 2.0.0 ignores the tokens of allow-listed clients,
+which the chart only passes on with mode auth (and fails without it). 2.0.0
+is the first release with the setting (tesk-api#153); its pre-releases have
+it too (`-0` lets the constraint match pre-releases) */ -}}
 {{- $tokenClientsOn := eq (toString (dig "tokenClients" "enabled" "" .Values.auth)) "true" -}}
-{{- if and $tokenClientsOn (regexMatch "^[0-9]+\\.[0-9]+(\\.[0-9]+)?([-+][0-9A-Za-z.+-]*)?$" $apiTag) (semverCompare "<1.2.1-0" $apiTag) }}
+{{- if and $tokenClientsOn (regexMatch "^[0-9]+\\.[0-9]+(\\.[0-9]+)?([-+][0-9A-Za-z.+-]*)?$" $apiTag) (semverCompare "<2.0.0-0" $apiTag) }}
 
 WARNING: auth.tokenClients is on, but tesk-api {{ $apiTag }} (tesk.image.tag)
-ignores it and refuses the clients' tokens. It is for tesk-api releases after
-1.2.0; see
+ignores it and refuses the clients' tokens. It is for tesk-api 2.0.0 or
+later; see
 https://tesk.readthedocs.io/en/latest/deployment/#tokens-of-services
 {{- end }}
 {{- if and .Values.tesk.filerHttpTimeout $oldImages }}
@@ -398,8 +398,10 @@ fields are quoted (`tesk.yamlText`), so that tesk-api reads them as
 text whatever they look like; `createdAt` and `updatedAt` are YAML
 timestamps, unquoted, as tesk-api reads them as dates. Empty optional
 fields are left out; the fields that the GA4GH service-info specification
-requires fail if empty. `type` (TES 1.0.0, which tesk-api implements) and
-`version` (the tag of tesk-api's image) are set here.
+requires fail if empty. `type` (the TES version that tesk-api implements:
+1.1.0 from tesk-api 2.0.0 on, also for its pre-releases and for tags that
+aren't versions, e.g., dev; 1.0.0 before) and `version` (the tag of
+tesk-api's image) are set here.
 `type.artifact` is `TES`, the name of tesk-api's Java enum constant, which
 it reads with SnakeYAML and serves as `tes` (the TES specification's
 artifact); with `tes` here, tesk-api can't read the service info.
@@ -444,7 +446,9 @@ type:
   group: "org.ga4gh"
   {{- /* tesk-api serves "tes"; see above */}}
   artifact: "TES"
-  version: "1.0.0"
+  {{- $apiTag := include "tesk.apiImageTag" . | trimPrefix "v" }}
+  {{- $oldApi := and (regexMatch "^[0-9]+\\.[0-9]+(\\.[0-9]+)?([-+][0-9A-Za-z.+-]*)?$" $apiTag) (semverCompare "<2.0.0-0" $apiTag) }}
+  version: {{ ternary "1.0.0" "1.1.0" $oldApi | quote }}
 {{- if include "tesk.isSet" $info.description }}
 description: {{ include "tesk.yamlText" (dict "value" $info.description "key" "serviceInfo.description") }}
 {{- end }}

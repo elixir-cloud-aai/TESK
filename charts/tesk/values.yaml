@@ -47,14 +47,14 @@ tesk:
   taskmaster:
     image:
       repository: docker.io/elixircloud/tesk-core-taskmaster
-      tag: 0.11.0
+      tag: 0.12.0
   # Image of the filer (tesk-core), which stages the inputs and outputs; its
   # tag must be the same release as the taskmaster's (the installation
   # fails otherwise, from 0.11.0 on)
   filer:
     image:
       repository: docker.io/elixircloud/tesk-core-filer
-      tag: 0.11.0
+      tag: 0.12.0
   # The executors, which run the task's commands
   executor:
     # Security context of the executors' pods, e.g., to run them as non-root
@@ -250,10 +250,9 @@ auth:
   # default; with `enabled: true`, the chart needs `issuer`, `audience` (or
   # `allowAnyAudience: true`), `clients` and mode auth. Removed clients are
   # refused only once the rollout of the new pod has completed. Everyone who
-  # holds the credentials of a listed client can run
-  # any image on the cluster. Needs a tesk-api version with this setting
-  # (`tesk.image.tag`); see the deployment guide (docs/deployment.md,
-  # "Tokens of services")
+  # holds the credentials of a listed client can run any image on the
+  # cluster. Needs tesk-api 2.0.0 or later (`tesk.image.tag`); see the
+  # deployment guide (docs/deployment.md, "Tokens of services")
   tokenClients:
     enabled: false
     # Issuer of the tokens (an HTTPS URL), compared exactly with `iss`, e.g.,
@@ -307,7 +306,8 @@ auth:
 # Service info, the answer of GET /service-info (GA4GH service-info
 # specification), rendered into a ConfigMap. The defaults describe no
 # particular deployment: set at least `id`, `organization`, `contactUrl` and
-# `environment` for yours. The chart sets `type` (TES 1.0.0) and `version`
+# `environment` for yours. The chart sets `type` (TES 1.1.0 from tesk-api
+# 2.0.0 on, 1.0.0 before) and `version`
 # (the tag of tesk-api's image) itself. Empty optional fields are left out
 serviceInfo:
   # Name of a ConfigMap of your own with the key `service-info.yaml`, in the

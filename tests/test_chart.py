@@ -216,6 +216,22 @@ def test_defaults() -> None:
     assert find(manifests, "Service", "ftp") is None
 
 
+def test_default_images() -> None:
+    """By default, the chart deploys tesk-api 2.0.0 with tesk-core 0.12.0.
+
+    tesk-api 2.0.0 selects executor jobs by a label that the taskmaster
+    0.12.0 also sets on filer jobs, so they are upgraded together, with
+    the API's update strategy `Recreate` (see docs/upgrading.md).
+    """
+    variables = env(render())
+    assert METADATA["appVersion"] == "2.0.0"
+    assert variables["TESK_API_TASKMASTER_IMAGE_VERSION"] == "0.12.0"
+    assert variables["TESK_API_TASKMASTER_FILER_IMAGE_VERSION"] == "0.12.0"
+    assert get(render(), "Deployment", "tesk-api")["spec"]["strategy"] == {
+        "type": "Recreate"
+    }
+
+
 def test_port() -> None:
     """The API's port is used by its container, service and ingress."""
     manifests = render("--set", "tesk.port=9000")
@@ -1837,7 +1853,7 @@ def test_service_info_defaults() -> None:
     assert info == {
         "id": "uk.ac.ebi.tsc.tesk",
         "name": "TESK",
-        "type": {"group": "org.ga4gh", "artifact": "TES", "version": "1.0.0"},
+        "type": {"group": "org.ga4gh", "artifact": "TES", "version": "1.1.0"},
         "description": "GA4GH TES Server implementation for Kubernetes",
         "organization": {"name": "EMBL-EBI", "url": "https://www.ebi.ac.uk/"},
         "contactUrl": "https://github.com/elixir-cloud-aai/TESK/issues",
@@ -1861,7 +1877,39 @@ def test_service_info_type_artifact() -> None:
     and serves an empty body (elixir-cloud-aai/TESK#290).
     """
     info, _ = _service_info()
-    assert info["type"] == {"group": "org.ga4gh", "artifact": "TES", "version": "1.0.0"}
+    assert info["type"] == {"group": "org.ga4gh", "artifact": "TES", "version": "1.1.0"}
+
+
+@pytest.mark.parametrize(
+    ("tag", "expected"),
+    [
+        ("1.1.0", "1.0.0"),
+        ("1.2.0", "1.0.0"),
+        ("v1.2.0", "1.0.0"),
+        ("1.2.1", "1.0.0"),
+        ("1.3.0-rc.1", "1.0.0"),
+        # tesk-api 2.0.0 implements TES 1.1 (tesk-api#137), so do its
+        # pre-releases
+        ("2.0.0-rc.1", "1.1.0"),
+        ("2.0.0", "1.1.0"),
+        ("v2.0.0", "1.1.0"),
+        ("2.1.0", "1.1.0"),
+        # Tags that aren't versions are assumed to be newer
+        ("dev", "1.1.0"),
+        ("0", "1.1.0"),
+    ],
+)
+def test_service_info_type_version(tag: str, expected: str) -> None:
+    """The TES version of the service info's type follows the API's image.
+
+    tesk-api 2.0.0 implements TES 1.1.0, earlier releases TES 1.0.0.
+
+    Args:
+        tag: `tesk.image.tag`.
+        expected: The expected `type.version`.
+    """
+    info, _ = _service_info("--set-string", f"tesk.image.tag={tag}")
+    assert info["type"]["version"] == expected
 
 
 @pytest.mark.parametrize("tag", ["1.2.1", "dev", "0"])
@@ -3707,8 +3755,8 @@ def test_seconds_invalid_range(args: tuple[str, ...], message: str) -> None:
         ((), False),
         (("--set", "tesk.taskmaster.image.tag=v0.10.6", *FILER_DEV), True),
         (("--set", "tesk.taskmaster.image.tag=0.10.6", *FILER_DEV), True),
-        (("--set", "tesk.taskmaster.image.tag=v0.11.0"), False),
-        (("--set", "tesk.taskmaster.image.tag=0.11.0"), False),
+        (("--set", "tesk.taskmaster.image.tag=v0.12.0"), False),
+        (("--set", "tesk.taskmaster.image.tag=0.12.0"), False),
         (("--set", "tesk.taskmaster.image.tag=dev", *FILER_OLD), False),
         (("--set", "tesk.taskmaster.image.tag=dev"), False),
     ],
@@ -3756,7 +3804,7 @@ def test_notes_max_queue_old_api(
         args: Further `helm template` arguments (image tags).
         warned: Whether the notes warn.
     """
-    new_taskmaster = ("--set", "tesk.taskmaster.image.tag=0.11.0")
+    new_taskmaster = ("--set", "tesk.taskmaster.image.tag=0.12.0")
     text = notes(
         "--set", "tesk.maxQueueSeconds=3600", *new_taskmaster, *args, tmp_path=tmp_path
     )
@@ -3810,17 +3858,24 @@ def test_notes_legacy_user_labels_old_api(
         (("--set", "tesk.image.tag=v1.1.0"), True),
         (("--set", "tesk.image.tag=1.2.0-rc.1"), True),
         (("--set", "tesk.image.tag=1.1.0-beta"), True),
-        # The first release with the setting is still open (tesk-api#153)
-        (("--set", "tesk.image.tag=1.2.1-rc.1"), False),
-        (("--set", "tesk.image.tag=1.3.0-rc.1"), False),
-        (("--set", "tesk.image.tag=1.3.0"), False),
+        (("--set", "tesk.image.tag=1.2.1"), True),
+        (("--set", "tesk.image.tag=1.3.0"), True),
+        (("--set", "tesk.image.tag=1.3.0-rc.1"), True),
+        # 2.0.0 is the first release with the setting (tesk-api#153); its
+        # pre-releases have it too
+        (("--set", "tesk.image.tag=2.0.0-rc.1"), False),
+        (("--set", "tesk.image.tag=2.0.0"), False),
+        (("--set", "tesk.image.tag=v2.0.0"), False),
+        (("--set", "tesk.image.tag=2.1.0"), False),
         (("--set", "tesk.image.tag=dev"), False),
+        # Without a tag, the chart's `appVersion`
+        ((), False),
     ],
 )
 def test_notes_token_clients_old_api(
     tmp_path: Path, args: tuple[str, ...], warned: bool
 ) -> None:
-    """The notes warn if `auth.tokenClients` is on with tesk-api 1.2.0 or older.
+    """The notes warn if `auth.tokenClients` is on with tesk-api before 2.0.0.
 
     Those versions ignore the setting, so they refuse the clients' tokens.
 
@@ -3905,8 +3960,8 @@ def test_image_releases_match(taskmaster: str, filer: str) -> None:
 @pytest.mark.parametrize(
     ("args", "taskmaster", "filer"),
     [
-        (("--set", "tesk.taskmaster.image.tag=v0.10.6"), "v0.10.6", "0.11.0"),
-        (("--set", "tesk.filer.image.tag=0.10.6"), "0.11.0", "0.10.6"),
+        (("--set", "tesk.taskmaster.image.tag=v0.10.6"), "v0.10.6", "0.12.0"),
+        (("--set", "tesk.filer.image.tag=0.10.6"), "0.12.0", "0.10.6"),
         (
             (
                 "--set",
