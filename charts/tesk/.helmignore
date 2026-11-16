@@ -20,3 +20,9 @@
 .idea/
 *.tmproj
 .vscode/
+# Values with credentials, passed with `-f` (see docs/deployment.md), which
+# the chart doesn't read. `ftp/.netrc` and `s3-config/config` and
+# `credentials` hold credentials too, but the chart reads them
+# (`.Files.Get`), and Helm leaves ignored files out also when it installs
+# from this directory: build packages for others from a clean checkout
+secrets.yaml
