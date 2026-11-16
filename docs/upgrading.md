@@ -10,7 +10,16 @@ again):
 helm upgrade tesk charts/tesk --namespace tesk -f my-values.yaml -f secrets.yaml
 ```
 
-## Unreleased
+## 0.4.0
+
+Releases of chart 0.3.0 are upgraded in place (`helm upgrade` with the
+chart of the [release](deployment.md#from-a-release)). The upgrade brings
+tesk-api 2.0.0 (TES 1.1) and the taskmaster and filer of tesk-core 0.12.0,
+and the API is down for about a minute during each rollout (update strategy
+`Recreate`): read [tesk-api 2.0.0, taskmaster and filer
+0.12.0](#tesk-api-200-taskmaster-and-filer-0120) before you upgrade,
+especially if your values pin image tags, or if your cluster refuses pods
+with the `RuntimeDefault` seccomp profile.
 
 ### tesk-api 2.0.0, taskmaster and filer 0.12.0
 
@@ -372,9 +381,8 @@ Things to check:
 - **FTP secret:** to keep the name of the FTP secret, set
   `ftp.classicFtpSecret: ftp-secret`; by default, it is `<prefix>-ftp`.
   `ftp.classicFtpSecret: ""` still creates no secret. Put the credentials
-  into `ftp.username` and `ftp.password` (in `secrets.yaml`): from the
-  release in [Unreleased](#unreleased) on, the chart creates the secret
-  and passes it on to tesk-api only with them, so a secret of that name
+  into `ftp.username` and `ftp.password` (in `secrets.yaml`): from
+  [0.4.0](#040) on, the chart creates the secret and passes it on to tesk-api only with them, so a secret of that name
   restored by hand isn't used (see [No FTP secret without
   credentials](#no-ftp-secret-without-credentials)).
 - **TLS secret:** the secret named in `ingress.tlsSecretName` isn't part of
