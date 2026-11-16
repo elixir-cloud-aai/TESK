@@ -93,6 +93,44 @@ fail above, where they would be rounded (as in `tesk.yamlText`).
 {{- end -}}
 {{- end -}}
 
+{{- /* "true" if the tag of tesk-api's image (`tesk.apiImageTag`, without a
+leading `v`) is a version before `version`, also a pre-release of an
+earlier version; else empty. The pre-releases of `version` itself count
+as `version` (`-0`), and tags that aren't SemVer versions (e.g., dev, or
+1.2.3-) are assumed to be newer. Arguments: `root` (the chart's context) and
+`version` (X.Y.Z) */ -}}
+{{- define "tesk.apiBefore" -}}
+{{- $apiTag := include "tesk.apiImageTag" .root | trimPrefix "v" -}}
+{{- if and (regexMatch (include "tesk.semver" (dict "patch" false)) $apiTag) (semverCompare (printf "<%s-0" .version) $apiTag) -}}
+true
+{{- end -}}
+{{- end -}}
+
+{{- /* A regular expression of the SemVer versions that semverCompare
+reads as written: numbers without leading zeros, and pre-release
+identifiers that are numbers without leading zeros or contain a letter or
+`-`. `patch`: false makes the patch number optional (X.Y), as in tags of
+tesk-api. Other tags (e.g., dev, 1.2.3-, 01.2.3) aren't compared */ -}}
+{{- define "tesk.semver" -}}
+{{- $number := "(0|[1-9][0-9]*)" -}}
+{{- $identifier := "(0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)" -}}
+{{- $patch := ternary (printf "\\.%s" $number) (printf "(\\.%s)?" $number) (ne (toString .patch) "false") -}}
+{{- printf "^%s\\.%s%s(-%s(\\.%s)*)?(\\+[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?$" $number $number $patch $identifier $identifier -}}
+{{- end -}}
+
+{{- /* Fails if the taskmaster is 0.12.0 or later (also a pre-release) and
+tesk-api older than 2.0.0: such taskmasters label the filer jobs with the
+task, which older APIs take for executor jobs, and report wrong task states
+(tesk-core#147, tesk-api#183); e.g., with values that pin an older
+`tesk.image.tag` but not the taskmaster's. Tags that aren't versions aren't
+checked */ -}}
+{{- define "tesk.checkApiTaskmaster" -}}
+{{- $taskmasterTag := toString (dig "taskmaster" "image" "tag" "" .Values.tesk) | trimPrefix "v" -}}
+{{- if and (regexMatch (include "tesk.semver" (dict "patch" true)) $taskmasterTag) (semverCompare ">=0.12.0-0" $taskmasterTag) (include "tesk.apiBefore" (dict "root" . "version" "2.0.0")) -}}
+{{- fail (printf "tesk.taskmaster.image.tag (%s) needs tesk-api 2.0.0 or later, not %s (tesk.image.tag): older APIs take the filer jobs of taskmaster 0.12.0 and later for executor jobs, and report wrong task states. Upgrade tesk-api, or keep the taskmaster and filer before 0.12.0; see https://tesk.readthedocs.io/en/latest/upgrading/#tesk-api-200-taskmaster-and-filer-0120" $taskmasterTag (include "tesk.apiImageTag" .)) -}}
+{{- end -}}
+{{- end -}}
+
 {{- define "tesk.oauthClientName" -}}
 {{- include "tesk.fullname" . }}-oauth-client
 {{- end -}}
@@ -338,7 +376,7 @@ v0.10.6.
 the max queue time as COMPLETE (tesk-api#104); tags that aren't versions
 (e.g., dev) are assumed to be newer */ -}}
 {{- $apiTag := toString (dig "image" "tag" "" .Values.tesk) | default .Chart.AppVersion | trimPrefix "v" -}}
-{{- if and (include "tesk.seconds" (dict "root" . "name" "maxQueueSeconds" "minimum" 1)) (regexMatch "^[0-9]+\\.[0-9]+(\\.[0-9]+)?([-+][0-9A-Za-z.+-]*)?$" $apiTag) (semverCompare "<1.2.0-0" $apiTag) }}
+{{- if and (include "tesk.seconds" (dict "root" . "name" "maxQueueSeconds" "minimum" 1)) (include "tesk.apiBefore" (dict "root" . "version" "1.2.0")) }}
 
 WARNING: tesk.maxQueueSeconds is set, but tesk-api {{ $apiTag }} (tesk.image.tag)
 reports a task whose executor wasn't scheduled in time as COMPLETE instead
@@ -347,23 +385,23 @@ https://tesk.readthedocs.io/en/latest/deployment/#tasks-that-cant-be-scheduled
 {{- end }}
 {{- /* tesk-api before 1.2.0 ignores the legacy creator labels setting,
 which the chart only passes on with mode auth */ -}}
-{{- $oldApi := and (regexMatch "^[0-9]+\\.[0-9]+(\\.[0-9]+)?([-+][0-9A-Za-z.+-]*)?$" $apiTag) (semverCompare "<1.2.0-0" $apiTag) -}}
+{{- $oldApi := include "tesk.apiBefore" (dict "root" . "version" "1.2.0") -}}
 {{- if and (eq (toString .Values.auth.mode) "auth") (eq (toString .Values.auth.legacyUserLabels) "true") $oldApi }}
 
 WARNING: auth.legacyUserLabels is on, but tesk-api {{ $apiTag }} (tesk.image.tag)
 ignores it. It is for tesk-api 1.2.0 or later; see
 https://tesk.readthedocs.io/en/latest/deployment/#tasks-created-before-tesk-api-120
 {{- end }}
-{{- /* tesk-api 1.2.0 and older ignore the tokens of allow-listed clients,
-which the chart only passes on with mode auth (and fails without it); also
-their pre-releases. Set the constraint to the first release with the
-setting (tesk-api#153) once it is known */ -}}
+{{- /* tesk-api before 2.0.0 ignores the tokens of allow-listed clients,
+which the chart only passes on with mode auth (and fails without it). 2.0.0
+is the first release with the setting (tesk-api#153); its pre-releases have
+it too */ -}}
 {{- $tokenClientsOn := eq (toString (dig "tokenClients" "enabled" "" .Values.auth)) "true" -}}
-{{- if and $tokenClientsOn (regexMatch "^[0-9]+\\.[0-9]+(\\.[0-9]+)?([-+][0-9A-Za-z.+-]*)?$" $apiTag) (semverCompare "<1.2.1-0" $apiTag) }}
+{{- if and $tokenClientsOn (include "tesk.apiBefore" (dict "root" . "version" "2.0.0")) }}
 
 WARNING: auth.tokenClients is on, but tesk-api {{ $apiTag }} (tesk.image.tag)
-ignores it and refuses the clients' tokens. It is for tesk-api releases after
-1.2.0; see
+ignores it and refuses the clients' tokens. It is for tesk-api 2.0.0 or
+later; see
 https://tesk.readthedocs.io/en/latest/deployment/#tokens-of-services
 {{- end }}
 {{- if and .Values.tesk.filerHttpTimeout $oldImages }}
@@ -398,8 +436,10 @@ fields are quoted (`tesk.yamlText`), so that tesk-api reads them as
 text whatever they look like; `createdAt` and `updatedAt` are YAML
 timestamps, unquoted, as tesk-api reads them as dates. Empty optional
 fields are left out; the fields that the GA4GH service-info specification
-requires fail if empty. `type` (TES 1.0.0, which tesk-api implements) and
-`version` (the tag of tesk-api's image) are set here.
+requires fail if empty. `type` (the TES version that tesk-api implements:
+1.1.0 from tesk-api 2.0.0 on, also for its pre-releases and for tags that
+aren't versions, e.g., dev; 1.0.0 before) and `version` (the tag of
+tesk-api's image) are set here.
 `type.artifact` is `TES`, the name of tesk-api's Java enum constant, which
 it reads with SnakeYAML and serves as `tes` (the TES specification's
 artifact); with `tes` here, tesk-api can't read the service info.
@@ -444,7 +484,7 @@ type:
   group: "org.ga4gh"
   {{- /* tesk-api serves "tes"; see above */}}
   artifact: "TES"
-  version: "1.0.0"
+  version: {{ ternary "1.0.0" "1.1.0" (not (empty (include "tesk.apiBefore" (dict "root" . "version" "2.0.0")))) | quote }}
 {{- if include "tesk.isSet" $info.description }}
 description: {{ include "tesk.yamlText" (dict "value" $info.description "key" "serviceInfo.description") }}
 {{- end }}

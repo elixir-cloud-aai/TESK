@@ -23,7 +23,9 @@ With `auth.mode: auth`, requests need an OIDC access token (see
 authorisation](deployment.md#authentication-and-authorisation)), except
 `GET /service-info`, which stays public unless `auth.serviceInfoPublic` is
 `false` (see [Configuration](configuration.md)), the API description
-(`GET /v2/api-docs`), and the Swagger UI if it is on.
+(`GET /v3/api-docs`, OpenAPI 3.1; tesk-api before 2.0.0 served Swagger 2.0
+at `/v2/api-docs`, which 2.0.0 still serves, deprecated), and the Swagger
+UI if it is on.
 
 For example, to create a task from a checkout of this repository and get
 its state:
