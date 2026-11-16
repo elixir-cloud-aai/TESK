@@ -93,6 +93,19 @@ fail above, where they would be rounded (as in `tesk.yamlText`).
 {{- end -}}
 {{- end -}}
 
+{{- /* "true" if the tag of tesk-api's image (`tesk.apiImageTag`, without a
+leading `v`) is a version before `version`, also a pre-release of an
+earlier version; else empty. The pre-releases of `version` itself count
+as `version` (`-0`), and tags that aren't versions (e.g., dev) are
+assumed to be newer. Arguments: `root` (the chart's context) and
+`version` (X.Y.Z) */ -}}
+{{- define "tesk.apiBefore" -}}
+{{- $apiTag := include "tesk.apiImageTag" .root | trimPrefix "v" -}}
+{{- if and (regexMatch "^[0-9]+\\.[0-9]+(\\.[0-9]+)?([-+][0-9A-Za-z.+-]*)?$" $apiTag) (semverCompare (printf "<%s-0" .version) $apiTag) -}}
+true
+{{- end -}}
+{{- end -}}
+
 {{- define "tesk.oauthClientName" -}}
 {{- include "tesk.fullname" . }}-oauth-client
 {{- end -}}
@@ -338,7 +351,7 @@ v0.10.6.
 the max queue time as COMPLETE (tesk-api#104); tags that aren't versions
 (e.g., dev) are assumed to be newer */ -}}
 {{- $apiTag := toString (dig "image" "tag" "" .Values.tesk) | default .Chart.AppVersion | trimPrefix "v" -}}
-{{- if and (include "tesk.seconds" (dict "root" . "name" "maxQueueSeconds" "minimum" 1)) (regexMatch "^[0-9]+\\.[0-9]+(\\.[0-9]+)?([-+][0-9A-Za-z.+-]*)?$" $apiTag) (semverCompare "<1.2.0-0" $apiTag) }}
+{{- if and (include "tesk.seconds" (dict "root" . "name" "maxQueueSeconds" "minimum" 1)) (include "tesk.apiBefore" (dict "root" . "version" "1.2.0")) }}
 
 WARNING: tesk.maxQueueSeconds is set, but tesk-api {{ $apiTag }} (tesk.image.tag)
 reports a task whose executor wasn't scheduled in time as COMPLETE instead
@@ -347,7 +360,7 @@ https://tesk.readthedocs.io/en/latest/deployment/#tasks-that-cant-be-scheduled
 {{- end }}
 {{- /* tesk-api before 1.2.0 ignores the legacy creator labels setting,
 which the chart only passes on with mode auth */ -}}
-{{- $oldApi := and (regexMatch "^[0-9]+\\.[0-9]+(\\.[0-9]+)?([-+][0-9A-Za-z.+-]*)?$" $apiTag) (semverCompare "<1.2.0-0" $apiTag) -}}
+{{- $oldApi := include "tesk.apiBefore" (dict "root" . "version" "1.2.0") -}}
 {{- if and (eq (toString .Values.auth.mode) "auth") (eq (toString .Values.auth.legacyUserLabels) "true") $oldApi }}
 
 WARNING: auth.legacyUserLabels is on, but tesk-api {{ $apiTag }} (tesk.image.tag)
@@ -357,9 +370,9 @@ https://tesk.readthedocs.io/en/latest/deployment/#tasks-created-before-tesk-api-
 {{- /* tesk-api before 2.0.0 ignores the tokens of allow-listed clients,
 which the chart only passes on with mode auth (and fails without it). 2.0.0
 is the first release with the setting (tesk-api#153); its pre-releases have
-it too (`-0` lets the constraint match pre-releases) */ -}}
+it too */ -}}
 {{- $tokenClientsOn := eq (toString (dig "tokenClients" "enabled" "" .Values.auth)) "true" -}}
-{{- if and $tokenClientsOn (regexMatch "^[0-9]+\\.[0-9]+(\\.[0-9]+)?([-+][0-9A-Za-z.+-]*)?$" $apiTag) (semverCompare "<2.0.0-0" $apiTag) }}
+{{- if and $tokenClientsOn (include "tesk.apiBefore" (dict "root" . "version" "2.0.0")) }}
 
 WARNING: auth.tokenClients is on, but tesk-api {{ $apiTag }} (tesk.image.tag)
 ignores it and refuses the clients' tokens. It is for tesk-api 2.0.0 or
@@ -446,9 +459,7 @@ type:
   group: "org.ga4gh"
   {{- /* tesk-api serves "tes"; see above */}}
   artifact: "TES"
-  {{- $apiTag := include "tesk.apiImageTag" . | trimPrefix "v" }}
-  {{- $oldApi := and (regexMatch "^[0-9]+\\.[0-9]+(\\.[0-9]+)?([-+][0-9A-Za-z.+-]*)?$" $apiTag) (semverCompare "<2.0.0-0" $apiTag) }}
-  version: {{ ternary "1.0.0" "1.1.0" $oldApi | quote }}
+  version: {{ include "tesk.apiBefore" (dict "root" . "version" "2.0.0") | eq "true" | ternary "1.0.0" "1.1.0" | quote }}
 {{- if include "tesk.isSet" $info.description }}
 description: {{ include "tesk.yamlText" (dict "value" $info.description "key" "serviceInfo.description") }}
 {{- end }}

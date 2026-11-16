@@ -127,7 +127,7 @@ requests to a pod that isn't ready.
 | `auth.claim.enabled` | `false` | With `auth.mode: auth`: `true` authorises users without groups, by a claim of the user info (see [Authorisation by a claim](deployment.md#authorisation-by-a-claim)). Needs `auth.claim.name` and `auth.claim.values`, and tesk-api 1.2.0 or later; ignored with `auth.mode: noauth`. |
 | `auth.claim.name` | `""` | Name of the claim, e.g., `eduperson_entitlement`. |
 | `auth.claim.values` | `[]` | Values of the claim, one of which a user needs (compared exactly); non-blank, without commas. |
-| `auth.tokenClients.enabled` | `false` | With `auth.mode: auth`: `true` accepts access tokens (JWTs) of the clients in `auth.tokenClients.clients`, e.g., of a gateway with the client credentials grant, without the user info (see [Tokens of services](deployment.md#tokens-of-services)). Needs `auth.tokenClients.issuer`, `auth.tokenClients.audience` (or `auth.tokenClients.allowAnyAudience: true`) and `auth.tokenClients.clients`, and a tesk-api release after 1.2.0; the chart fails with any other `auth.mode`. |
+| `auth.tokenClients.enabled` | `false` | With `auth.mode: auth`: `true` accepts access tokens (JWTs) of the clients in `auth.tokenClients.clients`, e.g., of a gateway with the client credentials grant, without the user info (see [Tokens of services](deployment.md#tokens-of-services)). Needs `auth.tokenClients.issuer`, `auth.tokenClients.audience` (or `auth.tokenClients.allowAnyAudience: true`) and `auth.tokenClients.clients`, and tesk-api 2.0.0 or later (`tesk.image.tag`); the chart fails with any other `auth.mode`. |
 | `auth.tokenClients.issuer` | `""` | Issuer of the tokens (an HTTPS URL), compared exactly with their claim `iss`, e.g., `https://login.aai.lifescience-ri.eu/oidc/` for LS Login. |
 | `auth.tokenClients.jwksUri` | `""` | JWKS URI of the issuer, with the keys that sign the tokens (an HTTPS URL); empty uses the one of the issuer's discovery document. |
 | `auth.tokenClients.audience` | `""` | Audience that the claim `aud` of the tokens must contain, e.g., the URL of this deployment, so that tokens for other services are refused. Required unless `auth.tokenClients.allowAnyAudience` is `true`. |
@@ -183,8 +183,9 @@ text that looks like a number (e.g., `id: "1.10"`, which would otherwise
 become `1.1`). The chart sets two fields itself:
 `type` (group `org.ga4gh`, artifact `tes`, and the TES version that
 tesk-api implements: `1.1.0` from tesk-api 2.0.0 on, also for tags that
-aren't versions, e.g., `dev`, and `1.0.0` before; the ConfigMap holds the artifact as `TES`, the form
-that tesk-api reads, and tesk-api serves it as `tes`) and
+aren't versions, e.g., `dev`, and `1.0.0` before; the ConfigMap holds the
+artifact as `TES`, the form that tesk-api reads, and tesk-api serves it as
+`tes`) and
 `version` (the tag of tesk-api's image, `tesk.image.tag`, by default the
 chart's `appVersion`). A change of the service info restarts the API's pod
 (tesk-api reads the file at startup, and then only every hour); with

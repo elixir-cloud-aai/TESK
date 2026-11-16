@@ -282,13 +282,8 @@ helm template tesk charts/tesk --namespace tesk \
     -f my-values.yaml > rendered.yaml && grep -ci seccomp rendered.yaml
 ```
 
-This covers the API's pod only. The filer pods of taskmaster and filer
-0.12.0 (the chart's default) ask for the `RuntimeDefault` profile too,
-which the taskmaster sets itself (see the [filer's pod
-security](tesk-core/filer.md#pod-security)); the chart has no values to
-change that yet. On such clusters, keep `tesk.taskmaster.image.tag` and
-`tesk.filer.image.tag` at `0.11.0` for now (see
-[Upgrading](upgrading.md#tesk-api-200-taskmaster-and-filer-0120)).
+This covers the API's pod only: for the filer pods of taskmaster and
+filer 0.12.0, the chart's default, see [Upgrading](upgrading.md#tesk-api-200-taskmaster-and-filer-0120).
 
 ## Storage backends
 
@@ -354,8 +349,8 @@ By default (`auth.mode: noauth`), all endpoints are open. With `auth.mode:
 auth`, the API requires an OIDC access token (`Authorization: Bearer`) for
 every endpoint except `GET /service-info`, which stays public unless
 `auth.serviceInfoPublic` is `false` (tesk-api 1.2.0 or later), the API
-description (`GET /v2/api-docs`), and the [Swagger UI](#swagger-ui) if it is
-on. tesk-api validates tokens at the user info endpoint of the OIDC provider
+description (`GET /v3/api-docs`; `/v2/api-docs` before tesk-api 2.0.0), and
+the [Swagger UI](#swagger-ui) if it is on. tesk-api validates tokens at the user info endpoint of the OIDC provider
 (`auth.userInfoUri`) and authorises users by their groups in a claim of the
 user info, following a group model of nested groups (`auth.groups.*`,
 `auth.envBaseGroup`, `auth.envSubgroup`), or by a claim (see [Authorisation
@@ -568,8 +563,8 @@ how to list and delete the old tasks.
 
 tesk-api can serve a Swagger UI, at the root path of the deployment (`/`
 redirects to `/swagger-ui/index.html`). It is off by default
-(`tesk.swaggerUi.enabled: false`); the API description (`/v2/api-docs`) is
-served either way, without a token. Turning it on serves the Swagger UI
+(`tesk.swaggerUi.enabled: false`); the API description (`/v3/api-docs`;
+`/v2/api-docs` before tesk-api 2.0.0) is served either way, without a token. Turning it on serves the Swagger UI
 publicly, also with `auth.mode: auth`; enable it only where needed:
 
 ```yaml

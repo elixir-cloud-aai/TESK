@@ -42,8 +42,9 @@ Recreate](#api-update-strategy-recreate)).
   replaces it with `FILER_POD_SECURITY_CONTEXT` and
   `FILER_SECURITY_CONTEXT`, for which the chart has no values yet; on such
   clusters, keep `tesk.taskmaster.image.tag` and `tesk.filer.image.tag` at
-  `0.11.0` for now. OpenShift's `restricted-v2` security context
-  constraint accepts the defaults.
+  `0.11.0` for now. According to the [filer's docs](tesk-core/filer.md#pod-security),
+  OpenShift's `restricted-v2` security context constraint accepts the
+  defaults.
 - **Act on this if you use `serviceInfo.existingConfigMap`:** tesk-api
   2.0.0 implements TES 1.1, so set `type.version` to `1.1.0` and `version`
   to `2.0.0` in your ConfigMap. The chart's own service info does this

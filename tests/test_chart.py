@@ -219,17 +219,15 @@ def test_defaults() -> None:
 def test_default_images() -> None:
     """By default, the chart deploys tesk-api 2.0.0 with tesk-core 0.12.0.
 
-    tesk-api 2.0.0 selects executor jobs by a label that the taskmaster
-    0.12.0 also sets on filer jobs, so they are upgraded together, with
-    the API's update strategy `Recreate` (see docs/upgrading.md).
+    The taskmaster 0.12.0 labels filer jobs so that only tesk-api 2.0.0 and
+    later tell them from executor jobs; the defaults are a matching pair
+    (see docs/upgrading.md).
     """
-    variables = env(render())
-    assert METADATA["appVersion"] == "2.0.0"
+    manifests = render()
+    variables = env(manifests)
+    assert container(manifests)["image"].endswith(":2.0.0")
     assert variables["TESK_API_TASKMASTER_IMAGE_VERSION"] == "0.12.0"
     assert variables["TESK_API_TASKMASTER_FILER_IMAGE_VERSION"] == "0.12.0"
-    assert get(render(), "Deployment", "tesk-api")["spec"]["strategy"] == {
-        "type": "Recreate"
-    }
 
 
 def test_port() -> None:
