@@ -2014,6 +2014,7 @@ def test_service_info_defaults() -> None:
         "environment": "dev",
         "version": str(METADATA["appVersion"]),
         "storage": ["ftp://ftp-private.ebi.ac.uk"],
+        "tesResources_backend_parameters": [],
     }
     # A YAML timestamp, as tesk-api reads `createdAt` (a quoted string fails)
     assert "\ncreatedAt: 2021-04-06\n" in text
@@ -2062,6 +2063,37 @@ def test_service_info_type_version(tag: str, expected: str) -> None:
     """
     info, _ = _service_info("--set-string", f"tesk.image.tag={tag}", *CORE_0_11)
     assert info["type"]["version"] == expected
+
+
+@pytest.mark.parametrize(
+    ("tag", "expected"),
+    [
+        ("1.2.0", False),
+        ("v1.2.1", False),
+        ("2.0.0-rc.1", True),
+        ("2.0.0", True),
+        ("v2.0.0", True),
+        ("2.1.0", True),
+        ("dev", True),
+    ],
+)
+def test_service_info_backend_parameters(tag: str, expected: bool) -> None:
+    """The service info lists no backend parameters from tesk-api 2.0.0 on.
+
+    TES 1.1 adds `tesResources_backend_parameters`; TESK supports none
+    (elixir-cloud-aai/TESK#289). tesk-api before 2.0.0 can't read the
+    service info with the field, so it is left out for them.
+
+    Args:
+        tag: `tesk.image.tag`.
+        expected: Whether the field is rendered.
+    """
+    info, text = _service_info("--set-string", f"tesk.image.tag={tag}", *CORE_0_11)
+    if expected:
+        assert info["tesResources_backend_parameters"] == []
+        assert "\ntesResources_backend_parameters: []\n" in f"{text}\n"
+    else:
+        assert "tesResources_backend_parameters" not in text
 
 
 @pytest.mark.parametrize("tag", ["1.2.1", "dev", "0"])
@@ -2194,7 +2226,15 @@ def test_service_info_optional(args: tuple[str, ...]) -> None:
         "storage",
     ):
         assert field not in info, field
-    assert set(info) == {"id", "name", "type", "organization", "version"}
+    # `tesResources_backend_parameters` is set by the chart, not optional
+    assert set(info) == {
+        "id",
+        "name",
+        "type",
+        "organization",
+        "version",
+        "tesResources_backend_parameters",
+    }
 
 
 @pytest.mark.parametrize(

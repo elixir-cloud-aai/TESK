@@ -190,7 +190,11 @@ aren't versions, e.g., `dev`, and `1.0.0` before; the ConfigMap holds the
 artifact as `TES`, the form that tesk-api reads, and tesk-api serves it as
 `tes`) and
 `version` (the tag of tesk-api's image, `tesk.image.tag`, by default the
-chart's `appVersion`). A change of the service info restarts the API's pod
+chart's `appVersion`). From tesk-api 2.0.0 on, it also sets
+`tesResources_backend_parameters: []` (TES 1.1): TESK supports no backend
+parameters, and tesk-api serves `[]` whatever the file lists; earlier
+tesk-api releases can't read the service info with this field, so it is
+left out for them. A change of the service info restarts the API's pod
 (tesk-api reads the file at startup, and then only every hour); with
 `serviceInfo.existingConfigMap`, changes of your ConfigMap take effect within
 an hour, or when you restart the pod. Service info is public by default,
