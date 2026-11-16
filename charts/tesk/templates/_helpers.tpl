@@ -379,6 +379,18 @@ ignores it and refuses the clients' tokens. It is for tesk-api 2.0.0 or
 later; see
 https://tesk.readthedocs.io/en/latest/deployment/#tokens-of-services
 {{- end }}
+{{- /* Taskmasters from 0.12.0 on (also their pre-releases) label the filer
+jobs with the task, which tesk-api before 2.0.0 takes for executor jobs
+(tesk-core#147, tesk-api#183); tags that aren't versions aren't checked */ -}}
+{{- $taskmasterTag := toString (dig "taskmaster" "image" "tag" "" .Values.tesk) | trimPrefix "v" -}}
+{{- if and (regexMatch "^[0-9]+\\.[0-9]+\\.[0-9]+([-+][0-9A-Za-z.+-]*)?$" $taskmasterTag) (semverCompare ">=0.12.0-0" $taskmasterTag) (include "tesk.apiBefore" (dict "root" . "version" "2.0.0")) }}
+
+WARNING: tesk.taskmaster.image.tag ({{ $taskmasterTag }}) is 0.12.0 or later,
+but tesk-api {{ $apiTag }} (tesk.image.tag) is older than 2.0.0: it takes the
+filer jobs of such taskmasters for executor jobs, and reports wrong task
+states. Use tesk-api 2.0.0 or later, or a taskmaster before 0.12.0; see
+https://tesk.readthedocs.io/en/latest/upgrading/#tesk-api-200-taskmaster-and-filer-0120
+{{- end }}
 {{- if and .Values.tesk.filerHttpTimeout $oldImages }}
 
 WARNING: tesk.filerHttpTimeout is set, but {{ join " and " $oldImages }} {{ ternary "is" "are" (eq (len $oldImages) 1) }}

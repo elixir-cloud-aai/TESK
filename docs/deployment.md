@@ -282,8 +282,22 @@ helm template tesk charts/tesk --namespace tesk \
     -f my-values.yaml > rendered.yaml && grep -ci seccomp rendered.yaml
 ```
 
-This covers the API's pod only: for the filer pods of taskmaster and
-filer 0.12.0, the chart's default, see [Upgrading](upgrading.md#tesk-api-200-taskmaster-and-filer-0120).
+This covers the API's pod only. The filer pods of taskmaster and filer
+0.12.0, the chart's default, ask for the `RuntimeDefault` profile too (see
+the [filer's pod security](tesk-core/filer.md#pod-security)); on such
+clusters, replace the filer's pod security context:
+
+```yaml
+tesk:
+  filer:
+    podSecurityContext:
+      runAsNonRoot: true
+```
+
+`tesk.filer.podSecurityContext` and `tesk.filer.securityContext` replace
+the taskmaster's defaults for the filer's pod and container (repeat those
+that you want to keep; `{}` leaves a context out). Then run a task with an
+input, which starts a filer pod.
 
 ## Storage backends
 

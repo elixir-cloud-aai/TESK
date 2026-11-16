@@ -116,6 +116,24 @@ spec:
         {{- if $ftpSecretName }}
         - name: TESK_API_TASKMASTER_FTP_SECRET_NAME
           value: {{ $ftpSecretName | quote }}
+        {{- /* Taskmasters 0.12.0 and later make the filer jobs reference
+        the secret instead of holding the credentials; older ones ignore
+        it */}}
+        - name: TESK_API_TASKMASTER_ENVIRONMENT_TESK_FTP_SECRET_NAME
+          value: {{ $ftpSecretName | quote }}
+        {{- end }}
+        {{- /* The filer's security contexts, as JSON: a map (also {}, which
+        leaves a context out) replaces the taskmaster's default; null keeps
+        it */}}
+        {{- $filer := default dict $tesk.filer }}
+        {{- range $key, $variable := dict
+          "podSecurityContext" "TESK_API_TASKMASTER_ENVIRONMENT_FILER_POD_SECURITY_CONTEXT"
+          "securityContext" "TESK_API_TASKMASTER_ENVIRONMENT_FILER_SECURITY_CONTEXT" }}
+        {{- $context := get $filer $key }}
+        {{- if kindIs "map" $context }}
+        - name: {{ $variable }}
+          value: {{ toJson $context | quote }}
+        {{- end }}
         {{- end }}
         {{- with .Values.ftp.hosts }}
         - name: TESK_API_TASKMASTER_ENVIRONMENT_TESK_FTP_HOSTS

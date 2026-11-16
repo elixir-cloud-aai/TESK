@@ -2682,7 +2682,9 @@ def test_ftp_secret_credentials(args: tuple[str, ...], created: bool) -> None:
 
     A user name or a password counts, also one that YAML reads as 0 or false;
     null or empty ones don't. Without them, the API gets no FTP secret, as with
-    an empty `ftp.classicFtpSecret`.
+    an empty `ftp.classicFtpSecret`. The taskmasters get its name too
+    (`TESK_FTP_SECRET_NAME`), so that the filer jobs of taskmasters 0.12.0
+    and later reference the secret instead of holding the credentials.
 
     Args:
         args: The `helm template` arguments.
@@ -2695,14 +2697,75 @@ def test_ftp_secret_credentials(args: tuple[str, ...], created: bool) -> None:
         for m in manifests
         if m["kind"] == "Secret" and m["metadata"]["name"] != "netrc"
     }
-    variable = env(manifests).get("TESK_API_TASKMASTER_FTP_SECRET_NAME")
+    variables = env(manifests)
+    variable = variables.get("TESK_API_TASKMASTER_FTP_SECRET_NAME")
+    reference = variables.get("TESK_API_TASKMASTER_ENVIRONMENT_TESK_FTP_SECRET_NAME")
     if created:
         assert secrets == {"tesk-ftp"}
         assert variable == "tesk-ftp"
+        assert reference == "tesk-ftp"
     else:
         # Also none of a name of its own (`ftp.classicFtpSecret`)
         assert not secrets
         assert variable is None
+        assert reference is None
+
+
+FILER_CONTEXTS = {
+    "podSecurityContext": "TESK_API_TASKMASTER_ENVIRONMENT_FILER_POD_SECURITY_CONTEXT",
+    "securityContext": "TESK_API_TASKMASTER_ENVIRONMENT_FILER_SECURITY_CONTEXT",
+}
+
+
+@pytest.mark.parametrize("key", list(FILER_CONTEXTS))
+@pytest.mark.parametrize(
+    ("args", "expected"),
+    [
+        ((), None),
+        (("--set-json", "tesk.filer.{}=null"), None),
+        (("--set-json", "tesk.filer.{}={{}}"), {}),
+        (
+            ("--set-json", 'tesk.filer.{}={{"runAsNonRoot":true,"runAsUser":0}}'),
+            {"runAsNonRoot": True, "runAsUser": 0},
+        ),
+        (
+            ("--set-json", 'tesk.filer.{}={{"seccompProfile":null}}'),
+            {"seccompProfile": None},
+        ),
+    ],
+)
+def test_filer_security_contexts(
+    key: str, args: tuple[str, ...], expected: dict[str, Any] | None
+) -> None:
+    """The filer's security contexts go to the taskmasters as JSON.
+
+    Unset or null leaves the taskmaster's defaults; a map (also `{}`, which
+    leaves the context out) replaces them, as written.
+
+    Args:
+        key: The value under `tesk.filer`.
+        args: The `helm template` arguments, with `{}` for the key.
+        expected: The parsed variable, or None if it isn't set.
+    """
+    variables = env(render(*(arg.format(key) for arg in args)))
+    if expected is None:
+        assert FILER_CONTEXTS[key] not in variables
+    else:
+        assert json.loads(variables[FILER_CONTEXTS[key]]) == expected
+
+
+@pytest.mark.parametrize("key", list(FILER_CONTEXTS))
+@pytest.mark.parametrize("value", ['"{}"', "[]", "1"])
+def test_filer_security_contexts_invalid(key: str, value: str) -> None:
+    """Anything but a map or null fails the schema check.
+
+    Args:
+        key: The value under `tesk.filer`.
+        value: The value, as JSON.
+    """
+    with pytest.raises(subprocess.CalledProcessError) as error:
+        render("--set-json", f"tesk.filer.{key}={value}")
+    assert key in error.value.stderr
 
 
 TRICKY_VALUES = [
@@ -3885,6 +3948,55 @@ def test_notes_token_clients_old_api(
     text = notes(*token_clients(), *args, tmp_path=tmp_path)
     assert ("auth.tokenClients is on, but tesk-api" in text) is warned
     assert "auth.tokenClients is on" not in notes(tmp_path=tmp_path)
+
+
+def _tags(api: str, taskmaster: str) -> tuple[str, ...]:
+    """`helm template` arguments with the tags of the API and of tesk-core.
+
+    Args:
+        api: The tag of tesk-api's image.
+        taskmaster: The tag of the taskmaster's and the filer's images.
+
+    Returns:
+        The arguments.
+    """
+    return (
+        *("--set", f"tesk.image.tag={api}"),
+        *("--set", f"tesk.taskmaster.image.tag={taskmaster}"),
+        *("--set", f"tesk.filer.image.tag={taskmaster}"),
+    )
+
+
+@pytest.mark.parametrize(
+    ("args", "warned"),
+    [
+        (("--set", "tesk.image.tag=1.2.0"), True),
+        (("--set", "tesk.image.tag=v1.2.0"), True),
+        (_tags("1.2.0", "v0.12.0"), True),
+        (_tags("1.2.0", "0.13.0"), True),
+        (_tags("1.2.0", "0.11.0"), False),
+        (_tags("1.2.0", "dev"), False),
+        (("--set", "tesk.image.tag=2.0.0-rc.1"), False),
+        (("--set", "tesk.image.tag=2.0.0"), False),
+        (("--set", "tesk.image.tag=dev"), False),
+        ((), False),
+    ],
+)
+def test_notes_new_taskmaster_old_api(
+    tmp_path: Path, args: tuple[str, ...], warned: bool
+) -> None:
+    """The notes warn about taskmaster 0.12.0 or later with tesk-api before 2.0.0.
+
+    Such taskmasters label filer jobs so that older APIs take them for
+    executor jobs, and report wrong task states.
+
+    Args:
+        tmp_path: A directory for a copy of the chart.
+        args: `helm template` arguments (the image tags).
+        warned: Whether the notes warn.
+    """
+    text = notes(*args, tmp_path=tmp_path)
+    assert ("is older than 2.0.0: it takes the" in text) is warned
 
 
 @pytest.mark.parametrize(

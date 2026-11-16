@@ -29,22 +29,43 @@ Recreate](#api-update-strategy-recreate)).
   `tesk.taskmaster.image.tag` or `tesk.filer.image.tag`:** the new
   defaults apply only to the tags that you don't set. Upgrade the API to
   2.0.0 no later than the taskmaster to 0.12.0: an older API with the new
-  taskmaster reports wrong task states. Set the taskmaster and filer tags
-  together, to the same release. tesk-api 2.0.0 also works with taskmaster
-  and filer 0.11.0, without `ignore_error`, output file logs and outputs
-  with wildcards and `path_prefix`.
+  taskmaster reports wrong task states; the notes of `helm install` and
+  `helm upgrade` warn about such a pair. Set the taskmaster and filer tags
+  together, to the same release. tesk-api 2.0.0 runs with taskmaster and
+  filer 0.11.0 too, but it accepts tasks that they can't run as asked:
+  executors with `ignore_error: true` stop the task at their failure
+  (`SYSTEM_ERROR`), outputs with wildcards and `path_prefix` fail or land
+  in the wrong place, and output file logs stay empty.
 - **Act on this if your cluster refuses pods with the `RuntimeDefault`
   seccomp profile, or sets the user of pods by a policy:** filer pods of
   0.12.0 run with a restricted security context (non-root, the
   `RuntimeDefault` seccomp profile, no privilege escalation and
   capabilities, a read-only root filesystem; see the [upgrade notes of
-  tesk-core](tesk-core/upgrading.md#hardened-filer-pods)). The taskmaster
-  replaces it with `FILER_POD_SECURITY_CONTEXT` and
-  `FILER_SECURITY_CONTEXT`, for which the chart has no values yet; on such
-  clusters, keep `tesk.taskmaster.image.tag` and `tesk.filer.image.tag` at
-  `0.11.0` for now. According to the [filer's docs](tesk-core/filer.md#pod-security),
-  OpenShift's `restricted-v2` security context constraint accepts the
-  defaults.
+  tesk-core](tesk-core/upgrading.md#hardened-filer-pods)). Replace them
+  with the new values `tesk.filer.podSecurityContext` and
+  `tesk.filer.securityContext` (see [Configuration](configuration.md));
+  e.g., where the cluster refuses pods that ask for `RuntimeDefault` and
+  sets its own profile:
+
+    ```yaml
+    tesk:
+      filer:
+        podSecurityContext:
+          runAsNonRoot: true
+    ```
+
+  OpenShift's default `restricted-v2` security context constraint accepts
+  the taskmaster's defaults (see the [filer's pod
+  security](tesk-core/filer.md#pod-security)), but clusters with stricter
+  admission rules may not: check that a task with an input runs after the
+  upgrade.
+- **FTP credentials by reference:** with an FTP secret
+  (`ftp.classicFtpSecret`), the chart also passes its name on to the
+  taskmasters (`TESK_FTP_SECRET_NAME`), so that the filer jobs of
+  taskmaster 0.12.0 reference the secret instead of holding the
+  credentials as values (see the [upgrade notes of
+  tesk-core](tesk-core/upgrading.md#ftp-credentials-by-reference)).
+  Nothing to do.
 - **Act on this if you use `serviceInfo.existingConfigMap`:** tesk-api
   2.0.0 implements TES 1.1, so set `type.version` to `1.1.0` and `version`
   to `2.0.0` in your ConfigMap. The chart's own service info does this

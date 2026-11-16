@@ -135,6 +135,20 @@
           "properties": {
             "image": {
               "$ref": "#/$defs/image"
+            },
+            "podSecurityContext": {
+              "type": [
+                "object",
+                "null"
+              ],
+              "description": "Security context of the filer's pods (fields of a Kubernetes PodSecurityContext), replacing the taskmaster's default; {} leaves it out, null keeps the default"
+            },
+            "securityContext": {
+              "type": [
+                "object",
+                "null"
+              ],
+              "description": "Security context of the filer's container (fields of a Kubernetes SecurityContext), replacing the taskmaster's default; {} leaves it out, null keeps the default"
             }
           },
           "additionalProperties": false
