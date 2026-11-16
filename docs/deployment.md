@@ -631,6 +631,11 @@ The chart passes them on to tesk-api, joined by commas
   and the API would be down after the upgrade. The chart is a little
   stricter than tesk-api: it also refuses IPv6 zone IDs, which browsers
   don't send, and single-label host names that start with a digit.
+- **IPv6 addresses:** write them in the short, lower-case form that
+  browsers send (`http://[::1]:3000`). tesk-api compares origins as text
+  (ignoring case and a trailing `/`), so it accepts a long form such as
+  `http://[0:0:0:0:0:0:0:1]:3000`, but no browser request ever matches
+  it.
 - **Tokens:** every request but the browsers' preflight requests still
   needs a token with `auth.mode: auth`; CORS only lets browsers read the
   answers. List only origins that you trust with your users' tokens.
