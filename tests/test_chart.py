@@ -2719,23 +2719,17 @@ FILER_CONTEXTS = {
 
 @pytest.mark.parametrize("key", list(FILER_CONTEXTS))
 @pytest.mark.parametrize(
-    ("args", "expected"),
+    ("value", "expected"),
     [
-        ((), None),
-        (("--set-json", "tesk.filer.{}=null"), None),
-        (("--set-json", "tesk.filer.{}={{}}"), {}),
-        (
-            ("--set-json", 'tesk.filer.{}={{"runAsNonRoot":true,"runAsUser":0}}'),
-            {"runAsNonRoot": True, "runAsUser": 0},
-        ),
-        (
-            ("--set-json", 'tesk.filer.{}={{"seccompProfile":null}}'),
-            {"seccompProfile": None},
-        ),
+        (None, None),
+        ("null", None),
+        ("{}", {}),
+        ('{"runAsNonRoot":true,"runAsUser":0}', {"runAsNonRoot": True, "runAsUser": 0}),
+        ('{"seccompProfile":null}', {"seccompProfile": None}),
     ],
 )
 def test_filer_security_contexts(
-    key: str, args: tuple[str, ...], expected: dict[str, Any] | None
+    key: str, value: str | None, expected: dict[str, Any] | None
 ) -> None:
     """The filer's security contexts go to the taskmasters as JSON.
 
@@ -2744,10 +2738,11 @@ def test_filer_security_contexts(
 
     Args:
         key: The value under `tesk.filer`.
-        args: The `helm template` arguments, with `{}` for the key.
+        value: The value, as JSON; None leaves it unset.
         expected: The parsed variable, or None if it isn't set.
     """
-    variables = env(render(*(arg.format(key) for arg in args)))
+    args = () if value is None else ("--set-json", f"tesk.filer.{key}={value}")
+    variables = env(render(*args))
     if expected is None:
         assert FILER_CONTEXTS[key] not in variables
     else:
@@ -3976,6 +3971,10 @@ def _tags(api: str, taskmaster: str) -> tuple[str, ...]:
         (_tags("1.2.0", "0.13.0"), True),
         (_tags("1.2.0", "0.11.0"), False),
         (_tags("1.2.0", "dev"), False),
+        (_tags("1.2.0", "0.12.0-rc.1"), True),
+        (_tags("1.9.0-rc.1", "0.12.0"), True),
+        (_tags("2.0.0-rc.1", "0.12.0"), False),
+        (_tags("2.0.0", "0.11.0"), False),
         (("--set", "tesk.image.tag=2.0.0-rc.1"), False),
         (("--set", "tesk.image.tag=2.0.0"), False),
         (("--set", "tesk.image.tag=dev"), False),

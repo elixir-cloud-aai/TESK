@@ -296,7 +296,8 @@ tesk:
 
 `tesk.filer.podSecurityContext` and `tesk.filer.securityContext` replace
 the taskmaster's defaults for the filer's pod and container (repeat those
-that you want to keep; `{}` leaves a context out). Then run a task with an
+that you want to keep; `{}` leaves a context out; set each context in one
+values file, as Helm merges maps of several). Then run a task with an
 input, which starts a filer pod.
 
 ## Storage backends
@@ -364,8 +365,8 @@ auth`, the API requires an OIDC access token (`Authorization: Bearer`) for
 every endpoint except `GET /service-info`, which stays public unless
 `auth.serviceInfoPublic` is `false` (tesk-api 1.2.0 or later), the API
 description (`GET /v3/api-docs`; `/v2/api-docs` before tesk-api 2.0.0), and
-the [Swagger UI](#swagger-ui) if it is on. tesk-api validates tokens at the user info endpoint of the OIDC provider
-(`auth.userInfoUri`) and authorises users by their groups in a claim of the
+the [Swagger UI](#swagger-ui) if it is on. tesk-api validates tokens at
+the user info endpoint of the OIDC provider (`auth.userInfoUri`) and authorises users by their groups in a claim of the
 user info, following a group model of nested groups (`auth.groups.*`,
 `auth.envBaseGroup`, `auth.envSubgroup`), or by a claim (see [Authorisation
 by a claim](#authorisation-by-a-claim)); tokens of allow-listed services can
@@ -578,8 +579,8 @@ how to list and delete the old tasks.
 tesk-api can serve a Swagger UI, at the root path of the deployment (`/`
 redirects to `/swagger-ui/index.html`). It is off by default
 (`tesk.swaggerUi.enabled: false`); the API description (`/v3/api-docs`;
-`/v2/api-docs` before tesk-api 2.0.0) is served either way, without a token. Turning it on serves the Swagger UI
-publicly, also with `auth.mode: auth`; enable it only where needed:
+`/v2/api-docs` before tesk-api 2.0.0) is served either way, without a
+token. Turning it on serves the Swagger UI publicly, also with `auth.mode: auth`; enable it only where needed:
 
 ```yaml
 tesk:

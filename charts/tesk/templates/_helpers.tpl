@@ -471,7 +471,7 @@ type:
   group: "org.ga4gh"
   {{- /* tesk-api serves "tes"; see above */}}
   artifact: "TES"
-  version: {{ include "tesk.apiBefore" (dict "root" . "version" "2.0.0") | eq "true" | ternary "1.0.0" "1.1.0" | quote }}
+  version: {{ ternary "1.0.0" "1.1.0" (not (empty (include "tesk.apiBefore" (dict "root" . "version" "2.0.0")))) | quote }}
 {{- if include "tesk.isSet" $info.description }}
 description: {{ include "tesk.yamlText" (dict "value" $info.description "key" "serviceInfo.description") }}
 {{- end }}

@@ -34,7 +34,8 @@ Recreate](#api-update-strategy-recreate)).
   together, to the same release. tesk-api 2.0.0 runs with taskmaster and
   filer 0.11.0 too, but it accepts tasks that they can't run as asked:
   executors with `ignore_error: true` stop the task at their failure
-  (`SYSTEM_ERROR`), outputs with wildcards and `path_prefix` fail or land
+  (`SYSTEM_ERROR`, unless the failed executor was the last one and the
+  task has no outputs), outputs with wildcards and `path_prefix` fail or land
   in the wrong place, and output file logs stay empty.
 - **Act on this if your cluster refuses pods with the `RuntimeDefault`
   seccomp profile, or sets the user of pods by a policy:** filer pods of

@@ -65,7 +65,9 @@ tesk:
     # null keeps the taskmaster's default. E.g., on clusters that refuse
     # pods asking for `RuntimeDefault`:
     # `podSecurityContext: {runAsNonRoot: true}`. Taskmasters before 0.12.0
-    # ignore them
+    # ignore them. Like all maps, they are merged with the same maps of
+    # earlier values files (or of `--reuse-values`): set each context in
+    # one place
     podSecurityContext: null
     securityContext: null
   # The executors, which run the task's commands
