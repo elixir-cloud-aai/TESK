@@ -4099,6 +4099,36 @@ def _tags(api: str, taskmaster: str) -> tuple[str, ...]:
 
 
 @pytest.mark.parametrize(
+    ("args", "expected"),
+    [
+        (("--set-string", "tesk.image.tag=1.2.3-"), "1.1.0"),
+        (("--set-string", "tesk.image.tag=1.2.3+"), "1.1.0"),
+        (("--set-string", "tesk.image.tag=1.2.3-foo..bar"), "1.1.0"),
+        (_tags("1.2.0", "0.12.0-"), "1.0.0"),
+        (_tags("1.2.0", "0.12.0+"), "1.0.0"),
+        (_tags("1.2.0", "0.12.0-foo..bar"), "1.0.0"),
+    ],
+)
+def test_malformed_version_tags(
+    tmp_path: Path, args: tuple[str, ...], expected: str
+) -> None:
+    """Tags that look like versions but aren't SemVer render, unchecked.
+
+    They aren't compared, as tags that aren't versions aren't, instead of
+    failing the version comparison: such an API tag counts as new, such a
+    taskmaster tag isn't checked against the API.
+
+    Args:
+        tmp_path: A directory for a copy of the chart.
+        args: `helm template` arguments (image tags).
+        expected: The TES version of the service info.
+    """
+    info, _ = _service_info(*args)
+    assert info["type"]["version"] == expected
+    assert "is older than 2.0.0" not in notes(*args, tmp_path=tmp_path)
+
+
+@pytest.mark.parametrize(
     ("args", "warned"),
     [
         (("--set", "tesk.image.tag=1.2.0"), True),

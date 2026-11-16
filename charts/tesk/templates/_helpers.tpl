@@ -96,12 +96,12 @@ fail above, where they would be rounded (as in `tesk.yamlText`).
 {{- /* "true" if the tag of tesk-api's image (`tesk.apiImageTag`, without a
 leading `v`) is a version before `version`, also a pre-release of an
 earlier version; else empty. The pre-releases of `version` itself count
-as `version` (`-0`), and tags that aren't versions (e.g., dev) are
-assumed to be newer. Arguments: `root` (the chart's context) and
+as `version` (`-0`), and tags that aren't SemVer versions (e.g., dev, or
+1.2.3-) are assumed to be newer. Arguments: `root` (the chart's context) and
 `version` (X.Y.Z) */ -}}
 {{- define "tesk.apiBefore" -}}
 {{- $apiTag := include "tesk.apiImageTag" .root | trimPrefix "v" -}}
-{{- if and (regexMatch "^[0-9]+\\.[0-9]+(\\.[0-9]+)?([-+][0-9A-Za-z.+-]*)?$" $apiTag) (semverCompare (printf "<%s-0" .version) $apiTag) -}}
+{{- if and (regexMatch "^[0-9]+\\.[0-9]+(\\.[0-9]+)?(-[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?(\\+[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?$" $apiTag) (semverCompare (printf "<%s-0" .version) $apiTag) -}}
 true
 {{- end -}}
 {{- end -}}
@@ -391,7 +391,7 @@ https://tesk.readthedocs.io/en/latest/deployment/#browser-clients-cors
 jobs with the task, which tesk-api before 2.0.0 takes for executor jobs
 (tesk-core#147, tesk-api#183); tags that aren't versions aren't checked */ -}}
 {{- $taskmasterTag := toString (dig "taskmaster" "image" "tag" "" .Values.tesk) | trimPrefix "v" -}}
-{{- if and (regexMatch "^[0-9]+\\.[0-9]+\\.[0-9]+([-+][0-9A-Za-z.+-]*)?$" $taskmasterTag) (semverCompare ">=0.12.0-0" $taskmasterTag) (include "tesk.apiBefore" (dict "root" . "version" "2.0.0")) }}
+{{- if and (regexMatch "^[0-9]+\\.[0-9]+\\.[0-9]+(-[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?(\\+[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?$" $taskmasterTag) (semverCompare ">=0.12.0-0" $taskmasterTag) (include "tesk.apiBefore" (dict "root" . "version" "2.0.0")) }}
 
 WARNING: tesk.taskmaster.image.tag ({{ $taskmasterTag }}) is 0.12.0 or later,
 but tesk-api {{ $apiTag }} (tesk.image.tag) is older than 2.0.0: it takes the
