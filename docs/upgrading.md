@@ -84,6 +84,14 @@ Recreate](#api-update-strategy-recreate)).
   services](#tokens-of-services)); the notes of `helm install` and `helm
   upgrade` warn if it is on with an earlier tesk-api.
 
+### Origins of browser clients (CORS)
+
+The chart can let tesk-api answer cross-origin requests of browser apps
+(`tesk.cors.allowedOrigins`, see [Browser clients
+(CORS)](deployment.md#browser-clients-cors)). It is empty by default, and
+the rendered manifests are unchanged until you list origins. It needs
+tesk-api 2.0.0 or later (`tesk.image.tag`; the chart's default now).
+
 ### API update strategy Recreate
 
 The API's Deployment uses the update strategy `Recreate` by default

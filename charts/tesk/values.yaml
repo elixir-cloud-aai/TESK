@@ -173,6 +173,20 @@ tesk:
   swaggerUi:
     enabled: false
 
+  # Cross-origin requests (CORS): the origins of browser apps that may call
+  # the API directly, each exactly as the browser sends it (scheme, host and
+  # port unless the default), e.g., [https://client.example.org,
+  # http://localhost:3000]; no wildcards, paths, default ports or commas
+  # (the schema refuses what tesk-api would refuse at startup, and also
+  # IPv6 zone IDs and single-label hosts that start with a digit). Empty:
+  # tesk-api sends no CORS headers, and clients that call it from servers or
+  # through a gateway need none. Every request still needs a token with mode auth;
+  # list only origins that you trust with your users' tokens. Needs tesk-api
+  # 2.0.0 or later (`tesk.image.tag`); see the deployment guide
+  # (docs/deployment.md, "Browser clients (CORS)")
+  cors:
+    allowedOrigins: []
+
 transfer:
   # Support for local file systems (`file:` URLs in inputs and outputs) on a
   # shared PVC

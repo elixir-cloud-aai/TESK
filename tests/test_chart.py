@@ -1264,6 +1264,160 @@ def test_service_info_public(args: tuple[str, ...], expected: str | None) -> Non
     assert env(render(*args)).get("TESK_API_SERVICE_INFO_PUBLIC") == expected
 
 
+CORS = "TESK_API_CORS_ALLOWED_ORIGINS"
+
+
+@pytest.mark.parametrize(
+    ("args", "expected"),
+    [
+        ((), None),
+        (("--set-json", "tesk.cors.allowedOrigins=[]"), None),
+        (("--set-json", "tesk.cors.allowedOrigins=null"), None),
+        (("--set-json", "tesk.cors=null"), None),
+        (
+            ("--set-json", 'tesk.cors.allowedOrigins=["https://client.example.org"]'),
+            "https://client.example.org",
+        ),
+        (
+            (
+                "--set-json",
+                'tesk.cors.allowedOrigins=["https://a.example.org",'
+                ' "http://localhost:3000", "https://b.example.org/"]',
+            ),
+            "https://a.example.org,http://localhost:3000,https://b.example.org/",
+        ),
+        (
+            (
+                "--set-json",
+                'tesk.cors.allowedOrigins=["http://127.0.0.1:8080", "http://[::1]:3000",'
+                ' "https://xn--exmple-cua.org", "https://example.org:65535"]',
+            ),
+            "http://127.0.0.1:8080,http://[::1]:3000,https://xn--exmple-cua.org,"
+            "https://example.org:65535",
+        ),
+        (
+            (
+                "--set-json",
+                'tesk.cors.allowedOrigins=["HTTPS://Example.ORG", "https://example.org.",'
+                ' "http://[0:0:0:0:0:0:0:1]", "http://[::ffff:1.2.3.4]",'
+                ' "http://example.org:443"]',
+            ),
+            "HTTPS://Example.ORG,https://example.org.,http://[0:0:0:0:0:0:0:1],"
+            "http://[::ffff:1.2.3.4],http://example.org:443",
+        ),
+    ],
+)
+def test_cors_allowed_origins(args: tuple[str, ...], expected: str | None) -> None:
+    """`tesk.cors.allowedOrigins` is passed on, joined by commas, unless empty.
+
+    Without origins, tesk-api sends no CORS headers (its default).
+
+    Args:
+        args: The `helm template` arguments.
+        expected: The variable, or None if it isn't set.
+    """
+    assert env(render(*args)).get(CORS) == expected
+
+
+@pytest.mark.parametrize(
+    "origin",
+    [
+        "*",
+        "https://*.example.org",
+        "https://a.example.org,https://b.example.org",
+        "https://example.org/path",
+        "example.org",
+        "https://user@example.org",
+        "https://example.org ",
+        "",
+        "https://example.org:443",
+        "http://example.org:80",
+        "https://example.org:0080",
+        "https://example.org:99999",
+        "https://example.org:",
+        "https://a_b.example.org",
+        "http://127.1",
+        "http://0x7f000001",
+        "http://256.0.0.1",
+        "ftp://example.org",
+        "https://:443",
+        "https://example.org;x",
+        "https://example.org%2F",
+        "https://ex\u00e4mple.org",
+        "https://example.org\u00a0",
+        "http://[1]",
+        "http://[:::]",
+        "http://[::1::2]",
+        "http://[1.2.3.4]",
+        "http://[12345::]",
+        "http://[::1]:80",
+        "HTTPS://example.org:443",
+    ],
+)
+def test_cors_allowed_origins_invalid(origin: str) -> None:
+    """Origins that tesk-api would refuse at startup fail the schema check.
+
+    Wildcards, commas (the separator), paths, user info, blanks, values
+    without a scheme or with another one than http(s), default ports and
+    ports out of range or with leading zeros, host names that aren't ASCII
+    or have `_`, and IPv4 addresses in other forms than four decimal
+    numbers, and malformed IPv6 addresses. tesk-api would stop at startup on
+    them, with the API down after an upgrade (the update strategy
+    `Recreate`).
+
+    Args:
+        origin: The origin.
+    """
+    with pytest.raises(subprocess.CalledProcessError) as error:
+        render("--set-json", f"tesk.cors.allowedOrigins={json.dumps([origin])}")
+    assert "allowedOrigins" in error.value.stderr
+
+
+def test_cors_unknown_key() -> None:
+    """Keys of `tesk.cors` other than `allowedOrigins` fail the schema check."""
+    with pytest.raises(subprocess.CalledProcessError) as error:
+        render("--set-json", 'tesk.cors.origins=["https://example.org"]')
+    assert "origins" in error.value.stderr
+
+
+@pytest.mark.parametrize(
+    ("args", "warned"),
+    [
+        (("--set", "tesk.image.tag=1.2.0"), True),
+        (("--set", "tesk.image.tag=v1.2.0"), True),
+        (("--set", "tesk.image.tag=2.0.0-rc.1"), False),
+        (("--set", "tesk.image.tag=2.0.0"), False),
+        (("--set", "tesk.image.tag=dev"), False),
+        ((), False),
+    ],
+)
+def test_notes_cors_old_api(
+    tmp_path: Path, args: tuple[str, ...], warned: bool
+) -> None:
+    """The notes warn if CORS origins are set with tesk-api before 2.0.0.
+
+    Those versions ignore the setting and send no CORS headers.
+
+    Args:
+        tmp_path: A directory for a copy of the chart.
+        args: Further `helm template` arguments (the image tag).
+        warned: Whether the notes warn.
+    """
+    origins = ("--set-json", 'tesk.cors.allowedOrigins=["https://client.example.org"]')
+    text = notes(*origins, *CORE_0_11, *args, tmp_path=tmp_path)
+    assert ("tesk.cors.allowedOrigins is set, but tesk-api" in text) is warned
+
+
+def test_notes_cors_unset_old_api(tmp_path: Path) -> None:
+    """Without origins, the notes don't warn, also with tesk-api before 2.0.0.
+
+    Args:
+        tmp_path: A directory for a copy of the chart.
+    """
+    text = notes("--set", "tesk.image.tag=1.2.0", *CORE_0_11, tmp_path=tmp_path)
+    assert "tesk.cors.allowedOrigins is set" not in text
+
+
 CLAIM = (
     "TESK_API_AUTHORISATION_CLAIM_ENABLED",
     "TESK_API_AUTHORISATION_CLAIM_NAME",

@@ -600,6 +600,53 @@ authorisation](#authentication-and-authorisation)), at the provider's
 endpoints of `auth.swaggerOauth` (see [LS Login and other
 providers](#ls-login-and-other-providers); ELIXIR AAI's by default).
 
+## Browser clients (CORS)
+
+Browsers let a web app call the API from another origin only if the API
+allows it with CORS headers. tesk-api sends none by default, so clients
+that call TESK from their servers, or through a gateway such as proTES,
+need no setting. To let a browser app call TESK directly, list the app's
+origins in `tesk.cors.allowedOrigins` (tesk-api 2.0.0 or later):
+
+```yaml
+tesk:
+  cors:
+    allowedOrigins:
+      - https://client.example.org
+      - http://localhost:3000
+```
+
+The chart passes them on to tesk-api, joined by commas
+(`TESK_API_CORS_ALLOWED_ORIGINS`).
+
+- **Origins:** list each one exactly as the browser sends it: the scheme,
+  the host, and the port unless it is the default
+  (`https://client.example.org`, not `https://client.example.org:443`),
+  and every variant that you serve the app from (e.g., with and without
+  `www.`): `http` or `https`, an ASCII host name (punycode for
+  international ones, without `_`), an IPv4 address as four decimal
+  numbers or an IPv6 address in brackets, and a port from 1 to 65535
+  without leading zeros. Other origins (e.g., wildcards, paths, default
+  ports) fail the installation, as tesk-api would stop at startup on them,
+  and the API would be down after the upgrade. The chart is a little
+  stricter than tesk-api: it also refuses IPv6 zone IDs, which browsers
+  don't send, and single-label host names that start with a digit.
+- **IPv6 addresses:** write them in the short, lower-case form that
+  browsers send (`http://[::1]:3000`). tesk-api compares origins as text
+  (ignoring case and a trailing `/`), so it accepts a long form such as
+  `http://[0:0:0:0:0:0:0:1]:3000`, but no browser request ever matches
+  it.
+- **Tokens:** every request but the browsers' preflight requests still
+  needs a token with `auth.mode: auth`; CORS only lets browsers read the
+  answers. List only origins that you trust with your users' tokens.
+- **Details:** what tesk-api answers to the listed and to other origins
+  is in its [configuration
+  reference](tesk-api/configuration.md#cross-origin-requests-cors).
+- **Versions:** tesk-api before 2.0.0 ignores the setting; `helm install`
+  and `helm upgrade` print a warning if it is set with such an image
+  (`tesk.image.tag` as a version number, by default the chart's
+  `appVersion`).
+
 ## Resources
 
 The API's container gets the requests and limits of `tesk.resources`

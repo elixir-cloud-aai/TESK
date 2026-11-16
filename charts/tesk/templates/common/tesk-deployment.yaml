@@ -226,6 +226,13 @@ spec:
         - name: TESK_API_SWAGGER_UI_ENABLED
           value: {{ $swaggerUiValue | quote }}
         {{- end }}
+        {{- /* Origins of browser clients (CORS), only when listed: without
+        them, tesk-api sends no CORS headers (values.schema.json checks the
+        origins) */}}
+        {{- with dig "cors" "allowedOrigins" list $tesk }}
+        - name: TESK_API_CORS_ALLOWED_ORIGINS
+          value: {{ join "," . | quote }}
+        {{- end }}
         {{- if .Values.transfer.enabled }}
         - name: TESK_API_TASKMASTER_ENVIRONMENT_HOST_BASE_PATH
           value: {{ .Values.transfer.wesBasePath }}
