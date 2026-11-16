@@ -27,7 +27,7 @@ them apply (e.g., the taskmaster and filer tags, `tesk.strategy` and
 `tesk.filer.*`). With the default tags of chart 0.3.0, the API still
 moves to tesk-api 2.0.0, as `tesk.image.tag` was empty there, but the
 taskmaster and filer stay at 0.11.0, which can't run some TES 1.1 tasks
-as asked (see below), while the service info reports TES 1.1.0; and the
+as asked (see below), so the service info reports TES 1.0.0; and the
 API's Deployment keeps `RollingUpdate`. Tags that your values pinned stay
 as they were. A copy of the `values.yaml` of chart 0.3.0 among your values
 files pins the old taskmaster and filer tags in the same way (the
@@ -102,8 +102,9 @@ Recreate](#api-update-strategy-recreate)).
 - **Act on this if you use `serviceInfo.existingConfigMap`:** tesk-api
   2.0.0 implements TES 1.1, so set `type.version` to `1.1.0` and `version`
   to `2.0.0` in your ConfigMap. The chart's own service info does this
-  itself: its `type.version` follows `tesk.image.tag` (`1.1.0` from
-  tesk-api 2.0.0 on, `1.0.0` before), and from tesk-api 2.0.0 on it lists
+  itself: its `type.version` follows `tesk.image.tag` and
+  `tesk.taskmaster.image.tag` (`1.1.0` from tesk-api 2.0.0 and taskmaster
+  0.12.0 on, `1.0.0` before), and from tesk-api 2.0.0 on it lists
   `tesResources_backend_parameters: []` (TESK supports none). In your own
   ConfigMap, the field is optional: tesk-api 2.0.0 reports `[]` also
   without it; don't add it while the API is still 1.x, which can't read

@@ -336,7 +336,8 @@ auth:
 # specification), rendered into a ConfigMap. The defaults describe no
 # particular deployment: set at least `id`, `organization`, `contactUrl` and
 # `environment` for yours. The chart sets `type` (TES 1.1.0 from tesk-api
-# 2.0.0 on, 1.0.0 before), `version` (the tag of tesk-api's image) and,
+# 2.0.0 and taskmaster 0.12.0 on, 1.0.0 before), `version` (the tag of
+# tesk-api's image) and,
 # from tesk-api 2.0.0 on, `tesResources_backend_parameters: []` itself.
 # Empty optional fields are left out
 serviceInfo:

@@ -185,8 +185,11 @@ but YAML reads unquoted numbers in values files as numbers first: quote
 text that looks like a number (e.g., `id: "1.10"`, which would otherwise
 become `1.1`). The chart sets two fields itself:
 `type` (group `org.ga4gh`, artifact `tes`, and the TES version that
-tesk-api implements: `1.1.0` from tesk-api 2.0.0 on, also for tags that
-aren't versions, e.g., `dev`, and `1.0.0` before; the ConfigMap holds the
+TESK runs: `1.1.0` from tesk-api 2.0.0 and taskmaster 0.12.0 on, also for
+tags that aren't versions, e.g., `dev`, and `1.0.0` before, also for
+tesk-api 2.0.0 with an older taskmaster, which can't run TES 1.1 tasks as
+asked; tags pinned by digest, e.g., `2.0.0@sha256:…`, count by their
+version; the ConfigMap holds the
 artifact as `TES`, the form that tesk-api reads, and tesk-api serves it as
 `tes`) and
 `version` (the tag of tesk-api's image, `tesk.image.tag`, by default the
