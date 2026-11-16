@@ -23,9 +23,17 @@ With `auth.mode: auth`, requests need an OIDC access token (see
 authorisation](deployment.md#authentication-and-authorisation)), except
 `GET /service-info`, which stays public unless `auth.serviceInfoPublic` is
 `false` (see [Configuration](configuration.md)), the API description
-(`GET /v3/api-docs`, OpenAPI 3.1; tesk-api before 2.0.0 served Swagger 2.0
-at `/v2/api-docs`, which 2.0.0 still serves, deprecated), and the Swagger
-UI if it is on.
+(`GET /v3/api-docs`, OpenAPI 3.1; tesk-api 2.0.0 serves the same
+description at the deprecated `/v2/api-docs`, where earlier versions
+served Swagger 2.0), and the Swagger UI if it is on. With the default
+`auth.mode: noauth`, all endpoints are open: use it only on local or
+trusted networks.
+
+The chart doesn't support private executor images: the experimental
+executor fields `docker_registry`, `docker_login` and `docker_pass` (see
+[Private executor images](tesk-api/api.md#private-executor-images)) need
+tesk-api to create and delete secrets, which the chart's Role doesn't
+allow, so such tasks fail (HTTP 500).
 
 For example, to create a task from a checkout of this repository and get
 its state:
