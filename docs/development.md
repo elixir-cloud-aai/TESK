@@ -53,7 +53,9 @@ The workflow `CI` (`.github/workflows/ci.yml`) runs on every pull request to
   `GET /ga4gh/tes/v1/service-info` answers, and runs the check script for
   deployed instances, `tests/smoke/deployment.sh` (see [Checking a
   deployment](deployment.md#checking-a-deployment)), without a token: a
-  task that completes and one that is cancelled. The tests of the script
+  task that completes, one with an input, which starts a filer pod, and
+  one that is cancelled; then it checks that the filer's job completed
+  with the filer's default security contexts. The tests of the script
   itself (`tests/test_smoke_deployment.py`, in **Test**) run it against a
   fake TES API, also with a token.
 - **Docs:** builds the documentation strictly (`mkdocs build --strict`).
