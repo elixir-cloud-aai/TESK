@@ -363,6 +363,11 @@ jobs:
                       exit 1
                   fi
               done
+              # The flags of a published release aren't changed here, but a
+              # wrong one is reported, for a maintainer to fix it
+              if [[ "$(jq -r '.[0].prerelease' <<< "${mine}")" != "${MARK_PRERELEASE}" ]]; then
+                  echo "::warning::Release ${TAG} is published with prerelease=$(jq -r '.[0].prerelease' <<< "${mine}"), expected ${MARK_PRERELEASE}; fix it on GitHub"
+              fi
               echo "::notice::Release ${TAG} is already published"
               exit 0
           fi
