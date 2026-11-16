@@ -24,12 +24,15 @@ with the `RuntimeDefault` seccomp profile.
 **Don't upgrade with `--reuse-values`:** Helm then renders the chart with
 the values of the 0.3.0 release in place of the new defaults, so none of
 them apply (e.g., the taskmaster and filer tags, `tesk.strategy` and
-`tesk.filer.*`). A copy of the `values.yaml` of chart 0.3.0 among your
-values files does the same. The API still moves to tesk-api 2.0.0, as
-`tesk.image.tag` was empty in chart 0.3.0, but the taskmaster and filer
-stay at 0.11.0, which can't run some TES 1.1 tasks as asked (see below),
-while the service info reports TES 1.1.0; and the API's Deployment keeps
-`RollingUpdate`. Upgrade with your own values files, as above, or with
+`tesk.filer.*`). With the default tags of chart 0.3.0, the API still
+moves to tesk-api 2.0.0, as `tesk.image.tag` was empty there, but the
+taskmaster and filer stay at 0.11.0, which can't run some TES 1.1 tasks
+as asked (see below), while the service info reports TES 1.1.0; and the
+API's Deployment keeps `RollingUpdate`. Tags that your values pinned stay
+as they were. A copy of the `values.yaml` of chart 0.3.0 among your values
+files pins the old taskmaster and filer tags in the same way (the
+strategy `Recreate` still applies, as that file doesn't set one). Upgrade
+with your own values files, as above, or with
 `--reset-then-reuse-values` (Helm 3.14 or later), which applies the
 chart's new defaults below the values of the release. The notes of `helm
 upgrade` warn about tesk-api 2.0.0 or later with a taskmaster before
@@ -131,7 +134,10 @@ Recreate](#api-update-strategy-recreate)).
   `RollingUpdate`. Before you roll back, let the tasks of taskmaster
   0.12.0 end; to keep new ones from starting meanwhile, upgrade once with
   `tesk.taskmaster.image.tag` and `tesk.filer.image.tag` set to `0.11.0`
-  first.
+  first. Until the rollback, tesk-api 2.0.0 then starts new tasks with
+  taskmaster 0.11.0, with the limits described above (e.g., outputs with
+  wildcards and `path_prefix`): keep this time short, or hold back such
+  tasks.
 - `auth.tokenClients` takes effect with tesk-api 2.0.0 (see [Tokens of
   services](#tokens-of-services)); the notes of `helm install` and `helm
   upgrade` warn if it is on with an earlier tesk-api.
