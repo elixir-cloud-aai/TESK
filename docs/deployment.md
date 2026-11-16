@@ -15,7 +15,7 @@ This page covers the installation and the most common setups;
 
 - **A Kubernetes cluster.** TESK needs access to one namespace only, and
   works in multi-tenant clusters such as OpenShift. The chart's default
-  taskmaster and filer, 0.11.0, need Kubernetes 1.23 or later, and their
+  taskmaster and filer, 0.12.0, need Kubernetes 1.23 or later, and their
   end-to-end tests run on Kubernetes 1.37 (see the [upgrade notes of
   tesk-core](tesk-core/upgrading.md)). If you pin older images, set both
   tags to the same release; on Kubernetes 1.31 or later, it must be v0.10.6
@@ -282,6 +282,14 @@ helm template tesk charts/tesk --namespace tesk \
     -f my-values.yaml > rendered.yaml && grep -ci seccomp rendered.yaml
 ```
 
+This covers the API's pod only. The filer pods of taskmaster and filer
+0.12.0 (the chart's default) ask for the `RuntimeDefault` profile too,
+which the taskmaster sets itself (see the [filer's pod
+security](tesk-core/filer.md#pod-security)); the chart has no values to
+change that yet. On such clusters, keep `tesk.taskmaster.image.tag` and
+`tesk.filer.image.tag` at `0.11.0` for now (see
+[Upgrading](upgrading.md#tesk-api-200-taskmaster-and-filer-0120)).
+
 ## Storage backends
 
 Inputs and outputs with `http://` and `https://` URLs need no backend. For
@@ -464,7 +472,7 @@ obtained with the OAuth 2.0 client credentials grant (e.g., a TES gateway
 in front of several TES instances). Such tokens have no user, so the user
 info endpoint may refuse them and releases no groups. With
 `auth.tokenClients`, tesk-api accepts the access tokens of the clients that
-you list, without the user info (a tesk-api release after 1.2.0; off by
+you list, without the user info (tesk-api 2.0.0 or later; off by
 default, and needs `auth.mode: auth`):
 
 ```yaml
@@ -503,7 +511,7 @@ without an issuer, without an audience (unless
 `auth.tokenClients.allowAnyAudience` is `true`), without client IDs, or
 with an `auth.mode` other than `auth`; the issuer and the JWKS URI must be HTTPS URLs, and client IDs
 mustn't contain commas (quote numeric ones, as they must be strings).
-tesk-api 1.2.0 and older ignore the setting and refuse the clients' tokens:
+tesk-api before 2.0.0 ignores the setting and refuses the clients' tokens:
 `helm install` and `helm upgrade` print a warning if it is on with such an
 image (`tesk.image.tag` as a version number, by default the chart's
 `appVersion`).
