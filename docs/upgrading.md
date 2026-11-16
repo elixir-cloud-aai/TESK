@@ -21,6 +21,20 @@ and the API is down for about a minute during each rollout (update strategy
 especially if your values pin image tags, or if your cluster refuses pods
 with the `RuntimeDefault` seccomp profile.
 
+**Don't upgrade with `--reuse-values`:** Helm then renders the chart with
+the values of the 0.3.0 release in place of the new defaults, so none of
+them apply (e.g., the taskmaster and filer tags, `tesk.strategy` and
+`tesk.filer.*`). A copy of the `values.yaml` of chart 0.3.0 among your
+values files does the same. The API still moves to tesk-api 2.0.0, as
+`tesk.image.tag` was empty in chart 0.3.0, but the taskmaster and filer
+stay at 0.11.0, which can't run some TES 1.1 tasks as asked (see below),
+while the service info reports TES 1.1.0; and the API's Deployment keeps
+`RollingUpdate`. Upgrade with your own values files, as above, or with
+`--reset-then-reuse-values` (Helm 3.14 or later), which applies the
+chart's new defaults below the values of the release. The notes of `helm
+upgrade` warn about tesk-api 2.0.0 or later with a taskmaster before
+0.12.0.
+
 ### tesk-api 2.0.0, taskmaster and filer 0.12.0
 
 The chart deploys tesk-api 2.0.0 (its `appVersion`) and taskmaster and
@@ -66,11 +80,15 @@ Recreate](#api-update-strategy-recreate)).
           runAsNonRoot: true
     ```
 
-  OpenShift's default `restricted-v2` security context constraint accepts
-  the taskmaster's defaults (see the [filer's pod
-  security](tesk-core/filer.md#pod-security)), but clusters with stricter
-  admission rules may not: check that a task with an input runs after the
-  upgrade.
+  Whether OpenShift accepts the filer's defaults (see the [filer's pod
+  security](tesk-core/filer.md#pod-security)) depends on the cluster:
+  some OpenShift clusters (e.g., CSC Rahti) reject pods that ask for
+  `RuntimeDefault` and need `tesk.filer.podSecurityContext:
+  {runAsNonRoot: true}`, as above (see [OpenShift and other restricted
+  clusters](deployment.md#openshift-and-other-restricted-clusters)). On
+  any cluster, check that a task with an input runs after the upgrade:
+  the smoke test runs one, which starts a filer pod (see [Checking a
+  deployment](deployment.md#checking-a-deployment)).
 - **FTP credentials by reference:** with an FTP secret
   (`ftp.classicFtpSecret`), the chart also passes its name on to the
   taskmasters (`TESK_FTP_SECRET_NAME`), so that the filer jobs of
@@ -94,6 +112,26 @@ Recreate](#api-update-strategy-recreate)).
   `/v3/api-docs`, and tokens only in the `Authorization` header. Read the
   [upgrade notes of tesk-api](tesk-api/upgrading.md#to-200) before you
   upgrade, and [those of tesk-core](tesk-core/upgrading.md#0120).
+  Where the docs of tesk-core 0.12.0 describe the order of the upgrade or
+  the filer's security contexts, the chart's order (one `helm upgrade`,
+  see above) and its values `tesk.filer.*` take precedence.
+- **Private executor images aren't supported by the chart:** tesk-api
+  2.0.0 can pull executor images from private registries
+  (`docker_registry`, `docker_login` and `docker_pass`, an experimental
+  extension, see [Private executor
+  images](tesk-api/api.md#private-executor-images)), with an image pull
+  secret that it creates for the task. The chart's Role doesn't let it
+  create and delete secrets, so such tasks fail (HTTP 500). Use public
+  executor images.
+- **Act on this if you roll back to chart 0.3.0:** `helm rollback`
+  applies the stored manifests of chart 0.3.0 again, without the chart's
+  check of the API and taskmaster versions. tesk-api 1.2.0 then reads the
+  tasks of taskmaster 0.12.0, takes their filer jobs for executors, and
+  reports wrong task states; the API's Deployment also goes back to
+  `RollingUpdate`. Before you roll back, let the tasks of taskmaster
+  0.12.0 end; to keep new ones from starting meanwhile, upgrade once with
+  `tesk.taskmaster.image.tag` and `tesk.filer.image.tag` set to `0.11.0`
+  first.
 - `auth.tokenClients` takes effect with tesk-api 2.0.0 (see [Tokens of
   services](#tokens-of-services)); the notes of `helm install` and `helm
   upgrade` warn if it is on with an earlier tesk-api.
