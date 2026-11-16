@@ -310,6 +310,27 @@
           },
           "additionalProperties": false
         },
+        "cors": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "description": "Cross-origin requests (CORS) of browser clients",
+          "properties": {
+            "allowedOrigins": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string",
+                "pattern": "^[A-Za-z][A-Za-z0-9+.-]*://[^/?#@,*\\s]+/?$"
+              },
+              "description": "Origins of browser clients that may call the API (scheme, host and port unless the default, e.g., https://client.example.org); no wildcards, paths, user info or commas"
+            }
+          },
+          "additionalProperties": false
+        },
         "podSecurityContext": {
           "type": [
             "object",

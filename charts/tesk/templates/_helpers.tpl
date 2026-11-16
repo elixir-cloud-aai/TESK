@@ -379,6 +379,14 @@ ignores it and refuses the clients' tokens. It is for tesk-api 2.0.0 or
 later; see
 https://tesk.readthedocs.io/en/latest/deployment/#tokens-of-services
 {{- end }}
+{{- /* tesk-api before 2.0.0 ignores the CORS origins (tesk-api#195) */ -}}
+{{- if and (dig "cors" "allowedOrigins" list .Values.tesk) (include "tesk.apiBefore" (dict "root" . "version" "2.0.0")) }}
+
+WARNING: tesk.cors.allowedOrigins is set, but tesk-api {{ $apiTag }} (tesk.image.tag)
+ignores it and sends no CORS headers, so browsers refuse its answers to
+those origins. It is for tesk-api 2.0.0 or later; see
+https://tesk.readthedocs.io/en/latest/deployment/#browser-clients-cors
+{{- end }}
 {{- /* Taskmasters from 0.12.0 on (also their pre-releases) label the filer
 jobs with the task, which tesk-api before 2.0.0 takes for executor jobs
 (tesk-core#147, tesk-api#183); tags that aren't versions aren't checked */ -}}
