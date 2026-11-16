@@ -447,7 +447,10 @@ fields are left out; the fields that the GA4GH service-info specification
 requires fail if empty. `type` (the TES version that tesk-api implements:
 1.1.0 from tesk-api 2.0.0 on, also for its pre-releases and for tags that
 aren't versions, e.g., dev; 1.0.0 before) and `version` (the tag of
-tesk-api's image) are set here.
+tesk-api's image) are set here, and from tesk-api 2.0.0 on, also
+`tesResources_backend_parameters: []` (TES 1.1): TESK supports no backend
+parameters, and earlier tesk-api releases can't read the service info
+with the key.
 `type.artifact` is `TES`, the name of tesk-api's Java enum constant, which
 it reads with SnakeYAML and serves as `tes` (the TES specification's
 artifact); with `tes` here, tesk-api can't read the service info.
@@ -520,6 +523,9 @@ storage:
 {{- range . }}
 - {{ include "tesk.yamlText" (dict "value" . "key" "serviceInfo.storage") }}
 {{- end }}
+{{- end }}
+{{- if empty (include "tesk.apiBefore" (dict "root" . "version" "2.0.0")) }}
+tesResources_backend_parameters: []
 {{- end }}
 {{- end -}}
 {{- end -}}
