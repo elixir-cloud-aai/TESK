@@ -383,14 +383,15 @@ namespace can use S3.
 
 By default (`auth.mode: noauth`), all endpoints are open: use it only on
 local or trusted networks, as anyone who reaches the API can run tasks in
-the cluster. With `auth.mode: auth`, the API requires an OIDC access token (`Authorization: Bearer`) for
-every endpoint except `GET /service-info`, which stays public unless
-`auth.serviceInfoPublic` is `false` (tesk-api 1.2.0 or later), the API
-description (`GET /v3/api-docs`, and `/v2/api-docs`, which serves the same
-OpenAPI 3 description in tesk-api 2.0.0), and
-the [Swagger UI](#swagger-ui) if it is on. tesk-api validates tokens at
-the user info endpoint of the OIDC provider (`auth.userInfoUri`) and authorises users by their groups in a claim of the
-user info, following a group model of nested groups (`auth.groups.*`,
+the cluster. With `auth.mode: auth`, the API requires an OIDC access
+token (`Authorization: Bearer`) for every endpoint except
+`GET /service-info`, which stays public unless `auth.serviceInfoPublic` is
+`false` (tesk-api 1.2.0 or later), the API description
+(`GET /v3/api-docs`, and `/v2/api-docs`, which serves the same OpenAPI 3
+description in tesk-api 2.0.0), and the [Swagger UI](#swagger-ui) if it
+is on. tesk-api validates tokens at the user info endpoint of the OIDC
+provider (`auth.userInfoUri`) and authorises users by their groups in a
+claim of the user info, following a group model of nested groups (`auth.groups.*`,
 `auth.envBaseGroup`, `auth.envSubgroup`), or by a claim (see [Authorisation
 by a claim](#authorisation-by-a-claim)); tokens of allow-listed services can
 be checked without the user info (see [Tokens of

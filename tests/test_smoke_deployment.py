@@ -163,6 +163,8 @@ def _handler(fake: FakeTes) -> type[BaseHTTPRequestHandler]:
             task["polls"] += 1
             if "view=FULL" in url.query:
                 command = task["command"]
+                # Mirrors the script's task with an input, which prints
+                # (`cat`) the path of its input
                 if command[0] == "cat":
                     stdout = fake.input_stdout
                     if stdout is None:
@@ -560,24 +562,34 @@ def tls(tmp_path: Path) -> tuple[Path, Path]:
     return cert, key
 
 
-def test_warns_on_open_https_endpoint(tls: tuple[Path, Path]) -> None:
-    """An HTTPS endpoint that serves /tasks without a token gets a warning."""
+@pytest.mark.parametrize("auth", [False, True])
+def test_warns_on_open_https_endpoint(tls: tuple[Path, Path], auth: bool) -> None:
+    """An HTTPS endpoint that serves /tasks without a token gets a warning.
+
+    Args:
+        tls: The certificate and key of the server.
+        auth: Whether the endpoint needs a token (and the script has one),
+            which gets no warning.
+    """
     cert, key = tls
     context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
     context.load_cert_chain(cert, key)
-    server = ThreadingHTTPServer(("127.0.0.1", 0), _handler(FakeTes()))
+    server = ThreadingHTTPServer(("127.0.0.1", 0), _handler(FakeTes(auth=auth)))
     server.socket = context.wrap_socket(server.socket, server_side=True)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
     try:
         url = f"https://127.0.0.1:{server.server_port}{BASE}"
-        result = _run(url, CURL_CA_BUNDLE=str(cert))
+        env = {"CURL_CA_BUNDLE": str(cert)}
+        if auth:
+            env["TOKEN"] = TOKEN
+        result = _run(url, **env)
     finally:
         server.shutdown()
         server.server_close()
     assert result.returncode == 0, result.stdout + result.stderr
-    assert "::warning::" in result.stdout
-    assert "serves /tasks without a token" in result.stdout
+    assert ("serves /tasks without a token" in result.stdout) is not auth
+    assert ("::warning::" in result.stdout) is not auth
 
 
 def test_no_warning_over_http(fake: tuple[FakeTes, str]) -> None:
