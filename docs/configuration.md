@@ -194,7 +194,11 @@ chart's `appVersion`). From tesk-api 2.0.0 on, it also sets
 `tesResources_backend_parameters: []` (TES 1.1): TESK supports no backend
 parameters, and tesk-api serves `[]` whatever the file lists; earlier
 tesk-api releases can't read the service info with this field, so it is
-left out for them. A change of the service info restarts the API's pod
+left out for them. Tags that aren't versions (e.g., `dev`) count as tesk-api
+2.0.0 or later: use them only with tesk-api images built after
+[tesk-api#147](https://github.com/elixir-cloud-aai/tesk-api/pull/147)
+(2026-11-12), or set `serviceInfo.existingConfigMap` without the field, as
+older images serve an empty service info otherwise. A change of the service info restarts the API's pod
 (tesk-api reads the file at startup, and then only every hour); with
 `serviceInfo.existingConfigMap`, changes of your ConfigMap take effect within
 an hour, or when you restart the pod. Service info is public by default,
