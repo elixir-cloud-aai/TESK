@@ -4,6 +4,8 @@ whole chart */ -}}
 {{- include "tesk.checkRemovedValues" . -}}
 {{- /* So do taskmaster and filer images of different releases */ -}}
 {{- include "tesk.checkImageReleases" . -}}
+{{- /* And a taskmaster that needs a newer tesk-api */ -}}
+{{- include "tesk.checkApiTaskmaster" . -}}
 {{- $tesk := .Values.tesk -}}
 {{- $repository := dig "image" "repository" "" $tesk | default "docker.io/elixircloud/tesk-api" -}}
 {{- /* Also the version of the service info */ -}}

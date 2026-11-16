@@ -29,8 +29,10 @@ Recreate](#api-update-strategy-recreate)).
   `tesk.taskmaster.image.tag` or `tesk.filer.image.tag`:** the new
   defaults apply only to the tags that you don't set. Upgrade the API to
   2.0.0 no later than the taskmaster to 0.12.0: an older API with the new
-  taskmaster reports wrong task states; the notes of `helm install` and
-  `helm upgrade` warn about such a pair. Set the taskmaster and filer tags
+  taskmaster reports wrong task states, so the installation fails with
+  such a pair (e.g., values that pin `tesk.image.tag: 1.2.0` but not the
+  taskmaster): set `tesk.taskmaster.image.tag` and `tesk.filer.image.tag`
+  to `0.11.0` too, or upgrade the API. Set the taskmaster and filer tags
   together, to the same release. tesk-api 2.0.0 runs with taskmaster and
   filer 0.11.0 too, but it accepts tasks that they can't run as asked:
   executors with `ignore_error: true` stop the task at their failure
