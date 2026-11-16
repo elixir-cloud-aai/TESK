@@ -297,8 +297,10 @@ tesk:
 `tesk.filer.podSecurityContext` and `tesk.filer.securityContext` replace
 the taskmaster's defaults for the filer's pod and container (repeat those
 that you want to keep; `{}` leaves a context out; set each context in one
-values file, as Helm merges maps of several). Then run a task with an
-input, which starts a filer pod.
+values file, as Helm merges maps of several). The chart passes them on as
+they are; the taskmaster checks them for each task, and logs an invalid
+one and uses its default instead. So run a task with an input after the
+upgrade, which starts a filer pod, and check that it ends `COMPLETE`.
 
 ## Storage backends
 
