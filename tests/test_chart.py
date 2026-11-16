@@ -1286,6 +1286,15 @@ CORS = "TESK_API_CORS_ALLOWED_ORIGINS"
             ),
             "https://a.example.org,http://localhost:3000,https://b.example.org/",
         ),
+        (
+            (
+                "--set-json",
+                'tesk.cors.allowedOrigins=["http://127.0.0.1:8080", "http://[::1]:3000",'
+                ' "https://xn--exmple-cua.org", "https://example.org:65535"]',
+            ),
+            "http://127.0.0.1:8080,http://[::1]:3000,https://xn--exmple-cua.org,"
+            "https://example.org:65535",
+        ),
     ],
 )
 def test_cors_allowed_origins(args: tuple[str, ...], expected: str | None) -> None:
@@ -1311,13 +1320,32 @@ def test_cors_allowed_origins(args: tuple[str, ...], expected: str | None) -> No
         "https://user@example.org",
         "https://example.org ",
         "",
+        "https://example.org:443",
+        "http://example.org:80",
+        "https://example.org:0080",
+        "https://example.org:99999",
+        "https://example.org:",
+        "https://a_b.example.org",
+        "http://127.1",
+        "http://0x7f000001",
+        "http://256.0.0.1",
+        "ftp://example.org",
+        "https://:443",
+        "https://example.org;x",
+        "https://example.org%2F",
+        "https://ex\u00e4mple.org",
+        "https://example.org\u00a0",
     ],
 )
 def test_cors_allowed_origins_invalid(origin: str) -> None:
     """Origins that tesk-api would refuse at startup fail the schema check.
 
-    Wildcards, commas (the separator), paths, user info, blanks and values
-    without a scheme.
+    Wildcards, commas (the separator), paths, user info, blanks, values
+    without a scheme or with another one than http(s), default ports and
+    ports out of range or with leading zeros, host names that aren't ASCII
+    or have `_`, and IPv4 addresses in other forms than four decimal
+    numbers. tesk-api would stop at startup on them, with the API down after
+    an upgrade (the update strategy `Recreate`).
 
     Args:
         origin: The origin.
@@ -1360,7 +1388,16 @@ def test_notes_cors_old_api(
     origins = ("--set-json", 'tesk.cors.allowedOrigins=["https://client.example.org"]')
     text = notes(*origins, *args, tmp_path=tmp_path)
     assert ("tesk.cors.allowedOrigins is set, but tesk-api" in text) is warned
-    assert "tesk.cors.allowedOrigins is set" not in notes(*args, tmp_path=tmp_path)
+
+
+def test_notes_cors_unset_old_api(tmp_path: Path) -> None:
+    """Without origins, the notes don't warn, also with tesk-api before 2.0.0.
+
+    Args:
+        tmp_path: A directory for a copy of the chart.
+    """
+    text = notes("--set", "tesk.image.tag=1.2.0", tmp_path=tmp_path)
+    assert "tesk.cors.allowedOrigins is set" not in text
 
 
 CLAIM = (

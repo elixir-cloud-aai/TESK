@@ -176,7 +176,8 @@ tesk:
   # Cross-origin requests (CORS): the origins of browser apps that may call
   # the API directly, each exactly as the browser sends it (scheme, host and
   # port unless the default), e.g., [https://client.example.org,
-  # http://localhost:3000]; no wildcards, paths or commas. Empty: tesk-api
+  # http://localhost:3000]; no wildcards, paths, default ports or commas
+  # (the schema refuses what tesk-api would refuse at startup). Empty: tesk-api
   # sends no CORS headers, and clients that call it from servers or through
   # a gateway need none. Every request still needs a token with mode auth;
   # list only origins that you trust with your users' tokens. Needs tesk-api

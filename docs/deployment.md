@@ -615,24 +615,28 @@ tesk:
 ```
 
 The chart passes them on to tesk-api, joined by commas
-(`TESK_API_CORS_ALLOWED_ORIGINS`). List each origin exactly as the browser
-sends it: the scheme, the host, and the port unless it is the default
-(`https://client.example.org`, not `https://client.example.org:443`), and
-every variant that you serve the app from (e.g., with and without `www.`).
-Wildcards, paths, user info and commas fail the installation; tesk-api
-refuses other malformed origins (e.g., default ports or host names with
-`_`) at startup, and the API's pod then doesn't become ready. With origins
-listed, tesk-api answers their preflight requests without a token, and
-lets browsers read its answers to them; every other request still needs a
-token with `auth.mode: auth`. List only origins that you trust with your
-users' tokens. Requests of other origins with an `Origin` header are
-refused with `403 Forbidden`, as are some requests of the Swagger UI if
-tesk-api doesn't know its public URL (behind the chart's Ingress, it does).
-See the [configuration of tesk-api](tesk-api/configuration.md#cross-origin-requests-cors)
-for the details. tesk-api before 2.0.0 ignores the setting: `helm
-install` and `helm upgrade` print a warning if it is set with such an
-image (`tesk.image.tag` as a version number, by default the chart's
-`appVersion`).
+(`TESK_API_CORS_ALLOWED_ORIGINS`).
+
+- **Origins:** list each one exactly as the browser sends it: the scheme,
+  the host, and the port unless it is the default
+  (`https://client.example.org`, not `https://client.example.org:443`),
+  and every variant that you serve the app from (e.g., with and without
+  `www.`): `http` or `https`, an ASCII host name (punycode for
+  international ones, without `_`), an IPv4 address as four decimal
+  numbers or an IPv6 address in brackets, and a port from 1 to 65535
+  without leading zeros. Other origins (e.g., wildcards, paths, default
+  ports) fail the installation, as tesk-api would stop at startup on them,
+  and the API would be down after the upgrade.
+- **Tokens:** every request but the browsers' preflight requests still
+  needs a token with `auth.mode: auth`; CORS only lets browsers read the
+  answers. List only origins that you trust with your users' tokens.
+- **Details:** what tesk-api answers to the listed and to other origins
+  is in its [configuration
+  reference](tesk-api/configuration.md#cross-origin-requests-cors).
+- **Versions:** tesk-api before 2.0.0 ignores the setting; `helm install`
+  and `helm upgrade` print a warning if it is set with such an image
+  (`tesk.image.tag` as a version number, by default the chart's
+  `appVersion`).
 
 ## Resources
 
