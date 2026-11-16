@@ -101,8 +101,33 @@ as `version` (`-0`), and tags that aren't SemVer versions (e.g., dev, or
 `version` (X.Y.Z) */ -}}
 {{- define "tesk.apiBefore" -}}
 {{- $apiTag := include "tesk.apiImageTag" .root | trimPrefix "v" -}}
-{{- if and (regexMatch "^[0-9]+\\.[0-9]+(\\.[0-9]+)?(-[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?(\\+[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?$" $apiTag) (semverCompare (printf "<%s-0" .version) $apiTag) -}}
+{{- if and (regexMatch (include "tesk.semver" (dict "patch" false)) $apiTag) (semverCompare (printf "<%s-0" .version) $apiTag) -}}
 true
+{{- end -}}
+{{- end -}}
+
+{{- /* A regular expression of the SemVer versions that semverCompare
+reads as written: numbers without leading zeros, and pre-release
+identifiers that are numbers without leading zeros or contain a letter or
+`-`. `patch`: false makes the patch number optional (X.Y), as in tags of
+tesk-api. Other tags (e.g., dev, 1.2.3-, 01.2.3) aren't compared */ -}}
+{{- define "tesk.semver" -}}
+{{- $number := "(0|[1-9][0-9]*)" -}}
+{{- $identifier := "(0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)" -}}
+{{- $patch := ternary (printf "\\.%s" $number) (printf "(\\.%s)?" $number) (ne (toString .patch) "false") -}}
+{{- printf "^%s\\.%s%s(-%s(\\.%s)*)?(\\+[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?$" $number $number $patch $identifier $identifier -}}
+{{- end -}}
+
+{{- /* Fails if the taskmaster is 0.12.0 or later (also a pre-release) and
+tesk-api older than 2.0.0: such taskmasters label the filer jobs with the
+task, which older APIs take for executor jobs, and report wrong task states
+(tesk-core#147, tesk-api#183); e.g., with values that pin an older
+`tesk.image.tag` but not the taskmaster's. Tags that aren't versions aren't
+checked */ -}}
+{{- define "tesk.checkApiTaskmaster" -}}
+{{- $taskmasterTag := toString (dig "taskmaster" "image" "tag" "" .Values.tesk) | trimPrefix "v" -}}
+{{- if and (regexMatch (include "tesk.semver" (dict "patch" true)) $taskmasterTag) (semverCompare ">=0.12.0-0" $taskmasterTag) (include "tesk.apiBefore" (dict "root" . "version" "2.0.0")) -}}
+{{- fail (printf "tesk.taskmaster.image.tag (%s) needs tesk-api 2.0.0 or later, not %s (tesk.image.tag): older APIs take the filer jobs of taskmaster 0.12.0 and later for executor jobs, and report wrong task states. Upgrade tesk-api, or keep the taskmaster and filer before 0.12.0; see https://tesk.readthedocs.io/en/latest/upgrading/#tesk-api-200-taskmaster-and-filer-0120" $taskmasterTag (include "tesk.apiImageTag" .)) -}}
 {{- end -}}
 {{- end -}}
 
@@ -386,18 +411,6 @@ WARNING: tesk.cors.allowedOrigins is set, but tesk-api {{ $apiTag }} (tesk.image
 ignores it and sends no CORS headers, so browsers refuse its answers to
 those origins. It is for tesk-api 2.0.0 or later; see
 https://tesk.readthedocs.io/en/latest/deployment/#browser-clients-cors
-{{- end }}
-{{- /* Taskmasters from 0.12.0 on (also their pre-releases) label the filer
-jobs with the task, which tesk-api before 2.0.0 takes for executor jobs
-(tesk-core#147, tesk-api#183); tags that aren't versions aren't checked */ -}}
-{{- $taskmasterTag := toString (dig "taskmaster" "image" "tag" "" .Values.tesk) | trimPrefix "v" -}}
-{{- if and (regexMatch "^[0-9]+\\.[0-9]+\\.[0-9]+(-[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?(\\+[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?$" $taskmasterTag) (semverCompare ">=0.12.0-0" $taskmasterTag) (include "tesk.apiBefore" (dict "root" . "version" "2.0.0")) }}
-
-WARNING: tesk.taskmaster.image.tag ({{ $taskmasterTag }}) is 0.12.0 or later,
-but tesk-api {{ $apiTag }} (tesk.image.tag) is older than 2.0.0: it takes the
-filer jobs of such taskmasters for executor jobs, and reports wrong task
-states. Use tesk-api 2.0.0 or later, or a taskmaster before 0.12.0; see
-https://tesk.readthedocs.io/en/latest/upgrading/#tesk-api-200-taskmaster-and-filer-0120
 {{- end }}
 {{- if and .Values.tesk.filerHttpTimeout $oldImages }}
 

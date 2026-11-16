@@ -45,7 +45,7 @@ take any keys.
 | `tesk.port` | `8080` | Port of the API's container and Service. |
 | `tesk.tesApiBasePath` | `/ga4gh/tes/v1` | Base path of the TES API; empty uses tesk-api's default. |
 | `tesk.taskmaster.image.repository` | `docker.io/elixircloud/tesk-core-taskmaster` | Image of the taskmaster (tesk-core), without its tag. |
-| `tesk.taskmaster.image.tag` | `0.12.0` | Tag of the taskmaster image (see [Upgrading](upgrading.md#tesk-api-200-taskmaster-and-filer-0120)). |
+| `tesk.taskmaster.image.tag` | `0.12.0` | Tag of the taskmaster image. 0.12.0 and later need tesk-api 2.0.0 or later (`tesk.image.tag`): the installation fails with an older one (see [Upgrading](upgrading.md#tesk-api-200-taskmaster-and-filer-0120)). |
 | `tesk.filer.image.repository` | `docker.io/elixircloud/tesk-core-filer` | Image of the filer (tesk-core), without its tag. |
 | `tesk.filer.image.tag` | `0.12.0` | Tag of the filer image; the same release as the taskmaster's (with or without `v`). Different releases fail the installation if one of them is 0.11.0 or later; tags that aren't release versions (e.g., `dev`) aren't checked. |
 | `tesk.filer.podSecurityContext` | `null` | Security context of the filer's pods (fields of a Kubernetes `PodSecurityContext`), which replaces the taskmaster's default (from 0.12.0 on: `runAsNonRoot: true` and the `RuntimeDefault` seccomp profile); `{}` leaves it out, null keeps the default. E.g., `runAsNonRoot: true` alone on clusters that refuse pods asking for `RuntimeDefault` (see [Deployment](deployment.md#openshift-and-other-restricted-clusters)). Needs taskmaster 0.12.0 or later; older ones ignore it. Merged with the same map of earlier values files or of `--reuse-values`, as all maps are: set the whole context in one place. |

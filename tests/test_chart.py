@@ -1404,7 +1404,7 @@ def test_notes_cors_old_api(
         warned: Whether the notes warn.
     """
     origins = ("--set-json", 'tesk.cors.allowedOrigins=["https://client.example.org"]')
-    text = notes(*origins, *args, tmp_path=tmp_path)
+    text = notes(*origins, *CORE_0_11, *args, tmp_path=tmp_path)
     assert ("tesk.cors.allowedOrigins is set, but tesk-api" in text) is warned
 
 
@@ -1414,7 +1414,7 @@ def test_notes_cors_unset_old_api(tmp_path: Path) -> None:
     Args:
         tmp_path: A directory for a copy of the chart.
     """
-    text = notes("--set", "tesk.image.tag=1.2.0", tmp_path=tmp_path)
+    text = notes("--set", "tesk.image.tag=1.2.0", *CORE_0_11, tmp_path=tmp_path)
     assert "tesk.cors.allowedOrigins is set" not in text
 
 
@@ -2060,7 +2060,7 @@ def test_service_info_type_version(tag: str, expected: str) -> None:
         tag: `tesk.image.tag`.
         expected: The expected `type.version`.
     """
-    info, _ = _service_info("--set-string", f"tesk.image.tag={tag}")
+    info, _ = _service_info("--set-string", f"tesk.image.tag={tag}", *CORE_0_11)
     assert info["type"]["version"] == expected
 
 
@@ -2071,7 +2071,7 @@ def test_service_info_version(tag: str) -> None:
     Args:
         tag: `tesk.image.tag`.
     """
-    manifests = render("--set-string", f"tesk.image.tag={tag}")
+    manifests = render("--set-string", f"tesk.image.tag={tag}", *CORE_0_11)
     assert container(manifests)["image"].endswith(f":{tag}")
     config = get(manifests, "ConfigMap", "tesk-service-info")
     assert yaml.safe_load(config["data"]["service-info.yaml"])["version"] == tag
@@ -2138,7 +2138,14 @@ def test_service_info_values(tmp_path: Path) -> None:
         "environment": "prod",
         "storage": ["s3://bucket", "ftp://ftp.example.org"],
     }
-    values = {"tesk": {"image": {"tag": "1.2.1"}}, "serviceInfo": service_info}
+    values = {
+        "tesk": {
+            "image": {"tag": "1.2.1"},
+            "taskmaster": {"image": {"tag": "0.11.0"}},
+            "filer": {"image": {"tag": "0.11.0"}},
+        },
+        "serviceInfo": service_info,
+    }
     path = tmp_path / "values.yaml"
     path.write_text(yaml.safe_dump(values))
     info, text = _service_info("--values", str(path))
@@ -2638,6 +2645,11 @@ def test_ftp_hosts_invalid(args: tuple[str, ...]) -> None:
 # release version, so the chart doesn't check that it is of the
 # taskmaster's release
 FILER_DEV = ("--set", "tesk.filer.image.tag=dev")
+# Taskmaster and filer before 0.12.0, which tesk-api before 2.0.0 needs
+CORE_0_11 = (
+    *("--set", "tesk.taskmaster.image.tag=0.11.0"),
+    *("--set", "tesk.filer.image.tag=0.11.0"),
+)
 FILER_OLD = ("--set", "tesk.filer.image.tag=v0.10.6")
 FILER_OLD_BARE = ("--set", "tesk.filer.image.tag=0.10.6")
 USER = ("--set", "ftp.username=user")
@@ -3686,7 +3698,13 @@ def test_schema_invalid(args: tuple[str, ...]) -> None:
     [
         {"tesk": {"port": "8080", "debug": "true", "executorRetries": "2"}},
         {"service": {"nodePort": "31567", "type": "NodePort"}},
-        {"tesk": {"image": {"tag": 1.2}}},
+        {
+            "tesk": {
+                "image": {"tag": 1.2},
+                "taskmaster": {"image": {"tag": "0.11.0"}},
+                "filer": {"image": {"tag": "0.11.0"}},
+            }
+        },
         {"auth": {"serviceInfoPublic": "false"}},
         {"auth": {"legacyUserLabels": "true"}},
         {"global": {"anything": True}},
@@ -4014,7 +4032,7 @@ def test_notes_max_queue_old_api(
         args: Further `helm template` arguments (image tags).
         warned: Whether the notes warn.
     """
-    new_taskmaster = ("--set", "tesk.taskmaster.image.tag=0.12.0")
+    new_taskmaster = CORE_0_11
     text = notes(
         "--set", "tesk.maxQueueSeconds=3600", *new_taskmaster, *args, tmp_path=tmp_path
     )
@@ -4054,6 +4072,7 @@ def test_notes_legacy_user_labels_old_api(
         "auth.mode=auth",
         "--set",
         "auth.legacyUserLabels=true",
+        *CORE_0_11,
         *args,
         tmp_path=tmp_path,
     )
@@ -4094,7 +4113,7 @@ def test_notes_token_clients_old_api(
         args: Further `helm template` arguments (the image tag).
         warned: Whether the notes warn.
     """
-    text = notes(*token_clients(), *args, tmp_path=tmp_path)
+    text = notes(*token_clients(), *CORE_0_11, *args, tmp_path=tmp_path)
     assert ("auth.tokenClients is on, but tesk-api" in text) is warned
     assert "auth.tokenClients is on" not in notes(tmp_path=tmp_path)
 
@@ -4125,6 +4144,10 @@ def _tags(api: str, taskmaster: str) -> tuple[str, ...]:
         (_tags("1.2.0", "0.12.0-"), "1.0.0"),
         (_tags("1.2.0", "0.12.0+"), "1.0.0"),
         (_tags("1.2.0", "0.12.0-foo..bar"), "1.0.0"),
+        (("--set-string", "tesk.image.tag=01.2.3"), "1.1.0"),
+        (("--set-string", "tesk.image.tag=1.2.3-01"), "1.1.0"),
+        (_tags("1.2.0", "00.12.0"), "1.0.0"),
+        (_tags("1.2.0", "0.12.0-01"), "1.0.0"),
     ],
 )
 def test_malformed_version_tags(
@@ -4143,11 +4166,11 @@ def test_malformed_version_tags(
     """
     info, _ = _service_info(*args)
     assert info["type"]["version"] == expected
-    assert "is older than 2.0.0" not in notes(*args, tmp_path=tmp_path)
+    assert "WARNING" not in notes(*args, tmp_path=tmp_path)
 
 
 @pytest.mark.parametrize(
-    ("args", "warned"),
+    ("args", "fails"),
     [
         (("--set", "tesk.image.tag=1.2.0"), True),
         (("--set", "tesk.image.tag=v1.2.0"), True),
@@ -4165,21 +4188,23 @@ def test_malformed_version_tags(
         ((), False),
     ],
 )
-def test_notes_new_taskmaster_old_api(
-    tmp_path: Path, args: tuple[str, ...], warned: bool
-) -> None:
-    """The notes warn about taskmaster 0.12.0 or later with tesk-api before 2.0.0.
+def test_new_taskmaster_old_api(args: tuple[str, ...], fails: bool) -> None:
+    """Taskmaster 0.12.0 or later with tesk-api before 2.0.0 fails.
 
     Such taskmasters label filer jobs so that older APIs take them for
-    executor jobs, and report wrong task states.
+    executor jobs, and report wrong task states; e.g., values that pin an
+    older `tesk.image.tag` but not the taskmaster's.
 
     Args:
-        tmp_path: A directory for a copy of the chart.
         args: `helm template` arguments (the image tags).
-        warned: Whether the notes warn.
+        fails: Whether the installation fails.
     """
-    text = notes(*args, tmp_path=tmp_path)
-    assert ("is older than 2.0.0: it takes the" in text) is warned
+    if fails:
+        with pytest.raises(subprocess.CalledProcessError) as error:
+            render(*args)
+        assert "needs tesk-api 2.0.0 or later" in error.value.stderr
+    else:
+        render(*args)
 
 
 @pytest.mark.parametrize(
