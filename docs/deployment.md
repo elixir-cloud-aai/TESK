@@ -628,7 +628,9 @@ The chart passes them on to tesk-api, joined by commas
   numbers or an IPv6 address in brackets, and a port from 1 to 65535
   without leading zeros. Other origins (e.g., wildcards, paths, default
   ports) fail the installation, as tesk-api would stop at startup on them,
-  and the API would be down after the upgrade.
+  and the API would be down after the upgrade. The chart is a little
+  stricter than tesk-api: it also refuses IPv6 zone IDs, which browsers
+  don't send, and single-label host names that start with a digit.
 - **Tokens:** every request but the browsers' preflight requests still
   needs a token with `auth.mode: auth`; CORS only lets browsers read the
   answers. List only origins that you trust with your users' tokens.

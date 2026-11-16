@@ -1295,6 +1295,16 @@ CORS = "TESK_API_CORS_ALLOWED_ORIGINS"
             "http://127.0.0.1:8080,http://[::1]:3000,https://xn--exmple-cua.org,"
             "https://example.org:65535",
         ),
+        (
+            (
+                "--set-json",
+                'tesk.cors.allowedOrigins=["HTTPS://Example.ORG", "https://example.org.",'
+                ' "http://[0:0:0:0:0:0:0:1]", "http://[::ffff:1.2.3.4]",'
+                ' "http://example.org:443"]',
+            ),
+            "HTTPS://Example.ORG,https://example.org.,http://[0:0:0:0:0:0:0:1],"
+            "http://[::ffff:1.2.3.4],http://example.org:443",
+        ),
     ],
 )
 def test_cors_allowed_origins(args: tuple[str, ...], expected: str | None) -> None:
@@ -1335,6 +1345,13 @@ def test_cors_allowed_origins(args: tuple[str, ...], expected: str | None) -> No
         "https://example.org%2F",
         "https://ex\u00e4mple.org",
         "https://example.org\u00a0",
+        "http://[1]",
+        "http://[:::]",
+        "http://[::1::2]",
+        "http://[1.2.3.4]",
+        "http://[12345::]",
+        "http://[::1]:80",
+        "HTTPS://example.org:443",
     ],
 )
 def test_cors_allowed_origins_invalid(origin: str) -> None:
@@ -1344,8 +1361,9 @@ def test_cors_allowed_origins_invalid(origin: str) -> None:
     without a scheme or with another one than http(s), default ports and
     ports out of range or with leading zeros, host names that aren't ASCII
     or have `_`, and IPv4 addresses in other forms than four decimal
-    numbers. tesk-api would stop at startup on them, with the API down after
-    an upgrade (the update strategy `Recreate`).
+    numbers, and malformed IPv6 addresses. tesk-api would stop at startup on
+    them, with the API down after an upgrade (the update strategy
+    `Recreate`).
 
     Args:
         origin: The origin.
