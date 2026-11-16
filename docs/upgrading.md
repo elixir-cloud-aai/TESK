@@ -73,7 +73,12 @@ Recreate](#api-update-strategy-recreate)).
   2.0.0 implements TES 1.1, so set `type.version` to `1.1.0` and `version`
   to `2.0.0` in your ConfigMap. The chart's own service info does this
   itself: its `type.version` follows `tesk.image.tag` (`1.1.0` from
-  tesk-api 2.0.0 on, `1.0.0` before).
+  tesk-api 2.0.0 on, `1.0.0` before), and from tesk-api 2.0.0 on it lists
+  `tesResources_backend_parameters: []` (TESK supports none). In your own
+  ConfigMap, the field is optional: tesk-api 2.0.0 reports `[]` also
+  without it; don't add it while the API is still 1.x, which can't read
+  the service info with it. With the chart's own service info, the
+  ConfigMap changes, so the upgrade restarts the API's pod anyway.
 - **Act on this if clients use your API:** tesk-api 2.0.0 changes some
   answers, e.g., `GET /tasks` without `page_size` returns at most 256
   tasks, the states `CANCELING` and `PREEMPTED`, the API description at
