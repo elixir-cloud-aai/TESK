@@ -2,8 +2,10 @@
 # Checks of a deployed instance of TESK from outside, e.g., after an
 # installation or upgrade: the service info, the access control (with
 # `auth.mode: auth`), a small task that ends COMPLETE with the expected
-# output in its logs, and a task that is cancelled while it runs and ends
-# CANCELED. Run it from anywhere, with the base URL of the TES API as
+# output in its logs, a task with an input (which starts a filer pod and
+# gets a PVC) that ends COMPLETE with the input's content in its logs, and
+# a task that is cancelled while it runs and ends CANCELED. Run it from
+# anywhere, with the base URL of the TES API as
 # argument (e.g., `https://tes.example.org/ga4gh/tes/v1`); needs Bash, curl
 # and jq. Prints one line per check, and stops with a non-zero exit code at
 # the first check that fails. See "Checking a deployment" in
@@ -13,20 +15,21 @@
 #   with `auth.mode: auth`. Then the script also checks that requests
 #   without a token or with an invalid one are refused (401); without
 #   `TOKEN`, these checks are skipped, and the tasks are sent without a
-#   token (for instances with `auth.mode: noauth`)
+#   token (for instances with `auth.mode: noauth`); an HTTPS URL that
+#   serves the task list without a token gets a warning
 # - `ALLOW_HTTP=true`: send `TOKEN` to a URL with `http` (e.g., through a
 #   port forward); by default, the token is only sent over HTTPS
 # - `TASK_TIMEOUT`: seconds to wait for each state of a task (default 600;
 #   the first task on a node may wait for image pulls)
-# - `IMAGE`: the image of the tasks' executors, which needs `echo` and
-#   `sleep` (default: Alpine, which runs as root; e.g., an image with a
+# - `IMAGE`: the image of the tasks' executors, which needs `echo`, `cat`
+#   and `sleep` (default: Alpine, which runs as root; e.g., an image with a
 #   non-root user for executors with `runAsNonRoot` but no `runAsUser`)
 #
 # The token is read from the environment only and goes to curl on its
 # standard input, so that it doesn't show up in the process list; the
 # script removes `TOKEN` from its environment, so that curl doesn't inherit
 # it. Each
-# request has a limit of 60 seconds. The two tasks stay in the task list,
+# request has a limit of 60 seconds. The three tasks stay in the task list,
 # as TES has no way to delete tasks (see "Deleting finished tasks" in
 # `docs/deployment.md`); if the script stops early, it cancels the task
 # that hasn't ended yet.
@@ -50,7 +53,9 @@ fi
 # digest of the index of a newer tag, e.g., from `docker buildx imagetools
 # inspect alpine:<tag>`)
 image="${IMAGE:-alpine:3.22@sha256:2e0b81d60597f449baa56dc25d355367869d2dca4cd57e866f1e2b52af3eb55f}"
-final_states=(COMPLETE EXECUTOR_ERROR SYSTEM_ERROR CANCELED)
+# The states in which a task has ended (TES 1.1); not CANCELING, which
+# tesk-api reports until the jobs of a cancelled task have stopped
+final_states=(COMPLETE EXECUTOR_ERROR SYSTEM_ERROR CANCELED PREEMPTED)
 # Seconds that SYSTEM_ERROR must last to count as an end (see `await_state`)
 system_error_grace=10
 # The last response body and status
@@ -124,13 +129,14 @@ check() {
   fi
 }
 
-# Create a task with one executor that runs a command (JSON array); sets
-# `task_id` and `running`
+# Create a task with one executor that runs a command (JSON array) and
+# optional inputs (JSON array); sets `task_id` and `running`
 create_task() {
-  local name="$1" command="$2" task
+  local name="$1" command="$2" inputs="${3:-null}" task
   task="$(jq -cn --arg name "${name}" --arg image "${image}" \
-    --argjson command "${command}" \
-    '{name: $name, executors: [{image: $image, command: $command}]}')"
+    --argjson command "${command}" --argjson inputs "${inputs}" \
+    '{name: $name, executors: [{image: $image, command: $command}]}
+     + if $inputs == null then {} else {inputs: $inputs} end')"
   check "" "${token}" POST /tasks 200 '.id | type == "string" and length > 0' \
     "${task}"
   task_id="$(jq -r .id "${body}")"
@@ -212,6 +218,9 @@ else
   fi
   check "GET /tasks without a token answers (200)" \
     "" GET '/tasks?view=MINIMAL' 200 '.tasks | type == "array"'
+  if [[ "${api}" == https://* ]]; then
+    echo "::warning::${api} serves /tasks without a token: anyone who reaches it can run tasks (see \"Authentication and authorisation\" in docs/deployment.md)"
+  fi
 fi
 
 # A task that completes, with its output in the executor's log
@@ -225,7 +234,24 @@ check "task ${id} has exit code 0 and the expected output in its logs" \
   "(.logs[-1].logs[0].exit_code == 0)
    and (.logs[-1].logs[0].stdout | contains(\"${marker}\"))"
 
-# A task that is cancelled while it runs
+# A task with an input, which starts the inputs filer: a pod with the
+# filer's security contexts that writes the input to the task's PVC, which
+# the executor then prints. The input has its content inline, so it needs
+# no network and no storage backend
+content="tesk-deployment-check-input-$(date +%s)-${RANDOM}"
+create_task "deployment check: input" '["cat", "/data/in.txt"]' \
+  "$(jq -cn --arg content "${content}" \
+    '[{path: "/data/in.txt", type: "FILE", content: $content}]')"
+id="${task_id}"
+await_state "${id}" COMPLETE
+echo "ok: task ${id} ended COMPLETE"
+check "task ${id} has exit code 0 and the content of its input in its logs" \
+  "${token}" GET "/tasks/${id}?view=FULL" 200 \
+  "(.logs[-1].logs[0].exit_code == 0)
+   and (.logs[-1].logs[0].stdout | contains(\"${content}\"))"
+
+# A task that is cancelled while it runs; tesk-api reports it CANCELING
+# until its jobs have stopped
 create_task "deployment check: cancel" '["sleep", "600"]'
 id="${task_id}"
 await_state "${id}" RUNNING

@@ -5,8 +5,9 @@
 # default Ingress has no controller on kind), then run the check script for
 # deployed instances
 # (`tests/smoke/deployment.sh`, without auth: the default values have
-# `auth.mode: noauth`), which runs a task to completion and cancels one.
-# Used by the `chart-install` job of `ci.yml` and by `release.yml`. Needs a
+# `auth.mode: noauth`), which runs two tasks to completion (one with an
+# input, which starts a filer pod) and cancels one, and check that the
+# filer's job completed with the filer's hardened defaults. Used by the `chart-install` job of `ci.yml` and by `release.yml`. Needs a
 # checkout of the repository.
 
 name: Install chart
@@ -140,10 +141,40 @@ runs:
         if ! tests/smoke/deployment.sh "${url}"; then
           cat "${log}" || true
           kubectl get pods,jobs,pvc -n "${NAMESPACE}" || true
+          kubectl get events -n "${NAMESPACE}" --sort-by=.lastTimestamp || true
           for pod in $(kubectl get pods -n "${NAMESPACE}" -o name || true); do
             echo "::group::${pod}"
             kubectl logs -n "${NAMESPACE}" "${pod}" --all-containers --tail=50 || true
             echo "::endgroup::"
           done
+          exit 1
+        fi
+    # The task with an input started the inputs filer; its job must have
+    # completed, with the filer's defaults of taskmaster 0.12.0 (the chart's
+    # `tesk.filer.*` contexts are empty by default): non-root, the
+    # RuntimeDefault seccomp profile, a read-only root filesystem and no
+    # capabilities
+    - name: Check filer
+      env:
+        NAMESPACE: ${{ inputs.namespace }}
+      shell: bash
+      run: |
+        jobs="$(kubectl get jobs -n "${NAMESPACE}" -o json)"
+        filers="$(jq -c '[.items[] | select(.metadata.name | endswith("-inputs-filer"))
+            | {name: .metadata.name, succeeded: (.status.succeeded // 0),
+               pod: .spec.template.spec.securityContext,
+               container: .spec.template.spec.containers[0].securityContext}]' \
+            <<< "${jobs}")"
+        echo "Filer jobs: ${filers}"
+        if ! jq -e 'length > 0 and all(.[];
+            .succeeded >= 1
+            and .pod.runAsNonRoot == true
+            and .pod.seccompProfile.type == "RuntimeDefault"
+            and .container.readOnlyRootFilesystem == true
+            and .container.allowPrivilegeEscalation == false
+            and (.container.capabilities.drop | index("ALL")))' \
+            <<< "${filers}" > /dev/null; then
+          echo "::error::No completed inputs filer job with the hardened defaults"
+          kubectl get pods,jobs,pvc -n "${NAMESPACE}" || true
           exit 1
         fi
