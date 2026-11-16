@@ -169,7 +169,10 @@ The workflow `Release` (`.github/workflows/release.yml`) runs on pushed
    stable release among the stable ones; for the first release from this
    workflow, `v0.2`), and their `**Full Changelog**` line last. Releases are
    immutable once published: the release is created as a draft, the files
-   are uploaded, and then it is published. A stable release becomes the
+   are uploaded, and then it is published. Pre-releases (`-alpha.N`,
+   `-beta.N`, `-rc.N`) and, until 1.0, all releases (`v0.*`) are published
+   as prereleases, which never become the latest release, as in the
+   organization's other repositories; a release from 1.0 on becomes the
    latest release only if no stable release tag on `main` has a higher
    version. Publish jobs run one at a time; GitHub keeps one waiting job,
    so if a third tag is pushed while one publishes and one waits, the
