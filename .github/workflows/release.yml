@@ -13,9 +13,9 @@
 # packaged chart (GitHub artifact attestation, Sigstore bundle) and create
 # the GitHub release with the chart and its signature attached; its notes
 # are the curated ones, then GitHub's generated notes since the previous
-# release under `## Commits`, then their `**Full Changelog**` line; it is
-# a prerelease, never the latest release, for pre-release tags and, until
-# 1.0, for all tags (`v0.*`) (`publish`). Releases are immutable once published, so the release is
+# release under `## Commits`, then their `**Full Changelog**` line. The
+# release is marked as a prerelease, and never as the latest release, for
+# pre-release tags and, until 1.0, for all `v0.*` tags (`publish`). Releases are immutable once published, so the release is
 # created as a draft, the files are uploaded, and only then is it published;
 # a re-run of a failed run picks up a draft it left. See "Releases" in
 # `docs/development.md`.
@@ -101,10 +101,12 @@ jobs:
           echo "sha=${sha}" >> "${GITHUB_OUTPUT}"
       # Then, without the token: SemVer versions only (the chart's `version`
       # must be SemVer), X.Y.Z, or X.Y.Z-alpha.N, -beta.N or -rc.N for
-      # pre-releases, equal to the chart's `version`. `prerelease`: a SemVer
-      # pre-release (for the previous release, see `publish`);
-      # `mark_prerelease`: the GitHub release is marked as a prerelease, as
-      # pre-releases and, until 1.0, all releases of the organization are
+      # pre-releases, equal to the chart's `version`. Two flags:
+      # `prerelease` means a SemVer pre-release tag and only chooses the
+      # previous release for the generated notes (see `publish`);
+      # `mark_prerelease` is the prerelease flag of the GitHub release, true
+      # for pre-release tags and, until 1.0, for all `v0.*` tags, and such a
+      # release is never made the latest
       - name: Derive release version
         id: version
         env:
@@ -246,11 +248,11 @@ jobs:
       # its notes cover its pre-releases too); for the first release of this
       # workflow, `v0.2`. Without one, GitHub would pick an older tag of its
       # choice (the repository has tags from before the chart). A release
-      # that is marked as a prerelease (`mark_prerelease`: pre-releases, and
-      # all releases before 1.0) never becomes `latest`; another (stable)
-      # release becomes `latest` only if its version is the highest of the
-      # stable release tags on `main` (tags exist from their push, unlike
-      # releases), so that a patch of an older version doesn't take it over.
+      # marked as a prerelease (`mark_prerelease`, see `prepare`) never
+      # becomes `latest`; another release becomes `latest` only if its
+      # version is the highest of the stable release tags on `main` (tags
+      # exist from their push, unlike releases), so that a patch of an older
+      # version doesn't take it over.
       # Versions are compared with `sort -V`, with the `-` of a pre-release
       # as `~`, so that pre-releases sort before their release
       - name: Determine the previous and latest release
@@ -280,7 +282,7 @@ jobs:
           fi
           previous="$(highest <<< "${candidates}")"
           latest=false
-          if [[ "${PRERELEASE}" != "true" && "${MARK_PRERELEASE}" != "true" ]]; then
+          if [[ "${MARK_PRERELEASE}" != "true" ]]; then
               stable="$(git tag -l 'v*' --merged origin/main | { grep -vE -- "${pre_re}" || true; })"
               if [[ "$(printf '%s\n%s\n' "${stable}" "${TAG}" | highest)" == "${TAG}" ]]; then
                   latest=true
