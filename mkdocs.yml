@@ -90,6 +90,7 @@ nav:
   # The curated notes of each release (`docs/releases/<version>.md`), newest
   # first (see "Releases" in `docs/development.md`)
   - Releases:
+      - "0.4.0": releases/0.4.0.md
       - "0.3.0": releases/0.3.0.md
   - Guides:
       - Integration with WES: integrated_wes_tes.md

@@ -15,7 +15,7 @@ This page covers the installation and the most common setups;
 
 - **A Kubernetes cluster.** TESK needs access to one namespace only, and
   works in multi-tenant clusters such as OpenShift. The chart's default
-  taskmaster and filer, 0.11.0, need Kubernetes 1.23 or later, and their
+  taskmaster and filer, 0.12.0, need Kubernetes 1.23 or later, and their
   end-to-end tests run on Kubernetes 1.37 (see the [upgrade notes of
   tesk-core](tesk-core/upgrading.md)). If you pin older images, set both
   tags to the same release; on Kubernetes 1.31 or later, it must be v0.10.6
@@ -68,6 +68,13 @@ tesk`, `app.kubernetes.io/instance: <release>`, …), e.g., to list them with
 releases can share a namespace, but they then see each other's tasks:
 install releases that must be kept apart into namespaces of their own. The
 commands on this page assume the release `tesk` in the namespace `tesk`.
+
+Each change of the API's pod (e.g., `helm upgrade` with a new image or new
+settings) stops the old pod before the new one starts, so the API is down
+until the new pod is ready, usually about a minute: the API's Deployment
+uses the update strategy `Recreate` (`tesk.strategy`). See [API update
+strategy Recreate](upgrading.md#api-update-strategy-recreate) for why, and
+when `RollingUpdate` is safe.
 
 ### From a release
 
@@ -133,16 +140,29 @@ TES API. It checks, in this order:
    without a token and with an invalid one are refused (401), and requests
    with the token answer. Without `TOKEN`, these checks are skipped, for
    instances with `auth.mode: noauth`; the script then stops with a hint if
-   the instance needs a token.
+   the instance needs a token, and warns if an `https` URL serves the task
+   list without one (see [Authentication and
+   authorisation](#authentication-and-authorisation)).
 3. A task that runs `echo` ends `COMPLETE`, with exit code 0 and its output
    in the executor's log (`GET /tasks/{id}?view=FULL`).
-4. A task that runs `sleep` is cancelled once it is `RUNNING`, and the API
-   reports it `CANCELED`. tesk-api reports this as soon as it has marked
-   the task's taskmaster job as cancelled; that the pods of the task stop
-   is up to the taskmaster, which the script can't see from outside.
+4. A task with an input ends `COMPLETE`, with the input's content in the
+   executor's log. The input has its content inline (no URL), so it needs
+   no network and no storage backend, but it gets a PVC (of
+   `storageClass`, or the cluster's default class) and starts the inputs
+   filer, a pod with the filer's security contexts (`tesk.filer.*`) that
+   writes the input to the PVC. This is the check that filer pods are
+   admitted and can write to the task's PVC, e.g., after changing the
+   filer's security contexts or the taskmaster and filer images.
+5. A task that runs `sleep` is cancelled once it is `RUNNING`, and the API
+   reports it `CANCELED`. tesk-api 2.0.0 (TES 1.1) reports `CANCELING`
+   until the task's jobs have stopped, and `CANCELED` after that; earlier
+   versions report `CANCELED` as soon as they have marked the task's
+   taskmaster job as cancelled, while its pods may still be stopping.
 
-While it waits for a state, `SYSTEM_ERROR` only counts as the end of a
-task once it has lasted 10 seconds, as tesk-api reports it for a moment
+The tasks end in `COMPLETE`, `EXECUTOR_ERROR`, `SYSTEM_ERROR`, `CANCELED`
+or `PREEMPTED`; any of them other than the expected one fails the check at
+once. While it waits for a state, `SYSTEM_ERROR` only counts as the end of
+a task once it has lasted 10 seconds, as tesk-api reports it for a moment
 while Kubernetes updates the status of a task's jobs.
 
 It prints one line per check and stops with a non-zero exit code at the
@@ -166,29 +186,50 @@ tests/smoke/deployment.sh http://localhost:8080/ga4gh/tes/v1
 
 - The script sends `TOKEN` over HTTPS only; set `ALLOW_HTTP=true` to send
   it to an `http` URL, e.g., through a port forward.
-- It waits up to `TASK_TIMEOUT` seconds (default 600) for each state of a
-  task; the first task on a node may wait for the images of the
-  taskmaster, the filer and the executor (`alpine`) to be pulled.
+- It waits about `TASK_TIMEOUT` seconds (default 600) for each state of a
+  task, polling every 2 s and once more after the last pause, even if that
+  ends past the timeout; the first task on a node may wait for the images
+  of the taskmaster and the executor (`alpine`) to be pulled, and the task
+  with the input for the filer's image and its PVC.
 - `IMAGE` replaces the executor image of the tasks (Alpine, pinned by
   digest), e.g., with an image of a non-root user if
   `tesk.executor.securityContext` sets `runAsNonRoot` but no `runAsUser`,
-  which Alpine's root user doesn't pass. It needs `echo` and `sleep`.
-- The two tasks (named `deployment check: complete` and `deployment
-  check: cancel`) stay in the namespace, as the TES API can't delete tasks:
+  which Alpine's root user doesn't pass. It needs `echo`, `cat` and
+  `sleep`.
+- The three tasks (named `deployment check: complete`, `deployment check:
+  input` and `deployment check: cancel`) stay in the namespace, as the TES
+  API can't delete tasks:
   see [Deleting finished tasks](#deleting-finished-tasks). If the script
   stops early, it cancels the task that hasn't ended yet (and warns if
   that fails). With a `tesk.taskTtlSeconds` of less than a few minutes,
   a task can be gone from the API before the script has read its final
   state and logs, and the check fails.
 
-CI runs the script against the chart's default values on a kind cluster
-(see [Continuous integration](development.md#continuous-integration)).
+CI runs the script against the chart's default values on a kind cluster,
+and checks that the inputs filer's job completed with the filer's default
+security contexts (see [Continuous
+integration](development.md#continuous-integration)).
 
 ## Exposing the API
 
-With the default values, the chart creates an Ingress (`ingress.enabled`), but
-without a host name and an Ingress class it isn't reachable from outside the
-cluster. Choose one of the following.
+With the default values, the chart creates an Ingress (`ingress.enabled`)
+without a host name (`hostName`), an Ingress class (`ingress.className`) or
+TLS (`ingress.tlsSecretName`). An Ingress rule without a host matches every
+host name: the Ingress controller that takes the Ingress serves the API at
+`ingress.path` to every request that reaches it, under any host name or IP
+address, without a TLS certificate of its own (over plain HTTP, or with the
+controller's default certificate). The notes of `helm install` and `helm
+upgrade` warn about an empty `hostName`. Without a class, the Ingress goes to
+the cluster's default Ingress class; on a cluster without one, it depends on
+the controller whether the Ingress is served at all (many ignore Ingresses
+without a class). Set `hostName` (see [Ingress](#ingress)), or switch the
+Ingress off and use one of the other options below.
+
+`hostName` only routes requests: it doesn't keep anyone out. As the default
+`auth.mode` is `noauth`, anyone who reaches an exposed API, under its host
+name or otherwise, can run tasks. Set `auth.mode: auth` for an API that is
+reachable from outside the cluster, or restrict who can reach it (see
+[Authentication and authorisation](#authentication-and-authorisation)).
 
 ### Ingress
 
@@ -248,8 +289,9 @@ tesk:
 ```
 
 By default, the API's pod asks for the `RuntimeDefault` seccomp profile
-(`tesk.podSecurityContext.seccompProfile`). Some clusters set their own
-seccomp profile for pods and reject pods that ask for another one: there,
+(`tesk.podSecurityContext.seccompProfile`). Some clusters (e.g., CSC
+Rahti) set their own seccomp profile for pods and reject pods that ask
+for another one: there,
 the API's Deployment gets no pod, and the events of its ReplicaSet
 (`kubectl describe replicaset --namespace tesk -l
 app.kubernetes.io/instance=tesk`) name the seccomp profile as the reason.
@@ -274,6 +316,28 @@ chart rendered:
 helm template tesk charts/tesk --namespace tesk \
     -f my-values.yaml > rendered.yaml && grep -ci seccomp rendered.yaml
 ```
+
+This covers the API's pod only. The filer pods of taskmaster and filer
+0.12.0, the chart's default, ask for the `RuntimeDefault` profile too (see
+the [filer's pod security](tesk-core/filer.md#pod-security)); on such
+clusters, e.g., CSC Rahti, replace the filer's pod security context:
+
+```yaml
+tesk:
+  filer:
+    podSecurityContext:
+      runAsNonRoot: true
+```
+
+`tesk.filer.podSecurityContext` and `tesk.filer.securityContext` replace
+the taskmaster's defaults for the filer's pod and container (repeat those
+that you want to keep; `{}` leaves a context out; set each context in one
+values file, as Helm merges maps of several). The chart passes them on as
+they are; the taskmaster checks them for each task, and logs an invalid
+one and uses its default instead. Otherwise, only tasks with inputs or
+outputs fail (tasks without them start no filer). So check the deployment
+after the upgrade (see [Checking a deployment](#checking-a-deployment)):
+its task with an input starts a filer pod and must end `COMPLETE`.
 
 ## Storage backends
 
@@ -335,18 +399,21 @@ namespace can use S3.
 
 ## Authentication and authorisation
 
-By default (`auth.mode: noauth`), all endpoints are open. With `auth.mode:
-auth`, the API requires an OIDC access token (`Authorization: Bearer`) for
-every endpoint except `GET /service-info`, which stays public unless
-`auth.serviceInfoPublic` is `false` (tesk-api 1.2.0 or later), the API
-description (`GET /v2/api-docs`), and the [Swagger UI](#swagger-ui) if it is
-on. tesk-api validates tokens at the user info endpoint of the OIDC provider
-(`auth.userInfoUri`) and authorises users by their groups in a claim of the
-user info, following a group model of nested groups (`auth.groups.*`,
-`auth.envBaseGroup`, `auth.envSubgroup`), or by a claim (see [Authorisation
-by a claim](#authorisation-by-a-claim)); tokens of allow-listed services can
-be checked without the user info (see [Tokens of
-services](#tokens-of-services)). Values left empty use tesk-api's
+By default (`auth.mode: noauth`), all endpoints are open: use it only on
+local or trusted networks, as anyone who reaches the API can run tasks in
+the cluster. With `auth.mode: auth`, the API requires an OIDC access
+token (`Authorization: Bearer`) for every endpoint except
+`GET /service-info`, which stays public unless `auth.serviceInfoPublic` is
+`false` (tesk-api 1.2.0 or later), the API description
+(`GET /v3/api-docs`, and `/v2/api-docs`, which serves the same OpenAPI 3
+description in tesk-api 2.0.0), and the [Swagger UI](#swagger-ui) if it
+is on. tesk-api validates tokens at the user info endpoint of the OIDC
+provider (`auth.userInfoUri`) and authorises users by their groups in a
+claim of the user info, following a group model of nested groups
+(`auth.groups.*`, `auth.envBaseGroup`, `auth.envSubgroup`), or by a claim
+(see [Authorisation by a claim](#authorisation-by-a-claim)); tokens of
+allow-listed services can be checked without the user info (see [Tokens
+of services](#tokens-of-services)). Values left empty use tesk-api's
 defaults, which are those of ELIXIR AAI (`login.elixir-czech.org`, the
 provider before LS Login); for any other provider, set them as in [LS Login
 and other providers](#ls-login-and-other-providers). See the [tesk-api
@@ -457,7 +524,7 @@ obtained with the OAuth 2.0 client credentials grant (e.g., a TES gateway
 in front of several TES instances). Such tokens have no user, so the user
 info endpoint may refuse them and releases no groups. With
 `auth.tokenClients`, tesk-api accepts the access tokens of the clients that
-you list, without the user info (a tesk-api release after 1.2.0; off by
+you list, without the user info (tesk-api 2.0.0 or later; off by
 default, and needs `auth.mode: auth`):
 
 ```yaml
@@ -496,7 +563,7 @@ without an issuer, without an audience (unless
 `auth.tokenClients.allowAnyAudience` is `true`), without client IDs, or
 with an `auth.mode` other than `auth`; the issuer and the JWKS URI must be HTTPS URLs, and client IDs
 mustn't contain commas (quote numeric ones, as they must be strings).
-tesk-api 1.2.0 and older ignore the setting and refuse the clients' tokens:
+tesk-api before 2.0.0 ignores the setting and refuses the clients' tokens:
 `helm install` and `helm upgrade` print a warning if it is on with such an
 image (`tesk.image.tag` as a version number, by default the chart's
 `appVersion`).
@@ -553,9 +620,9 @@ how to list and delete the old tasks.
 
 tesk-api can serve a Swagger UI, at the root path of the deployment (`/`
 redirects to `/swagger-ui/index.html`). It is off by default
-(`tesk.swaggerUi.enabled: false`); the API description (`/v2/api-docs`) is
-served either way, without a token. Turning it on serves the Swagger UI
-publicly, also with `auth.mode: auth`; enable it only where needed:
+(`tesk.swaggerUi.enabled: false`); the API description (`/v3/api-docs`;
+`/v2/api-docs` before tesk-api 2.0.0) is served either way, without a
+token. Turning it on serves the Swagger UI publicly, also with `auth.mode: auth`; enable it only where needed:
 
 ```yaml
 tesk:
@@ -572,6 +639,53 @@ Users log in from the Swagger UI with the OIDC client of
 authorisation](#authentication-and-authorisation)), at the provider's
 endpoints of `auth.swaggerOauth` (see [LS Login and other
 providers](#ls-login-and-other-providers); ELIXIR AAI's by default).
+
+## Browser clients (CORS)
+
+Browsers let a web app call the API from another origin only if the API
+allows it with CORS headers. tesk-api sends none by default, so clients
+that call TESK from their servers, or through a gateway such as proTES,
+need no setting. To let a browser app call TESK directly, list the app's
+origins in `tesk.cors.allowedOrigins` (tesk-api 2.0.0 or later):
+
+```yaml
+tesk:
+  cors:
+    allowedOrigins:
+      - https://client.example.org
+      - http://localhost:3000
+```
+
+The chart passes them on to tesk-api, joined by commas
+(`TESK_API_CORS_ALLOWED_ORIGINS`).
+
+- **Origins:** list each one exactly as the browser sends it: the scheme,
+  the host, and the port unless it is the default
+  (`https://client.example.org`, not `https://client.example.org:443`),
+  and every variant that you serve the app from (e.g., with and without
+  `www.`): `http` or `https`, an ASCII host name (punycode for
+  international ones, without `_`), an IPv4 address as four decimal
+  numbers or an IPv6 address in brackets, and a port from 1 to 65535
+  without leading zeros. Other origins (e.g., wildcards, paths, default
+  ports) fail the installation, as tesk-api would stop at startup on them,
+  and the API would be down after the upgrade. The chart is a little
+  stricter than tesk-api: it also refuses IPv6 zone IDs, which browsers
+  don't send, and single-label host names that start with a digit.
+- **IPv6 addresses:** write them in the short, lower-case form that
+  browsers send (`http://[::1]:3000`). tesk-api compares origins as text
+  (ignoring case and a trailing `/`), so it accepts a long form such as
+  `http://[0:0:0:0:0:0:0:1]:3000`, but no browser request ever matches
+  it.
+- **Tokens:** every request but the browsers' preflight requests still
+  needs a token with `auth.mode: auth`; CORS only lets browsers read the
+  answers. List only origins that you trust with your users' tokens.
+- **Details:** what tesk-api answers to the listed and to other origins
+  is in its [configuration
+  reference](tesk-api/configuration.md#cross-origin-requests-cors).
+- **Versions:** tesk-api before 2.0.0 ignores the setting; `helm install`
+  and `helm upgrade` print a warning if it is set with such an image
+  (`tesk.image.tag` as a version number, by default the chart's
+  `appVersion`).
 
 ## Resources
 

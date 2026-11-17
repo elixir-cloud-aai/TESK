@@ -10,7 +10,212 @@ again):
 helm upgrade tesk charts/tesk --namespace tesk -f my-values.yaml -f secrets.yaml
 ```
 
-## Unreleased
+## 0.4.0
+
+Releases of chart 0.3.0 are upgraded in place (`helm upgrade` with the
+chart of the [release](deployment.md#from-a-release)). The upgrade brings
+tesk-api 2.0.0 (TES 1.1) and the taskmaster and filer of tesk-core 0.12.0,
+and the API is down for about a minute during each rollout (update strategy
+`Recreate`): read [tesk-api 2.0.0, taskmaster and filer
+0.12.0](#tesk-api-200-taskmaster-and-filer-0120) before you upgrade,
+especially if your values pin image tags, or if your cluster refuses pods
+with the `RuntimeDefault` seccomp profile.
+
+**Don't upgrade with `--reuse-values`:** Helm then renders the chart with
+the values of the 0.3.0 release in place of the new defaults, so none of
+them apply (e.g., the taskmaster and filer tags, `tesk.strategy` and
+`tesk.filer.*`). With the default tags of chart 0.3.0, the API still
+moves to tesk-api 2.0.0, as `tesk.image.tag` was empty there, but the
+taskmaster and filer stay at 0.11.0, which can't run some TES 1.1 tasks
+as asked (see below), so the service info reports TES 1.0.0; and the
+API's Deployment keeps `RollingUpdate`. Tags that your values pinned stay
+as they were. A copy of the `values.yaml` of chart 0.3.0 among your values
+files pins the old taskmaster and filer tags in the same way (the
+strategy `Recreate` still applies, as that file doesn't set one). Upgrade
+with your own values files, as above, or with
+`--reset-then-reuse-values` (Helm 3.14 or later), which applies the
+chart's new defaults below the values of the release. The notes of `helm
+upgrade` warn about tesk-api 2.0.0 or later with a taskmaster before
+0.12.0.
+
+### tesk-api 2.0.0, taskmaster and filer 0.12.0
+
+The chart deploys tesk-api 2.0.0 (its `appVersion`) and taskmaster and
+filer 0.12.0 by default now (chart 0.3.0 deployed tesk-api 1.2.0 and
+taskmaster and filer 0.11.0). tesk-api 2.0.0 implements TES 1.1, and runs
+on Java 21 and Spring Boot 4; tesk-core 0.12.0 adds the taskmaster and
+filer side of TES 1.1 (outputs with wildcards and `path_prefix`,
+`executors[].ignore_error`, output file logs). With the chart's defaults,
+one `helm upgrade` brings both, in the order that they need: the API's
+update strategy `Recreate` stops the old API before the new one starts
+tasks with the new taskmaster (see [API update strategy
+Recreate](#api-update-strategy-recreate)).
+
+- **Act on this if your values pin `tesk.image.tag`,
+  `tesk.taskmaster.image.tag` or `tesk.filer.image.tag`:** the new
+  defaults apply only to the tags that you don't set. Upgrade the API to
+  2.0.0 no later than the taskmaster to 0.12.0: an older API with the new
+  taskmaster reports wrong task states, so the installation fails with
+  such a pair (e.g., values that pin `tesk.image.tag: 1.2.0` but not the
+  taskmaster): set `tesk.taskmaster.image.tag` and `tesk.filer.image.tag`
+  to `0.11.0` too, or upgrade the API. Set the taskmaster and filer tags
+  together, to the same release. tesk-api 2.0.0 runs with taskmaster and
+  filer 0.11.0 too, but it accepts tasks that they can't run as asked:
+  executors with `ignore_error: true` stop the task at their failure
+  (`SYSTEM_ERROR`, unless the failed executor was the last one and the
+  task has no outputs), outputs with wildcards and `path_prefix` fail or land
+  in the wrong place, and output file logs stay empty; the notes warn, and
+  the service info reports TES 1.0.0. Quote X.Y tags of the taskmaster and filer
+  (e.g., `"0.12"`): tags that YAML reads as numbers (e.g., an unquoted
+  `0.10`, which is 0.1) fail the installation now. Tags pinned by digest
+  (e.g., `0.12.0@sha256:…`) are compared by their version.
+- **Act on this if your cluster refuses pods with the `RuntimeDefault`
+  seccomp profile, or sets the user of pods by a policy:** filer pods of
+  0.12.0 run with a restricted security context (non-root, the
+  `RuntimeDefault` seccomp profile, no privilege escalation and
+  capabilities, a read-only root filesystem; see the [upgrade notes of
+  tesk-core](tesk-core/upgrading.md#hardened-filer-pods)). Replace them
+  with the new values `tesk.filer.podSecurityContext` and
+  `tesk.filer.securityContext` (see [Configuration](configuration.md));
+  e.g., where the cluster refuses pods that ask for `RuntimeDefault` and
+  sets its own profile:
+
+    ```yaml
+    tesk:
+      filer:
+        podSecurityContext:
+          runAsNonRoot: true
+    ```
+
+  Whether OpenShift accepts the filer's defaults (see the [filer's pod
+  security](tesk-core/filer.md#pod-security)) depends on the cluster:
+  some OpenShift clusters (e.g., CSC Rahti) reject pods that ask for
+  `RuntimeDefault` and need `tesk.filer.podSecurityContext:
+  {runAsNonRoot: true}`, as above (see [OpenShift and other restricted
+  clusters](deployment.md#openshift-and-other-restricted-clusters)). On
+  any cluster, check that a task with an input runs after the upgrade:
+  the smoke test runs one, which starts a filer pod (see [Checking a
+  deployment](deployment.md#checking-a-deployment)).
+- **FTP credentials by reference:** with an FTP secret
+  (`ftp.classicFtpSecret`), the chart also passes its name on to the
+  taskmasters (`TESK_FTP_SECRET_NAME`), so that the filer jobs of
+  taskmaster 0.12.0 reference the secret instead of holding the
+  credentials as values (see the [upgrade notes of
+  tesk-core](tesk-core/upgrading.md#ftp-credentials-by-reference)).
+  Nothing to do.
+- **Act on this if you use `serviceInfo.existingConfigMap`:** tesk-api
+  2.0.0 implements TES 1.1, so set `type.version` to `1.1.0` (with
+  taskmaster and filer 0.12.0 or later; `1.0.0` with older ones) and
+  `version` to `2.0.0` in your ConfigMap. The chart's own service info
+  does this itself: its `type.version` follows `tesk.image.tag` and
+  `tesk.taskmaster.image.tag` (`1.1.0` from tesk-api 2.0.0 and taskmaster
+  0.12.0 on, `1.0.0` before), and from tesk-api 2.0.0 on it lists
+  `tesResources_backend_parameters: []` (TESK supports none). In your own
+  ConfigMap, the field is optional: tesk-api 2.0.0 reports `[]` also
+  without it; don't add it while the API is still 1.x, which can't read
+  the service info with it. With the chart's own service info, the
+  ConfigMap changes, so the upgrade restarts the API's pod anyway.
+- **Act on this if clients use your API:** tesk-api 2.0.0 changes some
+  answers, e.g., `GET /tasks` without `page_size` returns at most 256
+  tasks, the states `CANCELING` and `PREEMPTED`, the API description at
+  `/v3/api-docs`, and tokens only in the `Authorization` header. Read the
+  [upgrade notes of tesk-api](tesk-api/upgrading.md#to-200) before you
+  upgrade, and [those of tesk-core](tesk-core/upgrading.md#0120).
+  Where the docs of tesk-core 0.12.0 describe the order of the upgrade or
+  the filer's security contexts, the chart's order (one `helm upgrade`,
+  see above) and its values `tesk.filer.*` take precedence.
+- **Private executor images aren't supported by the chart:** tesk-api
+  2.0.0 can pull executor images from private registries
+  (`docker_registry`, `docker_login` and `docker_pass`, an experimental
+  extension, see [Private executor
+  images](tesk-api/api.md#private-executor-images)), with an image pull
+  secret that it creates for the task. The chart's Role doesn't let it
+  create and delete secrets, so such tasks fail (HTTP 500). Use public
+  executor images.
+- **Act on this if you roll back to chart 0.3.0:** `helm rollback`
+  applies the stored manifests of chart 0.3.0 again, without the chart's
+  check of the API and taskmaster versions. tesk-api 1.2.0 then reads the
+  tasks of taskmaster 0.12.0, takes their filer jobs for executors, and
+  reports wrong task states; the API's Deployment also goes back to
+  `RollingUpdate`. Before you roll back, let the tasks of taskmaster
+  0.12.0 end; to keep new ones from starting meanwhile, upgrade once with
+  `tesk.taskmaster.image.tag` and `tesk.filer.image.tag` set to `0.11.0`
+  first. Until the rollback, tesk-api 2.0.0 then starts new tasks with
+  taskmaster 0.11.0, with the limits described above (e.g., outputs with
+  wildcards and `path_prefix`): keep this time short, or hold back such
+  tasks.
+- `auth.tokenClients` takes effect with tesk-api 2.0.0 (see [Tokens of
+  services](#tokens-of-services)); the notes of `helm install` and `helm
+  upgrade` warn if it is on with an earlier tesk-api.
+
+### Origins of browser clients (CORS)
+
+The chart can let tesk-api answer cross-origin requests of browser apps
+(`tesk.cors.allowedOrigins`, see [Browser clients
+(CORS)](deployment.md#browser-clients-cors)). It is empty by default, and
+the rendered manifests are unchanged until you list origins. It needs
+tesk-api 2.0.0 or later (`tesk.image.tag`; the chart's default now).
+
+### API update strategy Recreate
+
+The API's Deployment uses the update strategy `Recreate` by default
+(`tesk.strategy`, see [Configuration](configuration.md)): on every
+rollout, Kubernetes stops the old API pod before it starts the new one, so
+the API is down until the new pod is ready: usually about a minute (the
+default startup probe gives the API up to 5 minutes to start, after the
+image pull). Charts up to 0.3.0 set no strategy, so Kubernetes used
+`RollingUpdate`, which keeps the old pod serving until the new one is
+ready.
+
+The reason is the upgrade to tesk-api 2.0.0 and the taskmaster and filer of
+tesk-core 0.12.0. The new taskmaster also labels the filer jobs with
+`taskmaster-name`
+([tesk-core#147](https://github.com/elixir-cloud-aai/tesk-core/issues/147)),
+and tesk-api 2.0.0 selects a task's executor jobs by
+`taskmaster-name=<task>,job-type=executor`
+([tesk-api#183](https://github.com/elixir-cloud-aai/tesk-api/pull/183)).
+An older API that reads tasks started by the new taskmaster takes the
+filer jobs for executors, and reports wrong task states. So the TESK API
+must be upgraded first, then the taskmaster; see the upgrade notes of
+[tesk-api](tesk-api/upgrading.md) and [tesk-core](tesk-core/upgrading.md).
+In this chart, the API's pod starts the tasks with the taskmaster and filer
+images of `tesk.taskmaster.image` and `tesk.filer.image`, so one `helm
+upgrade` that brings both switches them together: with `Recreate`, no old
+API pod serves while the new one starts tasks with the new taskmaster.
+
+**Act on this if the API must stay available during rollouts:** set
+`tesk.strategy.type: RollingUpdate` (optionally with
+`tesk.strategy.rollingUpdate`), but not for an upgrade that brings
+tesk-api 2.0.0 and taskmaster 0.12.0 together. Upgrade in two steps
+instead: first the API (`tesk.image.tag`) with the old taskmaster and
+filer tags, then, once the rollout is done and no old API pod is left
+(`kubectl rollout status deployment/<prefix>-api`), the taskmaster and
+filer tags. Between the two steps, the new API starts tasks with the old
+taskmaster and filer, which fail outputs with wildcards and `path_prefix`
+(TES 1.1) or put their matches in the wrong place, and stop a task at the
+failure of an executor with `ignore_error: true` (see the [upgrade notes
+of tesk-core](tesk-core/upgrading.md#0120)): keep the time between the
+steps short. With `Recreate`, one upgrade is enough.
+
+`helm upgrade` with Helm 3 (client-side apply) replaces the strategy of a
+release of an earlier chart in place: Kubernetes removes the
+`rollingUpdate` settings that it had set by default. **Act on this if
+you upgrade a release of a chart up to 0.3.0 with server-side apply**
+(e.g., Flux, Argo CD with `ServerSideApply=true`, or Helm 4 for a release
+that it installed): there, Kubernetes keeps those settings, and the
+upgrade fails with `spec.strategy.rollingUpdate: Forbidden: may not be
+specified when strategy type is 'Recreate'`. Releases installed with this
+chart's default never have them. Replace the strategy once before the
+upgrade (this doesn't restart the API):
+
+```bash
+kubectl patch deployment tesk-api --namespace tesk --type=json \
+    -p '[{"op": "replace", "path": "/spec/strategy", "value": {"type": "Recreate"}}]'
+```
+
+with the name of your API's Deployment (`<prefix>-api`, e.g., `tesk-api`
+for the release `tesk`) and its namespace. Alternatively, keep
+`RollingUpdate` (see above).
 
 ### No FTP secret without credentials
 
@@ -41,11 +246,11 @@ The chart can let tesk-api accept the access tokens of allow-listed
 clients, e.g., of a gateway that calls TESK with the client credentials
 grant (`auth.tokenClients`, see [Tokens of
 services](deployment.md#tokens-of-services)). It is off by default, and the
-rendered manifests are unchanged until you turn it on. It needs a tesk-api
-release after 1.2.0 (`tesk.image.tag`); with `auth.mode: noauth`, without
-an issuer, without an audience (unless `allowAnyAudience: true`) or
-without client IDs, the chart fails instead of starting tesk-api with the
-setting.
+rendered manifests are unchanged until you turn it on. It needs tesk-api
+2.0.0 or later (`tesk.image.tag`; the chart's default now); with
+`auth.mode: noauth`, without an issuer, without an audience (unless
+`allowAnyAudience: true`) or without client IDs, the chart fails instead
+of starting tesk-api with the setting.
 
 ## 0.3.0
 
@@ -231,9 +436,8 @@ Things to check:
 - **FTP secret:** to keep the name of the FTP secret, set
   `ftp.classicFtpSecret: ftp-secret`; by default, it is `<prefix>-ftp`.
   `ftp.classicFtpSecret: ""` still creates no secret. Put the credentials
-  into `ftp.username` and `ftp.password` (in `secrets.yaml`): from the
-  release in [Unreleased](#unreleased) on, the chart creates the secret
-  and passes it on to tesk-api only with them, so a secret of that name
+  into `ftp.username` and `ftp.password` (in `secrets.yaml`): from
+  [0.4.0](#040) on, the chart creates the secret and passes it on to tesk-api only with them, so a secret of that name
   restored by hand isn't used (see [No FTP secret without
   credentials](#no-ftp-secret-without-credentials)).
 - **TLS secret:** the secret named in `ingress.tlsSecretName` isn't part of

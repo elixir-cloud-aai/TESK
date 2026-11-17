@@ -18,6 +18,7 @@ from pathlib import Path
 import re
 import shutil
 import subprocess
+import tarfile
 from typing import Any
 
 import pytest
@@ -214,6 +215,20 @@ def test_defaults() -> None:
     assert service["ports"] == [{"port": 8080}]
     assert find(manifests, "Endpoints", "ftp") is None
     assert find(manifests, "Service", "ftp") is None
+
+
+def test_default_images() -> None:
+    """By default, the chart deploys tesk-api 2.0.0 with tesk-core 0.12.0.
+
+    The taskmaster 0.12.0 labels filer jobs so that only tesk-api 2.0.0 and
+    later tell them from executor jobs; the defaults are a matching pair
+    (see docs/upgrading.md).
+    """
+    manifests = render()
+    variables = env(manifests)
+    assert container(manifests)["image"].endswith(":2.0.0")
+    assert variables["TESK_API_TASKMASTER_IMAGE_VERSION"] == "0.12.0"
+    assert variables["TESK_API_TASKMASTER_FILER_IMAGE_VERSION"] == "0.12.0"
 
 
 def test_port() -> None:
@@ -751,6 +766,125 @@ def test_security_context_null() -> None:
     assert "securityContext" not in container(manifests)
 
 
+def test_strategy() -> None:
+    """The API's Deployment replaces its pod (`Recreate`) by default.
+
+    So that no older API serves tasks of a newer taskmaster during an
+    upgrade.
+    """
+    assert deployment(render())["spec"]["strategy"] == {"type": "Recreate"}
+
+
+def test_strategy_empty(tmp_path: Path) -> None:
+    """An empty map keeps the default, as Helm merges it with the default.
+
+    Args:
+        tmp_path: A directory for the values file.
+    """
+    path = tmp_path / "values.yaml"
+    path.write_text(json.dumps({"tesk": {"strategy": {}}}))
+    strategy = deployment(render("--values", str(path)))["spec"]["strategy"]
+    assert strategy == {"type": "Recreate"}
+
+
+@pytest.mark.parametrize(
+    ("args", "expected"),
+    [
+        (
+            ("--set", "tesk.strategy.type=RollingUpdate"),
+            {"type": "RollingUpdate"},
+        ),
+        (
+            (
+                "--set",
+                "tesk.strategy.type=RollingUpdate",
+                "--set",
+                "tesk.strategy.rollingUpdate.maxSurge=0",
+                "--set-string",
+                "tesk.strategy.rollingUpdate.maxUnavailable=100%",
+            ),
+            {
+                "type": "RollingUpdate",
+                "rollingUpdate": {"maxSurge": 0, "maxUnavailable": "100%"},
+            },
+        ),
+        # Kubernetes' default type, `RollingUpdate`
+        (
+            (
+                "--set",
+                "tesk.strategy.type=null",
+                "--set",
+                "tesk.strategy.rollingUpdate.maxSurge=1",
+            ),
+            {"rollingUpdate": {"maxSurge": 1}},
+        ),
+        (
+            (
+                "--set",
+                "tesk.strategy.type=RollingUpdate",
+                "--set-json",
+                "tesk.strategy.rollingUpdate=null",
+            ),
+            # Kubernetes takes null as unset
+            {"type": "RollingUpdate", "rollingUpdate": None},
+        ),
+    ],
+)
+def test_strategy_values(args: tuple[str, ...], expected: dict[str, Any]) -> None:
+    """The values replace the API's update strategy.
+
+    Args:
+        args: More `helm template` arguments.
+        expected: The expected strategy of the Deployment.
+    """
+    assert deployment(render(*args))["spec"]["strategy"] == expected
+
+
+@pytest.mark.parametrize(
+    "args",
+    [
+        ("--set-json", "tesk.strategy=null"),
+        ("--set-json", "tesk.strategy.type=null"),
+    ],
+)
+def test_strategy_none(args: tuple[str, ...]) -> None:
+    """Null leaves the strategy to Kubernetes, as charts up to 0.3.0 did.
+
+    Args:
+        args: More `helm template` arguments.
+    """
+    assert "strategy" not in deployment(render(*args))["spec"]
+
+
+@pytest.mark.parametrize(
+    "args",
+    [
+        # With the default type
+        ("--set", "tesk.strategy.rollingUpdate.maxSurge=1"),
+        (
+            "--set",
+            "tesk.strategy.type=Recreate",
+            "--set",
+            "tesk.strategy.rollingUpdate.maxUnavailable=1",
+        ),
+        # Kubernetes rejects an empty one too
+        ("--set-json", "tesk.strategy.rollingUpdate={}"),
+    ],
+)
+def test_strategy_recreate_with_rolling_update(args: tuple[str, ...]) -> None:
+    """`rollingUpdate` with `Recreate` fails, as Kubernetes would reject it.
+
+    Args:
+        args: More `helm template` arguments.
+    """
+    with pytest.raises(subprocess.CalledProcessError) as error:
+        render(*args)
+    assert (
+        "tesk.strategy.rollingUpdate needs tesk.strategy.type RollingUpdate"
+        in error.value.stderr
+    )
+
+
 @pytest.mark.parametrize(
     "args",
     [
@@ -1129,6 +1263,160 @@ def test_auth_without_client_secret(args: tuple[str, ...]) -> None:
 def test_service_info_public(args: tuple[str, ...], expected: str | None) -> None:
     """`auth.serviceInfoPublic` is passed on, unless it is null."""
     assert env(render(*args)).get("TESK_API_SERVICE_INFO_PUBLIC") == expected
+
+
+CORS = "TESK_API_CORS_ALLOWED_ORIGINS"
+
+
+@pytest.mark.parametrize(
+    ("args", "expected"),
+    [
+        ((), None),
+        (("--set-json", "tesk.cors.allowedOrigins=[]"), None),
+        (("--set-json", "tesk.cors.allowedOrigins=null"), None),
+        (("--set-json", "tesk.cors=null"), None),
+        (
+            ("--set-json", 'tesk.cors.allowedOrigins=["https://client.example.org"]'),
+            "https://client.example.org",
+        ),
+        (
+            (
+                "--set-json",
+                'tesk.cors.allowedOrigins=["https://a.example.org",'
+                ' "http://localhost:3000", "https://b.example.org/"]',
+            ),
+            "https://a.example.org,http://localhost:3000,https://b.example.org/",
+        ),
+        (
+            (
+                "--set-json",
+                'tesk.cors.allowedOrigins=["http://127.0.0.1:8080", "http://[::1]:3000",'
+                ' "https://xn--exmple-cua.org", "https://example.org:65535"]',
+            ),
+            "http://127.0.0.1:8080,http://[::1]:3000,https://xn--exmple-cua.org,"
+            "https://example.org:65535",
+        ),
+        (
+            (
+                "--set-json",
+                'tesk.cors.allowedOrigins=["HTTPS://Example.ORG", "https://example.org.",'
+                ' "http://[0:0:0:0:0:0:0:1]", "http://[::ffff:1.2.3.4]",'
+                ' "http://example.org:443"]',
+            ),
+            "HTTPS://Example.ORG,https://example.org.,http://[0:0:0:0:0:0:0:1],"
+            "http://[::ffff:1.2.3.4],http://example.org:443",
+        ),
+    ],
+)
+def test_cors_allowed_origins(args: tuple[str, ...], expected: str | None) -> None:
+    """`tesk.cors.allowedOrigins` is passed on, joined by commas, unless empty.
+
+    Without origins, tesk-api sends no CORS headers (its default).
+
+    Args:
+        args: The `helm template` arguments.
+        expected: The variable, or None if it isn't set.
+    """
+    assert env(render(*args)).get(CORS) == expected
+
+
+@pytest.mark.parametrize(
+    "origin",
+    [
+        "*",
+        "https://*.example.org",
+        "https://a.example.org,https://b.example.org",
+        "https://example.org/path",
+        "example.org",
+        "https://user@example.org",
+        "https://example.org ",
+        "",
+        "https://example.org:443",
+        "http://example.org:80",
+        "https://example.org:0080",
+        "https://example.org:99999",
+        "https://example.org:",
+        "https://a_b.example.org",
+        "http://127.1",
+        "http://0x7f000001",
+        "http://256.0.0.1",
+        "ftp://example.org",
+        "https://:443",
+        "https://example.org;x",
+        "https://example.org%2F",
+        "https://ex\u00e4mple.org",
+        "https://example.org\u00a0",
+        "http://[1]",
+        "http://[:::]",
+        "http://[::1::2]",
+        "http://[1.2.3.4]",
+        "http://[12345::]",
+        "http://[::1]:80",
+        "HTTPS://example.org:443",
+    ],
+)
+def test_cors_allowed_origins_invalid(origin: str) -> None:
+    """Origins that tesk-api would refuse at startup fail the schema check.
+
+    Wildcards, commas (the separator), paths, user info, blanks, values
+    without a scheme or with another one than http(s), default ports and
+    ports out of range or with leading zeros, host names that aren't ASCII
+    or have `_`, and IPv4 addresses in other forms than four decimal
+    numbers, and malformed IPv6 addresses. tesk-api would stop at startup on
+    them, with the API down after an upgrade (the update strategy
+    `Recreate`).
+
+    Args:
+        origin: The origin.
+    """
+    with pytest.raises(subprocess.CalledProcessError) as error:
+        render("--set-json", f"tesk.cors.allowedOrigins={json.dumps([origin])}")
+    assert "allowedOrigins" in error.value.stderr
+
+
+def test_cors_unknown_key() -> None:
+    """Keys of `tesk.cors` other than `allowedOrigins` fail the schema check."""
+    with pytest.raises(subprocess.CalledProcessError) as error:
+        render("--set-json", 'tesk.cors.origins=["https://example.org"]')
+    assert "origins" in error.value.stderr
+
+
+@pytest.mark.parametrize(
+    ("args", "warned"),
+    [
+        (("--set", "tesk.image.tag=1.2.0"), True),
+        (("--set", "tesk.image.tag=v1.2.0"), True),
+        (("--set", "tesk.image.tag=2.0.0-rc.1"), False),
+        (("--set", "tesk.image.tag=2.0.0"), False),
+        (("--set", "tesk.image.tag=dev"), False),
+        ((), False),
+    ],
+)
+def test_notes_cors_old_api(
+    tmp_path: Path, args: tuple[str, ...], warned: bool
+) -> None:
+    """The notes warn if CORS origins are set with tesk-api before 2.0.0.
+
+    Those versions ignore the setting and send no CORS headers.
+
+    Args:
+        tmp_path: A directory for a copy of the chart.
+        args: Further `helm template` arguments (the image tag).
+        warned: Whether the notes warn.
+    """
+    origins = ("--set-json", 'tesk.cors.allowedOrigins=["https://client.example.org"]')
+    text = notes(*origins, *CORE_0_11, *args, tmp_path=tmp_path)
+    assert ("tesk.cors.allowedOrigins is set, but tesk-api" in text) is warned
+
+
+def test_notes_cors_unset_old_api(tmp_path: Path) -> None:
+    """Without origins, the notes don't warn, also with tesk-api before 2.0.0.
+
+    Args:
+        tmp_path: A directory for a copy of the chart.
+    """
+    text = notes("--set", "tesk.image.tag=1.2.0", *CORE_0_11, tmp_path=tmp_path)
+    assert "tesk.cors.allowedOrigins is set" not in text
 
 
 CLAIM = (
@@ -1718,7 +2006,7 @@ def test_service_info_defaults() -> None:
     assert info == {
         "id": "uk.ac.ebi.tsc.tesk",
         "name": "TESK",
-        "type": {"group": "org.ga4gh", "artifact": "TES", "version": "1.0.0"},
+        "type": {"group": "org.ga4gh", "artifact": "TES", "version": "1.1.0"},
         "description": "GA4GH TES Server implementation for Kubernetes",
         "organization": {"name": "EMBL-EBI", "url": "https://www.ebi.ac.uk/"},
         "contactUrl": "https://github.com/elixir-cloud-aai/TESK/issues",
@@ -1727,6 +2015,7 @@ def test_service_info_defaults() -> None:
         "environment": "dev",
         "version": str(METADATA["appVersion"]),
         "storage": ["ftp://ftp-private.ebi.ac.uk"],
+        "tesResources_backend_parameters": [],
     }
     # A YAML timestamp, as tesk-api reads `createdAt` (a quoted string fails)
     assert "\ncreatedAt: 2021-04-06\n" in text
@@ -1742,7 +2031,72 @@ def test_service_info_type_artifact() -> None:
     and serves an empty body (elixir-cloud-aai/TESK#290).
     """
     info, _ = _service_info()
-    assert info["type"] == {"group": "org.ga4gh", "artifact": "TES", "version": "1.0.0"}
+    assert info["type"] == {"group": "org.ga4gh", "artifact": "TES", "version": "1.1.0"}
+
+
+@pytest.mark.parametrize(
+    ("tag", "expected"),
+    [
+        ("1.1.0", "1.0.0"),
+        ("1.2.0", "1.0.0"),
+        ("v1.2.0", "1.0.0"),
+        ("1.2.1", "1.0.0"),
+        ("1.3.0-rc.1", "1.0.0"),
+        # tesk-api 2.0.0 implements TES 1.1 (tesk-api#137), so do its
+        # pre-releases
+        ("2.0.0-rc.1", "1.1.0"),
+        ("2.0.0", "1.1.0"),
+        ("v2.0.0", "1.1.0"),
+        ("2.1.0", "1.1.0"),
+        # Tags that aren't versions are assumed to be newer
+        ("dev", "1.1.0"),
+        ("0", "1.1.0"),
+    ],
+)
+def test_service_info_type_version(tag: str, expected: str) -> None:
+    """The TES version of the service info's type follows the API's image.
+
+    tesk-api 2.0.0 implements TES 1.1.0, earlier releases TES 1.0.0. The
+    taskmaster's tag isn't a version here, so it counts as new enough
+    (`test_service_info_type_version_tags` checks older taskmasters).
+
+    Args:
+        tag: `tesk.image.tag`.
+        expected: The expected `type.version`.
+    """
+    info, _ = _service_info("--set-string", f"tesk.image.tag={tag}", *CORE_DEV)
+    assert info["type"]["version"] == expected
+
+
+@pytest.mark.parametrize(
+    ("tag", "expected"),
+    [
+        ("1.2.0", False),
+        ("v1.2.1", False),
+        ("2.0.0-rc.1", True),
+        ("2.0.0", True),
+        ("v2.0.0", True),
+        ("2.1.0", True),
+        ("dev", True),
+    ],
+)
+def test_service_info_backend_parameters(tag: str, expected: bool) -> None:
+    """The service info lists no backend parameters from tesk-api 2.0.0 on.
+
+    TES 1.1 adds `tesResources_backend_parameters`; TESK supports none
+    (elixir-cloud-aai/TESK#289). tesk-api before 2.0.0 can't read the
+    service info with the field, so it is left out for them.
+
+    Args:
+        tag: `tesk.image.tag`.
+        expected: Whether the field is rendered.
+    """
+    info, text = _service_info("--set-string", f"tesk.image.tag={tag}", *CORE_0_11)
+    if expected:
+        assert info["tesResources_backend_parameters"] == []
+        assert "\ntesResources_backend_parameters: []\n" in f"{text}\n"
+    else:
+        assert "tesResources_backend_parameters" not in text
 
 
 @pytest.mark.parametrize("tag", ["1.2.1", "dev", "0"])
@@ -1752,7 +2106,7 @@ def test_service_info_version(tag: str) -> None:
     Args:
         tag: `tesk.image.tag`.
     """
-    manifests = render("--set-string", f"tesk.image.tag={tag}")
+    manifests = render("--set-string", f"tesk.image.tag={tag}", *CORE_0_11)
     assert container(manifests)["image"].endswith(f":{tag}")
     config = get(manifests, "ConfigMap", "tesk-service-info")
     assert yaml.safe_load(config["data"]["service-info.yaml"])["version"] == tag
@@ -1819,7 +2173,14 @@ def test_service_info_values(tmp_path: Path) -> None:
         "environment": "prod",
         "storage": ["s3://bucket", "ftp://ftp.example.org"],
     }
-    values = {"tesk": {"image": {"tag": "1.2.1"}}, "serviceInfo": service_info}
+    values = {
+        "tesk": {
+            "image": {"tag": "1.2.1"},
+            "taskmaster": {"image": {"tag": "0.11.0"}},
+            "filer": {"image": {"tag": "0.11.0"}},
+        },
+        "serviceInfo": service_info,
+    }
     path = tmp_path / "values.yaml"
     path.write_text(yaml.safe_dump(values))
     info, text = _service_info("--values", str(path))
@@ -1868,7 +2229,15 @@ def test_service_info_optional(args: tuple[str, ...]) -> None:
         "storage",
     ):
         assert field not in info, field
-    assert set(info) == {"id", "name", "type", "organization", "version"}
+    # `tesResources_backend_parameters` is set by the chart, not optional
+    assert set(info) == {
+        "id",
+        "name",
+        "type",
+        "organization",
+        "version",
+        "tesResources_backend_parameters",
+    }
 
 
 @pytest.mark.parametrize(
@@ -2319,6 +2688,17 @@ def test_ftp_hosts_invalid(args: tuple[str, ...]) -> None:
 # release version, so the chart doesn't check that it is of the
 # taskmaster's release
 FILER_DEV = ("--set", "tesk.filer.image.tag=dev")
+# Taskmaster and filer before 0.12.0, which tesk-api before 2.0.0 needs
+CORE_0_11 = (
+    *("--set", "tesk.taskmaster.image.tag=0.11.0"),
+    *("--set", "tesk.filer.image.tag=0.11.0"),
+)
+# Taskmaster and filer tags that aren't versions, which the chart doesn't
+# compare with the API's
+CORE_DEV = (
+    *("--set", "tesk.taskmaster.image.tag=dev"),
+    *("--set", "tesk.filer.image.tag=dev"),
+)
 FILER_OLD = ("--set", "tesk.filer.image.tag=v0.10.6")
 FILER_OLD_BARE = ("--set", "tesk.filer.image.tag=0.10.6")
 USER = ("--set", "ftp.username=user")
@@ -2517,7 +2897,9 @@ def test_ftp_secret_credentials(args: tuple[str, ...], created: bool) -> None:
 
     A user name or a password counts, also one that YAML reads as 0 or false;
     null or empty ones don't. Without them, the API gets no FTP secret, as with
-    an empty `ftp.classicFtpSecret`.
+    an empty `ftp.classicFtpSecret`. The taskmasters get its name too
+    (`TESK_FTP_SECRET_NAME`), so that the filer jobs of taskmasters 0.12.0
+    and later reference the secret instead of holding the credentials.
 
     Args:
         args: The `helm template` arguments.
@@ -2530,14 +2912,70 @@ def test_ftp_secret_credentials(args: tuple[str, ...], created: bool) -> None:
         for m in manifests
         if m["kind"] == "Secret" and m["metadata"]["name"] != "netrc"
     }
-    variable = env(manifests).get("TESK_API_TASKMASTER_FTP_SECRET_NAME")
+    variables = env(manifests)
+    variable = variables.get("TESK_API_TASKMASTER_FTP_SECRET_NAME")
+    reference = variables.get("TESK_API_TASKMASTER_ENVIRONMENT_TESK_FTP_SECRET_NAME")
     if created:
         assert secrets == {"tesk-ftp"}
         assert variable == "tesk-ftp"
+        assert reference == "tesk-ftp"
     else:
         # Also none of a name of its own (`ftp.classicFtpSecret`)
         assert not secrets
         assert variable is None
+        assert reference is None
+
+
+FILER_CONTEXTS = {
+    "podSecurityContext": "TESK_API_TASKMASTER_ENVIRONMENT_FILER_POD_SECURITY_CONTEXT",
+    "securityContext": "TESK_API_TASKMASTER_ENVIRONMENT_FILER_SECURITY_CONTEXT",
+}
+
+
+@pytest.mark.parametrize("key", list(FILER_CONTEXTS))
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        (None, None),
+        ("null", None),
+        ("{}", {}),
+        ('{"runAsNonRoot":true,"runAsUser":0}', {"runAsNonRoot": True, "runAsUser": 0}),
+        ('{"seccompProfile":null}', {"seccompProfile": None}),
+    ],
+)
+def test_filer_security_contexts(
+    key: str, value: str | None, expected: dict[str, Any] | None
+) -> None:
+    """The filer's security contexts go to the taskmasters as JSON.
+
+    Unset or null leaves the taskmaster's defaults; a map (also `{}`, which
+    leaves the context out) replaces them, as written.
+
+    Args:
+        key: The value under `tesk.filer`.
+        value: The value, as JSON; None leaves it unset.
+        expected: The parsed variable, or None if it isn't set.
+    """
+    args = () if value is None else ("--set-json", f"tesk.filer.{key}={value}")
+    variables = env(render(*args))
+    if expected is None:
+        assert FILER_CONTEXTS[key] not in variables
+    else:
+        assert json.loads(variables[FILER_CONTEXTS[key]]) == expected
+
+
+@pytest.mark.parametrize("key", list(FILER_CONTEXTS))
+@pytest.mark.parametrize("value", ['"{}"', "[]", "1"])
+def test_filer_security_contexts_invalid(key: str, value: str) -> None:
+    """Anything but a map or null fails the schema check.
+
+    Args:
+        key: The value under `tesk.filer`.
+        value: The value, as JSON.
+    """
+    with pytest.raises(subprocess.CalledProcessError) as error:
+        render("--set-json", f"tesk.filer.{key}={value}")
+    assert key in error.value.stderr
 
 
 TRICKY_VALUES = [
@@ -3264,10 +3702,18 @@ def test_notes_template() -> None:
 
 
 def test_notes(tmp_path: Path) -> None:
-    """The notes name the release, without warnings for the defaults."""
+    """The notes name the release, and warn only about the default exposure.
+
+    The defaults leave the API open (noauth) behind an Ingress without a
+    host name.
+    """
     text = notes(tmp_path=tmp_path)
     assert f"release tesk in namespace {NAMESPACE}" in text
     assert "deprecated" not in text
+    warnings = [line for line in text.splitlines() if line.startswith("WARNING")]
+    assert len(warnings) == 2, warnings
+    assert "WARNING: auth.mode is noauth" in text
+    assert "WARNING: hostName is empty, so the Ingress matches" in text
 
 
 def test_chart_metadata() -> None:
@@ -3291,6 +3737,10 @@ def test_chart_metadata() -> None:
         ("--set-json", "hostName={}"),
         ("--set-json", "auth.serviceInfoPublic=[]"),
         ("--set", "tesk.image.pullPolicy=Sometimes"),
+        ("--set-json", "tesk.strategy=[]"),
+        ("--set", "tesk.strategy.type=BlueGreen"),
+        ("--set-json", "tesk.strategy.rollingUpdate=[]"),
+        ("--set-json", "tesk.strategy.rollingUpdate.maxSurge=[]"),
     ],
 )
 def test_schema_invalid(args: tuple[str, ...]) -> None:
@@ -3305,7 +3755,13 @@ def test_schema_invalid(args: tuple[str, ...]) -> None:
     [
         {"tesk": {"port": "8080", "debug": "true", "executorRetries": "2"}},
         {"service": {"nodePort": "31567", "type": "NodePort"}},
-        {"tesk": {"image": {"tag": 1.2}}},
+        {
+            "tesk": {
+                "image": {"tag": 1.2},
+                "taskmaster": {"image": {"tag": "0.11.0"}},
+                "filer": {"image": {"tag": "0.11.0"}},
+            }
+        },
         {"auth": {"serviceInfoPublic": "false"}},
         {"auth": {"legacyUserLabels": "true"}},
         {"global": {"anything": True}},
@@ -3343,6 +3799,8 @@ def test_schema_permissive(values: dict[str, Any], tmp_path: Path) -> None:
         "tesk.filer.image.pullPolicy",
         "tesk.executor.retries",
         "tesk.swaggerUi.enable",
+        "tesk.strategy.maxSurge",
+        "tesk.strategy.rollingUpdate.surge",
         "transfer.pvc",
         "auth.envSubGroup",
         "auth.groups.delimiter",
@@ -3582,8 +4040,8 @@ def test_seconds_invalid_range(args: tuple[str, ...], message: str) -> None:
         ((), False),
         (("--set", "tesk.taskmaster.image.tag=v0.10.6", *FILER_DEV), True),
         (("--set", "tesk.taskmaster.image.tag=0.10.6", *FILER_DEV), True),
-        (("--set", "tesk.taskmaster.image.tag=v0.11.0"), False),
-        (("--set", "tesk.taskmaster.image.tag=0.11.0"), False),
+        (("--set", "tesk.taskmaster.image.tag=v0.12.0"), False),
+        (("--set", "tesk.taskmaster.image.tag=0.12.0"), False),
         (("--set", "tesk.taskmaster.image.tag=dev", *FILER_OLD), False),
         (("--set", "tesk.taskmaster.image.tag=dev"), False),
     ],
@@ -3631,7 +4089,7 @@ def test_notes_max_queue_old_api(
         args: Further `helm template` arguments (image tags).
         warned: Whether the notes warn.
     """
-    new_taskmaster = ("--set", "tesk.taskmaster.image.tag=0.11.0")
+    new_taskmaster = CORE_0_11
     text = notes(
         "--set", "tesk.maxQueueSeconds=3600", *new_taskmaster, *args, tmp_path=tmp_path
     )
@@ -3671,6 +4129,7 @@ def test_notes_legacy_user_labels_old_api(
         "auth.mode=auth",
         "--set",
         "auth.legacyUserLabels=true",
+        *CORE_0_11,
         *args,
         tmp_path=tmp_path,
     )
@@ -3685,17 +4144,24 @@ def test_notes_legacy_user_labels_old_api(
         (("--set", "tesk.image.tag=v1.1.0"), True),
         (("--set", "tesk.image.tag=1.2.0-rc.1"), True),
         (("--set", "tesk.image.tag=1.1.0-beta"), True),
-        # The first release with the setting is still open (tesk-api#153)
-        (("--set", "tesk.image.tag=1.2.1-rc.1"), False),
-        (("--set", "tesk.image.tag=1.3.0-rc.1"), False),
-        (("--set", "tesk.image.tag=1.3.0"), False),
+        (("--set", "tesk.image.tag=1.2.1"), True),
+        (("--set", "tesk.image.tag=1.3.0"), True),
+        (("--set", "tesk.image.tag=1.3.0-rc.1"), True),
+        # 2.0.0 is the first release with the setting (tesk-api#153); its
+        # pre-releases have it too
+        (("--set", "tesk.image.tag=2.0.0-rc.1"), False),
+        (("--set", "tesk.image.tag=2.0.0"), False),
+        (("--set", "tesk.image.tag=v2.0.0"), False),
+        (("--set", "tesk.image.tag=2.1.0"), False),
         (("--set", "tesk.image.tag=dev"), False),
+        # Without a tag, the chart's `appVersion`
+        ((), False),
     ],
 )
 def test_notes_token_clients_old_api(
     tmp_path: Path, args: tuple[str, ...], warned: bool
 ) -> None:
-    """The notes warn if `auth.tokenClients` is on with tesk-api 1.2.0 or older.
+    """The notes warn if `auth.tokenClients` is on with tesk-api before 2.0.0.
 
     Those versions ignore the setting, so they refuse the clients' tokens.
 
@@ -3704,9 +4170,100 @@ def test_notes_token_clients_old_api(
         args: Further `helm template` arguments (the image tag).
         warned: Whether the notes warn.
     """
-    text = notes(*token_clients(), *args, tmp_path=tmp_path)
+    text = notes(*token_clients(), *CORE_0_11, *args, tmp_path=tmp_path)
     assert ("auth.tokenClients is on, but tesk-api" in text) is warned
     assert "auth.tokenClients is on" not in notes(tmp_path=tmp_path)
+
+
+def _tags(api: str, taskmaster: str) -> tuple[str, ...]:
+    """`helm template` arguments with the tags of the API and of tesk-core.
+
+    Args:
+        api: The tag of tesk-api's image.
+        taskmaster: The tag of the taskmaster's and the filer's images.
+
+    Returns:
+        The arguments.
+    """
+    return (
+        *("--set", f"tesk.image.tag={api}"),
+        *("--set", f"tesk.taskmaster.image.tag={taskmaster}"),
+        *("--set", f"tesk.filer.image.tag={taskmaster}"),
+    )
+
+
+@pytest.mark.parametrize(
+    ("args", "expected"),
+    [
+        (("--set-string", "tesk.image.tag=1.2.3-"), "1.1.0"),
+        (("--set-string", "tesk.image.tag=1.2.3+"), "1.1.0"),
+        (("--set-string", "tesk.image.tag=1.2.3-foo..bar"), "1.1.0"),
+        (_tags("1.2.0", "0.12.0-"), "1.0.0"),
+        (_tags("1.2.0", "0.12.0+"), "1.0.0"),
+        (_tags("1.2.0", "0.12.0-foo..bar"), "1.0.0"),
+        (("--set-string", "tesk.image.tag=01.2.3"), "1.1.0"),
+        (("--set-string", "tesk.image.tag=1.2.3-01"), "1.1.0"),
+        (_tags("1.2.0", "00.12.0"), "1.0.0"),
+        (_tags("1.2.0", "0.12.0-01"), "1.0.0"),
+    ],
+)
+def test_malformed_version_tags(
+    tmp_path: Path, args: tuple[str, ...], expected: str
+) -> None:
+    """Tags that look like versions but aren't SemVer render, unchecked.
+
+    They aren't compared, as tags that aren't versions aren't, instead of
+    failing the version comparison: such an API tag counts as new, such a
+    taskmaster tag isn't checked against the API.
+
+    Args:
+        tmp_path: A directory for a copy of the chart.
+        args: `helm template` arguments (image tags).
+        expected: The TES version of the service info.
+    """
+    info, _ = _service_info(*args)
+    assert info["type"]["version"] == expected
+    # Without the Ingress, whose defaults have warnings of their own
+    text = notes(*args, "--set", "ingress.enabled=false", tmp_path=tmp_path)
+    assert "WARNING" not in text
+
+
+@pytest.mark.parametrize(
+    ("args", "fails"),
+    [
+        (("--set", "tesk.image.tag=1.2.0"), True),
+        (("--set", "tesk.image.tag=v1.2.0"), True),
+        (_tags("1.2.0", "v0.12.0"), True),
+        (_tags("1.2.0", "0.13.0"), True),
+        (_tags("1.2.0", "0.11.0"), False),
+        (_tags("1.2.0", "dev"), False),
+        (_tags("1.2.0", "0.12.0-rc.1"), True),
+        (_tags("1.9.0-rc.1", "0.12.0"), True),
+        (_tags("2.0.0-rc.1", "0.12.0"), False),
+        (_tags("2.0.0", "0.11.0"), False),
+        (("--set", "tesk.image.tag=2.0.0-rc.1"), False),
+        (("--set", "tesk.image.tag=2.0.0"), False),
+        (("--set", "tesk.image.tag=dev"), False),
+        ((), False),
+    ],
+)
+def test_new_taskmaster_old_api(args: tuple[str, ...], fails: bool) -> None:
+    """Taskmaster 0.12.0 or later with tesk-api before 2.0.0 fails.
+
+    Such taskmasters label filer jobs so that older APIs take them for
+    executor jobs, and report wrong task states; e.g., values that pin an
+    older `tesk.image.tag` but not the taskmaster's.
+
+    Args:
+        args: `helm template` arguments (the image tags).
+        fails: Whether the installation fails.
+    """
+    if fails:
+        with pytest.raises(subprocess.CalledProcessError) as error:
+            render(*args)
+        assert "needs tesk-api 2.0.0 or later" in error.value.stderr
+    else:
+        render(*args)
 
 
 @pytest.mark.parametrize(
@@ -3780,8 +4337,8 @@ def test_image_releases_match(taskmaster: str, filer: str) -> None:
 @pytest.mark.parametrize(
     ("args", "taskmaster", "filer"),
     [
-        (("--set", "tesk.taskmaster.image.tag=v0.10.6"), "v0.10.6", "0.11.0"),
-        (("--set", "tesk.filer.image.tag=0.10.6"), "0.11.0", "0.10.6"),
+        (("--set", "tesk.taskmaster.image.tag=v0.10.6"), "v0.10.6", "0.12.0"),
+        (("--set", "tesk.filer.image.tag=0.10.6"), "0.12.0", "0.10.6"),
         (
             (
                 "--set",
@@ -3812,3 +4369,413 @@ def test_image_releases_mismatch(
         f"tesk.taskmaster.image.tag ({taskmaster}) and tesk.filer.image.tag "
         f"({filer}) must be the same release" in error.value.stderr
     )
+
+
+# A digest suffix of an image tag (`<tag>@sha256:<hex>`), as operators pin
+# images by digest
+DIGEST = "@sha256:" + "0" * 64
+
+
+@pytest.mark.parametrize(
+    ("args", "fails"),
+    [
+        (("--set-string", f"tesk.image.tag=1.2.0{DIGEST}"), True),
+        (("--set-string", f"tesk.image.tag=v1.2.0{DIGEST}"), True),
+        (_tags(f"1.2.0{DIGEST}", "0.11.0"), False),
+        (_tags("1.2.0", f"0.12.0{DIGEST}"), True),
+        (_tags("1.2.0", f"v0.12.0{DIGEST}"), True),
+        (_tags("1.2.0", f"0.11.0{DIGEST}"), False),
+        # An unquoted X.Y tag, which Helm reads as a number
+        (_tags("1.2.0", "0.12"), True),
+        (_tags("1.2.0", "v0.12"), True),
+        (_tags("1.2.0", "0.11"), False),
+        (_tags(f"2.0.0{DIGEST}", f"0.12.0{DIGEST}"), False),
+    ],
+)
+def test_new_taskmaster_old_api_normalised_tags(
+    args: tuple[str, ...], fails: bool
+) -> None:
+    """The version guard also compares tags with a digest, a `v` or no patch.
+
+    Tags pinned by digest (`1.2.0@sha256:...`) and X.Y tags (`0.12`) are
+    compared by their version, instead of skipping the guard.
+
+    Args:
+        args: `helm template` arguments (the image tags).
+        fails: Whether the installation fails.
+    """
+    if fails:
+        with pytest.raises(subprocess.CalledProcessError) as error:
+            render(*args)
+        assert "needs tesk-api 2.0.0 or later" in error.value.stderr
+    else:
+        render(*args)
+
+
+@pytest.mark.parametrize(
+    ("taskmaster", "filer", "fails"),
+    [
+        (f"0.12.0{DIGEST}", "0.11.0", True),
+        (f"0.12.0{DIGEST}", "0.12.0", False),
+        (f"0.12.0{DIGEST}", f"v0.12.0@sha256:{'1' * 64}", False),
+        ("0.12", "0.12.0", False),
+        ("0.12", "0.11.0", True),
+    ],
+)
+def test_image_releases_normalised_tags(
+    taskmaster: str, filer: str, fails: bool
+) -> None:
+    """Taskmaster and filer tags are compared without a digest, as X.Y.Z.
+
+    `--set` keeps `0.12` as text, as a quoted value in a values file
+    (`test_image_tag_numbers` covers numbers).
+
+    Args:
+        taskmaster: The tag of the taskmaster image.
+        filer: The tag of the filer image.
+        fails: Whether the installation fails.
+    """
+    args = (
+        *("--set", f"tesk.taskmaster.image.tag={taskmaster}"),
+        *("--set", f"tesk.filer.image.tag={filer}"),
+    )
+    if fails:
+        with pytest.raises(subprocess.CalledProcessError) as error:
+            render(*args)
+        assert "must be the same release" in error.value.stderr
+    else:
+        variables = env(render(*args))
+        assert variables["TESK_API_TASKMASTER_IMAGE_VERSION"] == taskmaster
+        assert variables["TESK_API_TASKMASTER_FILER_IMAGE_VERSION"] == filer
+
+
+@pytest.mark.parametrize(
+    ("args", "expected", "parameters"),
+    [
+        (
+            (*CORE_0_11, "--set-string", f"tesk.image.tag=1.2.0{DIGEST}"),
+            "1.0.0",
+            False,
+        ),
+        (("--set-string", f"tesk.image.tag=2.0.0{DIGEST}"), "1.1.0", True),
+        ((), "1.1.0", True),
+        # tesk-api 2.0.0 with a taskmaster before 0.12.0 can't run TES 1.1
+        # tasks as asked
+        (_tags("2.0.0", "0.11.0"), "1.0.0", True),
+        (_tags("2.0.0", f"0.11.0{DIGEST}"), "1.0.0", True),
+        (_tags("2.0.0", "v0.10.6"), "1.0.0", True),
+        (_tags("2.0.0", "0.12.0-rc.1"), "1.1.0", True),
+        (_tags("2.0.0", "dev"), "1.1.0", True),
+        (_tags("dev", "0.11.0"), "1.0.0", True),
+    ],
+)
+def test_service_info_type_version_tags(
+    args: tuple[str, ...], expected: str, parameters: bool
+) -> None:
+    """The service info's TES version follows the API and the taskmaster.
+
+    TES 1.1.0 needs tesk-api 2.0.0 and taskmaster 0.12.0 or later (or tags
+    that aren't versions); tags pinned by digest count by their version.
+    The backend parameters follow the API only, which reads them.
+
+    Args:
+        args: `helm template` arguments (the image tags).
+        expected: The expected `type.version`.
+        parameters: Whether `tesResources_backend_parameters` is rendered.
+    """
+    info, _ = _service_info(*args)
+    assert info["type"]["version"] == expected
+    assert ("tesResources_backend_parameters" in info) is parameters
+
+
+@pytest.mark.parametrize(
+    ("args", "warned"),
+    [
+        ((), False),
+        (_tags("2.0.0", "0.11.0"), True),
+        (_tags("v2.0.0", "v0.11.0"), True),
+        (_tags("2.1.0", f"0.11.0{DIGEST}"), True),
+        (_tags("dev", "0.11.0"), True),
+        (_tags("2.0.0-rc.1", "0.11.0"), True),
+        (_tags("2.0.0", "0.12.0-rc.1"), False),
+        (_tags("2.0.0", "dev"), False),
+        (_tags("1.2.0", "0.11.0"), False),
+        (_tags("2.0.0", "0.12.0"), False),
+    ],
+)
+def test_notes_new_api_old_taskmaster(
+    tmp_path: Path, args: tuple[str, ...], warned: bool
+) -> None:
+    """The notes warn about tesk-api 2.0.0 with a taskmaster before 0.12.0.
+
+    E.g., after `helm upgrade --reuse-values` from chart 0.3.0: such tasks
+    can't use TES 1.1 features as asked.
+
+    Args:
+        tmp_path: A directory for a copy of the chart.
+        args: `helm template` arguments (the image tags).
+        warned: Whether the notes warn.
+    """
+    text = notes(*args, tmp_path=tmp_path)
+    assert ("before 0.12.0, which runs TES 1.1 features" in text) is warned
+    anchor = "upgrading/#tesk-api-200-taskmaster-and-filer-0120"
+    assert (anchor in text) is warned
+    assert ("--reuse-values" in text) is warned
+    assert ("GET /service-info reports TES 1.0.0" in " ".join(text.split())) is warned
+
+
+def test_notes_new_api_old_taskmaster_existing_config_map(tmp_path: Path) -> None:
+    """With its own service info, the warning asks to set the TES version.
+
+    The chart doesn't render the service info then.
+
+    Args:
+        tmp_path: A directory for a copy of the chart.
+    """
+    args = (*_tags("2.0.0", "0.11.0"), "--set", "serviceInfo.existingConfigMap=own")
+    text = notes(*args, tmp_path=tmp_path)
+    assert "Set type.version to 1.0.0 in your service info" in " ".join(text.split())
+    assert "reports TES 1.0.0" not in text
+
+
+@pytest.mark.parametrize("component", ["taskmaster", "filer"])
+@pytest.mark.parametrize(
+    ("option", "value"),
+    [
+        ("--set-json", "0.10"),
+        # An integer, as `--set` reads it
+        ("--set", "12"),
+        ("--set", "true"),
+    ],
+)
+def test_image_tag_numbers(component: str, option: str, value: str) -> None:
+    """Taskmaster and filer tags that aren't text fail, asking for quotes.
+
+    YAML reads an unquoted 0.10 as 0.1 (and 010 as 8), which would name
+    another image.
+
+    Args:
+        component: `taskmaster` or `filer`.
+        option: The `helm template` option that sets the tag.
+        value: The tag.
+    """
+    with pytest.raises(subprocess.CalledProcessError) as error:
+        render(option, f"tesk.{component}.image.tag={value}")
+    assert (
+        f"tesk.{component}.image.tag is a number or another non-text value: quote it"
+        in error.value.stderr
+    )
+
+
+def test_image_tag_octal_values_file(tmp_path: Path) -> None:
+    """An unquoted octal-looking tag in a values file fails too.
+
+    Args:
+        tmp_path: A directory for the values file.
+    """
+    values = tmp_path / "values.yaml"
+    values.write_text("tesk:\n  taskmaster:\n    image:\n      tag: 010\n")
+    with pytest.raises(subprocess.CalledProcessError) as error:
+        render("-f", str(values))
+    assert "tesk.taskmaster.image.tag is a number" in error.value.stderr
+
+
+@pytest.mark.parametrize(
+    ("args", "warned"),
+    [
+        ((*USER, *PASSWORD, *CORE_0_11), True),
+        ((*PASSWORD, *_tags("1.2.0", "v0.10.6")), True),
+        ((*USER, *PASSWORD, *_tags("1.2.0", f"0.11.0{DIGEST}")), True),
+        ((*USER, *PASSWORD), False),
+        ((*USER, *PASSWORD, *_tags("2.0.0", "dev")), False),
+        (CORE_0_11, False),
+        ((*USER, *PASSWORD, "--set", "ftp.classicFtpSecret=", *CORE_0_11), False),
+    ],
+)
+def test_notes_ftp_secret_old_taskmaster(
+    tmp_path: Path, args: tuple[str, ...], warned: bool
+) -> None:
+    """The notes warn if FTP credentials go to a taskmaster before 0.12.0.
+
+    Such filer jobs hold the credentials as values, instead of referencing
+    the secret.
+
+    Args:
+        tmp_path: A directory for a copy of the chart.
+        args: `helm template` arguments.
+        warned: Whether the notes warn.
+    """
+    text = notes(*args, tmp_path=tmp_path)
+    assert ("hold the FTP credentials as values" in text) is warned
+    assert "s3cr3t" not in text
+
+
+@pytest.mark.parametrize("key", list(FILER_CONTEXTS))
+@pytest.mark.parametrize(
+    ("value", "tags", "warned"),
+    [
+        ('{"runAsNonRoot":true}', CORE_0_11, True),
+        ("{}", CORE_0_11, True),
+        ('{"runAsNonRoot":true}', _tags("1.2.0", "v0.10.6"), True),
+        ("null", CORE_0_11, False),
+        (None, CORE_0_11, False),
+        ('{"runAsNonRoot":true}', (), False),
+        ('{"runAsNonRoot":true}', _tags("2.0.0", "dev"), False),
+    ],
+)
+def test_notes_filer_contexts_old_taskmaster(
+    tmp_path: Path,
+    key: str,
+    value: str | None,
+    tags: tuple[str, ...],
+    warned: bool,
+) -> None:
+    """The notes warn if filer contexts are set for a taskmaster before 0.12.0.
+
+    Such taskmasters ignore them.
+
+    Args:
+        tmp_path: A directory for a copy of the chart.
+        key: The value under `tesk.filer`.
+        value: The value, as JSON; None leaves it unset.
+        tags: `helm template` arguments (the image tags).
+        warned: Whether the notes warn.
+    """
+    args = () if value is None else ("--set-json", f"tesk.filer.{key}={value}")
+    text = notes(*args, *tags, tmp_path=tmp_path)
+    assert (f"tesk.filer.{key} is set, but" in text) is warned
+
+
+OPENSHIFT = ("--api-versions", "route.openshift.io/v1")
+NO_INGRESS = ("--set", "ingress.enabled=false")
+HOST = ("--set", "hostName=tes.example.org")
+
+
+@pytest.mark.parametrize(
+    ("args", "exposure"),
+    [
+        ((), "an Ingress"),
+        (HOST, "an Ingress"),
+        ((*NO_INGRESS, *OPENSHIFT), "an OpenShift Route"),
+        ((*NO_INGRESS, "--set", "service.type=NodePort"), "a NodePort Service"),
+        (
+            (*NO_INGRESS, "--set", "service.type=LoadBalancer"),
+            "a LoadBalancer Service",
+        ),
+        (NO_INGRESS, None),
+        ((*NO_INGRESS, "--set", "service.type=ClusterIP"), None),
+        (("--set", "service.type=NodePort"), "an Ingress and a NodePort Service"),
+        (OPENSHIFT, "an Ingress"),
+        (("--set", "auth.mode=auth", "--set", "auth.clientId=client"), None),
+        ((*NO_INGRESS, *OPENSHIFT, "--set", "auth.mode=auth"), None),
+    ],
+)
+def test_notes_noauth_exposed(
+    tmp_path: Path, args: tuple[str, ...], exposure: str | None
+) -> None:
+    """The notes warn if the API is open (noauth) and exposed.
+
+    Exposed: by an Ingress, an OpenShift Route, or a NodePort or
+    LoadBalancer Service.
+
+    Args:
+        tmp_path: A directory for a copy of the chart.
+        args: `helm template` arguments.
+        exposure: What the warning names, or None if the notes don't warn.
+    """
+    text = notes(*args, tmp_path=tmp_path)
+    assert ("auth.mode is noauth" in text) is (exposure is not None)
+    if exposure:
+        assert f"exposed by {exposure}" in text
+        assert "deployment/#authentication-and-authorisation" in text
+
+
+@pytest.mark.parametrize(
+    ("args", "effect"),
+    [
+        ((), "the Ingress matches requests for every host"),
+        (("--set", "hostName="), "the Ingress matches requests for every host"),
+        (HOST, None),
+        (NO_INGRESS, None),
+        ((*NO_INGRESS, *OPENSHIFT), "OpenShift gives the Route a generated host"),
+        ((*NO_INGRESS, *OPENSHIFT, *HOST), None),
+    ],
+)
+def test_notes_empty_host_name(
+    tmp_path: Path, args: tuple[str, ...], effect: str | None
+) -> None:
+    """The notes warn if an Ingress or a Route gets an empty host name.
+
+    An Ingress rule without a host matches every host; OpenShift generates
+    a host name for a Route without one.
+
+    Args:
+        tmp_path: A directory for a copy of the chart.
+        args: `helm template` arguments.
+        effect: What the warning says happens, or None if the notes don't
+            warn.
+    """
+    text = notes(*args, tmp_path=tmp_path)
+    assert ("hostName is empty" in text) is (effect is not None)
+    assert ("deployment/#exposing-the-api" in text) is (effect is not None)
+    if effect:
+        assert f"hostName is empty, so {effect}" in text
+
+
+@pytest.mark.parametrize(
+    ("document", "heading", "anchor"),
+    [
+        (
+            "upgrading.md",
+            "### tesk-api 2.0.0, taskmaster and filer 0.12.0",
+            "upgrading/#tesk-api-200-taskmaster-and-filer-0120",
+        ),
+        (
+            "deployment.md",
+            "## Authentication and authorisation",
+            "deployment/#authentication-and-authorisation",
+        ),
+        ("deployment.md", "## Exposing the API", "deployment/#exposing-the-api"),
+    ],
+)
+def test_notes_doc_anchors(document: str, heading: str, anchor: str) -> None:
+    """The sections that the new warnings link exist, under those anchors.
+
+    Args:
+        document: The file in `docs/`.
+        heading: The section's heading.
+        anchor: The link's path and anchor, as the notes have it.
+    """
+    text = (CHART.parents[1] / "docs" / document).read_text()
+    assert f"\n{heading}\n" in text
+    slug = re.sub(r"[^a-z0-9 -]", "", heading.lstrip("# ").lower()).replace(" ", "-")
+    assert anchor.endswith(f"#{slug}")
+    helpers = (CHART / "templates" / "_helpers.tpl").read_text()
+    assert f"https://tesk.readthedocs.io/en/latest/{anchor}" in helpers
+
+
+def test_package_leaves_out_secrets(tmp_path: Path) -> None:
+    """`helm package` leaves out credentials that the chart doesn't read.
+
+    `secrets.yaml` is passed with `-f`, and `tls-secret.yaml` (from
+    `tls-secret.yaml-TEMPLATE`) is applied with kubectl.
+
+    Args:
+        tmp_path: A directory for a copy of the chart and the package.
+    """
+    assert HELM
+    chart = copy_chart(tmp_path)
+    (chart / "secrets.yaml").write_text("ftp:\n  password: s3cr3t\n")
+    (chart / "tls-secret.yaml").write_text("kind: Secret\n")
+    subprocess.run(  # noqa: S603 (fixed executable and arguments)
+        [HELM, "package", str(chart), "-d", str(tmp_path)],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    (package,) = tmp_path.glob("tesk-*.tgz")
+    with tarfile.open(package) as archive:
+        names = archive.getnames()
+    assert "tesk/values.yaml" in names
+    assert "tesk/secrets.yaml" not in names
+    assert "tesk/tls-secret.yaml" not in names

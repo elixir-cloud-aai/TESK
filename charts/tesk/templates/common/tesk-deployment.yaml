@@ -4,6 +4,8 @@ whole chart */ -}}
 {{- include "tesk.checkRemovedValues" . -}}
 {{- /* So do taskmaster and filer images of different releases */ -}}
 {{- include "tesk.checkImageReleases" . -}}
+{{- /* And a taskmaster that needs a newer tesk-api */ -}}
+{{- include "tesk.checkApiTaskmaster" . -}}
 {{- $tesk := .Values.tesk -}}
 {{- $repository := dig "image" "repository" "" $tesk | default "docker.io/elixircloud/tesk-api" -}}
 {{- /* Also the version of the service info */ -}}
@@ -22,6 +24,21 @@ spec:
     matchLabels:
       {{- include "tesk.selectorLabels" . | nindent 6 }}
   replicas: 1
+  {{- /* Recreate by default, so that no older API serves tasks of a newer
+  taskmaster during an upgrade; null leaves the strategy to Kubernetes
+  (RollingUpdate). Kubernetes rejects a rollingUpdate (also an empty one)
+  with Recreate. On upgrades with client-side apply (Helm 3), it removes the
+  rollingUpdate that it set by default (the strategy's patch strategy is
+  retainKeys); with server-side apply, it keeps it, and the upgrade fails
+  (see "API update strategy Recreate" in docs/upgrading.md) */}}
+  {{- $strategy := default dict $tesk.strategy }}
+  {{- if $strategy }}
+  {{- if and (eq (toString $strategy.type) "Recreate") (not (kindIs "invalid" $strategy.rollingUpdate)) }}
+  {{- fail "tesk.strategy.rollingUpdate needs tesk.strategy.type RollingUpdate (Kubernetes rejects it with Recreate)" }}
+  {{- end }}
+  strategy:
+    {{- toYaml $strategy | nindent 4 }}
+  {{- end }}
   template:
     metadata:
       labels:
@@ -51,11 +68,11 @@ spec:
         - name: TESK_API_TASKMASTER_IMAGE_NAME
           value: {{ dig "taskmaster" "image" "repository" "" $tesk }}
         - name: TESK_API_TASKMASTER_IMAGE_VERSION
-          value: {{ dig "taskmaster" "image" "tag" "" $tesk }}
+          value: {{ dig "taskmaster" "image" "tag" "" $tesk | toString | quote }}
         - name: TESK_API_TASKMASTER_FILER_IMAGE_NAME
           value: {{ dig "filer" "image" "repository" "" $tesk }}
         - name: TESK_API_TASKMASTER_FILER_IMAGE_VERSION
-          value: {{ dig "filer" "image" "tag" "" $tesk }}
+          value: {{ dig "filer" "image" "tag" "" $tesk | toString | quote }}
         - name: TESK_API_K8S_NAMESPACE
           value: {{ .Release.Namespace }}
         {{- if $executorSecurityContext }}
@@ -101,6 +118,24 @@ spec:
         {{- if $ftpSecretName }}
         - name: TESK_API_TASKMASTER_FTP_SECRET_NAME
           value: {{ $ftpSecretName | quote }}
+        {{- /* Taskmasters 0.12.0 and later make the filer jobs reference
+        the secret instead of holding the credentials; older ones ignore
+        it */}}
+        - name: TESK_API_TASKMASTER_ENVIRONMENT_TESK_FTP_SECRET_NAME
+          value: {{ $ftpSecretName | quote }}
+        {{- end }}
+        {{- /* The filer's security contexts, as JSON: a map (also {}, which
+        leaves a context out) replaces the taskmaster's default; null keeps
+        it */}}
+        {{- $filer := default dict $tesk.filer }}
+        {{- range $key, $variable := dict
+          "podSecurityContext" "TESK_API_TASKMASTER_ENVIRONMENT_FILER_POD_SECURITY_CONTEXT"
+          "securityContext" "TESK_API_TASKMASTER_ENVIRONMENT_FILER_SECURITY_CONTEXT" }}
+        {{- $context := get $filer $key }}
+        {{- if kindIs "map" $context }}
+        - name: {{ $variable }}
+          value: {{ toJson $context | quote }}
+        {{- end }}
         {{- end }}
         {{- with .Values.ftp.hosts }}
         - name: TESK_API_TASKMASTER_ENVIRONMENT_TESK_FTP_HOSTS
@@ -190,6 +225,13 @@ spec:
         {{- end }}
         - name: TESK_API_SWAGGER_UI_ENABLED
           value: {{ $swaggerUiValue | quote }}
+        {{- end }}
+        {{- /* Origins of browser clients (CORS), only when listed: without
+        them, tesk-api sends no CORS headers (values.schema.json checks the
+        origins) */}}
+        {{- with dig "cors" "allowedOrigins" list $tesk }}
+        - name: TESK_API_CORS_ALLOWED_ORIGINS
+          value: {{ join "," . | quote }}
         {{- end }}
         {{- if .Values.transfer.enabled }}
         - name: TESK_API_TASKMASTER_ENVIRONMENT_HOST_BASE_PATH

@@ -20,3 +20,10 @@
 .idea/
 *.tmproj
 .vscode/
+# Values with credentials, passed with `-f`, and a TLS secret made from
+# `tls-secret.yaml-TEMPLATE`, applied with kubectl; the chart reads neither.
+# `ftp/.netrc` and `s3-config/` hold credentials too, but stay: the chart
+# reads them (`.Files.Get`), and Helm ignores these patterns also when it
+# installs from this directory. Package from a clean checkout
+secrets.yaml
+tls-secret.yaml

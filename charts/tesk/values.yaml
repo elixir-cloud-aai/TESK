@@ -47,14 +47,29 @@ tesk:
   taskmaster:
     image:
       repository: docker.io/elixircloud/tesk-core-taskmaster
-      tag: 0.11.0
+      tag: 0.12.0
   # Image of the filer (tesk-core), which stages the inputs and outputs; its
   # tag must be the same release as the taskmaster's (the installation
   # fails otherwise, from 0.11.0 on)
   filer:
     image:
       repository: docker.io/elixircloud/tesk-core-filer
-      tag: 0.11.0
+      tag: 0.12.0
+    # Security context of the filer's pods and of its container (fields of
+    # a Kubernetes PodSecurityContext and SecurityContext), which replace
+    # the taskmaster's defaults: from 0.12.0 on, non-root with the
+    # `RuntimeDefault` seccomp profile, no privilege escalation and
+    # capabilities, and a read-only root filesystem (see
+    # https://tesk.readthedocs.io/en/latest/tesk-core/filer/#pod-security).
+    # Repeat the defaults that you want to keep; `{}` leaves a context out,
+    # null keeps the taskmaster's default. E.g., on clusters that refuse
+    # pods asking for `RuntimeDefault`:
+    # `podSecurityContext: {runAsNonRoot: true}`. Taskmasters before 0.12.0
+    # ignore them. Like all maps, they are merged with the same maps of
+    # earlier values files (or of `--reuse-values`): set each context in
+    # one place
+    podSecurityContext: null
+    securityContext: null
   # The executors, which run the task's commands
   executor:
     # Security context of the executors' pods, e.g., to run them as non-root
@@ -93,6 +108,18 @@ tesk:
   # tesk-api image newer than 1.1 (`tesk.image.tag`), which reports such
   # tasks correctly; older ones report them as COMPLETE
   maxQueueSeconds: ""
+
+  # Update strategy of the API's Deployment (`type` and `rollingUpdate` of a
+  # Kubernetes DeploymentStrategy). `Recreate` stops the old API pod before
+  # the new one starts, a short downtime of the API on every rollout, so that
+  # no older API serves tasks of a newer taskmaster: needed when one upgrade
+  # brings tesk-api 2.0.0 and taskmaster 0.12.0 (see the upgrade notes,
+  # docs/upgrading.md). Operators who upgrade the API first, in a rollout of
+  # its own, may set `type: RollingUpdate` (and `rollingUpdate`, which
+  # `Recreate` doesn't take); null leaves Kubernetes' default
+  # (`RollingUpdate`)
+  strategy:
+    type: Recreate
 
   # Resources of the API's container
   resources:
@@ -145,6 +172,20 @@ tesk:
   # Swagger UI
   swaggerUi:
     enabled: false
+
+  # Cross-origin requests (CORS): the origins of browser apps that may call
+  # the API directly, each exactly as the browser sends it (scheme, host and
+  # port unless the default), e.g., [https://client.example.org,
+  # http://localhost:3000]; no wildcards, paths, default ports or commas
+  # (the schema refuses what tesk-api would refuse at startup, and also
+  # IPv6 zone IDs and single-label hosts that start with a digit). Empty:
+  # tesk-api sends no CORS headers, and clients that call it from servers or
+  # through a gateway need none. Every request still needs a token with mode auth;
+  # list only origins that you trust with your users' tokens. Needs tesk-api
+  # 2.0.0 or later (`tesk.image.tag`); see the deployment guide
+  # (docs/deployment.md, "Browser clients (CORS)")
+  cors:
+    allowedOrigins: []
 
 transfer:
   # Support for local file systems (`file:` URLs in inputs and outputs) on a
@@ -238,10 +279,9 @@ auth:
   # default; with `enabled: true`, the chart needs `issuer`, `audience` (or
   # `allowAnyAudience: true`), `clients` and mode auth. Removed clients are
   # refused only once the rollout of the new pod has completed. Everyone who
-  # holds the credentials of a listed client can run
-  # any image on the cluster. Needs a tesk-api version with this setting
-  # (`tesk.image.tag`); see the deployment guide (docs/deployment.md,
-  # "Tokens of services")
+  # holds the credentials of a listed client can run any image on the
+  # cluster. Needs tesk-api 2.0.0 or later (`tesk.image.tag`); see the
+  # deployment guide (docs/deployment.md, "Tokens of services")
   tokenClients:
     enabled: false
     # Issuer of the tokens (an HTTPS URL), compared exactly with `iss`, e.g.,
@@ -295,8 +335,11 @@ auth:
 # Service info, the answer of GET /service-info (GA4GH service-info
 # specification), rendered into a ConfigMap. The defaults describe no
 # particular deployment: set at least `id`, `organization`, `contactUrl` and
-# `environment` for yours. The chart sets `type` (TES 1.0.0) and `version`
-# (the tag of tesk-api's image) itself. Empty optional fields are left out
+# `environment` for yours. The chart sets `type` (TES 1.1.0 from tesk-api
+# 2.0.0 and taskmaster 0.12.0 on, 1.0.0 before), `version` (the tag of
+# tesk-api's image) and,
+# from tesk-api 2.0.0 on, `tesResources_backend_parameters: []` itself.
+# Empty optional fields are left out
 serviceInfo:
   # Name of a ConfigMap of your own with the key `service-info.yaml`, in the
   # release's namespace, instead of the chart's; the other fields are then

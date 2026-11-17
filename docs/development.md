@@ -53,7 +53,9 @@ The workflow `CI` (`.github/workflows/ci.yml`) runs on every pull request to
   `GET /ga4gh/tes/v1/service-info` answers, and runs the check script for
   deployed instances, `tests/smoke/deployment.sh` (see [Checking a
   deployment](deployment.md#checking-a-deployment)), without a token: a
-  task that completes and one that is cancelled. The tests of the script
+  task that completes, one with an input, which starts a filer pod, and
+  one that is cancelled; then it checks that the filer's job completed
+  with the filer's default security contexts. The tests of the script
   itself (`tests/test_smoke_deployment.py`, in **Test**) run it against a
   fake TES API, also with a token.
 - **Docs:** builds the documentation strictly (`mkdocs build --strict`).
@@ -169,9 +171,11 @@ The workflow `Release` (`.github/workflows/release.yml`) runs on pushed
    stable release among the stable ones; for the first release from this
    workflow, `v0.2`), and their `**Full Changelog**` line last. Releases are
    immutable once published: the release is created as a draft, the files
-   are uploaded, and then it is published. A stable release becomes the
-   latest release only if no stable release tag on `main` has a higher
-   version. Publish jobs run one at a time; GitHub keeps one waiting job,
+   are uploaded, and then it is published. Pre-releases (`-alpha.N`,
+   `-beta.N`, `-rc.N`) and, until 1.0, all `v0.*` releases are published
+   as prereleases and never become the latest release. A stable release
+   from 1.0 on becomes the latest release only if no stable release tag on
+   `main` has a higher version. Publish jobs run one at a time; GitHub keeps one waiting job,
    so if a third tag is pushed while one publishes and one waits, the
    waiting one is cancelled: re-run it.
 

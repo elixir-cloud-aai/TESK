@@ -6,9 +6,9 @@
 # newer docs of that repository
 tesk-api:
   repository: elixir-cloud-aai/tesk-api
-  # v1.2.0: ci: create the GitHub release in the workflow (#140)
-  ref: "7150d951cb2e224ebe60988e8db98761f51d471f"
+  # v2.0.0: build: update the 2.0.0 release prep again (#198)
+  ref: "9d73a31c56e992cea672c49012a5c6b93262030f"
 tesk-core:
   repository: elixir-cloud-aai/tesk-core
-  # v0.11.0: docs: prepare the 0.11.0 release (#133)
-  ref: "2a4f0baa4c1a7d5b206083d0880dbc069623fdac"
+  # v0.12.0: build: prepare the 0.12.0 release (#157)
+  ref: "b78d5c9e7f3e6cb06d68a2ca18f1d2a89d351e75"
