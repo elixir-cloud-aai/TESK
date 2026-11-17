@@ -331,11 +331,16 @@ them 0.11.0 or later: from 0.11.0 on, the filer must be of the taskmaster's
 release, and a task with another one fails. Release tags are compared as
 `tesk.tagVersion` (`v0.11.0` and `0.11.0@sha256:...` are `0.11.0`);
 releases up to v0.10.6 could be mixed, and tags that aren't release
-versions (e.g., `dev`) aren't checked.
+versions (e.g., `dev`) aren't checked. Also fails if a tag is a number
+(unquoted in a values file), as YAML reads, e.g., 0.10 as 0.1, which would
+name another image.
 */}}
 {{- define "tesk.checkImageReleases" -}}
 {{- $tags := dict -}}
 {{- range $component := list "taskmaster" "filer" -}}
+{{- if kindIs "float64" (dig $component "image" "tag" "" $.Values.tesk) -}}
+{{- fail (printf "tesk.%s.image.tag is a number: quote it in the values file (e.g., \"0.12\") or use --set-string, as YAML reads, e.g., 0.10 as 0.1" $component) -}}
+{{- end -}}
 {{- $_ := set $tags $component (toString (dig $component "image" "tag" "" $.Values.tesk)) -}}
 {{- end -}}
 {{- $taskmaster := include "tesk.tagVersion" $tags.taskmaster -}}
@@ -469,8 +474,12 @@ WARNING: tesk-api {{ $apiTag }} (tesk.image.tag) accepts TES 1.1 tasks, but the
 taskmaster is {{ $taskmasterTag }} (tesk.taskmaster.image.tag), a release
 before 0.12.0, which runs TES 1.1 features not as asked: executors with
 ignore_error stop the task, outputs with wildcards or path_prefix fail or
-land in the wrong place, and output file logs stay empty. GET /service-info
-reports TES 1.0.0. This happens, e.g., after helm upgrade --reuse-values
+land in the wrong place, and output file logs stay empty.
+{{- if include "tesk.isSet" (default dict .Values.serviceInfo).existingConfigMap }} Set type.version
+to 1.0.0 in your service info (serviceInfo.existingConfigMap) meanwhile.
+{{- else }} GET /service-info
+reports TES 1.0.0.
+{{- end }} This happens, e.g., after helm upgrade --reuse-values
 from chart 0.3.0, which also leaves out the API's update strategy Recreate.
 Set tesk.taskmaster.image.tag and tesk.filer.image.tag to 0.12.0, and
 upgrade with your values files instead of --reuse-values; see

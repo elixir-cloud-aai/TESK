@@ -4427,8 +4427,8 @@ def test_image_releases_normalised_tags(
 ) -> None:
     """Taskmaster and filer tags are compared without a digest, as X.Y.Z.
 
-    `--set` reads `0.12` as a number, as an unquoted value in a values
-    file; tesk-api gets it as text.
+    `--set` keeps `0.12` as text, as a quoted value in a values file
+    (`test_image_tag_numbers` covers numbers).
 
     Args:
         taskmaster: The tag of the taskmaster image.
@@ -4521,6 +4521,35 @@ def test_notes_new_api_old_taskmaster(
     anchor = "upgrading/#tesk-api-200-taskmaster-and-filer-0120"
     assert (anchor in text) is warned
     assert ("--reuse-values" in text) is warned
+    assert ("GET /service-info\nreports TES 1.0.0" in text) is warned
+
+
+def test_notes_new_api_old_taskmaster_existing_config_map(tmp_path: Path) -> None:
+    """With its own service info, the warning asks to set the TES version.
+
+    The chart doesn't render the service info then.
+
+    Args:
+        tmp_path: A directory for a copy of the chart.
+    """
+    args = (*_tags("2.0.0", "0.11.0"), "--set", "serviceInfo.existingConfigMap=own")
+    text = notes(*args, tmp_path=tmp_path)
+    assert "Set type.version\nto 1.0.0 in your service info" in text
+    assert "reports TES 1.0.0" not in text
+
+
+@pytest.mark.parametrize("component", ["taskmaster", "filer"])
+def test_image_tag_numbers(component: str) -> None:
+    """Taskmaster and filer tags that are numbers fail, asking for quotes.
+
+    YAML reads an unquoted 0.10 as 0.1, which would name another image.
+
+    Args:
+        component: `taskmaster` or `filer`.
+    """
+    with pytest.raises(subprocess.CalledProcessError) as error:
+        render("--set-json", f"tesk.{component}.image.tag=0.10")
+    assert f"tesk.{component}.image.tag is a number: quote it" in error.value.stderr
 
 
 @pytest.mark.parametrize(
@@ -4698,9 +4727,10 @@ def test_notes_doc_anchors(document: str, heading: str, anchor: str) -> None:
 
 
 def test_package_leaves_out_secrets(tmp_path: Path) -> None:
-    """`helm package` leaves out a `secrets.yaml` in the chart directory.
+    """`helm package` leaves out credentials that the chart doesn't read.
 
-    The deployment guide passes it with `-f`; the chart doesn't read it.
+    `secrets.yaml` is passed with `-f`, and `tls-secret.yaml` (from
+    `tls-secret.yaml-TEMPLATE`) is applied with kubectl.
 
     Args:
         tmp_path: A directory for a copy of the chart and the package.
@@ -4708,6 +4738,7 @@ def test_package_leaves_out_secrets(tmp_path: Path) -> None:
     assert HELM
     chart = copy_chart(tmp_path)
     (chart / "secrets.yaml").write_text("ftp:\n  password: s3cr3t\n")
+    (chart / "tls-secret.yaml").write_text("kind: Secret\n")
     subprocess.run(  # noqa: S603 (fixed executable and arguments)
         [HELM, "package", str(chart), "-d", str(tmp_path)],
         check=True,
@@ -4719,3 +4750,4 @@ def test_package_leaves_out_secrets(tmp_path: Path) -> None:
         names = archive.getnames()
     assert "tesk/values.yaml" in names
     assert "tesk/secrets.yaml" not in names
+    assert "tesk/tls-secret.yaml" not in names

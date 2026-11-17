@@ -100,8 +100,9 @@ Recreate](#api-update-strategy-recreate)).
   tesk-core](tesk-core/upgrading.md#ftp-credentials-by-reference)).
   Nothing to do.
 - **Act on this if you use `serviceInfo.existingConfigMap`:** tesk-api
-  2.0.0 implements TES 1.1, so set `type.version` to `1.1.0` and `version`
-  to `2.0.0` in your ConfigMap. The chart's own service info does this
+  2.0.0 implements TES 1.1, so set `type.version` to `1.1.0` (with
+  taskmaster and filer 0.12.0 or later; `1.0.0` with older ones) and
+  `version` to `2.0.0` in your ConfigMap. The chart's own service info does this
   itself: its `type.version` follows `tesk.image.tag` and
   `tesk.taskmaster.image.tag` (`1.1.0` from tesk-api 2.0.0 and taskmaster
   0.12.0 on, `1.0.0` before), and from tesk-api 2.0.0 on it lists
