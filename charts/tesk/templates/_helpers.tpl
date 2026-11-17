@@ -95,7 +95,7 @@ fail above, where they would be rounded (as in `tesk.yamlText`).
 
 {{- /* An image tag as the version to compare: without a digest (a suffix
 from `@`, e.g., 1.2.0@sha256:...) and a leading `v`, and X.Y as X.Y.0
-(e.g., an unquoted 0.12, which Helm reads as a number). The argument is the
+(e.g., a quoted 0.12; numbers fail for the taskmaster and filer). The argument is the
 tag */ -}}
 {{- define "tesk.tagVersion" -}}
 {{- $tag := regexReplaceAll "@.*$" (toString .) "" | trimPrefix "v" -}}
@@ -479,7 +479,8 @@ land in the wrong place, and output file logs stay empty.
 to 1.0.0 in your service info (serviceInfo.existingConfigMap) meanwhile.
 {{- else }} GET /service-info
 reports TES 1.0.0.
-{{- end }} This happens, e.g., after helm upgrade --reuse-values
+{{- end }}
+This happens, e.g., after helm upgrade --reuse-values
 from chart 0.3.0, which also leaves out the API's update strategy Recreate.
 Set tesk.taskmaster.image.tag and tesk.filer.image.tag to 0.12.0, and
 upgrade with your values files instead of --reuse-values; see

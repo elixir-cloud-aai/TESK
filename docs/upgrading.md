@@ -64,7 +64,11 @@ Recreate](#api-update-strategy-recreate)).
   executors with `ignore_error: true` stop the task at their failure
   (`SYSTEM_ERROR`, unless the failed executor was the last one and the
   task has no outputs), outputs with wildcards and `path_prefix` fail or land
-  in the wrong place, and output file logs stay empty.
+  in the wrong place, and output file logs stay empty; the notes warn, and
+  the service info reports TES 1.0.0. Quote X.Y tags of the taskmaster and filer
+  (e.g., `"0.12"`): tags that YAML reads as numbers (e.g., an unquoted
+  `0.10`, which is 0.1) fail the installation now. Tags pinned by digest
+  (e.g., `0.12.0@sha256:…`) are compared by their version.
 - **Act on this if your cluster refuses pods with the `RuntimeDefault`
   seccomp profile, or sets the user of pods by a policy:** filer pods of
   0.12.0 run with a restricted security context (non-root, the
@@ -102,8 +106,8 @@ Recreate](#api-update-strategy-recreate)).
 - **Act on this if you use `serviceInfo.existingConfigMap`:** tesk-api
   2.0.0 implements TES 1.1, so set `type.version` to `1.1.0` (with
   taskmaster and filer 0.12.0 or later; `1.0.0` with older ones) and
-  `version` to `2.0.0` in your ConfigMap. The chart's own service info does this
-  itself: its `type.version` follows `tesk.image.tag` and
+  `version` to `2.0.0` in your ConfigMap. The chart's own service info
+  does this itself: its `type.version` follows `tesk.image.tag` and
   `tesk.taskmaster.image.tag` (`1.1.0` from tesk-api 2.0.0 and taskmaster
   0.12.0 on, `1.0.0` before), and from tesk-api 2.0.0 on it lists
   `tesResources_backend_parameters: []` (TESK supports none). In your own

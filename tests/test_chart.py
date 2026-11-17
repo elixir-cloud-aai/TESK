@@ -4521,7 +4521,7 @@ def test_notes_new_api_old_taskmaster(
     anchor = "upgrading/#tesk-api-200-taskmaster-and-filer-0120"
     assert (anchor in text) is warned
     assert ("--reuse-values" in text) is warned
-    assert ("GET /service-info\nreports TES 1.0.0" in text) is warned
+    assert ("GET /service-info reports TES 1.0.0" in " ".join(text.split())) is warned
 
 
 def test_notes_new_api_old_taskmaster_existing_config_map(tmp_path: Path) -> None:
@@ -4534,7 +4534,7 @@ def test_notes_new_api_old_taskmaster_existing_config_map(tmp_path: Path) -> Non
     """
     args = (*_tags("2.0.0", "0.11.0"), "--set", "serviceInfo.existingConfigMap=own")
     text = notes(*args, tmp_path=tmp_path)
-    assert "Set type.version\nto 1.0.0 in your service info" in text
+    assert "Set type.version to 1.0.0 in your service info" in " ".join(text.split())
     assert "reports TES 1.0.0" not in text
 
 
