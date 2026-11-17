@@ -31,7 +31,7 @@ take any keys.
 | --- | --- | --- |
 | `nameOverride` | `""` | Replaces the chart's name (`tesk`) in the names of the objects and in the label `app.kubernetes.io/name` (see [Names of the objects](#names-of-the-objects)). |
 | `fullnameOverride` | `""` | Replaces the prefix of the names of the objects (see [Names of the objects](#names-of-the-objects)). |
-| `hostName` | `""` | Host name (FQDN) of the API, for the Ingress or the OpenShift Route. |
+| `hostName` | `""` | Host name (FQDN) of the API, for the Ingress or the OpenShift Route. Empty gives the Ingress a rule for every host name, and the Route a generated one: the notes warn. |
 | `storageClass` | empty | Storage class of the tasks' PVCs; empty uses the cluster's default storage class. |
 | `storage` | `none` | `s3` creates the secret `aws-secret` from `charts/tesk/s3-config/` (see [S3](deployment.md#s3)); `openstack` creates a default storage class `<prefix>-gold` for OpenStack Cinder (one release per cluster may do so). Anything else adds nothing. |
 
@@ -40,14 +40,16 @@ take any keys.
 | Value | Default | Description |
 | --- | --- | --- |
 | `tesk.image.repository` | `docker.io/elixircloud/tesk-api` | Image of the API (tesk-api), without its tag. |
-| `tesk.image.tag` | `""` | Tag of the API's image; empty uses the chart's `appVersion` (`1.2.0`). |
+| `tesk.image.tag` | `""` | Tag of the API's image; empty uses the chart's `appVersion` (`2.0.0`). |
 | `tesk.image.pullPolicy` | `""` | Pull policy of the API's image: `Always`, `IfNotPresent` or `Never` (anything else fails the installation); empty leaves Kubernetes' default. |
 | `tesk.port` | `8080` | Port of the API's container and Service. |
 | `tesk.tesApiBasePath` | `/ga4gh/tes/v1` | Base path of the TES API; empty uses tesk-api's default. |
 | `tesk.taskmaster.image.repository` | `docker.io/elixircloud/tesk-core-taskmaster` | Image of the taskmaster (tesk-core), without its tag. |
-| `tesk.taskmaster.image.tag` | `0.11.0` | Tag of the taskmaster image (see [Upgrading](upgrading.md#tesk-api-120-taskmaster-and-filer-0110)). |
+| `tesk.taskmaster.image.tag` | `0.12.0` | Tag of the taskmaster image (quote X.Y tags, e.g., `"0.12"`: a number fails the installation, as YAML reads 0.10 as 0.1). 0.12.0 and later need tesk-api 2.0.0 or later (`tesk.image.tag`): the installation fails with an older one (see [Upgrading](upgrading.md#tesk-api-200-taskmaster-and-filer-0120)). |
 | `tesk.filer.image.repository` | `docker.io/elixircloud/tesk-core-filer` | Image of the filer (tesk-core), without its tag. |
-| `tesk.filer.image.tag` | `0.11.0` | Tag of the filer image; the same release as the taskmaster's (with or without `v`). Different releases fail the installation if one of them is 0.11.0 or later; tags that aren't release versions (e.g., `dev`) aren't checked. |
+| `tesk.filer.image.tag` | `0.12.0` | Tag of the filer image (quoted, as the taskmaster's); the same release as the taskmaster's (with or without `v`). Different releases fail the installation if one of them is 0.11.0 or later; tags that aren't release versions (e.g., `dev`) aren't checked. |
+| `tesk.filer.podSecurityContext` | `null` | Security context of the filer's pods (fields of a Kubernetes `PodSecurityContext`), which replaces the taskmaster's default (from 0.12.0 on: `runAsNonRoot: true` and the `RuntimeDefault` seccomp profile); `{}` leaves it out, null keeps the default. E.g., `runAsNonRoot: true` alone on clusters that refuse pods asking for `RuntimeDefault` (see [Deployment](deployment.md#openshift-and-other-restricted-clusters)). Needs taskmaster 0.12.0 or later; older ones ignore it, and the notes warn. Merged with the same map of earlier values files or of `--reuse-values`, as all maps are: set the whole context in one place. |
+| `tesk.filer.securityContext` | `null` | Security context of the filer's container (fields of a Kubernetes `SecurityContext`), which replaces the taskmaster's default (from 0.12.0 on: no privilege escalation and capabilities, a read-only root filesystem); `{}` leaves it out, null keeps the default. Needs taskmaster 0.12.0 or later; older ones ignore it, and the notes warn. Merged with the same map of earlier values files or of `--reuse-values`, as all maps are: set the whole context in one place. |
 | `tesk.executor.securityContext` | `{}` | Security context of the executors' pods: `runAsUser`, `runAsGroup`, `fsGroup` (integers from 0 to 2147483647) and `runAsNonRoot` (`true` or `false`); other fields fail the schema check. Empty leaves the executors as their images say. Applies only to the executors, not to the API (`tesk.podSecurityContext`, `tesk.securityContext`), the taskmasters or the filers. See [Executors as non-root users](deployment.md#executors-as-non-root-users). |
 | `tesk.debug` | `false` | Debug logging in the taskmasters. |
 | `tesk.executorRetries` | `2` | Retries of an executor's job on errors (its `backoffLimit`). |
@@ -56,6 +58,7 @@ take any keys.
 | `tesk.keepFailedPvcs` | `false` (the taskmaster's default) | `true` keeps the PVCs of tasks that fail or are cancelled, e.g. to inspect their files; delete them by hand then. `false` lets the taskmaster delete them. Applies to tasks created after the API pod restarted with it (tasks keep the settings of the pod that created them). Takes effect with taskmaster images newer than v0.10.6; older ones always keep them (see [Upgrading](upgrading.md#newer-taskmaster-images-delete-the-pvcs-of-failed-tasks)). Also as the strings `"true"` and `"false"`, or empty (false); other values fail the schema check. |
 | `tesk.taskTtlSeconds` | empty | Seconds (0 to 2147483647) after which Kubernetes deletes a finished task's jobs and pods; the task is then gone from the API. Empty keeps finished tasks. Applies to tasks created after the API's pod restarted with it. Recommended: hours or days, e.g., `86400` (a day). Needs taskmaster images newer than v0.10.6. See [Deleting finished tasks](deployment.md#deleting-finished-tasks). |
 | `tesk.maxQueueSeconds` | empty | Seconds (1 to 2147483647) that a pod of a task may wait for a node before the task fails with `SYSTEM_ERROR`. Empty waits forever. Applies to tasks created after the API's pod restarted with it. Needs taskmaster images newer than v0.10.6 and tesk-api newer than 1.1. See [Tasks that can't be scheduled](deployment.md#tasks-that-cant-be-scheduled). |
+| `tesk.strategy` | `type: Recreate` | Update strategy of the API's Deployment (`type` and `rollingUpdate` of a Kubernetes `DeploymentStrategy`; other keys fail the schema check). `Recreate` stops the old API pod before the new one starts, a short downtime of the API on every rollout, so that no older API serves tasks of a newer taskmaster; one upgrade to tesk-api 2.0.0 and taskmaster 0.12.0 needs it (see [Upgrading](upgrading.md#api-update-strategy-recreate)). `type: RollingUpdate` (optionally with `rollingUpdate.maxSurge` and `maxUnavailable`) keeps the API available, e.g. once the API and the taskmaster are upgraded; `rollingUpdate` with `Recreate` fails the installation. Null leaves Kubernetes' default (`RollingUpdate`), as charts up to 0.3.0 did. |
 | `tesk.resources` | 1 CPU and `2048Mi` memory, as requests and limits | Resources of the API's container (`requests` and `limits`, as in Kubernetes; further resources, e.g., `ephemeral-storage`, are passed on too). |
 | `tesk.startupProbe` | every 5 s, 5 s timeout, up to 60 failures (5 minutes) | Startup probe of the API's container: it holds off the other probes while the API starts, which takes about a minute (see [Probes](#probes)). |
 | `tesk.readinessProbe` | every 10 s, 5 s timeout, 3 failures | Readiness probe: the Service and Ingress send requests to the pod, and `helm install --wait` returns, once it succeeds (see [Probes](#probes)). |
@@ -63,6 +66,7 @@ take any keys.
 | `tesk.podSecurityContext` | `runAsUser: 1000`, `runAsNonRoot: true`, `seccompProfile` `RuntimeDefault` | Security context of the API's pod (fields of a Kubernetes `PodSecurityContext`). Your values are merged with the defaults; null removes a field (e.g., `runAsUser: null` on OpenShift, which assigns the user, and `seccompProfile: null` on clusters that set their own seccomp profile, see [OpenShift and other restricted clusters](deployment.md#openshift-and-other-restricted-clusters)) or, for `tesk.podSecurityContext: null`, the whole context. Applies only to the API's pod; for the executors, see `tesk.executor.securityContext`. |
 | `tesk.securityContext` | `allowPrivilegeEscalation: false`, `capabilities.drop: [ALL]` | Security context of the API's container (fields of a Kubernetes `SecurityContext`), merged with the defaults like `tesk.podSecurityContext`. |
 | `tesk.swaggerUi.enabled` | `false` | `true` serves the Swagger UI (at the root path of the deployment, `ingress.path`, see [Swagger UI](deployment.md#swagger-ui)). Turning it on serves the Swagger UI publicly; enable it only where needed. `true` or `false` only (also as strings, in any case; anything else fails the installation); null leaves tesk-api's default (off). Needs tesk-api 1.2.0 or later; earlier versions ignore it and always serve the Swagger UI. |
+| `tesk.cors.allowedOrigins` | `[]` | Origins of browser clients that may call the API directly (CORS), each exactly as the browser sends it: scheme, host, and port unless the default, e.g., `https://client.example.org`; wildcards, paths, user info, default ports, other schemes than `http` and `https`, and commas fail the installation (see the link for the rules). Empty: tesk-api sends no CORS headers. Needs tesk-api 2.0.0 or later. See [Browser clients (CORS)](deployment.md#browser-clients-cors). |
 
 #### Probes
 
@@ -112,7 +116,7 @@ requests to a pod that isn't ready.
 
 | Value | Default | Description |
 | --- | --- | --- |
-| `auth.mode` | `noauth` | `auth` requires OIDC access tokens (see [Authentication and authorisation](deployment.md#authentication-and-authorisation)); `noauth` leaves all endpoints open. |
+| `auth.mode` | `noauth` | `auth` requires OIDC access tokens (see [Authentication and authorisation](deployment.md#authentication-and-authorisation)); `noauth` leaves all endpoints open: use it only on local or trusted networks, as anyone who reaches the API can run tasks in the cluster (the notes warn if the API is exposed outside the cluster with it). |
 | `auth.userInfoUri` | `""` | User info endpoint of the OIDC provider, at which tesk-api validates tokens and reads the groups or the claim (an HTTP(S) URL), e.g., `https://login.aai.lifescience-ri.eu/oidc/userinfo` for LS Login (see [LS Login and other providers](deployment.md#ls-login-and-other-providers)). Empty uses tesk-api's default, ELIXIR AAI's `https://login.elixir-czech.org/oidc/userinfo`. tesk-api sends every request's token to it: the notes warn about `http://` URLs. |
 | `auth.groups.claim` | `""` | Claim of the user info with the user's groups; empty uses tesk-api's default, `eduperson_entitlement`. The default scopes of the Swagger UI (`auth.swaggerOauth.scopes`) follow it. |
 | `auth.groups.prefix` | `""` | Text before the group names in the claim, e.g., `urn:geant:lifescience-ri.eu:group:` for LS Login; empty uses tesk-api's default, ELIXIR AAI's `urn:geant:elixir-europe.org:group:elixir:`. |
@@ -126,7 +130,7 @@ requests to a pod that isn't ready.
 | `auth.claim.enabled` | `false` | With `auth.mode: auth`: `true` authorises users without groups, by a claim of the user info (see [Authorisation by a claim](deployment.md#authorisation-by-a-claim)). Needs `auth.claim.name` and `auth.claim.values`, and tesk-api 1.2.0 or later; ignored with `auth.mode: noauth`. |
 | `auth.claim.name` | `""` | Name of the claim, e.g., `eduperson_entitlement`. |
 | `auth.claim.values` | `[]` | Values of the claim, one of which a user needs (compared exactly); non-blank, without commas. |
-| `auth.tokenClients.enabled` | `false` | With `auth.mode: auth`: `true` accepts access tokens (JWTs) of the clients in `auth.tokenClients.clients`, e.g., of a gateway with the client credentials grant, without the user info (see [Tokens of services](deployment.md#tokens-of-services)). Needs `auth.tokenClients.issuer`, `auth.tokenClients.audience` (or `auth.tokenClients.allowAnyAudience: true`) and `auth.tokenClients.clients`, and a tesk-api release after 1.2.0; the chart fails with any other `auth.mode`. |
+| `auth.tokenClients.enabled` | `false` | With `auth.mode: auth`: `true` accepts access tokens (JWTs) of the clients in `auth.tokenClients.clients`, e.g., of a gateway with the client credentials grant, without the user info (see [Tokens of services](deployment.md#tokens-of-services)). Needs `auth.tokenClients.issuer`, `auth.tokenClients.audience` (or `auth.tokenClients.allowAnyAudience: true`) and `auth.tokenClients.clients`, and tesk-api 2.0.0 or later (`tesk.image.tag`); the chart fails with any other `auth.mode`. |
 | `auth.tokenClients.issuer` | `""` | Issuer of the tokens (an HTTPS URL), compared exactly with their claim `iss`, e.g., `https://login.aai.lifescience-ri.eu/oidc/` for LS Login. |
 | `auth.tokenClients.jwksUri` | `""` | JWKS URI of the issuer, with the keys that sign the tokens (an HTTPS URL); empty uses the one of the issuer's discovery document. |
 | `auth.tokenClients.audience` | `""` | Audience that the claim `aud` of the tokens must contain, e.g., the URL of this deployment, so that tokens for other services are refused. Required unless `auth.tokenClients.allowAnyAudience` is `true`. |
@@ -180,11 +184,24 @@ fail the installation if they are empty. The chart passes text on as text,
 but YAML reads unquoted numbers in values files as numbers first: quote
 text that looks like a number (e.g., `id: "1.10"`, which would otherwise
 become `1.1`). The chart sets two fields itself:
-`type` (group `org.ga4gh`, artifact `tes`, version `1.0.0`, which
-tesk-api implements; the ConfigMap holds the artifact as `TES`, the form
-that tesk-api reads, and tesk-api serves it as `tes`) and
+`type` (group `org.ga4gh`, artifact `tes`, and the TES version that
+TESK runs: `1.1.0` from tesk-api 2.0.0 and taskmaster 0.12.0 on, also for
+tags that aren't versions, e.g., `dev`, and `1.0.0` before, also for
+tesk-api 2.0.0 with an older taskmaster, which can't run TES 1.1 tasks as
+asked; tags pinned by digest, e.g., `2.0.0@sha256:…`, count by their
+version; the ConfigMap holds the
+artifact as `TES`, the form that tesk-api reads, and tesk-api serves it as
+`tes`) and
 `version` (the tag of tesk-api's image, `tesk.image.tag`, by default the
-chart's `appVersion`). A change of the service info restarts the API's pod
+chart's `appVersion`). From tesk-api 2.0.0 on, it also sets
+`tesResources_backend_parameters: []` (TES 1.1): TESK supports no backend
+parameters, and tesk-api serves `[]` whatever the file lists; earlier
+tesk-api releases can't read the service info with this field, so it is
+left out for them. Tags that aren't versions (e.g., `dev`) count as tesk-api
+2.0.0 or later: use them only with tesk-api images built after
+[tesk-api#147](https://github.com/elixir-cloud-aai/tesk-api/pull/147)
+(2026-11-12), or set `serviceInfo.existingConfigMap` without the field, as
+older images serve an empty service info otherwise. A change of the service info restarts the API's pod
 (tesk-api reads the file at startup, and then only every hour); with
 `serviceInfo.existingConfigMap`, changes of your ConfigMap take effect within
 an hour, or when you restart the pod. Service info is public by default,
@@ -217,7 +234,7 @@ serviceInfo:
 
 | Value | Default | Description |
 | --- | --- | --- |
-| `ftp.classicFtpSecret` | null | Name of the secret with the FTP username and password, created from `ftp.username` and `ftp.password` if one of them is set (none without credentials); null uses `<prefix>-ftp`, empty or `false` creates none. |
+| `ftp.classicFtpSecret` | null | Name of the secret with the FTP username and password, created from `ftp.username` and `ftp.password` if one of them is set (none without credentials); null uses `<prefix>-ftp`, empty or `false` creates none. Taskmasters before 0.12.0 give the filer jobs the credentials as values instead of referencing the secret: the notes warn. |
 | `ftp.netrcSecret` | empty | Name of the secret with a `.netrc` file, created from `charts/tesk/ftp/.netrc`; empty creates none. |
 | `ftp.hosts` | `[]` | Hosts that the filer sends the credentials of `ftp.classicFtpSecret` to, e.g. `[ftp.example.org]` (see below); empty sends them to no host. Not needed for `.netrc`. |
 | `ftp.username` | none | FTP username (put it into `secrets.yaml`). If neither a username nor a password is set, the chart creates no FTP secret, and tesk-api gets none; either one creates it. |
@@ -308,7 +325,7 @@ of Helm charts (`app.kubernetes.io/version`, `app.kubernetes.io/managed-by`,
 | `secrets.yaml` (passed with `-f`) | `ftp.username`, `ftp.password`, `auth.clientId`. |
 | `charts/tesk/ftp/.netrc` | FTP credentials as a `.netrc` file, with `ftp.netrcSecret`. |
 | `charts/tesk/s3-config/config`, `credentials` | S3 configuration and credentials, with `storage: s3`. |
-| `charts/tesk/tls-secret.yaml-TEMPLATE` | Template of a TLS secret, if you create it yourself. |
+| `charts/tesk/tls-secret.yaml-TEMPLATE` | Template of a TLS secret, if you create it yourself: copy it to `charts/tesk/tls-secret.yaml`, which Git and `helm package` leave out, and apply it with kubectl. |
 
 The chart quotes the four `secrets.yaml` values, so any character is allowed and a numeric value (e.g., a numeric client ID) becomes a string. Numbers of 2^53 or more can't be read exactly from a values file: quote them (`"12345678901234567890"`) or use `--set-string`. Quote IDs with leading zeros or in hex or exponent form too, because YAML reads them as other numbers. The files are used as they are.
 

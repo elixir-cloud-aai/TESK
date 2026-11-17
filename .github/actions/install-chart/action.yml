@@ -1,11 +1,15 @@
-# Install the chart with its default values on a kind cluster, wait until
-# the API is ready and check that `GET /ga4gh/tes/v1/service-info` answers
-# (through a port forward; the default Ingress has no controller on kind),
-# then run the check script for deployed instances
-# (`tests/smoke/deployment.sh`, without auth: the default values have
-# `auth.mode: noauth`), which runs a task to completion and cancels one.
-# Used by the `chart-install` job of `ci.yml` and by `release.yml`. Needs a
-# checkout of the repository.
+# Install the chart with its default values on a kind cluster, check the
+# upgrade from the update strategy of earlier charts to the default one,
+# wait until the API is ready and check that
+# `GET /ga4gh/tes/v1/service-info` answers (through a port forward; the
+# default Ingress has no controller on kind), then run the check script for
+# deployed instances (`tests/smoke/deployment.sh`, without auth: the
+# default values have `auth.mode: noauth`), which runs two tasks to
+# completion (one with an input, which starts a filer pod) and cancels one,
+# and finally check that the filer's job completed with the filer's
+# hardened defaults (`tests/smoke/check-filer.sh`). Used by the
+# `chart-install` job of `ci.yml` and by `release.yml`. Needs a checkout of
+# the repository.
 
 name: Install chart
 description: Install the TESK chart on a kind cluster and check the API
@@ -20,7 +24,7 @@ runs:
   steps:
     # Same Helm version as in `.github/actions/test-chart`
     - name: Set up Helm
-      uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
+      uses: azure/setup-helm@2f5e7bc67f1f9972ab16657bb795f36d8f04de0e # v5.1.0
       with:
         version: v3.22.1
     - name: Create kind cluster
@@ -35,6 +39,35 @@ runs:
       run: |
         helm install tesk charts/tesk --namespace "${NAMESPACE}" \
             --create-namespace --wait --timeout 600s
+    # Releases of charts up to 0.3.0 have Kubernetes' default strategy
+    # (`RollingUpdate`, with a `rollingUpdate` that Kubernetes sets); an
+    # upgrade to the chart's default (`Recreate`) must replace it (with
+    # Helm 3's client-side apply; see docs/upgrading.md for server-side
+    # apply)
+    - name: Upgrade strategy
+      env:
+        NAMESPACE: ${{ inputs.namespace }}
+      shell: bash
+      run: |
+        strategy() {
+          kubectl get deployment tesk-api -n "${NAMESPACE}" \
+              -o jsonpath='{.spec.strategy}'
+        }
+        helm upgrade tesk charts/tesk --namespace "${NAMESPACE}" \
+            --reset-values --set-json tesk.strategy=null --wait --timeout 600s
+        before="$(strategy)"
+        if ! jq -e '.type == "RollingUpdate" and .rollingUpdate != null' \
+            <<< "${before}" > /dev/null; then
+          echo "::error::Unexpected strategy without a value: ${before}"
+          exit 1
+        fi
+        helm upgrade tesk charts/tesk --namespace "${NAMESPACE}" \
+            --reset-values --wait --timeout 600s
+        after="$(strategy)"
+        if ! jq -e '. == {"type": "Recreate"}' <<< "${after}" > /dev/null; then
+          echo "::error::Unexpected strategy after the upgrade: ${after}"
+          exit 1
+        fi
     - name: Check service info
       env:
         NAMESPACE: ${{ inputs.namespace }}
@@ -109,10 +142,25 @@ runs:
         if ! tests/smoke/deployment.sh "${url}"; then
           cat "${log}" || true
           kubectl get pods,jobs,pvc -n "${NAMESPACE}" || true
+          kubectl get events -n "${NAMESPACE}" --sort-by=.lastTimestamp || true
           for pod in $(kubectl get pods -n "${NAMESPACE}" -o name || true); do
             echo "::group::${pod}"
             kubectl logs -n "${NAMESPACE}" "${pod}" --all-containers --tail=50 || true
             echo "::endgroup::"
           done
+          exit 1
+        fi
+    # The task with an input started the inputs filer; its job must have
+    # completed, with the filer's hardened defaults of taskmaster 0.12.0
+    # (the chart's `tesk.filer.*` contexts are empty by default)
+    - name: Check filer
+      env:
+        NAMESPACE: ${{ inputs.namespace }}
+      shell: bash
+      run: |
+        if ! kubectl get jobs -n "${NAMESPACE}" -o json \
+            | tests/smoke/check-filer.sh; then
+          kubectl get pods,jobs,pvc -n "${NAMESPACE}" || true
+          kubectl get events -n "${NAMESPACE}" --sort-by=.lastTimestamp || true
           exit 1
         fi
