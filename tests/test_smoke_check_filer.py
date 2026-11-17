@@ -130,7 +130,11 @@ def test_fails_without_hardening(part: str, field: str, value: Any) -> None:
     """
     job = _job("task-1-inputs-filer")
     spec = job["spec"]["template"]["spec"]
-    context = spec["securityContext"] if part == "pod" else spec["containers"][0]["securityContext"]
+    context = (
+        spec["securityContext"]
+        if part == "pod"
+        else spec["containers"][0]["securityContext"]
+    )
     if value is None:
         del context[field]
     else:

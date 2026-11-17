@@ -155,7 +155,9 @@ TES API. It checks, in this order:
    filer's security contexts or the taskmaster and filer images.
 5. A task that runs `sleep` is cancelled once it is `RUNNING`, and the API
    reports it `CANCELED`. tesk-api 2.0.0 (TES 1.1) reports `CANCELING`
-   until the task's jobs have stopped, and `CANCELED` after that.
+   until the task's jobs have stopped, and `CANCELED` after that; earlier
+   versions report `CANCELED` as soon as they have marked the task's
+   taskmaster job as cancelled, while its pods may still be stopping.
 
 The tasks end in `COMPLETE`, `EXECUTOR_ERROR`, `SYSTEM_ERROR`, `CANCELED`
 or `PREEMPTED`; any of them other than the expected one fails the check at

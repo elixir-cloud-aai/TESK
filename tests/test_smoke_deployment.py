@@ -490,7 +490,7 @@ def test_fails_if_input_task_fails(fake: tuple[FakeTes, str]) -> None:
     result = _run(url)
     assert result.returncode == 1
     assert "task task-2 ended SYSTEM_ERROR, expected COMPLETE" in result.stdout
-    assert "deployment check: cancel" not in result.stdout
+    assert "task-3" not in result.stdout
     assert list(state.tasks) == ["task-1", "task-2"]
 
 
