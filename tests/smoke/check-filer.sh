@@ -16,7 +16,10 @@ set -euo pipefail
 filers="$(jq -c '[.items[] | select(.metadata.name | endswith("-inputs-filer"))
     | {name: .metadata.name, succeeded: (.status.succeeded // 0),
        pod: .spec.template.spec.securityContext,
-       container: .spec.template.spec.containers[0].securityContext}]')"
+       container: .spec.template.spec.containers[0].securityContext}]')" || {
+  echo "::error::The input isn't a list of Jobs (kubectl get jobs -o json)"
+  exit 1
+}
 echo "Inputs filer jobs: ${filers}"
 if ! jq -e 'length > 0 and all(.[];
     .succeeded >= 1

@@ -393,11 +393,11 @@ token (`Authorization: Bearer`) for every endpoint except
 description in tesk-api 2.0.0), and the [Swagger UI](#swagger-ui) if it
 is on. tesk-api validates tokens at the user info endpoint of the OIDC
 provider (`auth.userInfoUri`) and authorises users by their groups in a
-claim of the user info, following a group model of nested groups (`auth.groups.*`,
-`auth.envBaseGroup`, `auth.envSubgroup`), or by a claim (see [Authorisation
-by a claim](#authorisation-by-a-claim)); tokens of allow-listed services can
-be checked without the user info (see [Tokens of
-services](#tokens-of-services)). Values left empty use tesk-api's
+claim of the user info, following a group model of nested groups
+(`auth.groups.*`, `auth.envBaseGroup`, `auth.envSubgroup`), or by a claim
+(see [Authorisation by a claim](#authorisation-by-a-claim)); tokens of
+allow-listed services can be checked without the user info (see [Tokens
+of services](#tokens-of-services)). Values left empty use tesk-api's
 defaults, which are those of ELIXIR AAI (`login.elixir-czech.org`, the
 provider before LS Login); for any other provider, set them as in [LS Login
 and other providers](#ls-login-and-other-providers). See the [tesk-api

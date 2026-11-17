@@ -95,6 +95,25 @@ def test_passes_with_hardened_filer() -> None:
     assert "ok: the inputs filer completed" in result.stdout
 
 
+@pytest.mark.parametrize("data", ["", "not JSON"])
+def test_fails_on_other_input(data: str) -> None:
+    """Input that isn't a list of Jobs (e.g., from a failed kubectl) fails.
+
+    Args:
+        data: The input.
+    """
+    result = subprocess.run(  # noqa: S603
+        [str(SCRIPT)],
+        input=data,
+        capture_output=True,
+        text=True,
+        timeout=60,
+        check=False,
+    )
+    assert result.returncode == 1
+    assert "::error::" in result.stdout
+
+
 def test_fails_without_filer() -> None:
     """Without an inputs filer job (no task with inputs ran), it fails."""
     result = _run(_job("task-1"), _job("task-1-ex-00"))
@@ -118,23 +137,26 @@ def test_fails_if_filer_did_not_complete() -> None:
         ("container", "allowPrivilegeEscalation", True),
         ("container", "capabilities", {"drop": ["NET_RAW"]}),
         ("container", "capabilities", None),
+        ("filer", "securityContext", None),
     ],
 )
 def test_fails_without_hardening(part: str, field: str, value: Any) -> None:
     """A filer without one of its hardened defaults fails.
 
     Args:
-        part: `pod` or `container`, the security context to change.
-        field: The field of the security context.
+        part: `pod` or `container`, the security context to change, or
+            `filer`, the container itself.
+        field: The field of the security context, or of the container.
         value: Its new value; None removes it.
     """
     job = _job("task-1-inputs-filer")
     spec = job["spec"]["template"]["spec"]
-    context = (
-        spec["securityContext"]
-        if part == "pod"
-        else spec["containers"][0]["securityContext"]
-    )
+    container = spec["containers"][0]
+    context = {
+        "pod": spec["securityContext"],
+        "container": container["securityContext"],
+        "filer": container,
+    }[part]
     if value is None:
         del context[field]
     else:

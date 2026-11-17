@@ -562,14 +562,19 @@ def tls(tmp_path: Path) -> tuple[Path, Path]:
     return cert, key
 
 
-@pytest.mark.parametrize("auth", [False, True])
-def test_warns_on_open_https_endpoint(tls: tuple[Path, Path], auth: bool) -> None:
+@pytest.mark.parametrize(
+    ("auth", "warned"),
+    [pytest.param(False, True, id="open"), pytest.param(True, False, id="token")],
+)
+def test_https_warning(tls: tuple[Path, Path], auth: bool, warned: bool) -> None:
     """An HTTPS endpoint that serves /tasks without a token gets a warning.
+
+    One that needs a token (which the script then has) gets none.
 
     Args:
         tls: The certificate and key of the server.
-        auth: Whether the endpoint needs a token (and the script has one),
-            which gets no warning.
+        auth: Whether the endpoint needs a token.
+        warned: Whether the script must warn.
     """
     cert, key = tls
     context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
@@ -588,8 +593,8 @@ def test_warns_on_open_https_endpoint(tls: tuple[Path, Path], auth: bool) -> Non
         server.shutdown()
         server.server_close()
     assert result.returncode == 0, result.stdout + result.stderr
-    assert ("serves /tasks without a token" in result.stdout) is not auth
-    assert ("::warning::" in result.stdout) is not auth
+    assert ("serves /tasks without a token" in result.stdout) == warned
+    assert ("::warning::" in result.stdout) == warned
 
 
 def test_no_warning_over_http(fake: tuple[FakeTes, str]) -> None:

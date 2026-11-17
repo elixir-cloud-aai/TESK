@@ -3,13 +3,13 @@
 # wait until the API is ready and check that
 # `GET /ga4gh/tes/v1/service-info` answers (through a port forward; the
 # default Ingress has no controller on kind), then run the check script for
-# deployed instances
-# (`tests/smoke/deployment.sh`, without auth: the default values have
-# `auth.mode: noauth`), which runs two tasks to completion (one with an
-# input, which starts a filer pod) and cancels one, and finally check that
-# the filer's job completed with the filer's hardened defaults
-# (`tests/smoke/check-filer.sh`). Used by the `chart-install` job of
-# `ci.yml` and by `release.yml`. Needs a checkout of the repository.
+# deployed instances (`tests/smoke/deployment.sh`, without auth: the
+# default values have `auth.mode: noauth`), which runs two tasks to
+# completion (one with an input, which starts a filer pod) and cancels one,
+# and finally check that the filer's job completed with the filer's
+# hardened defaults (`tests/smoke/check-filer.sh`). Used by the
+# `chart-install` job of `ci.yml` and by `release.yml`. Needs a checkout of
+# the repository.
 
 name: Install chart
 description: Install the TESK chart on a kind cluster and check the API
