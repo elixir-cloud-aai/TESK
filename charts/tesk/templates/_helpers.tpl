@@ -113,7 +113,7 @@ tags that aren't SemVer versions (e.g., dev, or 1.2.3-) are assumed to be
 newer. Arguments: `tag` and `version` (X.Y.Z) */ -}}
 {{- define "tesk.tagBefore" -}}
 {{- $tag := include "tesk.tagVersion" .tag -}}
-{{- if and (regexMatch (include "tesk.semver" (dict "patch" false)) $tag) (semverCompare (printf "<%s-0" .version) $tag) -}}
+{{- if and (regexMatch (include "tesk.semver" .) $tag) (semverCompare (printf "<%s-0" .version) $tag) -}}
 true
 {{- end -}}
 {{- end -}}
@@ -125,12 +125,18 @@ version before `version` (`tesk.tagBefore`); else empty. Arguments: `root`
 {{- include "tesk.tagBefore" (dict "tag" (include "tesk.apiImageTag" .root) "version" .version) -}}
 {{- end -}}
 
+{{- /* The tag of the taskmaster's image (`tesk.taskmaster.image.tag`), as
+text */ -}}
+{{- define "tesk.taskmasterImageTag" -}}
+{{- toString (dig "taskmaster" "image" "tag" "" .Values.tesk) -}}
+{{- end -}}
+
 {{- /* "true" if the tag of the taskmaster's image
-(`tesk.taskmaster.image.tag`) is a version before `version`
+(`tesk.taskmasterImageTag`) is a version before `version`
 (`tesk.tagBefore`); else empty. Arguments: `root` (the chart's context) and
 `version` (X.Y.Z) */ -}}
 {{- define "tesk.taskmasterBefore" -}}
-{{- include "tesk.tagBefore" (dict "tag" (dig "taskmaster" "image" "tag" "" .root.Values.tesk) "version" .version) -}}
+{{- include "tesk.tagBefore" (dict "tag" (include "tesk.taskmasterImageTag" .root) "version" .version) -}}
 {{- end -}}
 
 {{- /* "true" if the image tags are tesk-api 2.0.0 or later and a taskmaster
@@ -146,14 +152,13 @@ true
 {{- /* A regular expression of the SemVer versions that semverCompare
 reads as written: numbers without leading zeros, and pre-release
 identifiers that are numbers without leading zeros or contain a letter or
-`-`. `patch`: false makes the patch number optional (X.Y), as in tags of
-tesk-api and in `tesk.tagVersion`. Other tags (e.g., dev, 1.2.3-, 01.2.3)
-aren't compared */ -}}
+`-`. The patch number is optional, as in X.Y pre-releases of tesk-api
+(`tesk.tagVersion` turns plain X.Y tags into X.Y.0). Other tags (e.g.,
+dev, 1.2.3-, 01.2.3) aren't compared. Takes no arguments */ -}}
 {{- define "tesk.semver" -}}
 {{- $number := "(0|[1-9][0-9]*)" -}}
 {{- $identifier := "(0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)" -}}
-{{- $patch := ternary (printf "\\.%s" $number) (printf "(\\.%s)?" $number) (ne (toString .patch) "false") -}}
-{{- printf "^%s\\.%s%s(-%s(\\.%s)*)?(\\+[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?$" $number $number $patch $identifier $identifier -}}
+{{- printf "^%s\\.%s(\\.%s)?(-%s(\\.%s)*)?(\\+[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?$" $number $number $number $identifier $identifier -}}
 {{- end -}}
 
 {{- /* Fails if the taskmaster is 0.12.0 or later (also a pre-release) and
@@ -164,9 +169,9 @@ task, which older APIs take for executor jobs, and report wrong task states
 `tesk.tagVersion` (e.g., also when pinned by digest); tags that aren't
 versions aren't checked */ -}}
 {{- define "tesk.checkApiTaskmaster" -}}
-{{- $taskmasterTag := include "tesk.tagVersion" (dig "taskmaster" "image" "tag" "" .Values.tesk) -}}
-{{- if and (regexMatch (include "tesk.semver" (dict "patch" false)) $taskmasterTag) (semverCompare ">=0.12.0-0" $taskmasterTag) (include "tesk.apiBefore" (dict "root" . "version" "2.0.0")) -}}
-{{- fail (printf "tesk.taskmaster.image.tag (%s) needs tesk-api 2.0.0 or later, not %s (tesk.image.tag): older APIs take the filer jobs of taskmaster 0.12.0 and later for executor jobs, and report wrong task states. Upgrade tesk-api, or keep the taskmaster and filer before 0.12.0; see https://tesk.readthedocs.io/en/latest/upgrading/#tesk-api-200-taskmaster-and-filer-0120" (toString (dig "taskmaster" "image" "tag" "" .Values.tesk)) (include "tesk.apiImageTag" .)) -}}
+{{- $taskmasterTag := include "tesk.tagVersion" (include "tesk.taskmasterImageTag" .) -}}
+{{- if and (regexMatch (include "tesk.semver" .) $taskmasterTag) (semverCompare ">=0.12.0-0" $taskmasterTag) (include "tesk.apiBefore" (dict "root" . "version" "2.0.0")) -}}
+{{- fail (printf "tesk.taskmaster.image.tag (%s) needs tesk-api 2.0.0 or later, not %s (tesk.image.tag): older APIs take the filer jobs of taskmaster 0.12.0 and later for executor jobs, and report wrong task states. Upgrade tesk-api, or keep the taskmaster and filer before 0.12.0; see https://tesk.readthedocs.io/en/latest/upgrading/#tesk-api-200-taskmaster-and-filer-0120" (include "tesk.taskmasterImageTag" .) (include "tesk.apiImageTag" .)) -}}
 {{- end -}}
 {{- end -}}
 
@@ -456,7 +461,7 @@ https://tesk.readthedocs.io/en/latest/deployment/#browser-clients-cors
 that aren't versions, e.g., dev, are assumed to be newer) don't run TES
 1.1 tasks as asked, give the filer jobs the FTP credentials as values, and
 ignore the filer's security contexts */ -}}
-{{- $taskmasterTag := toString (dig "taskmaster" "image" "tag" "" .Values.tesk) -}}
+{{- $taskmasterTag := include "tesk.taskmasterImageTag" . -}}
 {{- $oldTaskmaster12 := include "tesk.taskmasterBefore" (dict "root" . "version" "0.12.0") -}}
 {{- if and $oldTaskmaster12 (not (include "tesk.apiBefore" (dict "root" . "version" "2.0.0"))) }}
 

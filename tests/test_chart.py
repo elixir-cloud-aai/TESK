@@ -3710,7 +3710,8 @@ def test_notes(tmp_path: Path) -> None:
     text = notes(tmp_path=tmp_path)
     assert f"release tesk in namespace {NAMESPACE}" in text
     assert "deprecated" not in text
-    assert text.count("WARNING") == 2
+    warnings = [line for line in text.splitlines() if line.startswith("WARNING")]
+    assert len(warnings) == 2, warnings
     assert "WARNING: auth.mode is noauth" in text
     assert "WARNING: hostName is empty, so the Ingress matches" in text
 
@@ -4373,8 +4374,6 @@ def test_image_releases_mismatch(
 # A digest suffix of an image tag (`<tag>@sha256:<hex>`), as operators pin
 # images by digest
 DIGEST = "@sha256:" + "0" * 64
-UPGRADING = CHART.parents[1] / "docs" / "upgrading.md"
-DEPLOYMENT = CHART.parents[1] / "docs" / "deployment.md"
 
 
 @pytest.mark.parametrize(
@@ -4428,14 +4427,17 @@ def test_image_releases_normalised_tags(
 ) -> None:
     """Taskmaster and filer tags are compared without a digest, as X.Y.Z.
 
+    `--set` reads `0.12` as a number, as an unquoted value in a values
+    file; tesk-api gets it as text.
+
     Args:
         taskmaster: The tag of the taskmaster image.
         filer: The tag of the filer image.
         fails: Whether the installation fails.
     """
     args = (
-        *("--set-string", f"tesk.taskmaster.image.tag={taskmaster}"),
-        *("--set-string", f"tesk.filer.image.tag={filer}"),
+        *("--set", f"tesk.taskmaster.image.tag={taskmaster}"),
+        *("--set", f"tesk.filer.image.tag={filer}"),
     )
     if fails:
         with pytest.raises(subprocess.CalledProcessError) as error:
@@ -4519,7 +4521,6 @@ def test_notes_new_api_old_taskmaster(
     anchor = "upgrading/#tesk-api-200-taskmaster-and-filer-0120"
     assert (anchor in text) is warned
     assert ("--reuse-values" in text) is warned
-    assert "### tesk-api 2.0.0, taskmaster and filer 0.12.0" in UPGRADING.read_text()
 
 
 @pytest.mark.parametrize(
@@ -4605,6 +4606,8 @@ HOST = ("--set", "hostName=tes.example.org")
             "a LoadBalancer Service",
         ),
         (NO_INGRESS, None),
+        ((*NO_INGRESS, "--set", "service.type=ClusterIP"), None),
+        (("--set", "service.type=NodePort"), "an Ingress and a NodePort Service"),
         (OPENSHIFT, "an Ingress"),
         (("--set", "auth.mode=auth", "--set", "auth.clientId=client"), None),
         ((*NO_INGRESS, *OPENSHIFT, "--set", "auth.mode=auth"), None),
@@ -4628,22 +4631,21 @@ def test_notes_noauth_exposed(
     if exposure:
         assert f"exposed by {exposure}" in text
         assert "deployment/#authentication-and-authorisation" in text
-    assert "## Authentication and authorisation" in DEPLOYMENT.read_text()
 
 
 @pytest.mark.parametrize(
-    ("args", "warned"),
+    ("args", "effect"),
     [
-        ((), True),
-        (("--set", "hostName="), True),
-        (HOST, False),
-        (NO_INGRESS, False),
-        ((*NO_INGRESS, *OPENSHIFT), True),
-        ((*NO_INGRESS, *OPENSHIFT, *HOST), False),
+        ((), "the Ingress matches requests for every host"),
+        (("--set", "hostName="), "the Ingress matches requests for every host"),
+        (HOST, None),
+        (NO_INGRESS, None),
+        ((*NO_INGRESS, *OPENSHIFT), "OpenShift gives the Route a generated host"),
+        ((*NO_INGRESS, *OPENSHIFT, *HOST), None),
     ],
 )
 def test_notes_empty_host_name(
-    tmp_path: Path, args: tuple[str, ...], warned: bool
+    tmp_path: Path, args: tuple[str, ...], effect: str | None
 ) -> None:
     """The notes warn if an Ingress or a Route gets an empty host name.
 
@@ -4653,12 +4655,46 @@ def test_notes_empty_host_name(
     Args:
         tmp_path: A directory for a copy of the chart.
         args: `helm template` arguments.
-        warned: Whether the notes warn.
+        effect: What the warning says happens, or None if the notes don't
+            warn.
     """
     text = notes(*args, tmp_path=tmp_path)
-    assert ("hostName is empty" in text) is warned
-    assert ("deployment/#exposing-the-api" in text) is warned
-    assert "## Exposing the API" in DEPLOYMENT.read_text()
+    assert ("hostName is empty" in text) is (effect is not None)
+    assert ("deployment/#exposing-the-api" in text) is (effect is not None)
+    if effect:
+        assert f"hostName is empty, so {effect}" in text
+
+
+@pytest.mark.parametrize(
+    ("document", "heading", "anchor"),
+    [
+        (
+            "upgrading.md",
+            "### tesk-api 2.0.0, taskmaster and filer 0.12.0",
+            "upgrading/#tesk-api-200-taskmaster-and-filer-0120",
+        ),
+        (
+            "deployment.md",
+            "## Authentication and authorisation",
+            "deployment/#authentication-and-authorisation",
+        ),
+        ("deployment.md", "## Exposing the API", "deployment/#exposing-the-api"),
+    ],
+)
+def test_notes_doc_anchors(document: str, heading: str, anchor: str) -> None:
+    """The sections that the new warnings link exist, under those anchors.
+
+    Args:
+        document: The file in `docs/`.
+        heading: The section's heading.
+        anchor: The link's path and anchor, as the notes have it.
+    """
+    text = (CHART.parents[1] / "docs" / document).read_text()
+    assert f"\n{heading}\n" in text
+    slug = re.sub(r"[^a-z0-9 -]", "", heading.lstrip("# ").lower()).replace(" ", "-")
+    assert anchor.endswith(f"#{slug}")
+    helpers = (CHART / "templates" / "_helpers.tpl").read_text()
+    assert f"https://tesk.readthedocs.io/en/latest/{anchor}" in helpers
 
 
 def test_package_leaves_out_secrets(tmp_path: Path) -> None:
