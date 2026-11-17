@@ -186,10 +186,11 @@ tests/smoke/deployment.sh http://localhost:8080/ga4gh/tes/v1
 
 - The script sends `TOKEN` over HTTPS only; set `ALLOW_HTTP=true` to send
   it to an `http` URL, e.g., through a port forward.
-- It waits up to `TASK_TIMEOUT` seconds (default 600) for each state of a
-  task; the first task on a node may wait for the images of the
-  taskmaster and the executor (`alpine`) to be pulled, and the task with
-  the input for the filer's image and its PVC.
+- It waits about `TASK_TIMEOUT` seconds (default 600) for each state of a
+  task, polling every 2 s and once more after the last pause, even if that
+  ends past the timeout; the first task on a node may wait for the images
+  of the taskmaster and the executor (`alpine`) to be pulled, and the task
+  with the input for the filer's image and its PVC.
 - `IMAGE` replaces the executor image of the tasks (Alpine, pinned by
   digest), e.g., with an image of a non-root user if
   `tesk.executor.securityContext` sets `runAsNonRoot` but no `runAsUser`,

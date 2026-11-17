@@ -401,6 +401,7 @@ def test_polls_after_last_wait(fake: tuple[FakeTes, str]) -> None:
     assert result.returncode == 0, result.stdout + result.stderr
     assert "ok: task task-1 ended COMPLETE" in result.stdout
     assert "ok: task task-2 ended COMPLETE" in result.stdout
+    assert "ok: task task-3 ended CANCELED" in result.stdout
 
 
 def test_waits_through_transient_states(fake: tuple[FakeTes, str]) -> None:

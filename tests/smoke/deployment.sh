@@ -19,8 +19,9 @@
 #   serves the task list without a token gets a warning
 # - `ALLOW_HTTP=true`: send `TOKEN` to a URL with `http` (e.g., through a
 #   port forward); by default, the token is only sent over HTTPS
-# - `TASK_TIMEOUT`: seconds to wait for each state of a task (default 600;
-#   the first task on a node may wait for image pulls)
+# - `TASK_TIMEOUT`: seconds to wait for each state of a task, give or take
+#   a poll (see `await_state`; default 600; the first task on a node may
+#   wait for image pulls)
 # - `IMAGE`: the image of the tasks' executors, which needs `echo`, `cat`
 #   and `sleep` (default: Alpine, which runs as root; e.g., an image with a
 #   non-root user for executors with `runAsNonRoot` but no `runAsUser`)
