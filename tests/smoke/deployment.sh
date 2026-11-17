@@ -44,7 +44,9 @@ if [[ ! "${task_timeout}" =~ ^[1-9][0-9]*$ ]]; then
   echo "::error::TASK_TIMEOUT must be a positive number of seconds"
   exit 1
 fi
-if [[ -n "${token}" && "${api}" != https://* \
+# The URL's scheme in lower case (schemes are case-insensitive)
+scheme="$(tr '[:upper:]' '[:lower:]' <<< "${api%%:*}")"
+if [[ -n "${token}" && "${scheme}" != https \
     && "${ALLOW_HTTP:-false}" != true ]]; then
   echo "::error::${api} isn't an HTTPS URL: set ALLOW_HTTP=true to send TOKEN to it"
   exit 1
@@ -218,7 +220,7 @@ else
   fi
   check "GET /tasks without a token answers (200)" \
     "" GET '/tasks?view=MINIMAL' 200 '.tasks | type == "array"'
-  if [[ "${api}" == https://* ]]; then
+  if [[ "${scheme}" == https ]]; then
     echo "::warning::${api} serves /tasks without a token: anyone who reaches it can run tasks (see \"Authentication and authorisation\" in docs/deployment.md)"
   fi
 fi

@@ -161,5 +161,6 @@ runs:
         if ! kubectl get jobs -n "${NAMESPACE}" -o json \
             | tests/smoke/check-filer.sh; then
           kubectl get pods,jobs,pvc -n "${NAMESPACE}" || true
+          kubectl get events -n "${NAMESPACE}" --sort-by=.lastTimestamp || true
           exit 1
         fi

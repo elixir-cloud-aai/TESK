@@ -503,6 +503,15 @@ def test_fails_without_input_content(fake: tuple[FakeTes, str]) -> None:
     assert "GET /tasks/task-2?view=FULL: the response doesn't match" in result.stdout
 
 
+def test_fails_with_other_input_content(fake: tuple[FakeTes, str]) -> None:
+    """A task that prints only part of its input's content fails."""
+    state, url = fake
+    state.input_stdout = "tesk-deployment-check-input-\n"
+    result = _run(url)
+    assert result.returncode == 1
+    assert "GET /tasks/task-2?view=FULL: the response doesn't match" in result.stdout
+
+
 def test_preempted_ends_task(fake: tuple[FakeTes, str]) -> None:
     """PREEMPTED ends a task (TES 1.1) without waiting for the timeout."""
     state, url = fake
@@ -563,10 +572,16 @@ def tls(tmp_path: Path) -> tuple[Path, Path]:
 
 
 @pytest.mark.parametrize(
-    ("auth", "warned"),
-    [pytest.param(False, True, id="open"), pytest.param(True, False, id="token")],
+    ("auth", "warned", "scheme"),
+    [
+        pytest.param(False, True, "https", id="open"),
+        pytest.param(False, True, "HTTPS", id="open-upper-case"),
+        pytest.param(True, False, "https", id="token"),
+    ],
 )
-def test_https_warning(tls: tuple[Path, Path], auth: bool, warned: bool) -> None:
+def test_https_warning(
+    tls: tuple[Path, Path], auth: bool, warned: bool, scheme: str
+) -> None:
     """An HTTPS endpoint that serves /tasks without a token gets a warning.
 
     One that needs a token (which the script then has) gets none.
@@ -575,6 +590,7 @@ def test_https_warning(tls: tuple[Path, Path], auth: bool, warned: bool) -> None
         tls: The certificate and key of the server.
         auth: Whether the endpoint needs a token.
         warned: Whether the script must warn.
+        scheme: The scheme of the URL, in any case.
     """
     cert, key = tls
     context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
@@ -585,7 +601,7 @@ def test_https_warning(tls: tuple[Path, Path], auth: bool, warned: bool) -> None
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
     try:
-        url = f"https://127.0.0.1:{server.server_port}{BASE}"
+        url = f"{scheme}://127.0.0.1:{server.server_port}{BASE}"
         env = {"CURL_CA_BUNDLE": str(cert)}
         if auth:
             env["TOKEN"] = TOKEN
