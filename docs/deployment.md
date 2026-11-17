@@ -211,9 +211,17 @@ integration](development.md#continuous-integration)).
 
 ## Exposing the API
 
-With the default values, the chart creates an Ingress (`ingress.enabled`), but
-without a host name and an Ingress class it isn't reachable from outside the
-cluster. Choose one of the following.
+With the default values, the chart creates an Ingress (`ingress.enabled`)
+without a host name (`hostName`), an Ingress class (`ingress.className`) or
+TLS (`ingress.tlsSecretName`). An Ingress rule without a host matches every
+host name: the Ingress controller that takes the Ingress serves the API at
+`ingress.path` to every request that reaches it, under any host name or IP
+address, over plain HTTP. The notes of `helm install` and `helm upgrade` warn
+about an empty `hostName`. Without a class, the Ingress goes to the cluster's
+default Ingress class; on a cluster without one, it depends on the
+controller whether the Ingress is served at all (many ignore Ingresses
+without a class). Set at least `hostName` (see [Ingress](#ingress)), or
+switch the Ingress off and use one of the other options below.
 
 ### Ingress
 
