@@ -140,16 +140,29 @@ TES API. It checks, in this order:
    without a token and with an invalid one are refused (401), and requests
    with the token answer. Without `TOKEN`, these checks are skipped, for
    instances with `auth.mode: noauth`; the script then stops with a hint if
-   the instance needs a token.
+   the instance needs a token, and warns if an `https` URL serves the task
+   list without one (see [Authentication and
+   authorisation](#authentication-and-authorisation)).
 3. A task that runs `echo` ends `COMPLETE`, with exit code 0 and its output
    in the executor's log (`GET /tasks/{id}?view=FULL`).
-4. A task that runs `sleep` is cancelled once it is `RUNNING`, and the API
-   reports it `CANCELED`. tesk-api reports this as soon as it has marked
-   the task's taskmaster job as cancelled; that the pods of the task stop
-   is up to the taskmaster, which the script can't see from outside.
+4. A task with an input ends `COMPLETE`, with the input's content in the
+   executor's log. The input has its content inline (no URL), so it needs
+   no network and no storage backend, but it gets a PVC (of
+   `storageClass`, or the cluster's default class) and starts the inputs
+   filer, a pod with the filer's security contexts (`tesk.filer.*`) that
+   writes the input to the PVC. This is the check that filer pods are
+   admitted and can write to the task's PVC, e.g., after changing the
+   filer's security contexts or the taskmaster and filer images.
+5. A task that runs `sleep` is cancelled once it is `RUNNING`, and the API
+   reports it `CANCELED`. tesk-api 2.0.0 (TES 1.1) reports `CANCELING`
+   until the task's jobs have stopped, and `CANCELED` after that; earlier
+   versions report `CANCELED` as soon as they have marked the task's
+   taskmaster job as cancelled, while its pods may still be stopping.
 
-While it waits for a state, `SYSTEM_ERROR` only counts as the end of a
-task once it has lasted 10 seconds, as tesk-api reports it for a moment
+The tasks end in `COMPLETE`, `EXECUTOR_ERROR`, `SYSTEM_ERROR`, `CANCELED`
+or `PREEMPTED`; any of them other than the expected one fails the check at
+once. While it waits for a state, `SYSTEM_ERROR` only counts as the end of
+a task once it has lasted 10 seconds, as tesk-api reports it for a moment
 while Kubernetes updates the status of a task's jobs.
 
 It prints one line per check and stops with a non-zero exit code at the
@@ -175,21 +188,26 @@ tests/smoke/deployment.sh http://localhost:8080/ga4gh/tes/v1
   it to an `http` URL, e.g., through a port forward.
 - It waits up to `TASK_TIMEOUT` seconds (default 600) for each state of a
   task; the first task on a node may wait for the images of the
-  taskmaster, the filer and the executor (`alpine`) to be pulled.
+  taskmaster and the executor (`alpine`) to be pulled, and the task with
+  the input for the filer's image and its PVC.
 - `IMAGE` replaces the executor image of the tasks (Alpine, pinned by
   digest), e.g., with an image of a non-root user if
   `tesk.executor.securityContext` sets `runAsNonRoot` but no `runAsUser`,
-  which Alpine's root user doesn't pass. It needs `echo` and `sleep`.
-- The two tasks (named `deployment check: complete` and `deployment
-  check: cancel`) stay in the namespace, as the TES API can't delete tasks:
+  which Alpine's root user doesn't pass. It needs `echo`, `cat` and
+  `sleep`.
+- The three tasks (named `deployment check: complete`, `deployment check:
+  input` and `deployment check: cancel`) stay in the namespace, as the TES
+  API can't delete tasks:
   see [Deleting finished tasks](#deleting-finished-tasks). If the script
   stops early, it cancels the task that hasn't ended yet (and warns if
   that fails). With a `tesk.taskTtlSeconds` of less than a few minutes,
   a task can be gone from the API before the script has read its final
   state and logs, and the check fails.
 
-CI runs the script against the chart's default values on a kind cluster
-(see [Continuous integration](development.md#continuous-integration)).
+CI runs the script against the chart's default values on a kind cluster,
+and checks that the inputs filer's job completed with the filer's default
+security contexts (see [Continuous
+integration](development.md#continuous-integration)).
 
 ## Exposing the API
 
@@ -255,8 +273,9 @@ tesk:
 ```
 
 By default, the API's pod asks for the `RuntimeDefault` seccomp profile
-(`tesk.podSecurityContext.seccompProfile`). Some clusters set their own
-seccomp profile for pods and reject pods that ask for another one: there,
+(`tesk.podSecurityContext.seccompProfile`). Some clusters (e.g., CSC
+Rahti) set their own seccomp profile for pods and reject pods that ask
+for another one: there,
 the API's Deployment gets no pod, and the events of its ReplicaSet
 (`kubectl describe replicaset --namespace tesk -l
 app.kubernetes.io/instance=tesk`) name the seccomp profile as the reason.
@@ -285,7 +304,7 @@ helm template tesk charts/tesk --namespace tesk \
 This covers the API's pod only. The filer pods of taskmaster and filer
 0.12.0, the chart's default, ask for the `RuntimeDefault` profile too (see
 the [filer's pod security](tesk-core/filer.md#pod-security)); on such
-clusters, replace the filer's pod security context:
+clusters, e.g., CSC Rahti, replace the filer's pod security context:
 
 ```yaml
 tesk:
@@ -299,8 +318,10 @@ the taskmaster's defaults for the filer's pod and container (repeat those
 that you want to keep; `{}` leaves a context out; set each context in one
 values file, as Helm merges maps of several). The chart passes them on as
 they are; the taskmaster checks them for each task, and logs an invalid
-one and uses its default instead. So run a task with an input after the
-upgrade, which starts a filer pod, and check that it ends `COMPLETE`.
+one and uses its default instead. Otherwise, only tasks with inputs or
+outputs fail (tasks without them start no filer). So check the deployment
+after the upgrade (see [Checking a deployment](#checking-a-deployment)):
+its task with an input starts a filer pod and must end `COMPLETE`.
 
 ## Storage backends
 
@@ -362,18 +383,21 @@ namespace can use S3.
 
 ## Authentication and authorisation
 
-By default (`auth.mode: noauth`), all endpoints are open. With `auth.mode:
-auth`, the API requires an OIDC access token (`Authorization: Bearer`) for
-every endpoint except `GET /service-info`, which stays public unless
-`auth.serviceInfoPublic` is `false` (tesk-api 1.2.0 or later), the API
-description (`GET /v3/api-docs`; `/v2/api-docs` before tesk-api 2.0.0), and
-the [Swagger UI](#swagger-ui) if it is on. tesk-api validates tokens at
-the user info endpoint of the OIDC provider (`auth.userInfoUri`) and authorises users by their groups in a claim of the
-user info, following a group model of nested groups (`auth.groups.*`,
-`auth.envBaseGroup`, `auth.envSubgroup`), or by a claim (see [Authorisation
-by a claim](#authorisation-by-a-claim)); tokens of allow-listed services can
-be checked without the user info (see [Tokens of
-services](#tokens-of-services)). Values left empty use tesk-api's
+By default (`auth.mode: noauth`), all endpoints are open: use it only on
+local or trusted networks, as anyone who reaches the API can run tasks in
+the cluster. With `auth.mode: auth`, the API requires an OIDC access
+token (`Authorization: Bearer`) for every endpoint except
+`GET /service-info`, which stays public unless `auth.serviceInfoPublic` is
+`false` (tesk-api 1.2.0 or later), the API description
+(`GET /v3/api-docs`, and `/v2/api-docs`, which serves the same OpenAPI 3
+description in tesk-api 2.0.0), and the [Swagger UI](#swagger-ui) if it
+is on. tesk-api validates tokens at the user info endpoint of the OIDC
+provider (`auth.userInfoUri`) and authorises users by their groups in a
+claim of the user info, following a group model of nested groups
+(`auth.groups.*`, `auth.envBaseGroup`, `auth.envSubgroup`), or by a claim
+(see [Authorisation by a claim](#authorisation-by-a-claim)); tokens of
+allow-listed services can be checked without the user info (see [Tokens
+of services](#tokens-of-services)). Values left empty use tesk-api's
 defaults, which are those of ELIXIR AAI (`login.elixir-czech.org`, the
 provider before LS Login); for any other provider, set them as in [LS Login
 and other providers](#ls-login-and-other-providers). See the [tesk-api
