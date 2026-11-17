@@ -3,11 +3,13 @@
 # wait until the API is ready and check that
 # `GET /ga4gh/tes/v1/service-info` answers (through a port forward; the
 # default Ingress has no controller on kind), then run the check script for
-# deployed instances
-# (`tests/smoke/deployment.sh`, without auth: the default values have
-# `auth.mode: noauth`), which runs a task to completion and cancels one.
-# Used by the `chart-install` job of `ci.yml` and by `release.yml`. Needs a
-# checkout of the repository.
+# deployed instances (`tests/smoke/deployment.sh`, without auth: the
+# default values have `auth.mode: noauth`), which runs two tasks to
+# completion (one with an input, which starts a filer pod) and cancels one,
+# and finally check that the filer's job completed with the filer's
+# hardened defaults (`tests/smoke/check-filer.sh`). Used by the
+# `chart-install` job of `ci.yml` and by `release.yml`. Needs a checkout of
+# the repository.
 
 name: Install chart
 description: Install the TESK chart on a kind cluster and check the API
@@ -140,10 +142,25 @@ runs:
         if ! tests/smoke/deployment.sh "${url}"; then
           cat "${log}" || true
           kubectl get pods,jobs,pvc -n "${NAMESPACE}" || true
+          kubectl get events -n "${NAMESPACE}" --sort-by=.lastTimestamp || true
           for pod in $(kubectl get pods -n "${NAMESPACE}" -o name || true); do
             echo "::group::${pod}"
             kubectl logs -n "${NAMESPACE}" "${pod}" --all-containers --tail=50 || true
             echo "::endgroup::"
           done
+          exit 1
+        fi
+    # The task with an input started the inputs filer; its job must have
+    # completed, with the filer's hardened defaults of taskmaster 0.12.0
+    # (the chart's `tesk.filer.*` contexts are empty by default)
+    - name: Check filer
+      env:
+        NAMESPACE: ${{ inputs.namespace }}
+      shell: bash
+      run: |
+        if ! kubectl get jobs -n "${NAMESPACE}" -o json \
+            | tests/smoke/check-filer.sh; then
+          kubectl get pods,jobs,pvc -n "${NAMESPACE}" || true
+          kubectl get events -n "${NAMESPACE}" --sort-by=.lastTimestamp || true
           exit 1
         fi
