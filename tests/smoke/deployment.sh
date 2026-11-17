@@ -194,7 +194,7 @@ await_state() {
     sleep 2
   done
   request "${token}" GET "/tasks/${id}?view=FULL"
-  fail "task ${id} is ${state} after ${task_timeout} s, expected ${wanted}"
+  fail "task ${id} is ${state:-unknown} after ${task_timeout} s, expected ${wanted}"
 }
 
 echo "Checking the TES API at ${api}"
