@@ -4539,17 +4539,45 @@ def test_notes_new_api_old_taskmaster_existing_config_map(tmp_path: Path) -> Non
 
 
 @pytest.mark.parametrize("component", ["taskmaster", "filer"])
-def test_image_tag_numbers(component: str) -> None:
-    """Taskmaster and filer tags that are numbers fail, asking for quotes.
+@pytest.mark.parametrize(
+    ("option", "value"),
+    [
+        ("--set-json", "0.10"),
+        # An integer, as `--set` reads it
+        ("--set", "12"),
+        ("--set", "true"),
+    ],
+)
+def test_image_tag_numbers(component: str, option: str, value: str) -> None:
+    """Taskmaster and filer tags that aren't text fail, asking for quotes.
 
-    YAML reads an unquoted 0.10 as 0.1, which would name another image.
+    YAML reads an unquoted 0.10 as 0.1 (and 010 as 8), which would name
+    another image.
 
     Args:
         component: `taskmaster` or `filer`.
+        option: The `helm template` option that sets the tag.
+        value: The tag.
     """
     with pytest.raises(subprocess.CalledProcessError) as error:
-        render("--set-json", f"tesk.{component}.image.tag=0.10")
-    assert f"tesk.{component}.image.tag is a number: quote it" in error.value.stderr
+        render(option, f"tesk.{component}.image.tag={value}")
+    assert (
+        f"tesk.{component}.image.tag is a number or another non-text value: quote it"
+        in error.value.stderr
+    )
+
+
+def test_image_tag_octal_values_file(tmp_path: Path) -> None:
+    """An unquoted octal-looking tag in a values file fails too.
+
+    Args:
+        tmp_path: A directory for the values file.
+    """
+    values = tmp_path / "values.yaml"
+    values.write_text("tesk:\n  taskmaster:\n    image:\n      tag: 010\n")
+    with pytest.raises(subprocess.CalledProcessError) as error:
+        render("-f", str(values))
+    assert "tesk.taskmaster.image.tag is a number" in error.value.stderr
 
 
 @pytest.mark.parametrize(

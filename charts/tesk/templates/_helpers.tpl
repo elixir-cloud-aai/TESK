@@ -331,15 +331,16 @@ them 0.11.0 or later: from 0.11.0 on, the filer must be of the taskmaster's
 release, and a task with another one fails. Release tags are compared as
 `tesk.tagVersion` (`v0.11.0` and `0.11.0@sha256:...` are `0.11.0`);
 releases up to v0.10.6 could be mixed, and tags that aren't release
-versions (e.g., `dev`) aren't checked. Also fails if a tag is a number
+versions (e.g., `dev`) aren't checked. Also fails if a tag isn't text, e.g., a number
 (unquoted in a values file), as YAML reads, e.g., 0.10 as 0.1, which would
-name another image.
+name another image (and 010 as 8).
 */}}
 {{- define "tesk.checkImageReleases" -}}
 {{- $tags := dict -}}
 {{- range $component := list "taskmaster" "filer" -}}
-{{- if kindIs "float64" (dig $component "image" "tag" "" $.Values.tesk) -}}
-{{- fail (printf "tesk.%s.image.tag is a number: quote it in the values file (e.g., \"0.12\") or use --set-string, as YAML reads, e.g., 0.10 as 0.1" $component) -}}
+{{- $rawTag := dig $component "image" "tag" "" $.Values.tesk -}}
+{{- if not (or (kindIs "string" $rawTag) (kindIs "invalid" $rawTag)) -}}
+{{- fail (printf "tesk.%s.image.tag is a number or another non-text value: quote it in the values file (e.g., \"0.12\") or use --set-string, as YAML reads, e.g., 0.10 as 0.1 and 010 as 8" $component) -}}
 {{- end -}}
 {{- $_ := set $tags $component (toString (dig $component "image" "tag" "" $.Values.tesk)) -}}
 {{- end -}}
