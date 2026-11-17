@@ -68,11 +68,11 @@ spec:
         - name: TESK_API_TASKMASTER_IMAGE_NAME
           value: {{ dig "taskmaster" "image" "repository" "" $tesk }}
         - name: TESK_API_TASKMASTER_IMAGE_VERSION
-          value: {{ dig "taskmaster" "image" "tag" "" $tesk }}
+          value: {{ dig "taskmaster" "image" "tag" "" $tesk | toString | quote }}
         - name: TESK_API_TASKMASTER_FILER_IMAGE_NAME
           value: {{ dig "filer" "image" "repository" "" $tesk }}
         - name: TESK_API_TASKMASTER_FILER_IMAGE_VERSION
-          value: {{ dig "filer" "image" "tag" "" $tesk }}
+          value: {{ dig "filer" "image" "tag" "" $tesk | toString | quote }}
         - name: TESK_API_K8S_NAMESPACE
           value: {{ .Release.Namespace }}
         {{- if $executorSecurityContext }}

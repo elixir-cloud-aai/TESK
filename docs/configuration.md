@@ -31,7 +31,7 @@ take any keys.
 | --- | --- | --- |
 | `nameOverride` | `""` | Replaces the chart's name (`tesk`) in the names of the objects and in the label `app.kubernetes.io/name` (see [Names of the objects](#names-of-the-objects)). |
 | `fullnameOverride` | `""` | Replaces the prefix of the names of the objects (see [Names of the objects](#names-of-the-objects)). |
-| `hostName` | `""` | Host name (FQDN) of the API, for the Ingress or the OpenShift Route. |
+| `hostName` | `""` | Host name (FQDN) of the API, for the Ingress or the OpenShift Route. Empty gives the Ingress a rule for every host name, and the Route a generated one: the notes warn. |
 | `storageClass` | empty | Storage class of the tasks' PVCs; empty uses the cluster's default storage class. |
 | `storage` | `none` | `s3` creates the secret `aws-secret` from `charts/tesk/s3-config/` (see [S3](deployment.md#s3)); `openstack` creates a default storage class `<prefix>-gold` for OpenStack Cinder (one release per cluster may do so). Anything else adds nothing. |
 
@@ -45,11 +45,11 @@ take any keys.
 | `tesk.port` | `8080` | Port of the API's container and Service. |
 | `tesk.tesApiBasePath` | `/ga4gh/tes/v1` | Base path of the TES API; empty uses tesk-api's default. |
 | `tesk.taskmaster.image.repository` | `docker.io/elixircloud/tesk-core-taskmaster` | Image of the taskmaster (tesk-core), without its tag. |
-| `tesk.taskmaster.image.tag` | `0.12.0` | Tag of the taskmaster image. 0.12.0 and later need tesk-api 2.0.0 or later (`tesk.image.tag`): the installation fails with an older one (see [Upgrading](upgrading.md#tesk-api-200-taskmaster-and-filer-0120)). |
+| `tesk.taskmaster.image.tag` | `0.12.0` | Tag of the taskmaster image (quote X.Y tags, e.g., `"0.12"`: a number fails the installation, as YAML reads 0.10 as 0.1). 0.12.0 and later need tesk-api 2.0.0 or later (`tesk.image.tag`): the installation fails with an older one (see [Upgrading](upgrading.md#tesk-api-200-taskmaster-and-filer-0120)). |
 | `tesk.filer.image.repository` | `docker.io/elixircloud/tesk-core-filer` | Image of the filer (tesk-core), without its tag. |
-| `tesk.filer.image.tag` | `0.12.0` | Tag of the filer image; the same release as the taskmaster's (with or without `v`). Different releases fail the installation if one of them is 0.11.0 or later; tags that aren't release versions (e.g., `dev`) aren't checked. |
-| `tesk.filer.podSecurityContext` | `null` | Security context of the filer's pods (fields of a Kubernetes `PodSecurityContext`), which replaces the taskmaster's default (from 0.12.0 on: `runAsNonRoot: true` and the `RuntimeDefault` seccomp profile); `{}` leaves it out, null keeps the default. E.g., `runAsNonRoot: true` alone on clusters that refuse pods asking for `RuntimeDefault` (see [Deployment](deployment.md#openshift-and-other-restricted-clusters)). Needs taskmaster 0.12.0 or later; older ones ignore it. Merged with the same map of earlier values files or of `--reuse-values`, as all maps are: set the whole context in one place. |
-| `tesk.filer.securityContext` | `null` | Security context of the filer's container (fields of a Kubernetes `SecurityContext`), which replaces the taskmaster's default (from 0.12.0 on: no privilege escalation and capabilities, a read-only root filesystem); `{}` leaves it out, null keeps the default. Needs taskmaster 0.12.0 or later. Merged with the same map of earlier values files or of `--reuse-values`, as all maps are: set the whole context in one place. |
+| `tesk.filer.image.tag` | `0.12.0` | Tag of the filer image (quoted, as the taskmaster's); the same release as the taskmaster's (with or without `v`). Different releases fail the installation if one of them is 0.11.0 or later; tags that aren't release versions (e.g., `dev`) aren't checked. |
+| `tesk.filer.podSecurityContext` | `null` | Security context of the filer's pods (fields of a Kubernetes `PodSecurityContext`), which replaces the taskmaster's default (from 0.12.0 on: `runAsNonRoot: true` and the `RuntimeDefault` seccomp profile); `{}` leaves it out, null keeps the default. E.g., `runAsNonRoot: true` alone on clusters that refuse pods asking for `RuntimeDefault` (see [Deployment](deployment.md#openshift-and-other-restricted-clusters)). Needs taskmaster 0.12.0 or later; older ones ignore it, and the notes warn. Merged with the same map of earlier values files or of `--reuse-values`, as all maps are: set the whole context in one place. |
+| `tesk.filer.securityContext` | `null` | Security context of the filer's container (fields of a Kubernetes `SecurityContext`), which replaces the taskmaster's default (from 0.12.0 on: no privilege escalation and capabilities, a read-only root filesystem); `{}` leaves it out, null keeps the default. Needs taskmaster 0.12.0 or later; older ones ignore it, and the notes warn. Merged with the same map of earlier values files or of `--reuse-values`, as all maps are: set the whole context in one place. |
 | `tesk.executor.securityContext` | `{}` | Security context of the executors' pods: `runAsUser`, `runAsGroup`, `fsGroup` (integers from 0 to 2147483647) and `runAsNonRoot` (`true` or `false`); other fields fail the schema check. Empty leaves the executors as their images say. Applies only to the executors, not to the API (`tesk.podSecurityContext`, `tesk.securityContext`), the taskmasters or the filers. See [Executors as non-root users](deployment.md#executors-as-non-root-users). |
 | `tesk.debug` | `false` | Debug logging in the taskmasters. |
 | `tesk.executorRetries` | `2` | Retries of an executor's job on errors (its `backoffLimit`). |
@@ -185,8 +185,11 @@ but YAML reads unquoted numbers in values files as numbers first: quote
 text that looks like a number (e.g., `id: "1.10"`, which would otherwise
 become `1.1`). The chart sets two fields itself:
 `type` (group `org.ga4gh`, artifact `tes`, and the TES version that
-tesk-api implements: `1.1.0` from tesk-api 2.0.0 on, also for tags that
-aren't versions, e.g., `dev`, and `1.0.0` before; the ConfigMap holds the
+TESK runs: `1.1.0` from tesk-api 2.0.0 and taskmaster 0.12.0 on, also for
+tags that aren't versions, e.g., `dev`, and `1.0.0` before, also for
+tesk-api 2.0.0 with an older taskmaster, which can't run TES 1.1 tasks as
+asked; tags pinned by digest, e.g., `2.0.0@sha256:…`, count by their
+version; the ConfigMap holds the
 artifact as `TES`, the form that tesk-api reads, and tesk-api serves it as
 `tes`) and
 `version` (the tag of tesk-api's image, `tesk.image.tag`, by default the
@@ -231,7 +234,7 @@ serviceInfo:
 
 | Value | Default | Description |
 | --- | --- | --- |
-| `ftp.classicFtpSecret` | null | Name of the secret with the FTP username and password, created from `ftp.username` and `ftp.password` if one of them is set (none without credentials); null uses `<prefix>-ftp`, empty or `false` creates none. |
+| `ftp.classicFtpSecret` | null | Name of the secret with the FTP username and password, created from `ftp.username` and `ftp.password` if one of them is set (none without credentials); null uses `<prefix>-ftp`, empty or `false` creates none. Taskmasters before 0.12.0 give the filer jobs the credentials as values instead of referencing the secret: the notes warn. |
 | `ftp.netrcSecret` | empty | Name of the secret with a `.netrc` file, created from `charts/tesk/ftp/.netrc`; empty creates none. |
 | `ftp.hosts` | `[]` | Hosts that the filer sends the credentials of `ftp.classicFtpSecret` to, e.g. `[ftp.example.org]` (see below); empty sends them to no host. Not needed for `.netrc`. |
 | `ftp.username` | none | FTP username (put it into `secrets.yaml`). If neither a username nor a password is set, the chart creates no FTP secret, and tesk-api gets none; either one creates it. |
@@ -322,7 +325,7 @@ of Helm charts (`app.kubernetes.io/version`, `app.kubernetes.io/managed-by`,
 | `secrets.yaml` (passed with `-f`) | `ftp.username`, `ftp.password`, `auth.clientId`. |
 | `charts/tesk/ftp/.netrc` | FTP credentials as a `.netrc` file, with `ftp.netrcSecret`. |
 | `charts/tesk/s3-config/config`, `credentials` | S3 configuration and credentials, with `storage: s3`. |
-| `charts/tesk/tls-secret.yaml-TEMPLATE` | Template of a TLS secret, if you create it yourself. |
+| `charts/tesk/tls-secret.yaml-TEMPLATE` | Template of a TLS secret, if you create it yourself: copy it to `charts/tesk/tls-secret.yaml`, which Git and `helm package` leave out, and apply it with kubectl. |
 
 The chart quotes the four `secrets.yaml` values, so any character is allowed and a numeric value (e.g., a numeric client ID) becomes a string. Numbers of 2^53 or more can't be read exactly from a values file: quote them (`"12345678901234567890"`) or use `--set-string`. Quote IDs with leading zeros or in hex or exponent form too, because YAML reads them as other numbers. The files are used as they are.
 
