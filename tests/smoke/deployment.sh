@@ -151,11 +151,15 @@ create_task() {
 # status of a task's jobs (e.g., right after the task was created, or when
 # its taskmaster ends), so SYSTEM_ERROR only counts as an end once it has
 # lasted `system_error_grace` seconds. Clears `running` once the task has
-# ended in another state than SYSTEM_ERROR
+# ended in another state than SYSTEM_ERROR. `SECONDS` counts whole seconds
+# of the clock, so the deadline may come up to a second early; the state is
+# therefore checked once more after the last wait, even if that wait ends
+# after the deadline, so that a task that got there in time isn't reported
+# as late
 await_state() {
   local id="$1" wanted="$2" state="" final ended since=""
   local deadline=$((SECONDS + task_timeout))
-  while ((SECONDS < deadline)); do
+  while true; do
     check "" "${token}" GET "/tasks/${id}?view=MINIMAL" 200 '.state | type == "string"'
     state="$(jq -r .state "${body}")"
     ended=false
@@ -183,10 +187,13 @@ await_state() {
       request "${token}" GET "/tasks/${id}?view=FULL"
       fail "task ${id} ended ${state}, expected ${wanted}"
     fi
+    if ((SECONDS >= deadline)); then
+      break
+    fi
     sleep 2
   done
   request "${token}" GET "/tasks/${id}?view=FULL"
-  fail "task ${id} is ${state:-unknown} after ${task_timeout} s, expected ${wanted}"
+  fail "task ${id} is ${state} after ${task_timeout} s, expected ${wanted}"
 }
 
 echo "Checking the TES API at ${api}"

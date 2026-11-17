@@ -387,6 +387,22 @@ def test_cancels_task_on_timeout(fake: tuple[FakeTes, str]) -> None:
     assert state.cancels == ["task-3", "task-3"]
 
 
+def test_polls_after_last_wait(fake: tuple[FakeTes, str]) -> None:
+    """A task that ends while the script waits past the timeout passes.
+
+    The script polls every 2 s and counts whole seconds, so with a timeout
+    of 2 s the second poll always comes after the deadline: it must still
+    happen. Without it, the time left for a state varied by up to a second
+    with the start's fraction of a second, which made tests with short
+    timeouts flaky.
+    """
+    _, url = fake
+    result = _run(url, TASK_TIMEOUT="2")
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "ok: task task-1 ended COMPLETE" in result.stdout
+    assert "ok: task task-2 ended COMPLETE" in result.stdout
+
+
 def test_waits_through_transient_states(fake: tuple[FakeTes, str]) -> None:
     """INITIALIZING, QUEUED and a SYSTEM_ERROR of a moment don't end a task."""
     state, url = fake
