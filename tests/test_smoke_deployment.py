@@ -387,6 +387,35 @@ def test_cancels_task_on_timeout(fake: tuple[FakeTes, str]) -> None:
     assert state.cancels == ["task-3", "task-3"]
 
 
+def test_polls_after_last_wait(fake: tuple[FakeTes, str], tmp_path: Path) -> None:
+    """A task that ends while the script waits past the timeout passes.
+
+    A `sleep` on the PATH that pauses one second longer than the timeout
+    makes the second poll always come after the deadline, while the first
+    poll has seconds to spare: the second poll must still happen. Without
+    it, the time left for a state varied by up to a second with the start's
+    fraction of a second (the script counts whole seconds), which made tests
+    with short timeouts flaky.
+
+    Args:
+        fake: The fake TES API.
+        tmp_path: A directory for the `sleep` that replaces the system's.
+    """
+    _, url = fake
+    timeout = 4
+    real_sleep = shutil.which("sleep")
+    assert real_sleep
+    sleep = tmp_path / "sleep"
+    sleep.write_text(f'#!/bin/sh\nexec "{real_sleep}" {timeout + 1}\n')
+    sleep.chmod(0o755)
+    path = f"{tmp_path}{os.pathsep}{os.environ.get('PATH', '')}"
+    result = _run(url, TASK_TIMEOUT=str(timeout), PATH=path)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "ok: task task-1 ended COMPLETE" in result.stdout
+    assert "ok: task task-2 ended COMPLETE" in result.stdout
+    assert "ok: task task-3 ended CANCELED" in result.stdout
+
+
 def test_waits_through_transient_states(fake: tuple[FakeTes, str]) -> None:
     """INITIALIZING, QUEUED and a SYSTEM_ERROR of a moment don't end a task."""
     state, url = fake

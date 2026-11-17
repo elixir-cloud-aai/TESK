@@ -19,8 +19,9 @@
 #   serves the task list without a token gets a warning
 # - `ALLOW_HTTP=true`: send `TOKEN` to a URL with `http` (e.g., through a
 #   port forward); by default, the token is only sent over HTTPS
-# - `TASK_TIMEOUT`: seconds to wait for each state of a task (default 600;
-#   the first task on a node may wait for image pulls)
+# - `TASK_TIMEOUT`: seconds to wait for each state of a task, give or take
+#   a poll (see `await_state`; default 600; the first task on a node may
+#   wait for image pulls)
 # - `IMAGE`: the image of the tasks' executors, which needs `echo`, `cat`
 #   and `sleep` (default: Alpine, which runs as root; e.g., an image with a
 #   non-root user for executors with `runAsNonRoot` but no `runAsUser`)
@@ -151,11 +152,15 @@ create_task() {
 # status of a task's jobs (e.g., right after the task was created, or when
 # its taskmaster ends), so SYSTEM_ERROR only counts as an end once it has
 # lasted `system_error_grace` seconds. Clears `running` once the task has
-# ended in another state than SYSTEM_ERROR
+# ended in another state than SYSTEM_ERROR. `SECONDS` counts whole seconds
+# of the clock, so the deadline may come up to a second early; the state is
+# therefore checked once more after the last wait, even if that wait ends
+# after the deadline, so that a task that got there in time isn't reported
+# as late
 await_state() {
   local id="$1" wanted="$2" state="" final ended since=""
   local deadline=$((SECONDS + task_timeout))
-  while ((SECONDS < deadline)); do
+  while true; do
     check "" "${token}" GET "/tasks/${id}?view=MINIMAL" 200 '.state | type == "string"'
     state="$(jq -r .state "${body}")"
     ended=false
@@ -182,6 +187,9 @@ await_state() {
     if [[ "${ended}" == true ]]; then
       request "${token}" GET "/tasks/${id}?view=FULL"
       fail "task ${id} ended ${state}, expected ${wanted}"
+    fi
+    if ((SECONDS >= deadline)); then
+      break
     fi
     sleep 2
   done

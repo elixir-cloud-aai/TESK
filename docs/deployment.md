@@ -186,10 +186,11 @@ tests/smoke/deployment.sh http://localhost:8080/ga4gh/tes/v1
 
 - The script sends `TOKEN` over HTTPS only; set `ALLOW_HTTP=true` to send
   it to an `http` URL, e.g., through a port forward.
-- It waits up to `TASK_TIMEOUT` seconds (default 600) for each state of a
-  task; the first task on a node may wait for the images of the
-  taskmaster and the executor (`alpine`) to be pulled, and the task with
-  the input for the filer's image and its PVC.
+- It waits about `TASK_TIMEOUT` seconds (default 600) for each state of a
+  task, polling every 2 s and once more after the last pause, even if that
+  ends past the timeout; the first task on a node may wait for the images
+  of the taskmaster and the executor (`alpine`) to be pulled, and the task
+  with the input for the filer's image and its PVC.
 - `IMAGE` replaces the executor image of the tasks (Alpine, pinned by
   digest), e.g., with an image of a non-root user if
   `tesk.executor.securityContext` sets `runAsNonRoot` but no `runAsUser`,
@@ -211,9 +212,24 @@ integration](development.md#continuous-integration)).
 
 ## Exposing the API
 
-With the default values, the chart creates an Ingress (`ingress.enabled`), but
-without a host name and an Ingress class it isn't reachable from outside the
-cluster. Choose one of the following.
+With the default values, the chart creates an Ingress (`ingress.enabled`)
+without a host name (`hostName`), an Ingress class (`ingress.className`) or
+TLS (`ingress.tlsSecretName`). An Ingress rule without a host matches every
+host name: the Ingress controller that takes the Ingress serves the API at
+`ingress.path` to every request that reaches it, under any host name or IP
+address, without a TLS certificate of its own (over plain HTTP, or with the
+controller's default certificate). The notes of `helm install` and `helm
+upgrade` warn about an empty `hostName`. Without a class, the Ingress goes to
+the cluster's default Ingress class; on a cluster without one, it depends on
+the controller whether the Ingress is served at all (many ignore Ingresses
+without a class). Set `hostName` (see [Ingress](#ingress)), or switch the
+Ingress off and use one of the other options below.
+
+`hostName` only routes requests: it doesn't keep anyone out. As the default
+`auth.mode` is `noauth`, anyone who reaches an exposed API, under its host
+name or otherwise, can run tasks. Set `auth.mode: auth` for an API that is
+reachable from outside the cluster, or restrict who can reach it (see
+[Authentication and authorisation](#authentication-and-authorisation)).
 
 ### Ingress
 
