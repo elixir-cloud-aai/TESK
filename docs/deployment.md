@@ -222,11 +222,14 @@ controller's default certificate). The notes of `helm install` and `helm
 upgrade` warn about an empty `hostName`. Without a class, the Ingress goes to
 the cluster's default Ingress class; on a cluster without one, it depends on
 the controller whether the Ingress is served at all (many ignore Ingresses
-without a class). As the default `auth.mode` is `noauth`, anyone who reaches
-an exposed API can run tasks (see [Authentication and
-authorisation](#authentication-and-authorisation)). Set at least `hostName`
-(see [Ingress](#ingress)), or switch the Ingress off and use one of the other
-options below.
+without a class). Set `hostName` (see [Ingress](#ingress)), or switch the
+Ingress off and use one of the other options below.
+
+`hostName` only routes requests: it doesn't keep anyone out. As the default
+`auth.mode` is `noauth`, anyone who reaches an exposed API, under its host
+name or otherwise, can run tasks. Set `auth.mode: auth` for an API that is
+reachable from outside the cluster, or restrict who can reach it (see
+[Authentication and authorisation](#authentication-and-authorisation)).
 
 ### Ingress
 
