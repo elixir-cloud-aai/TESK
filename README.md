@@ -13,6 +13,7 @@
 [![Build_status][badge-build-status]][badge-url-build-status]
 [![Docs][badge-docs]][badge-url-docs]
 [![Coverage][badge-coverage]][badge-url-coverage]
+[![DOI][badge-doi]][badge-url-doi]
 
 An implementation of the [GA4GH Task Execution Service (TES)
 API](https://github.com/ga4gh/task-execution-schemas) on
@@ -58,9 +59,12 @@ exposing the API, storage backends and authentication.
 
 ## Citation
 
-The citation metadata is in [`CITATION.cff`](CITATION.cff): on GitHub, "Cite
-this repository" in the sidebar of the repository formats it as APA or
-BibTeX.
+If you use TESK, please cite it with its DOI
+[10.5281/zenodo.23969998](https://doi.org/10.5281/zenodo.23969998), which
+always resolves to the latest version on [Zenodo](https://zenodo.org/); the
+Zenodo record lists the DOI of each version, too. The citation metadata is in
+[`CITATION.cff`](CITATION.cff): on GitHub, "Cite this repository" in the
+sidebar of the repository formats it as APA or BibTeX.
 
 ## Contributing
 
@@ -76,10 +80,12 @@ This project is covered by the [Apache License 2.0][badge-url-license], also
 [badge-build-status]: <https://github.com/elixir-cloud-aai/TESK/actions/workflows/ci.yml/badge.svg?branch=dev>
 [badge-coverage]: <https://codecov.io/gh/elixir-cloud-aai/TESK/branch/dev/graph/badge.svg?branch=dev>
 [badge-docs]: <https://img.shields.io/readthedocs/tesk>
+[badge-doi]: <https://zenodo.org/badge/DOI/10.5281/zenodo.23969998.svg>
 [badge-license]: <https://img.shields.io/badge/license-Apache%202.0-blue.svg>
 [badge-url-build-status]: <https://github.com/elixir-cloud-aai/TESK/actions/workflows/ci.yml?query=branch%3Adev>
 [badge-url-coverage]: <https://codecov.io/gh/elixir-cloud-aai/TESK?branch=dev>
 [badge-url-docs]: <https://tesk.readthedocs.io/en/latest/>
+[badge-url-doi]: <https://doi.org/10.5281/zenodo.23969998>
 [badge-url-license]: <https://www.apache.org/licenses/LICENSE-2.0>
 [chart]: charts/tesk/
 [code-of-conduct]: <https://github.com/elixir-cloud-aai/.github/blob/main/CODE_OF_CONDUCT.md>
