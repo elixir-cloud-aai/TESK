@@ -34,7 +34,7 @@ docs = [
     "mkdocs-redirects>=1.2,<2",
     # `docs/hooks.py` matches the `exclude_docs` of pulled docs (as MkDocs)
     "pathspec>=0.11.1",
-    "pymdown-extensions>=10.16,<13",
+    "pymdown-extensions>=10.16,<14",
     "PyYAML>=6.0",
 ]
 
