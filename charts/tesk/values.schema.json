@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft-07/schema#",
-  "$comment": "Checks the structure of the values (maps where the templates expect maps, scalars where they expect scalars) and rejects unknown keys of the chart's own maps (e.g., typos). Scalars are of any scalar type, as tools may set strings, except for the switches ingress.enabled and transfer.enabled (booleans) and values with ranges. tesk.strategy is closed, as a Kubernetes DeploymentStrategy has two fields only. Open on purpose: the maps with Kubernetes' fields (tesk.podSecurityContext, tesk.securityContext, the probes, the resource lists of tesk.resources, ingress.annotations), as in foca-common, and global and enabled, which Helm and parent charts (condition: tesk.enabled) set. Keys of earlier versions of the chart ($defs/removed) pass here, and fail in the templates with their replacements (see tesk.removedValues in templates/_helpers.tpl)",
+  "$comment": "Checks the structure of the values (maps where the templates expect maps, scalars where they expect scalars) and rejects unknown keys of the chart's own maps (e.g., typos). Scalars are of any scalar type, as tools may set strings, except for the switches ingress.enabled and transfer.enabled (booleans) and values with ranges. tesk.strategy is closed, as a Kubernetes DeploymentStrategy has two fields only. Open on purpose: the maps with Kubernetes' fields (the security contexts of the API, the taskmasters, the filers and the executors, the probes, the resource lists of the resources, ingress.annotations), as in foca-common, and global and enabled, which Helm and parent charts (condition: tesk.enabled) set. Keys of earlier versions of the chart ($defs/removed) pass here, and fail in the templates with their replacements (see tesk.removedValues in templates/_helpers.tpl)",
   "type": "object",
   "$defs": {
     "scalar": {
@@ -55,6 +55,29 @@
       ],
       "pattern": "^([0-9]{4}-[0-9]{2}-[0-9]{2}|[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}([Tt]|[ \\t]+)[0-9]{1,2}:[0-9]{2}:[0-9]{2}(\\.[0-9]*)?([ \\t]*(Z|[-+][0-9]{1,2}(:[0-9]{2})?))?)?$",
       "$comment": "A YAML 1.1 timestamp, as tesk-api's SnakeYAML resolves it (two-digit month and day without a time), or empty; the same pattern as in tesk.serviceInfo (templates/_helpers.tpl)"
+    },
+    "resources": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "Resources of a container (requests and limits, as in Kubernetes)",
+      "properties": {
+        "limits": {
+          "$ref": "#/$defs/resourceList"
+        },
+        "requests": {
+          "$ref": "#/$defs/resourceList"
+        },
+        "claims": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "description": "Dynamic resources (DRA) of the container"
+        }
+      },
+      "additionalProperties": false
     }
   },
   "properties": {
@@ -126,6 +149,24 @@
           "properties": {
             "image": {
               "$ref": "#/$defs/image"
+            },
+            "podSecurityContext": {
+              "type": [
+                "object",
+                "null"
+              ],
+              "description": "Security context of the taskmasters' pods (fields of a Kubernetes PodSecurityContext); null or {} sets none. Needs tesk-api 2.1.0 or later"
+            },
+            "securityContext": {
+              "type": [
+                "object",
+                "null"
+              ],
+              "description": "Security context of the taskmasters' container (fields of a Kubernetes SecurityContext); null or {} sets none. Needs tesk-api 2.1.0 or later"
+            },
+            "resources": {
+              "$ref": "#/$defs/resources",
+              "description": "Resources of the taskmasters' container; null keeps tesk-api's default, {} sets none. Needs tesk-api 2.1.0 or later"
             }
           },
           "additionalProperties": false
@@ -149,6 +190,10 @@
                 "null"
               ],
               "description": "Security context of the filer's container (fields of a Kubernetes SecurityContext), replacing the taskmaster's default; {} leaves it out, null keeps the default"
+            },
+            "resources": {
+              "$ref": "#/$defs/resources",
+              "description": "Resources of the filer's container, replacing the taskmaster's default; {} sets none, null keeps the default. Needs taskmaster 0.12.0 or later"
             }
           },
           "additionalProperties": false
@@ -156,37 +201,92 @@
         "executor": {
           "type": "object",
           "properties": {
+            "podSecurityContext": {
+              "type": [
+                "object",
+                "null"
+              ],
+              "description": "Security context of the executors' pods (fields of a Kubernetes PodSecurityContext); fsGroup, runAsGroup, runAsUser and runAsNonRoot also reach tesk-api before 2.1.0, through a ConfigMap, the other fields need tesk-api 2.1.0 or later",
+              "properties": {
+                "runAsUser": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "minimum": 0,
+                  "maximum": 2147483647,
+                  "description": "User ID of the executors' containers"
+                },
+                "runAsGroup": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "minimum": 0,
+                  "maximum": 2147483647,
+                  "description": "Primary group ID of the executors' containers"
+                },
+                "fsGroup": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "minimum": 0,
+                  "maximum": 2147483647,
+                  "description": "Group that owns the pod's volumes (e.g., the task's PVC), for volume types whose ownership Kubernetes manages"
+                },
+                "runAsNonRoot": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ],
+                  "description": "Refuse to start executors that would run as root"
+                }
+              }
+            },
             "securityContext": {
               "type": [
                 "object",
                 "null"
               ],
-              "description": "Security context of the executors' pods: the fields that tesk-api reads",
-              "additionalProperties": false,
+              "description": "Security context of the executors' container (fields of a Kubernetes SecurityContext); runAsGroup, runAsUser and runAsNonRoot also reach tesk-api before 2.1.0, as the pod's, the other fields need tesk-api 2.1.0 or later. fsGroup (of the pod's context, which this was up to chart 0.4.0) fails the installation, with a hint to tesk.executor.podSecurityContext",
               "properties": {
                 "runAsUser": {
-                  "type": "integer",
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
                   "minimum": 0,
-                  "description": "User ID of the executors' containers",
-                  "maximum": 2147483647
+                  "maximum": 2147483647,
+                  "description": "User ID of the executors' container"
                 },
                 "runAsGroup": {
-                  "type": "integer",
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
                   "minimum": 0,
-                  "description": "Primary group ID of the executors' containers",
-                  "maximum": 2147483647
-                },
-                "fsGroup": {
-                  "type": "integer",
-                  "minimum": 0,
-                  "description": "Group that owns the pod's volumes (e.g., the task's PVC), for volume types whose ownership Kubernetes manages",
-                  "maximum": 2147483647
+                  "maximum": 2147483647,
+                  "description": "Primary group ID of the executors' container"
                 },
                 "runAsNonRoot": {
-                  "type": "boolean",
+                  "type": [
+                    "boolean",
+                    "null"
+                  ],
                   "description": "Refuse to start executors that would run as root"
                 }
               }
+            },
+            "defaultCpu": {
+              "type": [
+                "string",
+                "number",
+                "null"
+              ],
+              "description": "CPU request and limit of the executors of tasks without resources.cpu_cores, a Kubernetes quantity (e.g., 1, 0.5 or 500m); null keeps tesk-api's default (1), empty sets none. Needs tesk-api 2.1.0 or later",
+              "minimum": 0,
+              "pattern": "^$|^\\+?([0-9]+(\\.[0-9]*)?|\\.[0-9]+)([eE][+-]?[0-9]+|[numkMGTPE]|[KMGTPE]i)?$"
             }
           },
           "additionalProperties": false

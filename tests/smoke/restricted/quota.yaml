@@ -1,0 +1,24 @@
+# Limits of a namespace like that of TESK at CERIT-SC (elixir-cloud-aai/
+# generic-issues#122), for the restricted case of
+# `.github/actions/install-chart`, which applies them to the release's
+# namespace (and labels it to enforce the `restricted` Pod Security
+# Standard) before installing the chart: a quota on `limits.cpu`, which
+# refuses containers without a CPU limit, and a default memory limit of
+# 512Mi for containers without one
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: tesk-smoke-cpu
+spec:
+  hard:
+    limits.cpu: "8"
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: tesk-smoke-memory
+spec:
+  limits:
+    - type: Container
+      default:
+        memory: 512Mi

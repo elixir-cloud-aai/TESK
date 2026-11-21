@@ -7,9 +7,14 @@
 # default values have `auth.mode: noauth`), which runs two tasks to
 # completion (one with an input, which starts a filer pod) and cancels one,
 # and finally check that the filer's job completed with the filer's
-# hardened defaults (`tests/smoke/check-filer.sh`). Used by the
-# `chart-install` job of `ci.yml` and by `release.yml`. Needs a checkout of
-# the repository.
+# hardened defaults (`tests/smoke/check-filer.sh`). With `restricted:
+# true`, the namespace enforces the `restricted` Pod Security Standard and
+# has a quota on `limits.cpu` and a default memory limit
+# (`tests/smoke/restricted/quota.yaml`), and the chart gets the values for
+# such namespaces (`tests/smoke/restricted/values.yaml`), so that every pod
+# of the chart and of the tasks must meet them. Used by the `chart-install`
+# job of `ci.yml` (both cases) and by `release.yml` (the default one).
+# Needs a checkout of the repository.
 
 name: Install chart
 description: Install the TESK chart on a kind cluster and check the API
@@ -18,6 +23,11 @@ inputs:
   namespace:
     description: Namespace of the release
     default: tesk
+  restricted:
+    description: >-
+      "true" for a namespace that enforces the restricted Pod Security
+      Standard and has a CPU quota, with the chart's values for it
+    default: "false"
 
 runs:
   using: composite
@@ -32,12 +42,36 @@ runs:
       with:
         version: v0.33.0
         cluster_name: tesk
+    # The restricted case's namespace, before the chart creates it
+    - name: Prepare namespace
+      env:
+        NAMESPACE: ${{ inputs.namespace }}
+        RESTRICTED: ${{ inputs.restricted }}
+      shell: bash
+      run: |
+        if [[ "${RESTRICTED}" == true ]]; then
+          kubectl create namespace "${NAMESPACE}"
+          kubectl label namespace "${NAMESPACE}" \
+              pod-security.kubernetes.io/enforce=restricted \
+              pod-security.kubernetes.io/enforce-version=latest
+          kubectl apply --namespace "${NAMESPACE}" \
+              -f tests/smoke/restricted/quota.yaml
+        elif [[ "${RESTRICTED}" != false ]]; then
+          echo "::error::restricted must be true or false, not ${RESTRICTED}"
+          exit 1
+        fi
+    # With the restricted case's values file, also for the upgrades below
     - name: Install chart
       env:
         NAMESPACE: ${{ inputs.namespace }}
+        VALUES_FILE: ${{ inputs.restricted == 'true' && 'tests/smoke/restricted/values.yaml' || '' }}
       shell: bash
       run: |
-        helm install tesk charts/tesk --namespace "${NAMESPACE}" \
+        values=()
+        if [[ -n "${VALUES_FILE}" ]]; then
+          values=(--values "${VALUES_FILE}")
+        fi
+        helm install tesk charts/tesk --namespace "${NAMESPACE}" "${values[@]}" \
             --create-namespace --wait --timeout 600s
     # Releases of charts up to 0.3.0 have Kubernetes' default strategy
     # (`RollingUpdate`, with a `rollingUpdate` that Kubernetes sets); an
@@ -47,13 +81,18 @@ runs:
     - name: Upgrade strategy
       env:
         NAMESPACE: ${{ inputs.namespace }}
+        VALUES_FILE: ${{ inputs.restricted == 'true' && 'tests/smoke/restricted/values.yaml' || '' }}
       shell: bash
       run: |
+        values=()
+        if [[ -n "${VALUES_FILE}" ]]; then
+          values=(--values "${VALUES_FILE}")
+        fi
         strategy() {
           kubectl get deployment tesk-api -n "${NAMESPACE}" \
               -o jsonpath='{.spec.strategy}'
         }
-        helm upgrade tesk charts/tesk --namespace "${NAMESPACE}" \
+        helm upgrade tesk charts/tesk --namespace "${NAMESPACE}" "${values[@]}" \
             --reset-values --set-json tesk.strategy=null --wait --timeout 600s
         before="$(strategy)"
         if ! jq -e '.type == "RollingUpdate" and .rollingUpdate != null' \
@@ -61,7 +100,7 @@ runs:
           echo "::error::Unexpected strategy without a value: ${before}"
           exit 1
         fi
-        helm upgrade tesk charts/tesk --namespace "${NAMESPACE}" \
+        helm upgrade tesk charts/tesk --namespace "${NAMESPACE}" "${values[@]}" \
             --reset-values --wait --timeout 600s
         after="$(strategy)"
         if ! jq -e '. == {"type": "Recreate"}' <<< "${after}" > /dev/null; then

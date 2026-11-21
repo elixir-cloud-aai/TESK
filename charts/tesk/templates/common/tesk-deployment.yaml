@@ -137,6 +137,43 @@ spec:
           value: {{ toJson $context | quote }}
         {{- end }}
         {{- end }}
+        {{- /* The filer's resources, as JSON with quantities as strings: a
+        map (also {}, which sets none) replaces the taskmaster's default;
+        null keeps it */}}
+        {{- if kindIs "map" $filer.resources }}
+        - name: TESK_API_TASKMASTER_ENVIRONMENT_FILER_RESOURCES
+          value: {{ include "tesk.resourcesJson" (dict "value" $filer.resources "key" "tesk.filer.resources") | quote }}
+        {{- end }}
+        {{- /* The security contexts of the taskmasters' and the executors'
+        pods and containers (tesk-api 2.1.0 and later), as JSON: only when
+        they set fields, as tesk-api sets none by default ({} and null are
+        the same). The executors' pod context goes on top of the ConfigMap
+        (CONFIGMAP), which has its fields that all versions of tesk-api
+        read */}}
+        {{- $taskmaster := default dict $tesk.taskmaster }}
+        {{- $executor := default dict $tesk.executor }}
+        {{- range $variable, $context := dict
+          "TESK_API_TASKMASTER_POD_SECURITY_CONTEXT" $taskmaster.podSecurityContext
+          "TESK_API_TASKMASTER_SECURITY_CONTEXT" $taskmaster.securityContext
+          "TESK_API_TASKMASTER_EXECUTOR_POD_SECURITY_CONTEXT" $executor.podSecurityContext
+          "TESK_API_TASKMASTER_EXECUTOR_SECURITY_CONTEXT" $executor.securityContext }}
+        {{- if and (kindIs "map" $context) $context }}
+        - name: {{ $variable }}
+          value: {{ toJson $context | quote }}
+        {{- end }}
+        {{- end }}
+        {{- /* The taskmasters' resources: a map (also {}, which sets none)
+        replaces tesk-api's default; null keeps it */}}
+        {{- if kindIs "map" $taskmaster.resources }}
+        - name: TESK_API_TASKMASTER_RESOURCES
+          value: {{ include "tesk.resourcesJson" (dict "value" $taskmaster.resources "key" "tesk.taskmaster.resources") | quote }}
+        {{- end }}
+        {{- /* The executors' default CPU: null keeps tesk-api's default,
+        empty sets none */}}
+        {{- if not (kindIs "invalid" $executor.defaultCpu) }}
+        - name: TESK_API_TASKMASTER_EXECUTOR_DEFAULT_CPU
+          value: {{ include "tesk.yamlText" (dict "value" $executor.defaultCpu "key" "tesk.executor.defaultCpu") }}
+        {{- end }}
         {{- with .Values.ftp.hosts }}
         - name: TESK_API_TASKMASTER_ENVIRONMENT_TESK_FTP_HOSTS
           value: {{ join "," . | quote }}

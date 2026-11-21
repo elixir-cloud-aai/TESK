@@ -48,6 +48,21 @@ tesk:
     image:
       repository: docker.io/elixircloud/tesk-core-taskmaster
       tag: 0.12.0
+    # Security context of the taskmasters' pods and of their container
+    # (fields of a Kubernetes PodSecurityContext and SecurityContext, as in
+    # a manifest), e.g., for namespaces that enforce the `restricted` Pod
+    # Security Standard (see the deployment guide, docs/deployment.md,
+    # "Restricted namespaces and quotas"). null or `{}` sets none, as
+    # before. tesk-api checks them at startup and doesn't start with invalid
+    # ones. Needs tesk-api 2.1.0 or later (`tesk.image.tag`); older ones
+    # ignore them, and the notes warn
+    podSecurityContext: null
+    securityContext: null
+    # Resources of the taskmasters' container (`requests` and `limits`, as
+    # in Kubernetes). null keeps tesk-api's default (from 2.1.0 on: requests
+    # of 100m CPU and 128Mi memory, limits of 500m CPU and 256Mi memory);
+    # `{}` sets none. Needs tesk-api 2.1.0 or later
+    resources: null
   # Image of the filer (tesk-core), which stages the inputs and outputs; its
   # tag must be the same release as the taskmaster's (the installation
   # fails otherwise, from 0.11.0 on)
@@ -70,18 +85,41 @@ tesk:
     # one place
     podSecurityContext: null
     securityContext: null
+    # Resources of the filer's container (`requests` and `limits`, as in
+    # Kubernetes), which replace the taskmaster's default (from the release
+    # after 0.12.0 on: requests of 100m CPU and 128Mi memory, limits of 1
+    # CPU and 512Mi memory; 0.12.0 has none); `{}` sets none, null keeps
+    # the default. The chart passes the quantities on as strings, which the
+    # taskmaster needs. Needs taskmaster 0.12.0 or later
+    resources: null
   # The executors, which run the task's commands
   executor:
-    # Security context of the executors' pods, e.g., to run them as non-root
-    # users: `runAsUser`, `runAsGroup`, `fsGroup` (integers) and
-    # `runAsNonRoot` (true or false); tesk-api reads no other fields. Empty
-    # leaves the executors as their images say (often root). `fsGroup` also
-    # gives executors access to the files that the filer stages on the
+    # Security context of the executors' pods (fields of a Kubernetes
+    # PodSecurityContext), e.g., to run them as non-root users. Empty
+    # leaves the executors as their images say (often root). `fsGroup`
+    # also gives executors access to the files that the filer stages on the
     # task's PVC, on volume types whose ownership Kubernetes manages. Not
     # applied to the API (see `tesk.podSecurityContext`), the taskmaster
-    # and the filer. tesk-api reads it at startup, so a change restarts the
-    # API's pod
+    # and the filer. `runAsUser`, `runAsGroup`, `fsGroup` and
+    # `runAsNonRoot` work with all tesk-api versions (through a ConfigMap);
+    # the other fields need tesk-api 2.1.0 or later. tesk-api reads it at
+    # startup, so a change restarts the API's pod
+    podSecurityContext: {}
+    # Security context of the executors' container (fields of a Kubernetes
+    # SecurityContext), e.g., `allowPrivilegeEscalation: false` and
+    # `capabilities: {drop: [ALL]}` for the `restricted` Pod Security
+    # Standard. Needs tesk-api 2.1.0 or later, apart from `runAsUser`,
+    # `runAsGroup` and `runAsNonRoot`, which the chart also puts into the
+    # pod's context for older ones (the same for the executor, the pod's
+    # only container). Up to chart 0.4.0, this was the pod's context: move
+    # `fsGroup` to `podSecurityContext` (the installation fails otherwise)
     securityContext: {}
+    # CPU of the executors of tasks that set no `resources.cpu_cores`, as
+    # request and limit (a Kubernetes quantity, e.g., 1, 0.5 or 500m), e.g.,
+    # for namespaces with a quota on `limits.cpu`. null keeps tesk-api's
+    # default (from 2.1.0 on: 1); empty ("") sets none. Needs tesk-api 2.1.0
+    # or later
+    defaultCpu: null
   # Debug logging in the taskmasters
   debug: false
   # Retries of an executor's job, and of a filer's job, on errors
