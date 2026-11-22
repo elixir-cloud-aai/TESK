@@ -10,6 +10,57 @@ again):
 helm upgrade tesk charts/tesk --namespace tesk -f my-values.yaml -f secrets.yaml
 ```
 
+## Unreleased
+
+### Security contexts and resources of task pods
+
+New values give the taskmasters', the filers' and the executors' pods
+security contexts and resources, e.g., for namespaces that enforce the
+`restricted` Pod Security Standard or have a quota on `limits.cpu` (see
+[Restricted namespaces and
+quotas](deployment.md#restricted-namespaces-and-quotas)):
+`tesk.taskmaster.podSecurityContext`, `tesk.taskmaster.securityContext`,
+`tesk.taskmaster.resources`, `tesk.filer.resources`,
+`tesk.executor.podSecurityContext` and `tesk.executor.defaultCpu`. They
+are unset by default, which changes nothing; most of them need tesk-api
+2.1.0 or later, and the notes warn of those that an older one ignores.
+
+**`tesk.executor.securityContext` is the executors' container context
+now (breaking).** Up to chart 0.4.0, it was the executors' pod context,
+with the fields `runAsUser`, `runAsGroup`, `fsGroup` and `runAsNonRoot`
+only; now it takes the fields of a Kubernetes `SecurityContext`, as
+`tesk.securityContext` and `tesk.filer.securityContext` do, and the pod's
+context is `tesk.executor.podSecurityContext`. Move `fsGroup`, which a
+container's context doesn't have, to the pod's context; the installation
+fails with a hint while it is under `tesk.executor.securityContext` (a
+null `fsGroup` there is fine, e.g., to drop the old one of a release
+upgraded with `--reuse-values`):
+
+```yaml
+tesk:
+  executor:
+    podSecurityContext:
+      fsGroup: 1000
+    securityContext:
+      runAsUser: 1000
+      runAsGroup: 1000
+      runAsNonRoot: true
+```
+
+`runAsUser`, `runAsGroup` and `runAsNonRoot` may stay where they are, as
+they apply to the executor (the pod's only container) either way; the
+chart still puts them into the ConfigMap `<prefix>-executor`, which all
+versions of tesk-api read, so they keep working with tesk-api 2.0.0.
+Moving them to `tesk.executor.podSecurityContext` too is the clearer
+choice.
+
+With tesk-api 2.1.0, the executors of tasks without `resources.cpu_cores`
+get 1 CPU as request and limit by default (`tesk.executor.defaultCpu`;
+`""` for none, as before), and the taskmasters' containers get requests
+and limits by default (`tesk.taskmaster.resources`; `{}` for none): in
+namespaces with a `LimitRange` whose CPU maximum is below these, set them
+to fit (see [Resources](deployment.md#resources)).
+
 ## 0.4.0
 
 Releases of chart 0.3.0 are upgraded in place (`helm upgrade` with the
@@ -581,8 +632,10 @@ ended (`<task>-pvc`, where `<task>` is the task's ID).
 ### Executors as non-root users
 
 The new value `tesk.executor.securityContext` (`runAsUser`, `runAsGroup`,
-`fsGroup`, `runAsNonRoot`) sets the security context of the executors'
-pods, through the new ConfigMap `<prefix>-executor` (see [Executors as
+`fsGroup`, `runAsNonRoot`; after chart 0.4.0,
+`tesk.executor.podSecurityContext`, see [Security contexts and resources
+of task pods](#security-contexts-and-resources-of-task-pods)) sets the
+security context of the executors' pods, through the new ConfigMap `<prefix>-executor` (see [Executors as
 non-root users](deployment.md#executors-as-non-root-users)). It is empty by
 default, which changes nothing; setting or changing it restarts the API's
 pod.
