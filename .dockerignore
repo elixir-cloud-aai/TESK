@@ -1,16 +1,31 @@
 # No image is built from the repository root; if one is, secrets never go
-# into it, nor into the build stages and their cache: at any depth (see
-# `tests/test_dockerignore.py`)
+# into it, nor into the build stages and their cache (the same rules as in
+# `source/tesk-core/.dockerignore`, checked by `tests/test_dockerignore.py`).
+# The Git metadata: remote URLs may hold tokens
+.git
+# The storage credentials that the deployment docs have operators create
+# from the templates
+charts/tesk/s3-config/*
+!charts/tesk/s3-config/*-TEMPLATE
+# Secret files at any depth
 **/.env
 **/.env.*
 !**/.env.example
 **/.netrc
 **/.git-credentials
+**/.pypirc
+**/.npmrc
+**/.kube
+**/*kubeconfig*
 **/*.pem
 **/*.key
+**/*.crt
 **/*.p12
 **/*.pfx
+**/*.jks
+**/*.keystore
 **/id_rsa*
 **/id_ecdsa*
 **/id_ed25519*
-**/kubeconfig*
+**/secrets.yaml
+**/tls-secret.yaml

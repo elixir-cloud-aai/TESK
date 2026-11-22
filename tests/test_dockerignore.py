@@ -1,7 +1,7 @@
 """Tests that no Docker build context of the repository sends secret files.
 
 Every Dockerfile must be listed in `CONTEXTS` with its build context, and
-the `.dockerignore` that Docker applies to that context must exclude
+the ignore files that Docker and buildah apply to that context must exclude
 `.env` files (except `.env.example`) and other secret files at any depth,
 so that they never reach an image or the cache of a build stage. The
 repository root counts as a build context too (`docker build .`).
@@ -18,15 +18,16 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 
 # Each Dockerfile (relative to the root) with its build context: the
-# directory that its build scripts send to Docker
+# directory that its build scripts send to Docker. Kept by hand: check the
+# context against the build scripts when adding a Dockerfile
 CONTEXTS = {
-    # `source/tesk-core/dockerBuild` and `cloudbuild.yaml` build from
+    # `source/tesk-core/dockerBuild` and `cloudbuild*.yaml` build from
     # `source/tesk-core`
     "source/tesk-core/containers/filer.Dockerfile": "source/tesk-core",
     "source/tesk-core/containers/taskmaster.Dockerfile": "source/tesk-core",
 }
 
-# Paths in a build context that must be excluded
+# Paths in any build context that must be excluded: at least one per rule
 SECRETS = [
     ".env",
     ".env.local",
@@ -34,23 +35,68 @@ SECRETS = [
     "src/deep/.env.production",
     ".netrc",
     "src/.netrc",
+    "src/.git-credentials",
+    "src/.pypirc",
+    "src/.npmrc",
+    "src/.kube/config",
+    "kubeconfig",
+    "src/kind-kubeconfig",
+    "src/cluster.kubeconfig",
     "tls.pem",
     "src/tls.key",
+    "src/tls.crt",
+    "src/client.p12",
+    "src/client.pfx",
+    "src/store.jks",
+    "src/store.keystore",
     "id_rsa",
+    "src/id_ecdsa",
     "src/id_ed25519",
+    "src/secrets.yaml",
+    "src/tls-secret.yaml",
+]
+
+# Paths at the repository root that must be excluded, too: the Git
+# metadata (remote URLs may hold tokens) and the files that the deployment
+# docs have operators create in the checkout
+ROOT_SECRETS = [
+    ".git/config",
+    "secrets.yaml",
+    "charts/tesk/tls-secret.yaml",
+    "charts/tesk/s3-config/config",
+    "charts/tesk/s3-config/credentials",
 ]
 
 # Paths in a build context that must still be sent
 KEPT = [".env.example", "src/.env.example"]
+
+# Names of Dockerfiles (compared in lower case): `Dockerfile`,
+# `Dockerfile.dev`, `Dockerfile-dev`, `app.Dockerfile`, and the same for
+# `Containerfile`
+_DOCKERFILE_NAME = re.compile(r"(?:.+\.)?(?:docker|container)file(?:[.-].+)?")
+
+
+def _is_dockerfile(name: str) -> bool:
+    """Tell whether a file name is the name of a Dockerfile.
+
+    Args:
+        name: The file name.
+
+    Returns:
+        Whether it names a Dockerfile (not an ignore file).
+    """
+    lower = name.lower()
+    return not lower.endswith((".dockerignore", ".containerignore")) and bool(
+        _DOCKERFILE_NAME.fullmatch(lower)
+    )
 
 
 def _dockerfiles() -> list[str]:
     """Return the Dockerfiles of the repository.
 
     Returns:
-        The paths of the Dockerfiles (`Dockerfile`, `Dockerfile.*`,
-        `*.Dockerfile`, `Containerfile` and the like) that Git tracks, or
-        would track (untracked, not ignored), relative to the root, sorted.
+        The paths of the Dockerfiles that Git tracks, or would track
+        (untracked, not ignored), relative to the root, sorted.
     """
     files = subprocess.run(
         ["git", "ls-files", "--cached", "--others", "--exclude-standard", "-z"],  # noqa: S607
@@ -59,18 +105,11 @@ def _dockerfiles() -> list[str]:
         capture_output=True,
         text=True,
     ).stdout.split("\0")
-    found = []
-    for path in filter(None, files):
-        name = PurePosixPath(path).name
-        if name.endswith(".dockerignore") or not (ROOT / path).is_file():
-            continue
-        if (
-            name in {"Dockerfile", "Containerfile"}
-            or name.startswith(("Dockerfile.", "Containerfile."))
-            or name.endswith((".Dockerfile", ".Containerfile"))
-        ):
-            found.append(path)
-    return sorted(found)
+    return sorted(
+        path
+        for path in filter(None, files)
+        if _is_dockerfile(PurePosixPath(path).name) and (ROOT / path).is_file()
+    )
 
 
 def _pattern_regex(pattern: str) -> re.Pattern[str]:
@@ -78,34 +117,38 @@ def _pattern_regex(pattern: str) -> re.Pattern[str]:
 
     It follows Docker's matching (`moby/patternmatcher`): `*` matches any
     characters but `/`, `?` one character but `/`, `**` any number of
-    directories, `[...]` a character class (`[^...]` negated), and a
-    backslash escapes the next character.
+    directories (any characters at the end of the pattern), `[...]` a
+    character class (`[^...]` negated), and a backslash escapes the next
+    character.
 
     Args:
         pattern: The pattern, without a leading `!`.
 
     Returns:
         The regular expression that matches the paths of the pattern.
+
+    Raises:
+        ValueError: If a character class isn't closed (Docker fails then).
     """
     pattern = pattern.strip("/")
     regex = ""
     index = 0
     while index < len(pattern):
         char = pattern[index]
-        if pattern.startswith("**/", index):
-            regex += "(?:.*/)?"
-            index += 3
-            continue
         if pattern.startswith("**", index):
-            regex += ".*"
             index += 2
+            if pattern.startswith("/", index):
+                index += 1
+            regex += ".*" if index == len(pattern) else "(?:.*/)?"
             continue
         if char == "*":
             regex += "[^/]*"
         elif char == "?":
             regex += "[^/]"
         elif char == "[":
-            end = pattern.index("]", index + 1)
+            end = pattern.find("]", index + 1)
+            if end == -1:
+                raise ValueError(f"unclosed character class in {pattern!r}")
             regex += "[" + pattern[index + 1 : end] + "]"
             index = end
         elif char == "\\" and index + 1 < len(pattern):
@@ -141,7 +184,8 @@ def _excluded(rules: list[tuple[bool, re.Pattern[str]]], path: str) -> bool:
     """Tell whether Docker leaves a path out of the build context.
 
     The last rule that matches the path, or one of its parent directories,
-    decides, as in Docker.
+    decides, as in Docker (a `!` rule re-includes a path below an excluded
+    directory, unlike in Git).
 
     Args:
         rules: The rules of the `.dockerignore` file.
@@ -159,11 +203,13 @@ def _excluded(rules: list[tuple[bool, re.Pattern[str]]], path: str) -> bool:
     return excluded
 
 
-def _ignore_file(dockerfile: str | None, context: str) -> Path:
-    """Return the `.dockerignore` file that Docker applies to a build.
+def _ignore_files(dockerfile: str | None, context: str) -> list[Path]:
+    """Return the ignore files that a build of a context may apply.
 
-    BuildKit prefers `<Dockerfile>.dockerignore` next to the Dockerfile over
-    the `.dockerignore` at the root of the build context.
+    Each builder applies one of them: BuildKit prefers
+    `<Dockerfile>.dockerignore` next to the Dockerfile, buildah (which
+    `dockerBuild` prefers) `.containerignore`, and all of them fall back to
+    `.dockerignore` at the root of the context, which must exist.
 
     Args:
         dockerfile: The Dockerfile relative to the root, or `None` for a
@@ -171,16 +217,21 @@ def _ignore_file(dockerfile: str | None, context: str) -> Path:
         context: The build context relative to the root.
 
     Returns:
-        The path of the file (which may not exist).
+        The context's `.dockerignore` (which may not exist), then the other
+        ignore files that exist.
     """
+    candidates = [ROOT / context / ".containerignore"]
     if dockerfile is not None:
-        specific = ROOT / f"{dockerfile}.dockerignore"
-        if specific.is_file():
-            return specific
-    return ROOT / context / ".dockerignore"
+        candidates.append(ROOT / f"{dockerfile}.dockerignore")
+    return [ROOT / context / ".dockerignore"] + [
+        path for path in candidates if path.is_file()
+    ]
 
 
-BUILDS = [*CONTEXTS.items(), (None, ".")]
+BUILDS = [
+    pytest.param(dockerfile, context, SECRETS, id=dockerfile)
+    for dockerfile, context in CONTEXTS.items()
+] + [pytest.param(None, ".", SECRETS + ROOT_SECRETS, id="root")]
 
 
 def test_every_dockerfile_has_a_context() -> None:
@@ -188,21 +239,24 @@ def test_every_dockerfile_has_a_context() -> None:
     assert _dockerfiles() == sorted(CONTEXTS)
 
 
-@pytest.mark.parametrize(("dockerfile", "context"), BUILDS)
-def test_context_excludes_secrets(dockerfile: str | None, context: str) -> None:
+@pytest.mark.parametrize(("dockerfile", "context", "secrets"), BUILDS)
+def test_context_excludes_secrets(
+    dockerfile: str | None, context: str, secrets: list[str]
+) -> None:
     """The build context leaves out secret files and keeps `.env.example`.
 
     Args:
         dockerfile: The Dockerfile relative to the root, or `None`.
         context: The build context relative to the root.
+        secrets: The paths that must be left out.
     """
-    ignore_file = _ignore_file(dockerfile, context)
-    assert ignore_file.is_file(), f"{ignore_file} is missing"
-    rules = _rules(ignore_file)
-    sent = [path for path in SECRETS if not _excluded(rules, path)]
-    assert not sent, f"{ignore_file} sends {sent}"
-    dropped = [path for path in KEPT if _excluded(rules, path)]
-    assert not dropped, f"{ignore_file} leaves out {dropped}"
+    for ignore_file in _ignore_files(dockerfile, context):
+        assert ignore_file.is_file(), f"{ignore_file} is missing"
+        rules = _rules(ignore_file)
+        sent = [path for path in secrets if not _excluded(rules, path)]
+        assert not sent, f"{ignore_file} sends {sent}"
+        dropped = [path for path in KEPT if _excluded(rules, path)]
+        assert not dropped, f"{ignore_file} leaves out {dropped}"
 
 
 @pytest.mark.parametrize(
@@ -213,7 +267,12 @@ def test_context_excludes_secrets(dockerfile: str | None, context: str) -> None:
         (["**/.env*", "!**/.env.example"], "src/.env.example", False),
         (["**/.env*", "!**/.env.example"], "src/.envrc", True),
         (["src"], "src/deep/file", True),
+        (["src", "!src/a"], "src/a", False),
+        (["src", "!src/a"], "src/b", True),
         (["src/**"], "src/deep/file", True),
+        (["src/**/"], "src/deep/file", True),
+        (["**.pem"], "a/b.pem", False),
+        (["**.pem"], "a/.pem", True),
         (["/src/*.py"], "src/a.py", True),
         (["src/?.py"], "src/ab.py", False),
         (["[^a]b"], "cb", True),
@@ -238,10 +297,42 @@ def test_matcher(lines: list[str], path: str, excluded: bool, tmp_path: Path) ->
     assert _excluded(_rules(ignore_file), path) is excluded
 
 
-def test_specific_ignore_file_wins(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    """`<Dockerfile>.dockerignore` takes precedence over the context's file.
+def test_matcher_unclosed_class() -> None:
+    """A pattern with an unclosed character class is an error, as in Docker."""
+    with pytest.raises(ValueError, match="unclosed character class"):
+        _pattern_regex("[ab")
+
+
+@pytest.mark.parametrize(
+    ("name", "expected"),
+    [
+        ("Dockerfile", True),
+        ("dockerfile", True),
+        ("Dockerfile.dev", True),
+        ("Dockerfile-dev", True),
+        ("filer.Dockerfile", True),
+        ("dev.dockerfile", True),
+        ("Containerfile", True),
+        ("Containerfile-x", True),
+        ("filer.Dockerfile.dockerignore", False),
+        ("Dockerfile.dockerignore", False),
+        ("README.md", False),
+        ("dockerBuild", False),
+        ("Dockerfiles", False),
+    ],
+)
+def test_is_dockerfile(name: str, expected: bool) -> None:
+    """Dockerfiles are recognized by name, in any case.
+
+    Args:
+        name: The file name.
+        expected: Whether it names a Dockerfile.
+    """
+    assert _is_dockerfile(name) is expected
+
+
+def test_ignore_files(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """The ignore files that some builders prefer are checked, too.
 
     Args:
         tmp_path: A temporary directory as the repository root.
@@ -250,9 +341,17 @@ def test_specific_ignore_file_wins(
     monkeypatch.setattr(f"{__name__}.ROOT", tmp_path)
     (tmp_path / "ctx").mkdir()
     (tmp_path / "ctx/.dockerignore").touch()
-    assert _ignore_file("ctx/app.Dockerfile", "ctx") == tmp_path / "ctx/.dockerignore"
+    assert _ignore_files("ctx/app.Dockerfile", "ctx") == [
+        tmp_path / "ctx/.dockerignore"
+    ]
     (tmp_path / "ctx/app.Dockerfile.dockerignore").touch()
-    assert (
-        _ignore_file("ctx/app.Dockerfile", "ctx")
-        == tmp_path / "ctx/app.Dockerfile.dockerignore"
-    )
+    (tmp_path / "ctx/.containerignore").touch()
+    assert _ignore_files("ctx/app.Dockerfile", "ctx") == [
+        tmp_path / "ctx/.dockerignore",
+        tmp_path / "ctx/.containerignore",
+        tmp_path / "ctx/app.Dockerfile.dockerignore",
+    ]
+    assert _ignore_files(None, "ctx") == [
+        tmp_path / "ctx/.dockerignore",
+        tmp_path / "ctx/.containerignore",
+    ]
