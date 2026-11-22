@@ -12,6 +12,11 @@ dist/
 # repository root, checked by `tests/test_dockerignore.py` there)
 **/.env*
 !**/.env.example
+**/.env.example/**
+**/.git
+**/.ssh
+**/.config/gcloud
+**/application_default_credentials.json
 **/.netrc
 **/.git-credentials
 **/.pypirc
@@ -28,6 +33,7 @@ dist/
 **/*.jks
 **/*.keystore
 **/id_rsa*
+**/id_dsa*
 **/id_ecdsa*
 **/id_ed25519*
 **/*secret*.yaml

@@ -37,6 +37,11 @@ SECRETS = [
     ".envrc",
     "src/.env_local",
     "src/.envs/prod",
+    "src/.env.example/token",
+    ".git/config",
+    "src/.ssh/deploy_key",
+    ".config/gcloud/application_default_credentials.json",
+    "src/application_default_credentials.json",
     ".netrc",
     "src/.netrc",
     "src/.git-credentials",
@@ -56,6 +61,7 @@ SECRETS = [
     "src/store.jks",
     "src/store.keystore",
     "id_rsa",
+    "src/id_dsa",
     "src/id_ecdsa",
     "src/id_ed25519",
     "src/secrets.yaml",
@@ -64,11 +70,9 @@ SECRETS = [
     "src/ftp-secret.yaml",
 ]
 
-# Paths at the repository root that must be excluded, too: the Git
-# metadata (remote URLs may hold tokens) and the files that the deployment
-# docs have operators create in the checkout
+# Paths at the repository root that must be excluded, too: the files that
+# the deployment docs have operators create in the checkout
 ROOT_SECRETS = [
-    ".git/config",
     "secrets.yaml",
     "charts/tesk/tls-secret.yaml",
     "charts/tesk/s3-config/config",
