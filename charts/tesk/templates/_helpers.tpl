@@ -258,6 +258,8 @@ name, for the errors).
 {{- $_ := set $strings $name (printf "%.0f" $quantity) -}}
 {{- else if kindIs "invalid" $quantity -}}
 {{- fail (printf "%s.%s.%s has no value: give a quantity, or leave it out" $key $field $name) -}}
+{{- else if kindIs "bool" $quantity -}}
+{{- fail (printf "%s.%s.%s is %t, not a quantity: give one, e.g., 1, 500m or 512Mi" $key $field $name $quantity) -}}
 {{- else -}}
 {{- $_ := set $strings $name (toString $quantity) -}}
 {{- end -}}
@@ -532,8 +534,17 @@ default CPU (tesk-api#209) */ -}}
 {{- $ignored := list -}}
 {{- $taskmaster := default dict .Values.tesk.taskmaster -}}
 {{- range $key := list "podSecurityContext" "securityContext" -}}
-{{- if and (kindIs "map" (get $taskmaster $key)) (get $taskmaster $key) -}}
+{{- $context := get $taskmaster $key -}}
+{{- if kindIs "map" $context -}}
+{{- $set := false -}}
+{{- range $value := values $context -}}
+{{- if not (kindIs "invalid" $value) -}}
+{{- $set = true -}}
+{{- end -}}
+{{- end -}}
+{{- if $set -}}
 {{- $ignored = append $ignored (printf "tesk.taskmaster.%s" $key) -}}
+{{- end -}}
 {{- end -}}
 {{- end -}}
 {{- if and (kindIs "map" $taskmaster.resources) $taskmaster.resources -}}
@@ -545,7 +556,7 @@ default CPU (tesk-api#209) */ -}}
 {{- if kindIs "map" $context -}}
 {{- $others := list -}}
 {{- range $field := keys $context | sortAlpha -}}
-{{- if not (has $field $legacy) -}}
+{{- if and (not (has $field $legacy)) (not (kindIs "invalid" (get $context $field))) -}}
 {{- $others = append $others $field -}}
 {{- end -}}
 {{- end -}}

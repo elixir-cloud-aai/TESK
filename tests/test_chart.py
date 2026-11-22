@@ -1305,6 +1305,42 @@ def test_task_resources_invalid(key: str, value: str, message: str) -> None:
     assert message in error.value.stderr
 
 
+@pytest.mark.parametrize(
+    "args",
+    [
+        ("--set-json", 'tesk.taskmaster.podSecurityContext={"seccompProfile":null}'),
+        ("--set-json", 'tesk.taskmaster.securityContext={"privileged":null}'),
+        ("--set-json", f'{EXECUTOR_POD}={{"fsGroup":1,"seccompProfile":null}}'),
+        ("--set-json", f'{EXECUTOR_CONTAINER}={{"capabilities":null}}'),
+    ],
+)
+def test_notes_task_pod_settings_null_fields(
+    tmp_path: Path, args: tuple[str, ...]
+) -> None:
+    """Null fields ask for nothing, so the notes don't warn of them.
+
+    Args:
+        tmp_path: A directory for a copy of the chart.
+        args: `helm template` arguments.
+    """
+    text = notes(*args, "--set", "tesk.image.tag=2.0.0", tmp_path=tmp_path)
+    assert "deployment/#restricted-namespaces-and-quotas" not in text
+
+
+@pytest.mark.parametrize("key", list(TASK_RESOURCES))
+@pytest.mark.parametrize("value", ["true", "false"])
+def test_task_resources_boolean(key: str, value: str) -> None:
+    """Booleans aren't quantities, and fail.
+
+    Args:
+        key: The value's key.
+        value: The quantity, as JSON.
+    """
+    with pytest.raises(subprocess.CalledProcessError) as error:
+        render("--set-json", f'{key}={{"limits":{{"cpu":{value}}}}}')
+    assert "not a quantity" in error.value.stderr
+
+
 DEFAULT_CPU = "TESK_API_TASKMASTER_EXECUTOR_DEFAULT_CPU"
 
 
@@ -5124,7 +5160,8 @@ def test_notes_filer_resources_old_taskmaster(
 @pytest.mark.parametrize(
     ("tag", "old"),
     [
-        (None, True),
+        # The chart's default, appVersion
+        (None, tuple(int(n) for n in METADATA["appVersion"].split(".")[:2]) < (2, 1)),
         ("v2.0.1", True),
         ("2.1.0", False),
         ("2.1.0-rc.1", False),
