@@ -31,7 +31,7 @@ and Helm installs them from their URLs, e.g.:
 ```bash
 helm upgrade --install tesk \
     https://github.com/elixir-cloud-aai/TESK/releases/download/tesk-0.1.1/tesk-0.1.1.tgz \
-    --namespace tesk -f my-values.yaml
+    --namespace tesk --create-namespace -f my-values.yaml
 ```
 
 They get no fixes, though: move to the current chart instead. Releases
