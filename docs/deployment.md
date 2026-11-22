@@ -104,13 +104,13 @@ helm upgrade --install tesk tesk-X.Y.Z.tgz \
 
 !!! note "Old Helm repository"
 
-    The Helm repository at `https://elixir-cloud-aai.github.io/TESK/`
-    (`helm repo add tesk https://elixir-cloud-aai.github.io/TESK/`) holds
-    only charts 0.1.0 and 0.1.1 and gets no new versions; it stays
-    available so that existing setups still resolve. Charts from 0.3.0 on
-    are only attached to the [GitHub
+    The Helm repository at `https://elixir-cloud-aai.github.io/TESK/` is
+    gone. Charts from 0.3.0 on are attached to the [GitHub
     releases](https://github.com/elixir-cloud-aai/TESK/releases): install
-    them as shown above.
+    them as shown above. The old charts 0.1.0 and 0.1.1 are attached to the
+    releases `tesk-0.1.0` and `tesk-0.1.1`, without an attestation or a
+    signature, and are installed from their URLs instead (see [The old Helm
+    repository is gone](upgrading.md#the-old-helm-repository-is-gone)).
 
 For a single machine, see [TESK on a single node with MicroK8s](microk8s.md).
 
