@@ -12,6 +12,35 @@ helm upgrade tesk charts/tesk --namespace tesk -f my-values.yaml -f secrets.yaml
 
 ## Unreleased
 
+### The old Helm repository is gone
+
+The Helm repository at `https://elixir-cloud-aai.github.io/TESK/` (the
+`gh-pages` branch), which held only charts 0.1.0 and 0.1.1, is retired:
+`helm repo add tesk https://elixir-cloud-aai.github.io/TESK/`, `helm repo
+update` and installs of `tesk/tesk` fail. Remove it from your Helm setup:
+
+```bash
+helm repo remove tesk
+```
+
+The old charts stay attached to the GitHub releases
+[`tesk-0.1.0`](https://github.com/elixir-cloud-aai/TESK/releases/tag/tesk-0.1.0)
+and [`tesk-0.1.1`](https://github.com/elixir-cloud-aai/TESK/releases/tag/tesk-0.1.1),
+and Helm installs them from their URLs, e.g.:
+
+```bash
+helm upgrade --install tesk \
+    https://github.com/elixir-cloud-aai/TESK/releases/download/tesk-0.1.1/tesk-0.1.1.tgz \
+    --namespace tesk -f my-values.yaml
+```
+
+They get no fixes, though: move to the current chart instead. Releases
+of charts before 0.3.0 can't be upgraded in place; install them again
+with your values adapted, as described in [0.3.0](#030) (see [Migrating a
+release](#migrating-a-release)), then follow the sections of the later
+releases above, and install the chart from its GitHub release (see [From
+a release](deployment.md#from-a-release)).
+
 ### Security contexts and resources of task pods
 
 New values give the taskmasters', the filers' and the executors' pods
@@ -715,9 +744,9 @@ The chart version equals the release version. As tags up to `v0.2` exist
 from earlier releases, chart versions continue with 0.3.0, although the
 last chart released to the Helm repository at
 `https://elixir-cloud-aai.github.io/TESK/` was 0.1.1. That Helm repository
-keeps charts 0.1.0 and 0.1.1, so existing `helm repo add` setups still
-resolve, but gets no new versions: install charts from 0.3.0 on from their
-GitHub release (see [From a release](deployment.md#from-a-release)).
+got no new versions and is gone now (see [The old Helm repository is
+gone](#the-old-helm-repository-is-gone)): install charts from 0.3.0 on
+from their GitHub release (see [From a release](deployment.md#from-a-release)).
 
 ### Taskmaster and filer v0.10.6
 

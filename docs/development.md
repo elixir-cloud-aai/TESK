@@ -188,10 +188,9 @@ the chart and can't be reused (release tags are immutable), so chart
 versions continue above 0.2.
 
 Charts 0.1.0 and 0.1.1 were released under tags `tesk-0.1.0` and
-`tesk-0.1.1` and indexed in a Helm repository on the `gh-pages` branch
-(`helm repo add` with `https://elixir-cloud-aai.github.io/TESK/`). Those
-releases stay as they are, but this workflow doesn't update that index:
-releases from now on are only attached to their GitHub release, as in the
+`tesk-0.1.1` and indexed in a Helm repository on the `gh-pages` branch,
+which is retired: their charts are attached to those GitHub releases, and
+all later releases are only attached to their GitHub release, as in the
 org's other repositories.
 
 The workflow `Release` (`.github/workflows/release.yml`) runs on pushed
