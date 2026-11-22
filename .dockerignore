@@ -8,13 +8,14 @@
 charts/tesk/s3-config/*
 !charts/tesk/s3-config/*-TEMPLATE
 # Secret files at any depth
-**/.env
-**/.env.*
+**/.env*
 !**/.env.example
 **/.netrc
 **/.git-credentials
 **/.pypirc
 **/.npmrc
+**/.aws
+**/.docker/config.json
 **/.kube
 **/*kubeconfig*
 **/*.pem
@@ -27,5 +28,5 @@ charts/tesk/s3-config/*
 **/id_rsa*
 **/id_ecdsa*
 **/id_ed25519*
-**/secrets.yaml
-**/tls-secret.yaml
+**/*secret*.yaml
+**/*secret*.yml

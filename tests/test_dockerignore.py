@@ -10,6 +10,7 @@ repository root counts as a build context too (`docker build .`).
 from __future__ import annotations
 
 from pathlib import Path, PurePosixPath
+import posixpath
 import re
 import subprocess
 
@@ -33,11 +34,16 @@ SECRETS = [
     ".env.local",
     "src/.env",
     "src/deep/.env.production",
+    ".envrc",
+    "src/.env_local",
+    "src/.envs/prod",
     ".netrc",
     "src/.netrc",
     "src/.git-credentials",
     "src/.pypirc",
     "src/.npmrc",
+    "src/.aws/credentials",
+    "src/.docker/config.json",
     "src/.kube/config",
     "kubeconfig",
     "src/kind-kubeconfig",
@@ -53,7 +59,9 @@ SECRETS = [
     "src/id_ecdsa",
     "src/id_ed25519",
     "src/secrets.yaml",
+    "src/secrets.yml",
     "src/tls-secret.yaml",
+    "src/ftp-secret.yaml",
 ]
 
 # Paths at the repository root that must be excluded, too: the Git
@@ -69,6 +77,13 @@ ROOT_SECRETS = [
 
 # Paths in a build context that must still be sent
 KEPT = [".env.example", "src/.env.example"]
+
+# Paths at the repository root that must still be sent: the templates of
+# the storage credentials
+ROOT_KEPT = [
+    "charts/tesk/s3-config/config-TEMPLATE",
+    "charts/tesk/s3-config/credentials-TEMPLATE",
+]
 
 # Names of Dockerfiles (compared in lower case): `Dockerfile`,
 # `Dockerfile.dev`, `Dockerfile-dev`, `app.Dockerfile`, and the same for
@@ -172,11 +187,18 @@ def _rules(ignore_file: Path) -> list[tuple[bool, re.Pattern[str]]]:
     """
     rules = []
     for line in ignore_file.read_text().splitlines():
+        # As `dockerignore.ReadAll`: comments start in the first column,
+        # one `!` negates, and patterns are cleaned
+        if line.startswith("#"):
+            continue
         pattern = line.strip()
-        if not pattern or pattern.startswith("#"):
+        if not pattern:
             continue
         excludes = not pattern.startswith("!")
-        rules.append((excludes, _pattern_regex(pattern.lstrip("!").strip())))
+        if not excludes:
+            pattern = pattern[1:].strip()
+        pattern = posixpath.normpath(pattern) if pattern else pattern
+        rules.append((excludes, _pattern_regex(pattern)))
     return rules
 
 
@@ -229,9 +251,9 @@ def _ignore_files(dockerfile: str | None, context: str) -> list[Path]:
 
 
 BUILDS = [
-    pytest.param(dockerfile, context, SECRETS, id=dockerfile)
+    pytest.param(dockerfile, context, SECRETS, KEPT, id=dockerfile)
     for dockerfile, context in CONTEXTS.items()
-] + [pytest.param(None, ".", SECRETS + ROOT_SECRETS, id="root")]
+] + [pytest.param(None, ".", SECRETS + ROOT_SECRETS, KEPT + ROOT_KEPT, id="root")]
 
 
 def test_every_dockerfile_has_a_context() -> None:
@@ -239,9 +261,9 @@ def test_every_dockerfile_has_a_context() -> None:
     assert _dockerfiles() == sorted(CONTEXTS)
 
 
-@pytest.mark.parametrize(("dockerfile", "context", "secrets"), BUILDS)
+@pytest.mark.parametrize(("dockerfile", "context", "secrets", "kept"), BUILDS)
 def test_context_excludes_secrets(
-    dockerfile: str | None, context: str, secrets: list[str]
+    dockerfile: str | None, context: str, secrets: list[str], kept: list[str]
 ) -> None:
     """The build context leaves out secret files and keeps `.env.example`.
 
@@ -249,13 +271,14 @@ def test_context_excludes_secrets(
         dockerfile: The Dockerfile relative to the root, or `None`.
         context: The build context relative to the root.
         secrets: The paths that must be left out.
+        kept: The paths that must be sent.
     """
     for ignore_file in _ignore_files(dockerfile, context):
         assert ignore_file.is_file(), f"{ignore_file} is missing"
         rules = _rules(ignore_file)
         sent = [path for path in secrets if not _excluded(rules, path)]
         assert not sent, f"{ignore_file} sends {sent}"
-        dropped = [path for path in KEPT if _excluded(rules, path)]
+        dropped = [path for path in kept if _excluded(rules, path)]
         assert not dropped, f"{ignore_file} leaves out {dropped}"
 
 
@@ -280,6 +303,10 @@ def test_context_excludes_secrets(
         (["\\*"], "*", True),
         (["\\*"], "a", False),
         (["# comment", "", "  .netrc  "], ".netrc", True),
+        (["  #x"], "#x", True),
+        (["*", "!!a"], "!a", False),
+        (["*", "!!a"], "a", True),
+        (["./src/../x"], "x", True),
         (["*", "!src/"], "src/a", False),
     ],
 )

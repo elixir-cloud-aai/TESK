@@ -10,13 +10,14 @@ dist/
 # Secrets never go into the images, nor into the build stages and their
 # cache: at any depth (the same rules as in the `.dockerignore` at the
 # repository root, checked by `tests/test_dockerignore.py` there)
-**/.env
-**/.env.*
+**/.env*
 !**/.env.example
 **/.netrc
 **/.git-credentials
 **/.pypirc
 **/.npmrc
+**/.aws
+**/.docker/config.json
 **/.kube
 **/*kubeconfig*
 **/*.pem
@@ -29,5 +30,5 @@ dist/
 **/id_rsa*
 **/id_ecdsa*
 **/id_ed25519*
-**/secrets.yaml
-**/tls-secret.yaml
+**/*secret*.yaml
+**/*secret*.yml

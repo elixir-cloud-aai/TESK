@@ -35,13 +35,17 @@ copy of tesk-core in `source/tesk-core/containers/` can be built by
 hand (`source/tesk-core/dockerBuild`, from `source/tesk-core`). Secret
 files must never reach an image or the cache of a build stage, so the
 `.dockerignore` of every build context, `source/tesk-core/.dockerignore` and
-the one at the repository root, leaves out, at any depth: `.env` and
-`.env.*` files (but not `.env.example`), `.netrc`, `.git-credentials`,
-`.pypirc`, `.npmrc`, `.kube/` and kubeconfig files, keys and certificates
-(`*.pem`, `*.key`, `*.crt`, `*.p12`, `*.pfx`, `*.jks`, `*.keystore`,
-`id_rsa*`, `id_ecdsa*`, `id_ed25519*`), and the chart's `secrets.yaml` and
-`tls-secret.yaml`. The root one also leaves out `.git` and the storage
-credentials made from the templates in `charts/tesk/s3-config/`. Docker has
+the one at the repository root, leaves out, at any depth: `.env*` files
+and directories (e.g., `.env.local`, `.envrc`, but not `.env.example`),
+`.netrc`, `.git-credentials`, `.pypirc`, `.npmrc`, `.aws/`,
+`.docker/config.json`, `.kube/` and kubeconfig files, keys and
+certificates (`*.pem`, `*.key`, `*.crt`, `*.p12`, `*.pfx`, `*.jks`,
+`*.keystore`, `id_rsa*`, `id_ecdsa*`, `id_ed25519*`), and YAML files with
+`secret` in their name (e.g., the `secrets.yaml` and `tls-secret.yaml` of
+a deployment, or `ftp-secret.yaml` from the upgrade notes; at the root,
+the chart's templates of secrets too, which no image needs). The root one
+also leaves out `.git` and the storage credentials made from the
+templates in `charts/tesk/s3-config/` (it keeps the templates). Docker has
 no includes, so both files hold the same list: change them together.
 
 `tests/test_dockerignore.py` checks this: every Dockerfile of the
