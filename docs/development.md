@@ -17,7 +17,7 @@ source .venv/bin/activate  # or `activate.fish` etc.
 pre-commit install  # run the checks on every commit
 pre-commit run --all-files  # whitespace, YAML/JSON, ruff, mypy, actionlint, shellcheck
 pre-commit run --all-files --hook-stage manual gitleaks-all  # secrets
-pytest  # the tests of the docs hooks, the check script and, with helm, the chart
+pytest  # the tests of the docs hooks, the scripts, the .dockerignore files and, with helm, the chart
 helm lint charts/tesk --strict
 mkdocs build --strict  # the docs, as CI and Read the Docs build them
 ```
@@ -37,6 +37,12 @@ The workflow `CI` (`.github/workflows/ci.yml`) runs on every pull request to
   the commit message).
 - **Lint:** the pre-commit hooks above.
 - **Test:** the tests in `tests/` except the chart tests, with coverage.
+  They include `tests/test_dockerignore.py`, which checks that every
+  Dockerfile of the repository is listed with its build context and that
+  the `.dockerignore` Docker applies to that context, and to the
+  repository root, leaves out `.env` files (except `.env.example`) and
+  other secret files (`.netrc`, keys, certificates) at any depth. A new
+  Dockerfile fails it until it is added to `CONTEXTS` in that file.
 - **Chart:** `helm lint --strict` and `helm template` of the chart, and the
   chart tests (`tests/test_chart.py`), which render the chart with
   `helm template` for the default values and the main options (ingress,

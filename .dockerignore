@@ -1,1 +1,16 @@
-tesk-core/containers/
+# No image is built from the repository root; if one is, secrets never go
+# into it, nor into the build stages and their cache: at any depth (see
+# `tests/test_dockerignore.py`)
+**/.env
+**/.env.*
+!**/.env.example
+**/.netrc
+**/.git-credentials
+**/*.pem
+**/*.key
+**/*.p12
+**/*.pfx
+**/id_rsa*
+**/id_ecdsa*
+**/id_ed25519*
+**/kubeconfig*
