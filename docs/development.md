@@ -17,7 +17,7 @@ source .venv/bin/activate  # or `activate.fish` etc.
 pre-commit install  # run the checks on every commit
 pre-commit run --all-files  # whitespace, YAML/JSON, ruff, mypy, actionlint, shellcheck
 pre-commit run --all-files --hook-stage manual gitleaks-all  # secrets
-pytest  # the tests of the docs hooks, the check script and, with helm, the chart
+pytest  # the tests of the docs hooks, the scripts, the .dockerignore files and, with helm, the chart
 helm lint charts/tesk --strict
 mkdocs build --strict  # the docs, as CI and Read the Docs build them
 ```
@@ -26,6 +26,38 @@ The checks are configured in
 [`.pre-commit-config.yaml`](https://github.com/elixir-cloud-aai/TESK/blob/dev/.pre-commit-config.yaml)
 and
 [`pyproject.toml`](https://github.com/elixir-cloud-aai/TESK/blob/dev/pyproject.toml).
+
+### Build contexts
+
+No image is built from this repository (the images of tesk-api and
+tesk-core are built in their own repositories), but the Dockerfiles of the
+copy of tesk-core in `source/tesk-core/containers/` can be built by
+hand (`source/tesk-core/dockerBuild`, from `source/tesk-core`). Secret
+files must never reach an image or the cache of a build stage, so the
+`.dockerignore` of every build context, `source/tesk-core/.dockerignore` and
+the one at the repository root, leaves out, at any depth: `.env*` files
+and directories (e.g., `.env.local`, `.envrc`, but not `.env.example`),
+`.git` (remote URLs and checkout tokens), `.ssh/`, `.netrc`,
+`.git-credentials`, `.pypirc`, `.npmrc`, `.aws/`, `.docker/config.json`,
+`.config/gcloud/` and `application_default_credentials.json`, `.kube/` and
+kubeconfig files, keys and certificates (`*.pem`, `*.key`, `*.crt`,
+`*.p12`, `*.pfx`, `*.jks`, `*.keystore`, `id_rsa*`, `id_dsa*`,
+`id_ecdsa*`, `id_ed25519*`), and YAML files with
+`secret` in their name (e.g., the `secrets.yaml` and `tls-secret.yaml` of
+a deployment, or `ftp-secret.yaml` from the upgrade notes; at the root,
+the chart's templates of secrets too, which no image needs). The root one
+also leaves out the storage credentials made from the templates in
+`charts/tesk/s3-config/` (it keeps the templates). Docker has
+no includes, so both files hold the same list: change them together.
+
+`tests/test_dockerignore.py` checks this: every Dockerfile of the
+repository must be listed in its `CONTEXTS` with its build context (kept by
+hand: check it against the build scripts), and every ignore file a builder
+may apply to that context (the context's `.dockerignore`, which must exist,
+and, if present, `<Dockerfile>.dockerignore`, which BuildKit prefers, and
+`.containerignore`, which buildah prefers) must leave out sample paths of
+each rule and keep `.env.example`. A new Dockerfile fails the test until
+it is added to `CONTEXTS`.
 
 ## Continuous integration
 
@@ -37,6 +69,8 @@ The workflow `CI` (`.github/workflows/ci.yml`) runs on every pull request to
   the commit message).
 - **Lint:** the pre-commit hooks above.
 - **Test:** the tests in `tests/` except the chart tests, with coverage.
+  They include `tests/test_dockerignore.py`, which checks the build
+  contexts of the Dockerfiles (see [Build contexts](#build-contexts)).
 - **Chart:** `helm lint --strict` and `helm template` of the chart, and the
   chart tests (`tests/test_chart.py`), which render the chart with
   `helm template` for the default values and the main options (ingress,
