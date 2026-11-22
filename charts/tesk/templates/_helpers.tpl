@@ -184,14 +184,39 @@ versions aren't checked */ -}}
 {{- end -}}
 
 {{/*
-The executors' security context (`tesk.executor.securityContext`) as
-tesk-api reads it (`KubernetesObjectsSupplier`): the fields `fsGroup`,
-`runAsGroup` and `runAsUser` as integers (Helm reads numbers in values
-files as floats, which YAML would render as, e.g., 1e+06), and
-`runAsNonRoot` as `nonRoot`; empty if none is set.
+The executors' pod security context as tesk-api reads it from the
+ConfigMap of `CONFIGMAP` (`KubernetesObjectsSupplier`), which all versions
+of tesk-api read: the fields `fsGroup`, `runAsGroup` and `runAsUser` as
+integers (Helm reads numbers in values files as floats, which YAML would
+render as, e.g., 1e+06), and `runAsNonRoot` as `nonRoot`; empty if none is
+set. They come from `tesk.executor.podSecurityContext`, and `runAsGroup`,
+`runAsUser` and `runAsNonRoot` of `tesk.executor.securityContext` (the
+container's) replace them, as Kubernetes lets the container's fields win:
+the same for the executor, the pod's only container, and so tesk-api before
+2.1.0, which ignores the container's context, still applies them. Null
+fields are left out (tesk-api 2.1.0 removes them with the JSON of the pod's
+context). Fails on a non-null `fsGroup` in the container's context (the
+pod's context up to chart 0.4.0), which Kubernetes doesn't know there,
+and on root with `runAsNonRoot`.
 */}}
 {{- define "tesk.executorSecurityContext" -}}
-{{- $context := dig "executor" "securityContext" dict .Values.tesk | default dict -}}
+{{- $executor := default dict .Values.tesk.executor -}}
+{{- $pod := default dict $executor.podSecurityContext -}}
+{{- $container := default dict $executor.securityContext -}}
+{{- if and (hasKey $container "fsGroup") (not (kindIs "invalid" (index $container "fsGroup"))) -}}
+{{- fail "tesk.executor.securityContext is the executors' container context after chart 0.4.0, which has no fsGroup: move fsGroup to tesk.executor.podSecurityContext (see https://tesk.readthedocs.io/en/latest/upgrading/#security-contexts-and-resources-of-task-pods)" -}}
+{{- end -}}
+{{- $context := dict -}}
+{{- range $key := list "fsGroup" "runAsGroup" "runAsUser" "runAsNonRoot" -}}
+{{- if and (hasKey $pod $key) (not (kindIs "invalid" (index $pod $key))) -}}
+{{- $_ := set $context $key (index $pod $key) -}}
+{{- end -}}
+{{- end -}}
+{{- range $key := list "runAsGroup" "runAsUser" "runAsNonRoot" -}}
+{{- if and (hasKey $container $key) (not (kindIs "invalid" (index $container $key))) -}}
+{{- $_ := set $context $key (index $container $key) -}}
+{{- end -}}
+{{- end -}}
 {{- $lines := list -}}
 {{- range $key := list "fsGroup" "runAsGroup" "runAsUser" -}}
 {{- if hasKey $context $key -}}
@@ -199,12 +224,50 @@ files as floats, which YAML would render as, e.g., 1e+06), and
 {{- end -}}
 {{- end -}}
 {{- if and (hasKey $context "runAsUser") (eq (index $context "runAsUser" | int64) 0) (eq (toString (index $context "runAsNonRoot")) "true") -}}
-{{- fail "tesk.executor.securityContext: runAsUser 0 contradicts runAsNonRoot true; Kubernetes wouldn't start the executors" -}}
+{{- fail "tesk.executor: runAsUser 0 contradicts runAsNonRoot true (of tesk.executor.podSecurityContext or tesk.executor.securityContext); Kubernetes wouldn't start the executors" -}}
 {{- end -}}
 {{- if hasKey $context "runAsNonRoot" -}}
 {{- $lines = append $lines (printf "nonRoot: %t" (index $context "runAsNonRoot")) -}}
 {{- end -}}
 {{- join "\n" $lines -}}
+{{- end -}}
+
+{{/*
+Resources (`requests`, `limits` and `claims` of a Kubernetes
+ResourceRequirements) as JSON, with the quantities of `requests` and
+`limits` as strings, which the taskmaster needs for the filer's
+(`FILER_RESOURCES`) and tesk-api accepts: whole numbers, which Helm reads
+from values files as floats, as written (e.g., 536870912, not
+5.36870912e+08) up to 2^53, failing above (quote them); other numbers as Go
+writes them (e.g., 0.5). Other fields are passed on as they are (tesk-api
+and the taskmaster check them). Arguments: `value` (a map) and `key` (its
+name, for the errors).
+*/}}
+{{- define "tesk.resourcesJson" -}}
+{{- $resources := deepCopy .value -}}
+{{- $key := .key -}}
+{{- range $field := list "requests" "limits" -}}
+{{- $quantities := get $resources $field -}}
+{{- if kindIs "map" $quantities -}}
+{{- $strings := dict -}}
+{{- range $name, $quantity := $quantities -}}
+{{- if and (kindIs "float64" $quantity) (eq (floor $quantity) $quantity) -}}
+{{- if not (and (lt $quantity 9007199254740992.0) (gt $quantity -9007199254740992.0)) -}}
+{{- fail (printf "%s.%s.%s is a number too large to be exact: quote it in the values file or use --set-string" $key $field $name) -}}
+{{- end -}}
+{{- $_ := set $strings $name (printf "%.0f" $quantity) -}}
+{{- else if kindIs "invalid" $quantity -}}
+{{- fail (printf "%s.%s.%s has no value: give a quantity, or leave it out" $key $field $name) -}}
+{{- else if kindIs "bool" $quantity -}}
+{{- fail (printf "%s.%s.%s is %t, not a quantity: give one, e.g., 1, 500m or 512Mi" $key $field $name $quantity) -}}
+{{- else -}}
+{{- $_ := set $strings $name (toString $quantity) -}}
+{{- end -}}
+{{- end -}}
+{{- $_ := set $resources $field $strings -}}
+{{- end -}}
+{{- end -}}
+{{- toJson $resources -}}
 {{- end -}}
 
 {{/*
@@ -463,10 +526,61 @@ ignores it and sends no CORS headers, so browsers refuse its answers to
 those origins. It is for tesk-api 2.0.0 or later; see
 https://tesk.readthedocs.io/en/latest/deployment/#browser-clients-cors
 {{- end }}
+{{- /* tesk-api before 2.1.0 ignores the security contexts and resources
+of the taskmasters, the executors' container context and the fields of
+their pod context other than those of the ConfigMap, and the executors'
+default CPU (tesk-api#209) */ -}}
+{{- if include "tesk.apiBefore" (dict "root" . "version" "2.1.0") -}}
+{{- $ignored := list -}}
+{{- $taskmaster := default dict .Values.tesk.taskmaster -}}
+{{- range $key := list "podSecurityContext" "securityContext" -}}
+{{- $context := get $taskmaster $key -}}
+{{- if kindIs "map" $context -}}
+{{- $set := false -}}
+{{- range $value := values $context -}}
+{{- if not (kindIs "invalid" $value) -}}
+{{- $set = true -}}
+{{- end -}}
+{{- end -}}
+{{- if $set -}}
+{{- $ignored = append $ignored (printf "tesk.taskmaster.%s" $key) -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+{{- if and (kindIs "map" $taskmaster.resources) $taskmaster.resources -}}
+{{- $ignored = append $ignored "tesk.taskmaster.resources" -}}
+{{- end -}}
+{{- $executor := default dict .Values.tesk.executor -}}
+{{- range $key, $legacy := dict "podSecurityContext" (list "fsGroup" "runAsGroup" "runAsUser" "runAsNonRoot") "securityContext" (list "runAsGroup" "runAsUser" "runAsNonRoot") -}}
+{{- $context := get $executor $key -}}
+{{- if kindIs "map" $context -}}
+{{- $others := list -}}
+{{- range $field := keys $context | sortAlpha -}}
+{{- if and (not (has $field $legacy)) (not (kindIs "invalid" (get $context $field))) -}}
+{{- $others = append $others $field -}}
+{{- end -}}
+{{- end -}}
+{{- if $others -}}
+{{- $ignored = append $ignored (printf "tesk.executor.%s (%s)" $key (join ", " $others)) -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+{{- if and (not (kindIs "invalid" $executor.defaultCpu)) (ne (toString $executor.defaultCpu) "") -}}
+{{- $ignored = append $ignored "tesk.executor.defaultCpu" -}}
+{{- end -}}
+{{- if $ignored }}
+
+WARNING: {{ join ", " $ignored }} {{ ternary "is" "are" (eq (len $ignored) 1) }} set,
+but tesk-api {{ $apiTag }} (tesk.image.tag) ignores {{ ternary "it" "them" (eq (len $ignored) 1) }}: task pods don't get
+these settings, and namespaces that enforce the restricted Pod Security
+Standard refuse them. They are for tesk-api 2.1.0 or later; see
+https://tesk.readthedocs.io/en/latest/deployment/#restricted-namespaces-and-quotas
+{{- end }}
+{{- end }}
 {{- /* Taskmasters before 0.12.0 (tags compared as `tesk.tagVersion`; tags
 that aren't versions, e.g., dev, are assumed to be newer) don't run TES
 1.1 tasks as asked, give the filer jobs the FTP credentials as values, and
-ignore the filer's security contexts */ -}}
+ignore the filer's security contexts and resources */ -}}
 {{- $taskmasterTag := include "tesk.taskmasterImageTag" . -}}
 {{- $oldTaskmaster12 := include "tesk.taskmasterBefore" (dict "root" . "version" "0.12.0") -}}
 {{- if and $oldTaskmaster12 (not (include "tesk.apiBefore" (dict "root" . "version" "2.0.0"))) }}
@@ -497,7 +611,7 @@ the secret. Use taskmaster and filer 0.12.0 or later; see
 https://tesk.readthedocs.io/en/latest/upgrading/#tesk-api-200-taskmaster-and-filer-0120
 {{- end }}
 {{- $filerValues := default dict .Values.tesk.filer -}}
-{{- range $key := list "podSecurityContext" "securityContext" -}}
+{{- range $key := list "podSecurityContext" "securityContext" "resources" -}}
 {{- if and $oldTaskmaster12 (kindIs "map" (get $filerValues $key)) }}
 
 WARNING: tesk.filer.{{ $key }} is set, but the taskmaster is

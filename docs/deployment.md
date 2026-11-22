@@ -193,7 +193,7 @@ tests/smoke/deployment.sh http://localhost:8080/ga4gh/tes/v1
   with the input for the filer's image and its PVC.
 - `IMAGE` replaces the executor image of the tasks (Alpine, pinned by
   digest), e.g., with an image of a non-root user if
-  `tesk.executor.securityContext` sets `runAsNonRoot` but no `runAsUser`,
+  `tesk.executor.podSecurityContext` sets `runAsNonRoot` but no `runAsUser`,
   which Alpine's root user doesn't pass. It needs `echo`, `cat` and
   `sleep`.
 - The three tasks (named `deployment check: complete`, `deployment check:
@@ -703,11 +703,105 @@ tesk:
       memory: 2Gi
 ```
 
-The resources of the executors come from each task (`resources.cpu_cores`,
-`resources.ram_gb`); taskmaster v0.10.6 sets them as both requests and
-limits, so a task that uses more memory than it requested is killed (OOM),
-and its CPU is throttled. The disk space of a task (`resources.disk_gb`)
-sets the size of its PVC.
+The resources of the executors come from each task. With tesk-api 2.1.0
+or later, `resources.cpu_cores` and `resources.ram_gb` are both requests
+and limits, so a task that uses more memory than it asked for is killed
+(OOM), and its CPU is throttled; executors of tasks without `cpu_cores`
+get `tesk.executor.defaultCpu` (default: 1 CPU) as request and limit.
+Before 2.1.0, the limits depended on the fields that a task set: the
+taskmaster set the limits to the requests only for tasks without
+`cpu_cores`, and executors of tasks with `cpu_cores` had no memory limit
+(or a `LimitRange`'s default, which could be below the request, so that
+they never started; see
+[tesk-core#160](https://github.com/elixir-cloud-aai/tesk-core/issues/160)).
+The disk space of a task (`resources.disk_gb`) sets the size of its PVC.
+
+The taskmasters' and the filers' containers get `tesk.taskmaster.resources`
+and `tesk.filer.resources` (see [Configuration](configuration.md#api-and-tasks-tesk)
+for the defaults), e.g., for namespaces with quotas (see [Restricted
+namespaces and quotas](#restricted-namespaces-and-quotas)).
+
+## Restricted namespaces and quotas
+
+Namespaces that enforce the `restricted` [Pod Security
+Standard](https://kubernetes.io/docs/concepts/security/pod-security-standards/)
+(label `pod-security.kubernetes.io/enforce: restricted`) refuse pods without
+a non-root user, the `RuntimeDefault` (or `Localhost`) seccomp profile, no
+privilege escalation and no capabilities. The API's pod meets the standard
+with the chart's defaults, and so do the filers' pods of taskmaster 0.12.0;
+the taskmasters' and the executors' pods need these values. Without them,
+the taskmaster's job is created but never gets a pod, and the task stays
+`QUEUED` (the job's events name the reason). Namespaces with a
+`ResourceQuota` on `limits.cpu` (or `requests.cpu`) refuse containers
+without a CPU limit (or request) in the same way: tesk-api 2.1.0 gives the
+taskmasters and the executors CPU limits by default, and the filers get
+theirs from `tesk.filer.resources`. Such namespaces need tesk-api 2.1.0 or
+later (`tesk.image.tag`) and taskmaster and filer 0.12.0 or later:
+
+```yaml
+tesk:
+  taskmaster:
+    podSecurityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
+    securityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+          - ALL
+  filer:
+    # The default of the taskmaster after 0.12.0 (tesk-core#164); 0.12.0
+    # sets none
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 1
+        memory: 512Mi
+  executor:
+    podSecurityContext:
+      runAsNonRoot: true
+      # The filer's user, which owns the files that it stages on the
+      # task's volume
+      runAsUser: 100
+      seccompProfile:
+        type: RuntimeDefault
+    securityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+          - ALL
+```
+
+These are the values that CI installs into such a namespace on kind
+(`tests/smoke/restricted/values.yaml`, with `quota.yaml` next to it), with
+the [deployment checks](#checking-a-deployment) passing.
+
+- **Executors' user:** the standard needs a non-root user. With `runAsUser:
+  100`, the filer's user, executors can read the inputs and write the
+  outputs that the filers stage on the task's volume, also on volumes
+  whose ownership Kubernetes doesn't manage; with another user, add an
+  `fsGroup` (see [Executors as non-root
+  users](#executors-as-non-root-users)). Images that need root don't run
+  in such a namespace. On clusters that assign users themselves (e.g.,
+  OpenShift), leave `runAsUser` out.
+- **Seccomp:** on clusters that refuse pods asking for `RuntimeDefault` or
+  set their own security contexts (e.g., CSC Rahti), leave these values
+  out (see [OpenShift and other restricted
+  clusters](#openshift-and-other-restricted-clusters)).
+- **CPU and memory:** the executors of tasks without `resources.cpu_cores`
+  get `tesk.executor.defaultCpu` (default: 1 CPU); lower it if the quota is
+  small, as each running task takes that much of it. Tasks that ask for
+  more than the quota leaves wait: their pods are never created, and
+  `tesk.maxQueueSeconds` doesn't end them (see [Tasks that can't be
+  scheduled](#tasks-that-cant-be-scheduled)). Memory limits come from the
+  task's `resources.ram_gb`, or from a `LimitRange`'s default.
+- **Older versions:** tesk-api before 2.1.0 ignores these values (but the
+  executors' `runAsUser`, `runAsGroup`, `fsGroup` and `runAsNonRoot`), and
+  the chart's notes warn; taskmasters before 0.12.0 ignore
+  `tesk.filer.resources`, and the notes warn too.
 
 ## Deleting finished tasks
 
@@ -788,7 +882,7 @@ root. To run them as another user, set their pods' security context:
 ```yaml
 tesk:
   executor:
-    securityContext:
+    podSecurityContext:
       runAsUser: 1000
       runAsGroup: 1000
       # Group of the files on the task's PVC, so that the executors can
@@ -803,7 +897,13 @@ tesk-api reads at startup and applies to the pods of the executors it
 creates; changing them restarts the API's pod, and applies to tasks created
 afterwards. While the new pod starts, the old one keeps creating tasks with
 the old settings. `runAsUser: 0` with `runAsNonRoot: true` fails the chart,
-as Kubernetes wouldn't start such executors. tesk-api reads only these four fields. The taskmasters and the
+as Kubernetes wouldn't start such executors. All versions of tesk-api read
+these four fields; the other fields of `tesk.executor.podSecurityContext`
+and the container's context, `tesk.executor.securityContext`, need tesk-api
+2.1.0 or later (see [Restricted namespaces and
+quotas](#restricted-namespaces-and-quotas)). `runAsUser`, `runAsGroup` and
+`runAsNonRoot` of the container's context go into the ConfigMap too, and
+win over the pod's, as in Kubernetes. The taskmasters and the
 filers aren't affected: their images run them as UID 100. The API's own
 pod has separate security contexts (`tesk.podSecurityContext`,
 `tesk.securityContext`).

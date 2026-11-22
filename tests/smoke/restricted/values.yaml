@@ -1,0 +1,45 @@
+# Values for a namespace that enforces the `restricted` Pod Security
+# Standard and has a quota on `limits.cpu` (`quota.yaml`), as in the
+# deployment guide (docs/deployment.md, "Restricted namespaces and quotas"),
+# for the restricted case of `.github/actions/install-chart`. The chart's
+# tests render them too (tests/test_chart.py)
+tesk:
+  image:
+    # tesk-api `dev` at the merge of tesk-api#210 (pod security and
+    # resources of task pods), until tesk-api 2.1.0 is released: the chart's
+    # release prep that sets `appVersion` 2.1.0 removes it (a chart test
+    # fails while both are set)
+    tag: sha-b87b051ba1389b3696828579df1e78788488bb3f
+  taskmaster:
+    podSecurityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
+    securityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+          - ALL
+  filer:
+    # The default of the taskmaster after 0.12.0 (tesk-core#164); 0.12.0
+    # sets none
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 1
+        memory: 512Mi
+  executor:
+    # UID 100, the filer's user, which owns the files that the filer
+    # stages on the task's volume
+    podSecurityContext:
+      runAsNonRoot: true
+      runAsUser: 100
+      seccompProfile:
+        type: RuntimeDefault
+    securityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+          - ALL
