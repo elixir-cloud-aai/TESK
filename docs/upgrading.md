@@ -630,7 +630,7 @@ ended (`<task>-pvc`, where `<task>` is the task's ID).
 ### Executors as non-root users
 
 The new value `tesk.executor.securityContext` (`runAsUser`, `runAsGroup`,
-`fsGroup`, `runAsNonRoot`; since the next release after chart 0.4.0,
+`fsGroup`, `runAsNonRoot`; after chart 0.4.0,
 `tesk.executor.podSecurityContext`, see [Security contexts and resources
 of task pods](#security-contexts-and-resources-of-task-pods)) sets the
 security context of the executors' pods, through the new ConfigMap `<prefix>-executor` (see [Executors as

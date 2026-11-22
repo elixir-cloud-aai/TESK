@@ -196,7 +196,7 @@ the same for the executor, the pod's only container, and so tesk-api before
 2.1.0, which ignores the container's context, still applies them. Null
 fields are left out (tesk-api 2.1.0 removes them with the JSON of the pod's
 context). Fails on `fsGroup` in the container's context (the pod's context
-before chart 0.5.0), which Kubernetes doesn't know there, and on root with
+up to chart 0.4.0), which Kubernetes doesn't know there, and on root with
 `runAsNonRoot`.
 */}}
 {{- define "tesk.executorSecurityContext" -}}
@@ -204,7 +204,7 @@ before chart 0.5.0), which Kubernetes doesn't know there, and on root with
 {{- $pod := default dict $executor.podSecurityContext -}}
 {{- $container := default dict $executor.securityContext -}}
 {{- if hasKey $container "fsGroup" -}}
-{{- fail "tesk.executor.securityContext is the executors' container context since chart 0.5.0, which has no fsGroup: move fsGroup to tesk.executor.podSecurityContext (see https://tesk.readthedocs.io/en/latest/upgrading/#security-contexts-and-resources-of-task-pods)" -}}
+{{- fail "tesk.executor.securityContext is the executors' container context after chart 0.4.0, which has no fsGroup: move fsGroup to tesk.executor.podSecurityContext (see https://tesk.readthedocs.io/en/latest/upgrading/#security-contexts-and-resources-of-task-pods)" -}}
 {{- end -}}
 {{- $context := dict -}}
 {{- range $key := list "fsGroup" "runAsGroup" "runAsUser" "runAsNonRoot" -}}

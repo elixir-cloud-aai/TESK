@@ -62,7 +62,8 @@ The workflow `CI` (`.github/workflows/ci.yml`) runs on every pull request to
   values for such namespaces (`tests/smoke/restricted/values.yaml`, see
   [Restricted namespaces and
   quotas](deployment.md#restricted-namespaces-and-quotas)), so that every
-  pod of the chart and of the tasks must meet them. The tests of the script
+  pod of the chart and of the tasks must meet them (the release workflow
+  installs the default case only). The tests of the script
   itself (`tests/test_smoke_deployment.py`, in **Test**) run it against a
   fake TES API, also with a token.
 - **Docs:** builds the documentation strictly (`mkdocs build --strict`).

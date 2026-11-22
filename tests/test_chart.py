@@ -4984,6 +4984,34 @@ def test_notes_filer_contexts_old_taskmaster(
     assert (f"tesk.filer.{key} is set, but" in text) is warned
 
 
+def test_restricted_values_documented() -> None:
+    """The deployment guide's values for restricted namespaces are CI's.
+
+    The smoke test's values (`tests/smoke/restricted/values.yaml`) are the
+    guide's, but for the pinned tesk-api tag, so that the documented values
+    are those that the restricted chart install proves.
+    """
+    documented = _yaml_block(
+        CHART.parents[1] / "docs" / "deployment.md",
+        "## Restricted namespaces and quotas",
+    )
+    smoke = yaml.safe_load(RESTRICTED_VALUES.read_text())
+    smoke["tesk"].pop("image", None)
+    assert documented == smoke
+
+
+def test_restricted_values_pin() -> None:
+    """The smoke test pins tesk-api only while the chart deploys an older one.
+
+    Once the chart's `appVersion` is 2.1.0 or later, the pin of a dev build
+    must go.
+    """
+    smoke = yaml.safe_load(RESTRICTED_VALUES.read_text())
+    major, minor, *_ = (int(part) for part in METADATA["appVersion"].split("."))
+    if (major, minor) >= (2, 1):
+        assert "image" not in smoke["tesk"], "remove the tesk-api pin"
+
+
 @pytest.mark.parametrize(
     ("value", "tags", "warned"),
     [

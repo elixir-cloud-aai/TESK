@@ -87,7 +87,7 @@ tesk:
     securityContext: null
     # Resources of the filer's container (`requests` and `limits`, as in
     # Kubernetes), which replace the taskmaster's default (from the release
-    # after 0.12.0 on: requests of 100m CPU and 128Mi memory, limits of 1
+    # after 0.12.0 on, tesk-core#164: requests of 100m CPU and 128Mi memory, limits of 1
     # CPU and 512Mi memory; 0.12.0 has none); `{}` sets none, null keeps
     # the default. The chart passes the quantities on as strings, which the
     # taskmaster needs. Needs taskmaster 0.12.0 or later

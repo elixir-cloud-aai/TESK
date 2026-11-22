@@ -6,8 +6,9 @@
 tesk:
   image:
     # tesk-api `dev` at the merge of tesk-api#210 (pod security and
-    # resources of task pods), until tesk-api 2.1.0 is released: then remove
-    # it, once the chart's `appVersion` is 2.1.0
+    # resources of task pods), until tesk-api 2.1.0 is released: the chart's
+    # release prep that sets `appVersion` 2.1.0 removes it (a chart test
+    # fails while both are set)
     tag: sha-b87b051ba1389b3696828579df1e78788488bb3f
   taskmaster:
     podSecurityContext:
@@ -20,7 +21,8 @@ tesk:
         drop:
           - ALL
   filer:
-    # The default of the taskmaster after 0.12.0; 0.12.0 sets none
+    # The default of the taskmaster after 0.12.0 (tesk-core#164); 0.12.0
+    # sets none
     resources:
       requests:
         cpu: 100m

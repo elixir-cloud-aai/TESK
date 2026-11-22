@@ -751,7 +751,8 @@ tesk:
         drop:
           - ALL
   filer:
-    # The default of the taskmaster after 0.12.0; 0.12.0 sets none
+    # The default of the taskmaster after 0.12.0 (tesk-core#164); 0.12.0
+    # sets none
     resources:
       requests:
         cpu: 100m
