@@ -32,7 +32,9 @@ only; now it takes the fields of a Kubernetes `SecurityContext`, as
 `tesk.securityContext` and `tesk.filer.securityContext` do, and the pod's
 context is `tesk.executor.podSecurityContext`. Move `fsGroup`, which a
 container's context doesn't have, to the pod's context; the installation
-fails with a hint while it is under `tesk.executor.securityContext`:
+fails with a hint while it is under `tesk.executor.securityContext` (a
+null `fsGroup` there is fine, e.g., to drop the old one of a release
+upgraded with `--reuse-values`):
 
 ```yaml
 tesk:

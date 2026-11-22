@@ -149,14 +149,16 @@ spec:
         they set fields, as tesk-api sets none by default ({} and null are
         the same). The executors' pod context goes on top of the ConfigMap
         (CONFIGMAP), which has its fields that all versions of tesk-api
-        read */}}
+        read. A null fsGroup of the executors' container context (a set one
+        fails in tesk.executorSecurityContext) is left out, as tesk-api
+        refuses the field in a container's context */}}
         {{- $taskmaster := default dict $tesk.taskmaster }}
         {{- $executor := default dict $tesk.executor }}
         {{- range $variable, $context := dict
           "TESK_API_TASKMASTER_POD_SECURITY_CONTEXT" $taskmaster.podSecurityContext
           "TESK_API_TASKMASTER_SECURITY_CONTEXT" $taskmaster.securityContext
           "TESK_API_TASKMASTER_EXECUTOR_POD_SECURITY_CONTEXT" $executor.podSecurityContext
-          "TESK_API_TASKMASTER_EXECUTOR_SECURITY_CONTEXT" $executor.securityContext }}
+          "TESK_API_TASKMASTER_EXECUTOR_SECURITY_CONTEXT" (omit (default dict $executor.securityContext) "fsGroup") }}
         {{- if and (kindIs "map" $context) $context }}
         - name: {{ $variable }}
           value: {{ toJson $context | quote }}
@@ -169,8 +171,13 @@ spec:
           value: {{ include "tesk.resourcesJson" (dict "value" $taskmaster.resources "key" "tesk.taskmaster.resources") | quote }}
         {{- end }}
         {{- /* The executors' default CPU: null keeps tesk-api's default,
-        empty sets none */}}
+        empty sets none; zero fails, as tesk-api 2.1.0 doesn't start with it
+        (the schema checks the form) */}}
         {{- if not (kindIs "invalid" $executor.defaultCpu) }}
+        {{- $cpu := toString $executor.defaultCpu }}
+        {{- if and (ne $cpu "") (regexMatch "^\\+?0*(\\.0*)?([eE][+-]?[0-9]+|[numkMGTPE]|[KMGTPE]i)?$" $cpu) }}
+        {{- fail "tesk.executor.defaultCpu is zero, which tesk-api doesn't accept: set it empty (\"\") for no default CPU" }}
+        {{- end }}
         - name: TESK_API_TASKMASTER_EXECUTOR_DEFAULT_CPU
           value: {{ include "tesk.yamlText" (dict "value" $executor.defaultCpu "key" "tesk.executor.defaultCpu") }}
         {{- end }}

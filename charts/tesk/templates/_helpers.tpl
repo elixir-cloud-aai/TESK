@@ -195,15 +195,15 @@ container's) replace them, as Kubernetes lets the container's fields win:
 the same for the executor, the pod's only container, and so tesk-api before
 2.1.0, which ignores the container's context, still applies them. Null
 fields are left out (tesk-api 2.1.0 removes them with the JSON of the pod's
-context). Fails on `fsGroup` in the container's context (the pod's context
-up to chart 0.4.0), which Kubernetes doesn't know there, and on root with
-`runAsNonRoot`.
+context). Fails on a non-null `fsGroup` in the container's context (the
+pod's context up to chart 0.4.0), which Kubernetes doesn't know there,
+and on root with `runAsNonRoot`.
 */}}
 {{- define "tesk.executorSecurityContext" -}}
 {{- $executor := default dict .Values.tesk.executor -}}
 {{- $pod := default dict $executor.podSecurityContext -}}
 {{- $container := default dict $executor.securityContext -}}
-{{- if hasKey $container "fsGroup" -}}
+{{- if and (hasKey $container "fsGroup") (not (kindIs "invalid" (index $container "fsGroup"))) -}}
 {{- fail "tesk.executor.securityContext is the executors' container context after chart 0.4.0, which has no fsGroup: move fsGroup to tesk.executor.podSecurityContext (see https://tesk.readthedocs.io/en/latest/upgrading/#security-contexts-and-resources-of-task-pods)" -}}
 {{- end -}}
 {{- $context := dict -}}
@@ -536,7 +536,7 @@ default CPU (tesk-api#209) */ -}}
 {{- $ignored = append $ignored (printf "tesk.taskmaster.%s" $key) -}}
 {{- end -}}
 {{- end -}}
-{{- if kindIs "map" $taskmaster.resources -}}
+{{- if and (kindIs "map" $taskmaster.resources) $taskmaster.resources -}}
 {{- $ignored = append $ignored "tesk.taskmaster.resources" -}}
 {{- end -}}
 {{- $executor := default dict .Values.tesk.executor -}}
@@ -554,7 +554,7 @@ default CPU (tesk-api#209) */ -}}
 {{- end -}}
 {{- end -}}
 {{- end -}}
-{{- if not (kindIs "invalid" $executor.defaultCpu) -}}
+{{- if and (not (kindIs "invalid" $executor.defaultCpu)) (ne (toString $executor.defaultCpu) "") -}}
 {{- $ignored = append $ignored "tesk.executor.defaultCpu" -}}
 {{- end -}}
 {{- if $ignored }}

@@ -900,8 +900,10 @@ EXECUTOR_CONTAINER = "tesk.executor.securityContext"
         ("--set-json", f"{EXECUTOR_CONTAINER}={{}}"),
         ("--set-json", f"{EXECUTOR_CONTAINER}=null"),
         ("--set-json", "tesk.executor=null"),
-        # Null fields are left out
+        # Null fields are left out, also a null fsGroup of the container's
+        # context (e.g., to drop the one of an earlier release)
         ("--set-json", f'{EXECUTOR_POD}={{"runAsUser": null}}'),
+        ("--set-json", f'{EXECUTOR_CONTAINER}={{"fsGroup": null}}'),
     ],
 )
 def test_executor_security_context_default(args: tuple[str, ...]) -> None:
@@ -918,6 +920,21 @@ def test_executor_security_context_default(args: tuple[str, ...]) -> None:
     assert "CONFIGMAP" not in env(manifests)
     metadata = deployment(manifests)["spec"]["template"]["metadata"]
     assert "checksum/executor-config" not in metadata.get("annotations", {})
+    # Nor the container's variable of tesk-api 2.1.0, which refuses fsGroup
+    # in a container's context, also a null one
+    assert "TESK_API_TASKMASTER_EXECUTOR_SECURITY_CONTEXT" not in env(manifests)
+
+
+def test_executor_container_context_null_fs_group() -> None:
+    """A null fsGroup is left out of the container's context; others stay."""
+    variables = env(
+        render(
+            "--set-json",
+            f'{EXECUTOR_CONTAINER}={{"fsGroup": null, "privileged": false}}',
+        )
+    )
+    context = json.loads(variables["TESK_API_TASKMASTER_EXECUTOR_SECURITY_CONTEXT"])
+    assert context == {"privileged": False}
 
 
 @pytest.mark.parametrize(
@@ -1071,7 +1088,6 @@ def test_executor_security_context_root_and_non_root(args: tuple[str, ...]) -> N
             "--set",
             f"{EXECUTOR_CONTAINER}.fsGroup=2000",
         ),
-        ("--set-json", f'{EXECUTOR_CONTAINER}={{"fsGroup": null}}'),
     ],
 )
 def test_executor_security_context_fs_group_moved(args: tuple[str, ...]) -> None:
@@ -1329,6 +1345,28 @@ def test_executor_default_cpu_invalid(value: str) -> None:
     with pytest.raises(subprocess.CalledProcessError) as error:
         render("--set-json", f"tesk.executor.defaultCpu={value}")
     assert "values don't meet the specifications of the schema" in error.value.stderr
+
+
+@pytest.mark.parametrize(
+    "args",
+    [
+        ("--set-json", "tesk.executor.defaultCpu=0"),
+        ("--set-json", "tesk.executor.defaultCpu=0.0"),
+        ("--set-string", "tesk.executor.defaultCpu=0"),
+        ("--set-string", "tesk.executor.defaultCpu=0m"),
+        ("--set-string", "tesk.executor.defaultCpu=0.0"),
+    ],
+)
+def test_executor_default_cpu_zero(args: tuple[str, ...]) -> None:
+    """A zero default CPU fails, as tesk-api 2.1.0 wouldn't start with it.
+
+    Args:
+        args: The `helm template` arguments.
+    """
+    with pytest.raises(subprocess.CalledProcessError) as error:
+        render(*args)
+    # The schema (numbers) or the template (strings) refuses it
+    assert "defaultCpu" in error.value.stderr
 
 
 RESTRICTED_VALUES = CHART.parents[1] / "tests" / "smoke" / "restricted" / "values.yaml"
@@ -5050,7 +5088,13 @@ def test_notes_filer_resources_old_taskmaster(
             "tesk.taskmaster.securityContext is set",
         ),
         (("--set-json", "tesk.taskmaster.podSecurityContext={}"), None),
-        (("--set-json", "tesk.taskmaster.resources={}"), "tesk.taskmaster.resources"),
+        # Settings that ask for nothing, as older ones do anyway
+        (("--set-json", "tesk.taskmaster.resources={}"), None),
+        (("--set-json", 'tesk.executor.defaultCpu=""'), None),
+        (
+            ("--set-json", 'tesk.taskmaster.resources={"limits":{"cpu":1}}'),
+            "tesk.taskmaster.resources is set",
+        ),
         # The fields of the ConfigMap reach all versions
         (("--set-json", f'{EXECUTOR_POD}={{"fsGroup":1,"runAsUser":2}}'), None),
         (("--set-json", f'{EXECUTOR_CONTAINER}={{"runAsNonRoot":true}}'), None),
@@ -5065,11 +5109,11 @@ def test_notes_filer_resources_old_taskmaster(
             ("--set-json", f'{EXECUTOR_CONTAINER}={{"capabilities":{{}}}}'),
             "tesk.executor.securityContext (capabilities) is set",
         ),
-        (("--set-json", 'tesk.executor.defaultCpu=""'), "tesk.executor.defaultCpu"),
+        (("--set-string", "tesk.executor.defaultCpu=500m"), "tesk.executor.defaultCpu"),
         (
             (
                 "--set-json",
-                "tesk.taskmaster.resources={}",
+                'tesk.taskmaster.resources={"requests":{"cpu":1}}',
                 "--set-json",
                 "tesk.executor.defaultCpu=1",
             ),

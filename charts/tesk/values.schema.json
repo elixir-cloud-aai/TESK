@@ -284,8 +284,8 @@
                 "number",
                 "null"
               ],
-              "description": "CPU request and limit of the executors of tasks without resources.cpu_cores, a Kubernetes quantity (e.g., 1, 0.5 or 500m); null keeps tesk-api's default (1), empty sets none. Needs tesk-api 2.1.0 or later",
-              "minimum": 0,
+              "description": "CPU request and limit of the executors of tasks without resources.cpu_cores, a positive Kubernetes quantity (e.g., 1, 0.5 or 500m); null keeps tesk-api's default (1), empty sets none (zero fails in the templates). Needs tesk-api 2.1.0 or later",
+              "exclusiveMinimum": 0,
               "pattern": "^$|^\\+?([0-9]+(\\.[0-9]*)?|\\.[0-9]+)([eE][+-]?[0-9]+|[numkMGTPE]|[KMGTPE]i)?$"
             }
           },
