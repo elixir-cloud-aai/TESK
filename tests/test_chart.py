@@ -885,13 +885,23 @@ def test_strategy_recreate_with_rolling_update(args: tuple[str, ...]) -> None:
     )
 
 
+# The executors' security contexts: the pod's (`podSecurityContext`) and the
+# container's (`securityContext`, the pod's up to chart 0.4.0)
+EXECUTOR_POD = "tesk.executor.podSecurityContext"
+EXECUTOR_CONTAINER = "tesk.executor.securityContext"
+
+
 @pytest.mark.parametrize(
     "args",
     [
         (),
-        ("--set-json", "tesk.executor.securityContext={}"),
-        ("--set-json", "tesk.executor.securityContext=null"),
+        ("--set-json", f"{EXECUTOR_POD}={{}}"),
+        ("--set-json", f"{EXECUTOR_POD}=null"),
+        ("--set-json", f"{EXECUTOR_CONTAINER}={{}}"),
+        ("--set-json", f"{EXECUTOR_CONTAINER}=null"),
         ("--set-json", "tesk.executor=null"),
+        # Null fields are left out
+        ("--set-json", f'{EXECUTOR_POD}={{"runAsUser": null}}'),
     ],
 )
 def test_executor_security_context_default(args: tuple[str, ...]) -> None:
@@ -916,37 +926,62 @@ def test_executor_security_context_default(args: tuple[str, ...]) -> None:
         (
             (
                 "--set",
-                "tesk.executor.securityContext.runAsUser=1000",
+                f"{EXECUTOR_POD}.runAsUser=1000",
                 "--set",
-                "tesk.executor.securityContext.runAsGroup=3000",
+                f"{EXECUTOR_POD}.runAsGroup=3000",
                 "--set",
-                "tesk.executor.securityContext.fsGroup=2000",
+                f"{EXECUTOR_POD}.fsGroup=2000",
                 "--set",
-                "tesk.executor.securityContext.runAsNonRoot=true",
+                f"{EXECUTOR_POD}.runAsNonRoot=true",
             ),
             {"runAsUser": 1000, "runAsGroup": 3000, "fsGroup": 2000, "nonRoot": True},
         ),
+        (("--set", f"{EXECUTOR_POD}.fsGroup=2000"), {"fsGroup": 2000}),
+        (("--set", f"{EXECUTOR_POD}.runAsNonRoot=false"), {"nonRoot": False}),
+        (("--set", f"{EXECUTOR_POD}.runAsUser=0"), {"runAsUser": 0}),
+        # The container's runAs* fields reach older tesk-api too, as the
+        # pod's
         (
-            ("--set", "tesk.executor.securityContext.fsGroup=2000"),
-            {"fsGroup": 2000},
+            (
+                "--set",
+                f"{EXECUTOR_CONTAINER}.runAsUser=1000",
+                "--set",
+                f"{EXECUTOR_CONTAINER}.runAsGroup=3000",
+                "--set",
+                f"{EXECUTOR_CONTAINER}.runAsNonRoot=true",
+            ),
+            {"runAsUser": 1000, "runAsGroup": 3000, "nonRoot": True},
         ),
+        # The container's fields win, as in Kubernetes; null ones don't
         (
-            ("--set", "tesk.executor.securityContext.runAsNonRoot=false"),
-            {"nonRoot": False},
+            (
+                "--set-json",
+                f'{EXECUTOR_POD}={{"runAsUser": 1000, "runAsGroup": 1, '
+                '"fsGroup": 2000}',
+                "--set-json",
+                f'{EXECUTOR_CONTAINER}={{"runAsUser": 2000, "runAsGroup": null}}',
+            ),
+            {"runAsUser": 2000, "runAsGroup": 1, "fsGroup": 2000},
         ),
+        # Other fields go to the variables of tesk-api 2.1.0 only
         (
-            ("--set", "tesk.executor.securityContext.runAsUser=0"),
-            {"runAsUser": 0},
+            (
+                "--set-json",
+                f'{EXECUTOR_POD}={{"fsGroup": 1, "seccompProfile": '
+                '{"type": "RuntimeDefault"}}',
+            ),
+            {"fsGroup": 1},
         ),
     ],
 )
 def test_executor_security_context(
     args: tuple[str, ...], expected: dict[str, Any]
 ) -> None:
-    """The executors' security context reaches tesk-api through a ConfigMap.
+    """The executors' runAs* fields and fsGroup reach tesk-api via a ConfigMap.
 
     tesk-api reads the ConfigMap named in `CONFIGMAP` at startup (key
-    `securityContext`, with `nonRoot` for `runAsNonRoot`).
+    `securityContext`, with `nonRoot` for `runAsNonRoot`); all versions of
+    tesk-api read it.
 
     Args:
         args: The `helm template` arguments.
@@ -965,7 +1000,7 @@ def test_executor_security_context_checksum() -> None:
     """
     checksums = []
     for group in (1, 2):
-        manifests = render("--set", f"tesk.executor.securityContext.fsGroup={group}")
+        manifests = render("--set", f"{EXECUTOR_POD}.fsGroup={group}")
         data = get(manifests, "ConfigMap", "tesk-executor")["data"]["securityContext"]
         metadata = deployment(manifests)["spec"]["template"]["metadata"]
         checksum = metadata["annotations"]["checksum/executor-config"]
@@ -983,57 +1018,360 @@ def test_executor_security_context_values_file(tmp_path: Path) -> None:
     """
     values = tmp_path / "values.yaml"
     values.write_text(
-        "tesk:\n  executor:\n    securityContext:\n"
+        "tesk:\n  executor:\n    podSecurityContext:\n"
         "      runAsUser: 1000000\n      fsGroup: 2000\n"
+        "    securityContext:\n      runAsGroup: 3000000\n"
     )
     config = get(render("-f", str(values)), "ConfigMap", "tesk-executor")
     # Without a conversion, Helm would render 1000000 as 1e+06
     assert yaml.safe_load(config["data"]["securityContext"]) == {
         "fsGroup": 2000,
+        "runAsGroup": 3000000,
         "runAsUser": 1000000,
     }
 
 
 @pytest.mark.parametrize(
-    "value",
+    "args",
     [
-        '{"runAsUser": 0, "runAsNonRoot": true}',
-        '{"runAsUser": 0.0, "runAsNonRoot": true}',
+        ("--set-json", f'{EXECUTOR_POD}={{"runAsUser": 0, "runAsNonRoot": true}}'),
+        ("--set-json", f'{EXECUTOR_POD}={{"runAsUser": 0.0, "runAsNonRoot": true}}'),
+        (
+            "--set-json",
+            f'{EXECUTOR_CONTAINER}={{"runAsUser": 0, "runAsNonRoot": true}}',
+        ),
+        # Also across the two contexts
+        (
+            "--set-json",
+            f'{EXECUTOR_POD}={{"runAsUser": 0}}',
+            "--set-json",
+            f'{EXECUTOR_CONTAINER}={{"runAsNonRoot": true}}',
+        ),
     ],
 )
-def test_executor_security_context_root_and_non_root(value: str) -> None:
+def test_executor_security_context_root_and_non_root(args: tuple[str, ...]) -> None:
     """Root with `runAsNonRoot` fails, as Kubernetes wouldn't start executors.
 
     Args:
-        value: The security context, as JSON.
+        args: The `helm template` arguments.
     """
     with pytest.raises(subprocess.CalledProcessError) as error:
-        render("--set-json", f"tesk.executor.securityContext={value}")
+        render(*args)
     assert "runAsUser 0 contradicts runAsNonRoot" in error.value.stderr
 
 
+@pytest.mark.parametrize(
+    "args",
+    [
+        ("--set", f"{EXECUTOR_CONTAINER}.fsGroup=2000"),
+        # Also with the pod's fsGroup (a half-done move)
+        (
+            "--set",
+            f"{EXECUTOR_POD}.fsGroup=2000",
+            "--set",
+            f"{EXECUTOR_CONTAINER}.fsGroup=2000",
+        ),
+        ("--set-json", f'{EXECUTOR_CONTAINER}={{"fsGroup": null}}'),
+    ],
+)
+def test_executor_security_context_fs_group_moved(args: tuple[str, ...]) -> None:
+    """`fsGroup` in the container's context fails, with where it moved.
+
+    Up to chart 0.4.0, `tesk.executor.securityContext` was the pod's
+    context; a container's context has no `fsGroup`.
+
+    Args:
+        args: The `helm template` arguments.
+    """
+    with pytest.raises(subprocess.CalledProcessError) as error:
+        render(*args)
+    assert "move fsGroup to tesk.executor.podSecurityContext" in error.value.stderr
+    assert "upgrading/#security-contexts-and-resources-of-task-pods" in (
+        error.value.stderr
+    )
+
+
+@pytest.mark.parametrize("key", [EXECUTOR_POD, EXECUTOR_CONTAINER])
 @pytest.mark.parametrize(
     "value",
     [
         '{"runAsUser": -1}',
         '{"runAsUser": 2147483648}',
-        '{"fsGroup": 2147483648}',
+        '{"runAsGroup": 2147483648}',
         '{"runAsUser": 1.5}',
         '{"runAsUser": "1000"}',
         '{"runAsNonRoot": "yes"}',
-        '{"privileged": true}',
         "[]",
+        '"{}"',
     ],
 )
-def test_executor_security_context_invalid(value: str) -> None:
-    """The schema accepts only the fields that tesk-api reads, as numbers.
+def test_executor_security_context_invalid(key: str, value: str) -> None:
+    """The schema checks the fields that reach the ConfigMap, as numbers.
+
+    Args:
+        key: The value's key.
+        value: The security context, as JSON.
+    """
+    with pytest.raises(subprocess.CalledProcessError) as error:
+        render("--set-json", f"{key}={value}")
+    assert "values don't meet the specifications of the schema" in error.value.stderr
+
+
+@pytest.mark.parametrize("value", ['{"fsGroup": 2147483648}', '{"fsGroup": -1}'])
+def test_executor_pod_security_context_fs_group_invalid(value: str) -> None:
+    """The pod's `fsGroup` is checked like the user and group IDs.
 
     Args:
         value: The security context, as JSON.
     """
     with pytest.raises(subprocess.CalledProcessError) as error:
-        render("--set-json", f"tesk.executor.securityContext={value}")
+        render("--set-json", f"{EXECUTOR_POD}={value}")
     assert "values don't meet the specifications of the schema" in error.value.stderr
+
+
+# The security contexts of the task pods, and the variables of tesk-api
+# (2.1.0 and later) that get them as JSON
+TASK_CONTEXTS = {
+    "tesk.taskmaster.podSecurityContext": "TESK_API_TASKMASTER_POD_SECURITY_CONTEXT",
+    "tesk.taskmaster.securityContext": "TESK_API_TASKMASTER_SECURITY_CONTEXT",
+    EXECUTOR_POD: "TESK_API_TASKMASTER_EXECUTOR_POD_SECURITY_CONTEXT",
+    EXECUTOR_CONTAINER: "TESK_API_TASKMASTER_EXECUTOR_SECURITY_CONTEXT",
+}
+
+
+@pytest.mark.parametrize("key", list(TASK_CONTEXTS))
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        (None, None),
+        ("null", None),
+        # tesk-api sets none by default, so {} is the same as null
+        ("{}", None),
+        (
+            '{"runAsNonRoot": true, "seccompProfile": {"type": "RuntimeDefault"}}',
+            {"runAsNonRoot": True, "seccompProfile": {"type": "RuntimeDefault"}},
+        ),
+        (
+            '{"allowPrivilegeEscalation": false, "capabilities": {"drop": ["ALL"]}}',
+            {"allowPrivilegeEscalation": False, "capabilities": {"drop": ["ALL"]}},
+        ),
+        # Null fields as written (tesk-api removes them)
+        ('{"seccompProfile": null}', {"seccompProfile": None}),
+    ],
+)
+def test_task_security_contexts(
+    key: str, value: str | None, expected: dict[str, Any] | None
+) -> None:
+    """The task pods' security contexts go to tesk-api as JSON.
+
+    Only contexts with fields are set; tesk-api checks them at startup.
+
+    Args:
+        key: The value's key.
+        value: The value, as JSON; None leaves it unset.
+        expected: The parsed variable, or None if it isn't set.
+    """
+    args = () if value is None else ("--set-json", f"{key}={value}")
+    variables = env(render(*args))
+    if expected is None:
+        assert TASK_CONTEXTS[key] not in variables
+    else:
+        assert json.loads(variables[TASK_CONTEXTS[key]]) == expected
+
+
+@pytest.mark.parametrize(
+    "key", ["tesk.taskmaster.podSecurityContext", "tesk.taskmaster.securityContext"]
+)
+@pytest.mark.parametrize("value", ['"{}"', "[]", "1"])
+def test_taskmaster_security_contexts_invalid(key: str, value: str) -> None:
+    """Anything but a map or null fails the schema check.
+
+    Args:
+        key: The value's key.
+        value: The value, as JSON.
+    """
+    with pytest.raises(subprocess.CalledProcessError) as error:
+        render("--set-json", f"{key}={value}")
+    assert "values don't meet the specifications of the schema" in error.value.stderr
+
+
+# The resources of the task pods, and the variables that get them as JSON
+TASK_RESOURCES = {
+    "tesk.taskmaster.resources": "TESK_API_TASKMASTER_RESOURCES",
+    "tesk.filer.resources": "TESK_API_TASKMASTER_ENVIRONMENT_FILER_RESOURCES",
+}
+
+
+@pytest.mark.parametrize("key", list(TASK_RESOURCES))
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        (None, None),
+        ("null", None),
+        # {} replaces the default with none
+        ("{}", {}),
+        (
+            '{"requests": {"cpu": "100m", "memory": "128Mi"}, '
+            '"limits": {"cpu": 1, "memory": 536870912}}',
+            {
+                "requests": {"cpu": "100m", "memory": "128Mi"},
+                "limits": {"cpu": "1", "memory": "536870912"},
+            },
+        ),
+        ('{"limits": {"cpu": 0.5}}', {"limits": {"cpu": "0.5"}}),
+        ('{"requests": null}', {"requests": None}),
+        ('{"claims": [{"name": "gpu"}]}', {"claims": [{"name": "gpu"}]}),
+    ],
+)
+def test_task_resources(
+    key: str, value: str | None, expected: dict[str, Any] | None
+) -> None:
+    """The taskmasters' and the filers' resources go as JSON, with strings.
+
+    Unset or null keeps the default of tesk-api or the taskmaster; a map
+    (also `{}`, which sets none) replaces it. The quantities are strings,
+    which the taskmaster needs.
+
+    Args:
+        key: The value's key.
+        value: The value, as JSON; None leaves it unset.
+        expected: The parsed variable, or None if it isn't set.
+    """
+    args = () if value is None else ("--set-json", f"{key}={value}")
+    variables = env(render(*args))
+    if expected is None:
+        assert TASK_RESOURCES[key] not in variables
+    else:
+        assert json.loads(variables[TASK_RESOURCES[key]]) == expected
+
+
+@pytest.mark.parametrize("key", list(TASK_RESOURCES))
+def test_task_resources_values_file(key: str, tmp_path: Path) -> None:
+    """Whole numbers in a values file (floats to Helm) are written as such.
+
+    Args:
+        key: The value's key.
+        tmp_path: A directory for the values file.
+    """
+    parent, component, _ = key.split(".")
+    values = tmp_path / "values.yaml"
+    values.write_text(
+        f"{parent}:\n  {component}:\n    resources:\n"
+        "      limits:\n        memory: 536870912\n        cpu: 2\n"
+    )
+    variables = env(render("-f", str(values)))
+    assert json.loads(variables[TASK_RESOURCES[key]]) == {
+        "limits": {"cpu": "2", "memory": "536870912"}
+    }
+
+
+@pytest.mark.parametrize("key", list(TASK_RESOURCES))
+@pytest.mark.parametrize(
+    ("value", "message"),
+    [
+        ('{"limits": {"memory": 1e17}}', "is a number too large to be exact"),
+        ('{"limits": {"cpu": null}}', "has no value"),
+        ('{"cpu": 1}', "values don't meet the specifications of the schema"),
+        ('{"limits": []}', "values don't meet the specifications of the schema"),
+        ('"{}"', "values don't meet the specifications of the schema"),
+    ],
+)
+def test_task_resources_invalid(key: str, value: str, message: str) -> None:
+    """Unknown fields, inexact numbers and empty quantities fail.
+
+    Args:
+        key: The value's key.
+        value: The value, as JSON.
+        message: What the error says.
+    """
+    with pytest.raises(subprocess.CalledProcessError) as error:
+        render("--set-json", f"{key}={value}")
+    assert message in error.value.stderr
+
+
+DEFAULT_CPU = "TESK_API_TASKMASTER_EXECUTOR_DEFAULT_CPU"
+
+
+@pytest.mark.parametrize(
+    ("args", "expected"),
+    [
+        ((), None),
+        (("--set-json", "tesk.executor.defaultCpu=null"), None),
+        (("--set-json", 'tesk.executor.defaultCpu=""'), ""),
+        (("--set-json", "tesk.executor.defaultCpu=1"), "1"),
+        (("--set-json", "tesk.executor.defaultCpu=0.5"), "0.5"),
+        (("--set-string", "tesk.executor.defaultCpu=500m"), "500m"),
+    ],
+)
+def test_executor_default_cpu(args: tuple[str, ...], expected: str | None) -> None:
+    """The executors' default CPU goes to tesk-api as text.
+
+    Null keeps tesk-api's default; empty sets none.
+
+    Args:
+        args: The `helm template` arguments.
+        expected: The variable's value, or None if it isn't set.
+    """
+    variables = env(render(*args))
+    if expected is None:
+        assert DEFAULT_CPU not in variables
+    else:
+        assert variables[DEFAULT_CPU] == expected
+
+
+@pytest.mark.parametrize("value", ['"abc"', '"1 CPU"', "-1", "[]", "{}"])
+def test_executor_default_cpu_invalid(value: str) -> None:
+    """Values that aren't Kubernetes quantities fail the schema check.
+
+    Args:
+        value: The value, as JSON.
+    """
+    with pytest.raises(subprocess.CalledProcessError) as error:
+        render("--set-json", f"tesk.executor.defaultCpu={value}")
+    assert "values don't meet the specifications of the schema" in error.value.stderr
+
+
+RESTRICTED_VALUES = CHART.parents[1] / "tests" / "smoke" / "restricted" / "values.yaml"
+
+
+def test_restricted_values() -> None:
+    """The smoke test's values for restricted namespaces render as expected.
+
+    Every task pod gets security contexts that the `restricted` Pod
+    Security Standard admits, and the filer gets resources with a CPU
+    limit (for a quota on `limits.cpu`); the API's own defaults already
+    meet the standard.
+    """
+    manifests = render("-f", str(RESTRICTED_VALUES))
+    variables = env(manifests)
+    restricted_pod = {
+        "runAsNonRoot": True,
+        "seccompProfile": {"type": "RuntimeDefault"},
+    }
+    restricted_container = {
+        "allowPrivilegeEscalation": False,
+        "capabilities": {"drop": ["ALL"]},
+    }
+    for key, variable in TASK_CONTEXTS.items():
+        context = json.loads(variables[variable])
+        expected = (
+            restricted_pod
+            if key.endswith("podSecurityContext")
+            else (restricted_container)
+        )
+        assert context.items() >= expected.items(), key
+    filer = json.loads(variables[TASK_RESOURCES["tesk.filer.resources"]])
+    assert filer["limits"]["cpu"] == "1"
+    config = get(manifests, "ConfigMap", "tesk-executor")
+    assert yaml.safe_load(config["data"]["securityContext"]) == {
+        "runAsUser": 100,
+        "nonRoot": True,
+    }
+    pod = deployment(manifests)["spec"]["template"]["spec"]
+    assert pod["securityContext"].items() >= restricted_pod.items()
+    assert container(manifests)["securityContext"].items() >= (
+        restricted_container.items()
+    )
 
 
 PROBES = ("startupProbe", "readinessProbe", "livenessProbe")
@@ -3347,7 +3685,7 @@ ALL_OBJECTS = (
     "--set",
     "auth.mode=auth",
     "--set",
-    "tesk.executor.securityContext.fsGroup=1",
+    "tesk.executor.podSecurityContext.fsGroup=1",
 )
 
 
@@ -4646,6 +4984,125 @@ def test_notes_filer_contexts_old_taskmaster(
     assert (f"tesk.filer.{key} is set, but" in text) is warned
 
 
+@pytest.mark.parametrize(
+    ("value", "tags", "warned"),
+    [
+        ('{"limits":{"cpu":1}}', CORE_0_11, True),
+        ("{}", CORE_0_11, True),
+        ("null", CORE_0_11, False),
+        ('{"limits":{"cpu":1}}', (), False),
+    ],
+)
+def test_notes_filer_resources_old_taskmaster(
+    tmp_path: Path, value: str, tags: tuple[str, ...], warned: bool
+) -> None:
+    """The notes warn if filer resources are set for a taskmaster before 0.12.0.
+
+    Args:
+        tmp_path: A directory for a copy of the chart.
+        value: The value, as JSON.
+        tags: `helm template` arguments (the image tags).
+        warned: Whether the notes warn.
+    """
+    args = ("--set-json", f"tesk.filer.resources={value}")
+    text = notes(*args, *tags, tmp_path=tmp_path)
+    assert ("tesk.filer.resources is set, but" in text) is warned
+
+
+@pytest.mark.parametrize(
+    ("args", "ignored"),
+    [
+        ((), None),
+        (
+            ("--set-json", 'tesk.taskmaster.podSecurityContext={"runAsNonRoot":true}'),
+            "tesk.taskmaster.podSecurityContext is set",
+        ),
+        (
+            ("--set-json", 'tesk.taskmaster.securityContext={"privileged":false}'),
+            "tesk.taskmaster.securityContext is set",
+        ),
+        (("--set-json", "tesk.taskmaster.podSecurityContext={}"), None),
+        (("--set-json", "tesk.taskmaster.resources={}"), "tesk.taskmaster.resources"),
+        # The fields of the ConfigMap reach all versions
+        (("--set-json", f'{EXECUTOR_POD}={{"fsGroup":1,"runAsUser":2}}'), None),
+        (("--set-json", f'{EXECUTOR_CONTAINER}={{"runAsNonRoot":true}}'), None),
+        (
+            (
+                "--set-json",
+                f'{EXECUTOR_POD}={{"fsGroup":1,"seccompProfile":{{}},"sysctls":[]}}',
+            ),
+            "tesk.executor.podSecurityContext (seccompProfile, sysctls) is set",
+        ),
+        (
+            ("--set-json", f'{EXECUTOR_CONTAINER}={{"capabilities":{{}}}}'),
+            "tesk.executor.securityContext (capabilities) is set",
+        ),
+        (("--set-json", 'tesk.executor.defaultCpu=""'), "tesk.executor.defaultCpu"),
+        (
+            (
+                "--set-json",
+                "tesk.taskmaster.resources={}",
+                "--set-json",
+                "tesk.executor.defaultCpu=1",
+            ),
+            "tesk.taskmaster.resources, tesk.executor.defaultCpu are set",
+        ),
+    ],
+)
+@pytest.mark.parametrize(
+    ("tag", "old"),
+    [
+        (None, True),
+        ("v2.0.1", True),
+        ("2.1.0", False),
+        ("2.1.0-rc.1", False),
+        ("dev", False),
+    ],
+)
+def test_notes_task_pod_settings_old_api(
+    tmp_path: Path,
+    args: tuple[str, ...],
+    ignored: str | None,
+    tag: str | None,
+    old: bool,
+) -> None:
+    """The notes warn of task pod settings that tesk-api before 2.1.0 ignores.
+
+    The executors' runAs* fields and `fsGroup` reach older versions through
+    the ConfigMap, and aren't warned of.
+
+    Args:
+        tmp_path: A directory for a copy of the chart.
+        args: `helm template` arguments.
+        ignored: The start of the warning, or None if the notes don't warn.
+        tag: The tag of tesk-api's image; None keeps the chart's default.
+        old: Whether the tag is before 2.1.0.
+    """
+    tags = () if tag is None else ("--set", f"tesk.image.tag={tag}")
+    text = notes(*args, *tags, tmp_path=tmp_path)
+    warned = ignored is not None and old
+    assert ("deployment/#restricted-namespaces-and-quotas" in text) is warned
+    if warned:
+        assert f"WARNING: {ignored}" in text
+
+
+def test_notes_restricted_values_old_api(tmp_path: Path) -> None:
+    """With the smoke test's values but tesk-api 2.0.0, the notes warn.
+
+    Args:
+        tmp_path: A directory for a copy of the chart.
+    """
+    text = notes(
+        "-f", str(RESTRICTED_VALUES), "--set", "tesk.image.tag=2.0.0", tmp_path=tmp_path
+    )
+    assert "tesk.taskmaster.podSecurityContext, tesk.taskmaster.securityContext" in text
+    assert "tesk.executor.podSecurityContext (seccompProfile)" in text
+    assert "tesk.executor.securityContext (allowPrivilegeEscalation, capabilities)" in (
+        text
+    )
+    assert "tesk-api 2.0.0 (tesk.image.tag) ignores them" in text
+
+
 OPENSHIFT = ("--api-versions", "route.openshift.io/v1")
 NO_INGRESS = ("--set", "ingress.enabled=false")
 HOST = ("--set", "hostName=tes.example.org")
@@ -4736,6 +5193,16 @@ def test_notes_empty_host_name(
             "deployment/#authentication-and-authorisation",
         ),
         ("deployment.md", "## Exposing the API", "deployment/#exposing-the-api"),
+        (
+            "deployment.md",
+            "## Restricted namespaces and quotas",
+            "deployment/#restricted-namespaces-and-quotas",
+        ),
+        (
+            "upgrading.md",
+            "### Security contexts and resources of task pods",
+            "upgrading/#security-contexts-and-resources-of-task-pods",
+        ),
     ],
 )
 def test_notes_doc_anchors(document: str, heading: str, anchor: str) -> None:

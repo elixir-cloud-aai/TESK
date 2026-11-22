@@ -55,7 +55,14 @@ The workflow `CI` (`.github/workflows/ci.yml`) runs on every pull request to
   deployment](deployment.md#checking-a-deployment)), without a token: a
   task that completes, one with an input, which starts a filer pod, and
   one that is cancelled; then it checks that the filer's job completed
-  with the filer's default security contexts. The tests of the script
+  with the filer's default security contexts. It runs twice (a matrix):
+  `Chart install (default)`, and `Chart install (restricted)`, in a
+  namespace that enforces the `restricted` Pod Security Standard and has a
+  quota on `limits.cpu` (`tests/smoke/restricted/quota.yaml`), with the
+  values for such namespaces (`tests/smoke/restricted/values.yaml`, see
+  [Restricted namespaces and
+  quotas](deployment.md#restricted-namespaces-and-quotas)), so that every
+  pod of the chart and of the tasks must meet them. The tests of the script
   itself (`tests/test_smoke_deployment.py`, in **Test**) run it against a
   fake TES API, also with a token.
 - **Docs:** builds the documentation strictly (`mkdocs build --strict`).

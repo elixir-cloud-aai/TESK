@@ -146,11 +146,17 @@ jobs:
         uses: ./.github/actions/test-chart
 
   # Installs the chart on a kind cluster and checks the API
-  # (`.github/actions/install-chart`)
+  # (`.github/actions/install-chart`): with the default values, and in a
+  # namespace that enforces the `restricted` Pod Security Standard and has a
+  # CPU quota, with the values for it (`tests/smoke/restricted/`)
   chart-install:
-    name: Chart install
+    name: Chart install (${{ matrix.case }})
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        case: [default, restricted]
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -158,6 +164,8 @@ jobs:
           persist-credentials: false
       - name: Install chart
         uses: ./.github/actions/install-chart
+        with:
+          restricted: ${{ matrix.case == 'restricted' }}
 
   # Builds the docs strictly, as Read the Docs does, with the docs of
   # tesk-api and tesk-core pulled at the commits of `docs-sources.yml`
