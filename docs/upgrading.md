@@ -56,6 +56,74 @@ deployment of the chart:
   `tesk.taskmaster.image.tag` or `tesk.filer.image.tag` keep theirs; the
   taskmaster's and the filer's tags must stay the same release.
 
+### Audiences per client of tokenClients
+
+**Breaking, with `auth.tokenClients` only.** Each client of
+`auth.tokenClients` now has audiences of its own, and its tokens are
+accepted only for one of them, so that one client's tokens for another
+client's audience are refused (see [Tokens of
+services](deployment.md#tokens-of-services);
+[#336](https://github.com/elixir-cloud-aai/TESK/issues/336)).
+`auth.tokenClients.clients` is a map from client ID to the client's
+settings, and the shared `auth.tokenClients.audience` and
+`auth.tokenClients.allowAnyAudience` are removed. Convert the values of
+chart 0.4.0 as follows:
+
+```yaml
+# Chart 0.4.0
+auth:
+  tokenClients:
+    audience: https://tesk.example.org
+    clients: [my-gateway, my-smoke-tests]
+---
+# Now
+auth:
+  tokenClients:
+    clients:
+      my-gateway:
+        audiences: [https://tesk.example.org]
+      my-smoke-tests:
+        audiences: [https://tesk.example.org]
+```
+
+Each client first gets the former shared audience; then give each client
+its own audiences where your provider lets you register them. Without an
+audience (`allowAnyAudience: true` in chart 0.4.0), give each client its
+audiences: any audience is no longer the default of a client.
+`my-gateway: {allowAnyAudience: true}` keeps the former behaviour for a
+client, but accepts every token that the issuer issues to it, also tokens
+meant for other services (so a token leaked from or replayed by another
+service works here): use it only for testing or while setting up a
+federation, not in production (see [Tokens of
+services](deployment.md#tokens-of-services)).
+The chart fails with a hint while the values still have the form of chart
+0.4.0 (a shared `audience`, `allowAnyAudience: true` or a list of
+`clients`), also with `auth.tokenClients` off, so that they aren't ignored
+unnoticed; the defaults of chart 0.4.0 (`audience: ""`, `allowAnyAudience:
+false`, `clients: []`) pass, e.g., with `helm upgrade --reuse-values`,
+which keeps them. A client without audiences (unless `allowAnyAudience:
+true`), with both, or with a blank audience, and blank or duplicate client
+IDs (after trimming) fail too.
+
+The chart passes the clients on to tesk-api as one JSON variable,
+`TESK_API_AUTHORISATION_SERVICE_CLIENTS_CLIENTS`, which replaces
+`…_CLIENT_IDS` and `…_AUDIENCE` (see [Upgrading](tesk-api/upgrading.md) in
+the docs of tesk-api), so `auth.tokenClients` now needs tesk-api 2.1.0 or
+later: with it on and an older `tesk.image.tag` (a version number, by
+default the chart's `appVersion`), the chart fails instead of starting a
+tesk-api that doesn't start (2.0.0) or ignores the setting. Use tesk-api
+2.1.0 or later, or turn `auth.tokenClients` off. With the update strategy
+`RollingUpdate` (`tesk.strategy`; the default `Recreate` stops the old pod
+first), the old pod still accepts every listed client's tokens for the
+former shared audience during the rollout: the audiences per client hold
+once it has completed (`kubectl rollout status deployment/<prefix>-api`).
+So with `auth.tokenClients` on, upgrade tesk-api and convert the values in
+the same `helm upgrade`: set `tesk.image.tag` to 2.1.0 or later if the
+chart's `appVersion` is older, and replace `audience` and the list of
+`clients` as above. A rollback (`helm rollback`) to chart 0.4.0 restores
+its values and its tesk-api 2.0.0 together. Without `auth.tokenClients`,
+nothing changes.
+
 ### The old Helm repository is gone
 
 The Helm repository at `https://elixir-cloud-aai.github.io/TESK/` (the
