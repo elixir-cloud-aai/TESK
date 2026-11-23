@@ -547,27 +547,29 @@ tesk-api checks a bearer token that is a JWT itself first: its signature
 against the keys of the issuer (from `auth.tokenClients.jwksUri`, or by
 default from the issuer's discovery document,
 `<issuer>/.well-known/openid-configuration`), the issuer, the expiry, the
-audience (one of the client's `audiences` in `auth.tokenClients.clients`), the type `at+jwt` in
-the header (RFC 9068; `auth.tokenClients.requireAtJwt: false` turns this
-off for providers that don't set it), the client ID in the claim
-`auth.tokenClients.claim` (default `client_id`; some providers use `azp`),
-and that the claim `sub` is the client ID too, as in tokens of the client
-credentials grant (RFC 9068). If all hold, the request is the client's: it
-may create tasks, and list, get and cancel the tasks it created; no group
-rules apply. Other tokens (not a JWT, of another issuer, of a client that
-isn't listed, or with another `sub`, such as tokens of users obtained
-through a listed client) go to the user info endpoint as before, so users'
-tokens keep working. For providers whose client tokens have another `sub`
-(e.g., the ID of a service account user), set
+audience (one of the client's `audiences` in `auth.tokenClients.clients`),
+the type `at+jwt` in the header (RFC 9068; `auth.tokenClients.requireAtJwt:
+false` turns this off for providers that don't set it), the client ID in
+the claim `auth.tokenClients.claim` (default `client_id`; some providers
+use `azp`), and that the claim `sub` is the client ID too, as in tokens of
+the client credentials grant (RFC 9068). If all hold, the request is the
+client's: it may create tasks, and list, get and cancel the tasks it
+created; no group rules apply. Other tokens (not a JWT, of another issuer,
+of a client that isn't listed, or with another `sub`, such as tokens of
+users obtained through a listed client) go to the user info endpoint as
+before, so users' tokens keep working. For providers whose client tokens
+have another `sub` (e.g., the ID of a service account user), set
 `auth.tokenClients.requireClientSubject: false`; then tokens of users
 obtained through a listed client count as the client's too, so list only
 clients that users can't log in with. The chart fails if the setting is on
 without an issuer, without a client, with a client without `audiences`
 (unless it has `allowAnyAudience: true`), with both, with a blank audience
-or a blank or duplicate client ID (after trimming), or with an
-`auth.mode` other than `auth`; the issuer and the JWKS URI must be HTTPS
-URLs. Quote client IDs and audiences that YAML reads as numbers or
-booleans. The chart passes the clients on as one JSON object
+or a blank or duplicate client ID (after trimming), or with an `auth.mode`
+other than `auth`; the issuer and the JWKS URI must be HTTPS URLs. Quote
+client IDs and audiences that YAML reads as numbers or booleans (e.g.,
+`"012345":`, `"1e3":`, `"yes":`): Helm turns such keys into other text
+(`5349`, `1000`, `true`) before the chart sees them, so that another client
+ID would be listed. The chart passes the clients on as one JSON object
 (`TESK_API_AUTHORISATION_SERVICE_CLIENTS_CLIENTS`), which tesk-api reads
 from 2.1.0 on: with an older image (`tesk.image.tag` as a version number,
 by default the chart's `appVersion`), the chart fails, as tesk-api 2.0.0
@@ -593,7 +595,7 @@ set an audience, give the client `allowAnyAudience: true` instead of
 can use them to run tasks here.
 
 To revoke a client, remove it from `auth.tokenClients.clients` and upgrade
-the release: tesk-api reads the list at startup, so the old pod keeps
+the release: tesk-api reads the clients at startup, so the old pod keeps
 accepting the client's tokens until the rollout has completed and the old
 pod is gone (`kubectl rollout status deployment/<prefix>-api`). Also
 disable the client or rotate its secret at the provider, so that it gets

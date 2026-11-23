@@ -2239,7 +2239,16 @@ NEEDS_MODE = "auth.tokenClients.enabled needs auth.mode auth"
             NEEDS_MODE,
         ),
         ((*token_clients(), "--set", "auth.mode=noauth"), NEEDS_MODE),
-        ((*token_clients()[4:], *API_2_1, "--set-json", "auth.mode=null"), NEEDS_MODE),
+        (
+            (
+                *API_2_1,
+                "--set-json",
+                f'auth.tokenClients={{"enabled": true, "issuer": "{ISSUER}"}}',
+                "--set-json",
+                "auth.mode=null",
+            ),
+            NEEDS_MODE,
+        ),
         (token_clients(issuer=None), NEEDS),
         (token_clients(issuer=""), NEEDS),
         (token_clients(clients=None), NEEDS),
@@ -2365,19 +2374,16 @@ REMOVED_CLIENT_LIST = "auth.tokenClients.clients (a list)"
     ("values", "removed"),
     [
         ({"audience": AUDIENCE}, [REMOVED_AUDIENCE]),
-        ({"audience": ""}, [REMOVED_AUDIENCE]),
         ({"allowAnyAudience": True}, [REMOVED_ANY_AUDIENCE]),
-        ({"allowAnyAudience": False}, [REMOVED_ANY_AUDIENCE]),
+        ({"allowAnyAudience": "true"}, [REMOVED_ANY_AUDIENCE]),
         ({"clients": ["gateway"]}, [REMOVED_CLIENT_LIST]),
-        ({"clients": []}, [REMOVED_CLIENT_LIST]),
         (
-            {"audience": AUDIENCE, "allowAnyAudience": False, "clients": ["a"]},
+            {"audience": AUDIENCE, "allowAnyAudience": True, "clients": ["a"]},
             [REMOVED_AUDIENCE, REMOVED_ANY_AUDIENCE, REMOVED_CLIENT_LIST],
         ),
-        # Also when off: tesk-api 2.1.0 doesn't start with the variables
-        # that they stood for, whether on or off
+        # Also when off, so that they aren't ignored unnoticed
         (
-            {"enabled": False, "audience": "", "clients": []},
+            {"enabled": False, "audience": AUDIENCE, "clients": ["a"]},
             [REMOVED_AUDIENCE, REMOVED_CLIENT_LIST],
         ),
     ],
@@ -2402,11 +2408,61 @@ def test_auth_token_clients_removed(values: dict[str, Any], removed: list[str]) 
         assert (f"  - {key}\n" in stderr) is (key in removed)
 
 
-def test_auth_token_clients_removed_null() -> None:
-    """A removed key fails also when null, as the other removed keys do."""
+# The keys of `auth.tokenClients` of chart 0.4.0 with its defaults, e.g.,
+# with `helm upgrade --reuse-values`, which renders with the old release's
+# defaults
+TOKEN_CLIENTS_0_4_DEFAULTS = {"audience": "", "allowAnyAudience": False, "clients": []}
+
+
+@pytest.mark.parametrize("enabled", [False, None])
+def test_auth_token_clients_removed_defaults_off(enabled: bool | None) -> None:
+    """Off, the defaults of chart 0.4.0 render as without them.
+
+    Args:
+        enabled: `auth.tokenClients.enabled`.
+    """
+    settings = {**TOKEN_CLIENTS_0_4_DEFAULTS, "enabled": enabled, "issuer": ""}
+    manifests = render(
+        "--set",
+        "auth.mode=auth",
+        "--set-json",
+        f"auth.tokenClients={json.dumps(settings)}",
+    )
+    assert manifests == render("--set", "auth.mode=auth")
+
+
+@pytest.mark.parametrize(
+    "values",
+    [
+        {"audience": ""},
+        {"audience": None},
+        {"allowAnyAudience": False},
+        {"allowAnyAudience": None},
+        {"allowAnyAudience": "false"},
+    ],
+)
+def test_auth_token_clients_removed_defaults_on(values: dict[str, Any]) -> None:
+    """On, the defaults of chart 0.4.0 beside the new clients are ignored.
+
+    Args:
+        values: A removed key with a default of chart 0.4.0.
+    """
+    ((key, value),) = values.items()
+    args = (
+        *token_clients(),
+        "--set-json",
+        f"auth.tokenClients.{key}={json.dumps(value)}",
+    )
+    variables = env(render(*args))
+    assert rendered_clients(variables) == {"gateway": {"audiences": [AUDIENCE]}}
+    assert not TOKEN_CLIENTS_REMOVED & set(variables)
+
+
+def test_auth_token_clients_removed_empty_list() -> None:
+    """On with the empty list of chart 0.4.0, the chart fails for no client."""
     with pytest.raises(subprocess.CalledProcessError) as error:
-        render(*token_clients(), "--set-json", "auth.tokenClients.audience=null")
-    assert f"  - {REMOVED_AUDIENCE}\n" in error.value.stderr
+        render(*token_clients(clients=[]))
+    assert NEEDS in error.value.stderr
 
 
 def test_auth_token_clients_upgrading_anchor() -> None:
@@ -2451,6 +2507,17 @@ def test_auth_token_clients_old_api(tag: str, refused: bool) -> None:
     stderr = error.value.stderr
     assert "auth.tokenClients needs tesk-api 2.1.0 or later" in stderr
     assert f"upgrading/#{AUDIENCES_UPGRADING}" in stderr
+
+
+def test_auth_token_clients_default_api() -> None:
+    """Without a tag, the chart's `appVersion` decides, as a set tag would."""
+    args = token_clients()[len(API_2_1) :]
+    if not re.fullmatch(r"[01]\..*|2\.0\..*", str(METADATA["appVersion"])):
+        assert env(render(*args))[TOKEN_CLIENTS["enabled"]] == "true"
+        return
+    with pytest.raises(subprocess.CalledProcessError) as error:
+        render(*args)
+    assert "auth.tokenClients needs tesk-api 2.1.0 or later" in error.value.stderr
 
 
 def test_auth_token_clients_old_api_off() -> None:

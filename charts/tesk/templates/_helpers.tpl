@@ -849,10 +849,10 @@ The environment variables of tesk-api's tokens of allow-listed clients
 (`auth.tokenClients`), as YAML entries of `env`, or nothing if the setting
 is off. The names of the variables are only here.
 
-Fails, also if the setting is off, on the form of chart 0.4.0 (a shared
-`audience` or `allowAnyAudience`, or `clients` as a list), which the
-schema lets through for that: tesk-api 2.1.0 doesn't start with the
-variables that it stood for (tesk-api#215).
+Fails, also if the setting is off, on values of the form of chart 0.4.0
+(a shared `audience` or `allowAnyAudience: true`, or `clients` as a
+non-empty list), which the schema lets through for that, so that they
+aren't ignored unnoticed (tesk-api#215); that form's defaults pass.
 
 If it is on, fails without mode auth (noauth leaves all endpoints open, so
 no token would be checked), without an issuer or a client, with tesk-api
@@ -862,23 +862,34 @@ tesk-api 2.1.0 refuses at startup: a blank or duplicate client ID (after
 trimming), a client without audiences (unless `allowAnyAudience` is true),
 with a blank audience, or with both. The clients go to tesk-api as one JSON
 object, client ID to {"audiences": [...]} or {"allowAnyAudience": true},
-with IDs and audiences trimmed; null clients are left out, as null removes
-a key in Helm. Empty or null optional keys (and a blank claim) leave
-tesk-api's defaults: the JWKS URI from the issuer's discovery document, the
-claim client_id, the type at+jwt required and `sub` required to be the
-client ID.
+with IDs and audiences trimmed (Go's notion of whitespace, which differs
+from Java's in rare characters, e.g., NBSP and U+001C: either way, such a
+value is refused, by the chart or by tesk-api); null clients are left out,
+as null removes a key in Helm. Empty or null optional keys (and a blank
+claim) leave tesk-api's defaults: the JWKS URI from the issuer's discovery
+document, the claim client_id, the type at+jwt required and `sub` required
+to be the client ID.
 */}}
 {{- define "tesk.tokenClientsEnv" -}}
 {{- $tokenClients := default dict .Values.auth.tokenClients -}}
 {{- $upgrading := "https://tesk.readthedocs.io/en/latest/upgrading/#audiences-per-client-of-tokenclients" -}}
+{{- /* The defaults of chart 0.4.0 (an empty audience, allowAnyAudience
+false, no clients) pass, also when null: `helm upgrade --reuse-values`
+renders with the old release's defaults, and the chart never renders the
+variables of tesk-api 2.0.0 */ -}}
 {{- $removed := list -}}
-{{- range $key := list "audience" "allowAnyAudience" -}}
-{{- if hasKey $tokenClients $key -}}
-{{- $removed = append $removed (printf "auth.tokenClients.%s" $key) -}}
+{{- if include "tesk.isSet" $tokenClients.audience -}}
+{{- $removed = append $removed "auth.tokenClients.audience" -}}
 {{- end -}}
+{{- if eq (toString $tokenClients.allowAnyAudience) "true" -}}
+{{- $removed = append $removed "auth.tokenClients.allowAnyAudience" -}}
 {{- end -}}
-{{- if kindIs "slice" $tokenClients.clients -}}
+{{- $clientsOrList := $tokenClients.clients -}}
+{{- if kindIs "slice" $clientsOrList -}}
+{{- if $clientsOrList -}}
 {{- $removed = append $removed "auth.tokenClients.clients (a list)" -}}
+{{- end -}}
+{{- $clientsOrList = dict -}}
 {{- end -}}
 {{- if $removed -}}
 {{- fail (printf "\n\nThe values use the form of auth.tokenClients of chart 0.4.0, which tesk-api 2.1.0\nrefuses. Make auth.tokenClients.clients a map from client ID to {audiences: [...]}\n(or {allowAnyAudience: true}), and remove (see %s):\n  - %s\n" $upgrading (join "\n  - " $removed)) -}}
@@ -891,7 +902,7 @@ client ID.
 {{- fail (printf "auth.tokenClients needs tesk-api 2.1.0 or later, not %s (tesk.image.tag): tesk-api 2.0.0 reads the clients in another form and doesn't start without it, and earlier versions ignore the setting. Upgrade tesk-api, or turn auth.tokenClients off; see %s" (include "tesk.apiImageTag" .) $upgrading) -}}
 {{- end -}}
 {{- $clients := dict -}}
-{{- range $key, $settings := default dict $tokenClients.clients -}}
+{{- range $key, $settings := default dict $clientsOrList -}}
 {{- if not (kindIs "invalid" $settings) -}}
 {{- $id := trim $key -}}
 {{- if not $id -}}

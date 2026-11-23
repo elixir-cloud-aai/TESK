@@ -46,14 +46,15 @@ Each client first gets the former shared audience; then give each client
 its own audiences where your provider lets you register them. Without an
 audience (`allowAnyAudience: true` in chart 0.4.0), give each client
 `allowAnyAudience: true` instead (`my-gateway: {allowAnyAudience: true}`),
-or better its audiences: any audience is no longer the default of a
-client. The chart fails with a hint while the values still have the form
-of chart 0.4.0 (a shared `audience` or `allowAnyAudience`, also empty or
-null, or `clients` as a list, also `[]`), also with `auth.tokenClients`
-off, as tesk-api 2.1.0 doesn't start with the variables that they stood
-for. A client without audiences (unless `allowAnyAudience: true`), with
-both, or with a blank audience, and blank or duplicate client IDs (after
-trimming) fail too.
+or better its audiences: any audience is no longer the default of a client.
+The chart fails with a hint while the values still have the form of chart
+0.4.0 (a shared `audience`, `allowAnyAudience: true` or a list of
+`clients`), also with `auth.tokenClients` off, so that they aren't ignored
+unnoticed; the defaults of chart 0.4.0 (`audience: ""`, `allowAnyAudience:
+false`, `clients: []`) pass, e.g., with `helm upgrade --reuse-values`,
+which keeps them. A client without audiences (unless `allowAnyAudience:
+true`), with both, or with a blank audience, and blank or duplicate client
+IDs (after trimming) fail too.
 
 The chart passes the clients on to tesk-api as one JSON variable,
 `TESK_API_AUTHORISATION_SERVICE_CLIENTS_CLIENTS`, which replaces
@@ -67,9 +68,12 @@ tesk-api that doesn't start (2.0.0) or ignores the setting. Use tesk-api
 first), the old pod still accepts every listed client's tokens for the
 former shared audience during the rollout: the audiences per client hold
 once it has completed (`kubectl rollout status deployment/<prefix>-api`).
-A rollback to chart 0.4.0
-(`helm rollback`) restores its values with it. Without
-`auth.tokenClients`, nothing changes.
+So with `auth.tokenClients` on, upgrade tesk-api and convert the values in
+the same `helm upgrade`: set `tesk.image.tag` to 2.1.0 or later if the
+chart's `appVersion` is older, and replace `audience` and the list of
+`clients` as above. A rollback (`helm rollback`) to chart 0.4.0 restores
+its values and its tesk-api 2.0.0 together. Without `auth.tokenClients`,
+nothing changes.
 
 ### The old Helm repository is gone
 

@@ -342,7 +342,8 @@ auth:
     # instead accepts the client's tokens for any audience, also those it got
     # for other services: only for providers that can't set an audience per
     # client. A client needs one of the two, not both. Quote client IDs and
-    # audiences that YAML reads as numbers or booleans. E.g.:
+    # audiences that YAML reads as numbers or booleans (e.g., "012345",
+    # "yes"): Helm turns such keys into other IDs (5349, true). E.g.:
     #   my-gateway:
     #     audiences: [https://tesk.example.org]
     clients: {}
