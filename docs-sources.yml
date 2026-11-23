@@ -6,9 +6,13 @@
 # newer docs of that repository
 tesk-api:
   repository: elixir-cloud-aai/tesk-api
+  # TODO(release 0.5.0): the commit of v2.1.0 (merge of tesk-api#214),
+  # once it exists
   # v2.0.0: build: update the 2.0.0 release prep again (#198)
   ref: "9d73a31c56e992cea672c49012a5c6b93262030f"
 tesk-core:
   repository: elixir-cloud-aai/tesk-core
+  # TODO(release 0.5.0): the commit of v0.13.0 (merge of tesk-core#166),
+  # once it exists
   # v0.12.0: build: prepare the 0.12.0 release (#157)
   ref: "b78d5c9e7f3e6cb06d68a2ca18f1d2a89d351e75"

@@ -15,7 +15,7 @@ This page covers the installation and the most common setups;
 
 - **A Kubernetes cluster.** TESK needs access to one namespace only, and
   works in multi-tenant clusters such as OpenShift. The chart's default
-  taskmaster and filer, 0.12.0, need Kubernetes 1.23 or later, and their
+  taskmaster and filer, 0.13.0, need Kubernetes 1.23 or later, and their
   end-to-end tests run on Kubernetes 1.37 (see the [upgrade notes of
   tesk-core](tesk-core/upgrading.md)). If you pin older images, set both
   tags to the same release; on Kubernetes 1.31 or later, it must be v0.10.6
@@ -318,7 +318,7 @@ helm template tesk charts/tesk --namespace tesk \
 ```
 
 This covers the API's pod only. The filer pods of taskmaster and filer
-0.12.0, the chart's default, ask for the `RuntimeDefault` profile too (see
+0.12.0 and later (the chart's default is 0.13.0) ask for the `RuntimeDefault` profile too (see
 the [filer's pod security](tesk-core/filer.md#pod-security)); on such
 clusters, e.g., CSC Rahti, replace the filer's pod security context:
 
@@ -750,7 +750,7 @@ Standard](https://kubernetes.io/docs/concepts/security/pod-security-standards/)
 (label `pod-security.kubernetes.io/enforce: restricted`) refuse pods without
 a non-root user, the `RuntimeDefault` (or `Localhost`) seccomp profile, no
 privilege escalation and no capabilities. The API's pod meets the standard
-with the chart's defaults, and so do the filers' pods of taskmaster 0.12.0;
+with the chart's defaults, and so do the filers' pods of taskmaster 0.12.0 and later;
 the taskmasters' and the executors' pods need these values. Without them,
 the taskmaster's job is created but never gets a pod, and the task stays
 `QUEUED` (the job's events name the reason). Namespaces with a
@@ -773,8 +773,8 @@ tesk:
         drop:
           - ALL
   filer:
-    # The default of the taskmaster after 0.12.0 (tesk-core#164); 0.12.0
-    # sets none
+    # The default of the taskmaster from 0.13.0 on (tesk-core#164), the
+    # chart's default; 0.12.0 sets none
     resources:
       requests:
         cpu: 100m

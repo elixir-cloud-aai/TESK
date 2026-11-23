@@ -218,7 +218,7 @@ def test_defaults() -> None:
 
 
 def test_default_images() -> None:
-    """By default, the chart deploys tesk-api 2.0.0 with tesk-core 0.12.0.
+    """By default, the chart deploys tesk-api 2.1.0 with tesk-core 0.13.0.
 
     The taskmaster 0.12.0 labels filer jobs so that only tesk-api 2.0.0 and
     later tell them from executor jobs; the defaults are a matching pair
@@ -226,9 +226,9 @@ def test_default_images() -> None:
     """
     manifests = render()
     variables = env(manifests)
-    assert container(manifests)["image"].endswith(":2.0.0")
-    assert variables["TESK_API_TASKMASTER_IMAGE_VERSION"] == "0.12.0"
-    assert variables["TESK_API_TASKMASTER_FILER_IMAGE_VERSION"] == "0.12.0"
+    assert container(manifests)["image"].endswith(":2.1.0")
+    assert variables["TESK_API_TASKMASTER_IMAGE_VERSION"] == "0.13.0"
+    assert variables["TESK_API_TASKMASTER_FILER_IMAGE_VERSION"] == "0.13.0"
 
 
 def test_port() -> None:
@@ -3398,6 +3398,8 @@ CORE_DEV = (
 )
 FILER_OLD = ("--set", "tesk.filer.image.tag=v0.10.6")
 FILER_OLD_BARE = ("--set", "tesk.filer.image.tag=0.10.6")
+# The filer of the release before the chart's default, for pinned taskmasters
+FILER_0_12 = ("--set", "tesk.filer.image.tag=0.12.0")
 USER = ("--set", "ftp.username=user")
 PASSWORD = ("--set", "ftp.password=s3cr3t")
 
@@ -4737,8 +4739,8 @@ def test_seconds_invalid_range(args: tuple[str, ...], message: str) -> None:
         ((), False),
         (("--set", "tesk.taskmaster.image.tag=v0.10.6", *FILER_DEV), True),
         (("--set", "tesk.taskmaster.image.tag=0.10.6", *FILER_DEV), True),
-        (("--set", "tesk.taskmaster.image.tag=v0.12.0"), False),
-        (("--set", "tesk.taskmaster.image.tag=0.12.0"), False),
+        (("--set", "tesk.taskmaster.image.tag=v0.12.0", *FILER_0_12), False),
+        (("--set", "tesk.taskmaster.image.tag=0.12.0", *FILER_0_12), False),
         (("--set", "tesk.taskmaster.image.tag=dev", *FILER_OLD), False),
         (("--set", "tesk.taskmaster.image.tag=dev"), False),
     ],
@@ -4996,8 +4998,8 @@ def test_image_releases_match(taskmaster: str, filer: str) -> None:
 @pytest.mark.parametrize(
     ("args", "taskmaster", "filer"),
     [
-        (("--set", "tesk.taskmaster.image.tag=v0.10.6"), "v0.10.6", "0.12.0"),
-        (("--set", "tesk.filer.image.tag=0.10.6"), "0.12.0", "0.10.6"),
+        (("--set", "tesk.taskmaster.image.tag=v0.10.6"), "v0.10.6", "0.13.0"),
+        (("--set", "tesk.filer.image.tag=0.10.6"), "0.13.0", "0.10.6"),
         (
             (
                 "--set",

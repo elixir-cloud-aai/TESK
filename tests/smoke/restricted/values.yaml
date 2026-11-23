@@ -4,12 +4,6 @@
 # for the restricted case of `.github/actions/install-chart`. The chart's
 # tests render them too (tests/test_chart.py)
 tesk:
-  image:
-    # tesk-api `dev` at the merge of tesk-api#210 (pod security and
-    # resources of task pods), until tesk-api 2.1.0 is released: the chart's
-    # release prep that sets `appVersion` 2.1.0 removes it (a chart test
-    # fails while both are set)
-    tag: sha-b87b051ba1389b3696828579df1e78788488bb3f
   taskmaster:
     podSecurityContext:
       runAsNonRoot: true
