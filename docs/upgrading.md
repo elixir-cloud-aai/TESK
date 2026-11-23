@@ -10,7 +10,51 @@ again):
 helm upgrade tesk charts/tesk --namespace tesk -f my-values.yaml -f secrets.yaml
 ```
 
-## Unreleased
+## 0.5.0
+
+Releases of chart 0.4.0 are upgraded in place (`helm upgrade` with the
+chart of the [release](deployment.md#from-a-release)). The upgrade brings
+tesk-api 2.1.0 and the taskmaster and filer of tesk-core 0.13.0: read
+[tesk-api 2.1.0, taskmaster and filer
+0.13.0](#tesk-api-210-taskmaster-and-filer-0130) before you upgrade,
+especially with `auth.mode: auth`, whose users now see only their own
+tasks, and in namespaces with a `LimitRange` or a quota. Move `fsGroup`
+from `tesk.executor.securityContext` to `tesk.executor.podSecurityContext`
+first (see [Security contexts and resources of task
+pods](#security-contexts-and-resources-of-task-pods)): the installation
+fails while it is there. As for 0.4.0, upgrade with your values files, not
+with `--reuse-values`, which keeps the taskmaster and filer tags of chart
+0.4.0 (0.12.0) under tesk-api 2.1.0 (see [0.4.0](#040)).
+
+### tesk-api 2.1.0, taskmaster and filer 0.13.0
+
+The chart deploys tesk-api 2.1.0 (its `appVersion`) and taskmaster and
+filer 0.13.0 by default now (chart 0.4.0 deployed tesk-api 2.0.0 and
+taskmaster and filer 0.12.0). Read their upgrade notes too: [Upgrading
+tesk-api](tesk-api/upgrading.md) ("To 2.1.0") and [Upgrading
+tesk-core](tesk-core/upgrading.md) ("0.13.0"). What they mean for a
+deployment of the chart:
+
+- **Tasks visible to their owner only (with `auth.mode: auth`).** Users
+  get, list and cancel only their own tasks, super admins and team admins
+  included; requests for other users' tasks give `403 Forbidden`. tesk-api
+  keeps the rules of 2.0.0 with `TESK_API_AUTHORISATION_TASK_VISIBILITY:
+  group`, which the chart can't set yet
+  ([#337](https://github.com/elixir-cloud-aai/TESK/issues/337)): if admins
+  must see other users' tasks, stay on chart 0.4.0 until a release of the
+  chart can set it.
+- **`ram_gb` is a hard memory limit.** Executors of tasks that set
+  `resources.ram_gb` get it as their memory limit also when they set
+  `resources.cpu_cores`, so executors that use more memory end with
+  `EXECUTOR_ERROR` (`OOMKilled`) instead of completing.
+- **Resources of the filers.** The filers' containers request 100m CPU and
+  128Mi memory and are limited to 1 CPU and 512Mi memory by default (none
+  before); `tesk.filer.resources` replaces them (`{}` for none). In
+  namespaces with a `LimitRange` whose limits are below these, set it to
+  fit (see [Resources](deployment.md#resources)).
+- **Pinned tags.** Values that pin `tesk.image.tag`,
+  `tesk.taskmaster.image.tag` or `tesk.filer.image.tag` keep theirs; the
+  taskmaster's and the filer's tags must stay the same release.
 
 ### The old Helm repository is gone
 
