@@ -803,16 +803,48 @@ the [deployment checks](#checking-a-deployment) passing.
 
 - **Executors' user:** the standard needs a non-root user. With `runAsUser:
   100`, the filer's user, executors can read the inputs and write the
-  outputs that the filers stage on the task's volume, also on volumes
-  whose ownership Kubernetes doesn't manage; with another user, add an
-  `fsGroup` (see [Executors as non-root
+  outputs that the filers stage on the task's volume; with another user,
+  add an `fsGroup` (see [Executors as non-root
   users](#executors-as-non-root-users)). Images that need root don't run
   in such a namespace. On clusters that assign users themselves (e.g.,
   OpenShift), leave `runAsUser` out.
+- **Volume ownership:** the values above are enough only where the root of
+  a task's volume is writable for everyone, as with the `local-path`
+  storage of kind that CI uses. On CSI volumes whose root belongs to root
+  (e.g., CephFS, Ceph RBD or Cinder), the filer can't write the inputs
+  (`PermissionError` in its log; the task ends with `SYSTEM_ERROR`), and
+  executors can't write either: add `fsGroup: 100` to the pod contexts of
+  the filer and of the executors, as below, so that Kubernetes gives the
+  volume to that group. This needs a CSI driver that applies `fsGroup`
+  (`fsGroupPolicy: File`, the default of Rook's CephFS driver, for
+  example). Not on OpenShift with the `restricted-v2` SCC (e.g., CSC
+  Rahti), which assigns the users and the `fsGroup` itself: leave them
+  out there.
 - **Seccomp:** on clusters that refuse pods asking for `RuntimeDefault` or
   set their own security contexts (e.g., CSC Rahti), leave these values
   out (see [OpenShift and other restricted
   clusters](#openshift-and-other-restricted-clusters)).
+
+On root-owned CSI volumes, add to the values above (`tesk.filer.podSecurityContext`
+replaces the filer's default pod context, so repeat its fields):
+
+```yaml
+tesk:
+  filer:
+    podSecurityContext:
+      runAsNonRoot: true
+      runAsUser: 100
+      fsGroup: 100
+      seccompProfile:
+        type: RuntimeDefault
+  executor:
+    podSecurityContext:
+      runAsNonRoot: true
+      runAsUser: 100
+      fsGroup: 100
+      seccompProfile:
+        type: RuntimeDefault
+```
 - **CPU and memory:** the executors of tasks without `resources.cpu_cores`
   get `tesk.executor.defaultCpu` (default: 1 CPU); lower it if the quota is
   small, as each running task takes that much of it. Tasks that ask for

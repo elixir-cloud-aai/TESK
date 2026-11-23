@@ -79,7 +79,13 @@ tesk:
     # Repeat the defaults that you want to keep; `{}` leaves a context out,
     # null keeps the taskmaster's default. E.g., on clusters that refuse
     # pods asking for `RuntimeDefault`:
-    # `podSecurityContext: {runAsNonRoot: true}`. Taskmasters before 0.12.0
+    # `podSecurityContext: {runAsNonRoot: true}`. On CSI volumes whose root
+    # belongs to root (e.g., CephFS, Ceph RBD, Cinder), the filer can't
+    # write the inputs without `fsGroup: 100` here and in
+    # `tesk.executor.podSecurityContext` (repeat the other defaults: the
+    # value replaces them); not on OpenShift with the `restricted-v2` SCC
+    # (e.g., CSC Rahti), which assigns it (see docs/deployment.md,
+    # "Restricted namespaces and quotas"). Taskmasters before 0.12.0
     # ignore them. Like all maps, they are merged with the same maps of
     # earlier values files (or of `--reuse-values`): set each context in
     # one place
@@ -99,7 +105,9 @@ tesk:
     # PodSecurityContext), e.g., to run them as non-root users. Empty
     # leaves the executors as their images say (often root). `fsGroup`
     # also gives executors access to the files that the filer stages on the
-    # task's PVC, on volume types whose ownership Kubernetes manages. Not
+    # task's PVC, on volume types whose ownership Kubernetes manages; on
+    # root-owned CSI volumes (e.g., CephFS, Ceph RBD, Cinder), executors and
+    # filer need `fsGroup: 100` (see `tesk.filer.podSecurityContext`). Not
     # applied to the API (see `tesk.podSecurityContext`), the taskmaster
     # and the filer. `runAsUser`, `runAsGroup`, `fsGroup` and
     # `runAsNonRoot` work with all tesk-api versions (through a ConfigMap);
