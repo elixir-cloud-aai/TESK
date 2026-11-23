@@ -506,18 +506,6 @@ WARNING: auth.legacyUserLabels is on, but tesk-api {{ $apiTag }} (tesk.image.tag
 ignores it. It is for tesk-api 1.2.0 or later; see
 https://tesk.readthedocs.io/en/latest/deployment/#tasks-created-before-tesk-api-120
 {{- end }}
-{{- /* tesk-api before 2.0.0 ignores the tokens of allow-listed clients,
-which the chart only passes on with mode auth (and fails without it). 2.0.0
-is the first release with the setting (tesk-api#153); its pre-releases have
-it too */ -}}
-{{- $tokenClientsOn := eq (toString (dig "tokenClients" "enabled" "" .Values.auth)) "true" -}}
-{{- if and $tokenClientsOn (include "tesk.apiBefore" (dict "root" . "version" "2.0.0")) }}
-
-WARNING: auth.tokenClients is on, but tesk-api {{ $apiTag }} (tesk.image.tag)
-ignores it and refuses the clients' tokens. It is for tesk-api 2.0.0 or
-later; see
-https://tesk.readthedocs.io/en/latest/deployment/#tokens-of-services
-{{- end }}
 {{- /* tesk-api before 2.0.0 ignores the CORS origins (tesk-api#195) */ -}}
 {{- if and (dig "cors" "allowedOrigins" list .Values.tesk) (include "tesk.apiBefore" (dict "root" . "version" "2.0.0")) }}
 
@@ -859,34 +847,81 @@ under `auth`, which tesk-api compares as text.
 {{/*
 The environment variables of tesk-api's tokens of allow-listed clients
 (`auth.tokenClients`), as YAML entries of `env`, or nothing if the setting
-is off. The names of the variables are only here. Fails if it is on without
-mode auth (noauth leaves all endpoints open, so no token would be checked),
-an issuer, a non-blank client ID, or an audience (unless allowAnyAudience is
-true). Client IDs are trimmed, blank ones left out, and joined with commas,
-as tesk-api splits them; empty or null optional keys (and a blank claim)
-leave tesk-api's defaults: the JWKS URI from the issuer's discovery
-document, the claim client_id, the type at+jwt required and `sub` required
-to be the client ID.
+is off. The names of the variables are only here.
+
+Fails, also if the setting is off, on the form of chart 0.4.0 (a shared
+`audience` or `allowAnyAudience`, or `clients` as a list), which the
+schema lets through for that: tesk-api 2.1.0 doesn't start with the
+variables that it stood for (tesk-api#215).
+
+If it is on, fails without mode auth (noauth leaves all endpoints open, so
+no token would be checked), without an issuer or a client, with tesk-api
+before 2.1.0 (`tesk.apiBefore`; 2.0.0 reads the clients in another form and
+doesn't start without it, earlier versions ignore the setting), and on what
+tesk-api 2.1.0 refuses at startup: a blank or duplicate client ID (after
+trimming), a client without audiences (unless `allowAnyAudience` is true),
+with a blank audience, or with both. The clients go to tesk-api as one JSON
+object, client ID to {"audiences": [...]} or {"allowAnyAudience": true},
+with IDs and audiences trimmed; null clients are left out, as null removes
+a key in Helm. Empty or null optional keys (and a blank claim) leave
+tesk-api's defaults: the JWKS URI from the issuer's discovery document, the
+claim client_id, the type at+jwt required and `sub` required to be the
+client ID.
 */}}
 {{- define "tesk.tokenClientsEnv" -}}
 {{- $tokenClients := default dict .Values.auth.tokenClients -}}
+{{- $upgrading := "https://tesk.readthedocs.io/en/latest/upgrading/#audiences-per-client-of-tokenclients" -}}
+{{- $removed := list -}}
+{{- range $key := list "audience" "allowAnyAudience" -}}
+{{- if hasKey $tokenClients $key -}}
+{{- $removed = append $removed (printf "auth.tokenClients.%s" $key) -}}
+{{- end -}}
+{{- end -}}
+{{- if kindIs "slice" $tokenClients.clients -}}
+{{- $removed = append $removed "auth.tokenClients.clients (a list)" -}}
+{{- end -}}
+{{- if $removed -}}
+{{- fail (printf "\n\nThe values use the form of auth.tokenClients of chart 0.4.0, which tesk-api 2.1.0\nrefuses. Make auth.tokenClients.clients a map from client ID to {audiences: [...]}\n(or {allowAnyAudience: true}), and remove (see %s):\n  - %s\n" $upgrading (join "\n  - " $removed)) -}}
+{{- end -}}
 {{- if eq (toString $tokenClients.enabled) "true" -}}
 {{- if ne (toString .Values.auth.mode) "auth" -}}
 {{- fail (printf "auth.tokenClients.enabled needs auth.mode auth, not %q" (toString .Values.auth.mode)) -}}
 {{- end -}}
-{{- $clients := list -}}
-{{- range (default list $tokenClients.clients) -}}
-{{- with trim (toString .) -}}
-{{- $clients = append $clients . -}}
+{{- if include "tesk.apiBefore" (dict "root" . "version" "2.1.0") -}}
+{{- fail (printf "auth.tokenClients needs tesk-api 2.1.0 or later, not %s (tesk.image.tag): tesk-api 2.0.0 reads the clients in another form and doesn't start without it, and earlier versions ignore the setting. Upgrade tesk-api, or turn auth.tokenClients off; see %s" (include "tesk.apiImageTag" .) $upgrading) -}}
+{{- end -}}
+{{- $clients := dict -}}
+{{- range $key, $settings := default dict $tokenClients.clients -}}
+{{- if not (kindIs "invalid" $settings) -}}
+{{- $id := trim $key -}}
+{{- if not $id -}}
+{{- fail "auth.tokenClients.clients has a blank client ID" -}}
+{{- end -}}
+{{- if hasKey $clients $id -}}
+{{- fail (printf "auth.tokenClients.clients has client %q twice (after trimming)" $id) -}}
+{{- end -}}
+{{- $audiences := list -}}
+{{- range (default list $settings.audiences) -}}
+{{- $audience := trim (toString .) -}}
+{{- if not $audience -}}
+{{- fail (printf "auth.tokenClients.clients: client %q has a blank audience" $id) -}}
+{{- end -}}
+{{- $audiences = append $audiences $audience -}}
+{{- end -}}
+{{- $anyAudience := eq (toString $settings.allowAnyAudience) "true" -}}
+{{- if and $anyAudience $audiences -}}
+{{- fail (printf "auth.tokenClients.clients: client %q has both audiences and allowAnyAudience: true; keep one of them" $id) -}}
+{{- end -}}
+{{- /* Without audiences, tokens that the client got for other services
+would be accepted too: only on purpose */ -}}
+{{- if not (or $anyAudience $audiences) -}}
+{{- fail (printf "auth.tokenClients.clients: client %q needs audiences (a non-empty list), or allowAnyAudience: true to accept its tokens for any audience" $id) -}}
+{{- end -}}
+{{- $_ := set $clients $id (ternary (dict "allowAnyAudience" true) (dict "audiences" $audiences) $anyAudience) -}}
 {{- end -}}
 {{- end -}}
 {{- if or (not (include "tesk.isSet" $tokenClients.issuer)) (not $clients) -}}
-{{- fail "auth.tokenClients.enabled needs auth.tokenClients.issuer and at least one client ID in auth.tokenClients.clients" -}}
-{{- end -}}
-{{- /* Without an audience, tokens that a listed client got for other
-services would be accepted too: only on purpose */ -}}
-{{- if and (not (include "tesk.isSet" $tokenClients.audience)) (ne (toString $tokenClients.allowAnyAudience) "true") -}}
-{{- fail "auth.tokenClients.enabled needs auth.tokenClients.audience, or auth.tokenClients.allowAnyAudience: true to accept tokens for any audience" -}}
+{{- fail "auth.tokenClients.enabled needs auth.tokenClients.issuer and at least one client in auth.tokenClients.clients" -}}
 {{- end -}}
 {{- $flags := dict -}}
 {{- range $key := list "requireAtJwt" "requireClientSubject" -}}
@@ -897,9 +932,8 @@ services would be accepted too: only on purpose */ -}}
   (list "TESK_API_AUTHORISATION_SERVICE_CLIENTS_ENABLED" "true")
   (list "TESK_API_AUTHORISATION_SERVICE_CLIENTS_ISSUER" $tokenClients.issuer)
   (list "TESK_API_AUTHORISATION_SERVICE_CLIENTS_JWKS_URI" $tokenClients.jwksUri)
-  (list "TESK_API_AUTHORISATION_SERVICE_CLIENTS_AUDIENCE" $tokenClients.audience)
   (list "TESK_API_AUTHORISATION_SERVICE_CLIENTS_CLIENT_CLAIM" (trim (toString (default "" $tokenClients.claim))))
-  (list "TESK_API_AUTHORISATION_SERVICE_CLIENTS_CLIENT_IDS" (join "," $clients))
+  (list "TESK_API_AUTHORISATION_SERVICE_CLIENTS_CLIENTS" (toJson $clients))
   (list "TESK_API_AUTHORISATION_SERVICE_CLIENTS_REQUIRE_ACCESS_TOKEN_TYPE" $flags.requireAtJwt)
   (list "TESK_API_AUTHORISATION_SERVICE_CLIENTS_REQUIRE_CLIENT_SUBJECT" $flags.requireClientSubject) -}}
 {{- range $variables }}

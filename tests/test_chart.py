@@ -1975,24 +1975,33 @@ TOKEN_CLIENTS = {
     "enabled": "TESK_API_AUTHORISATION_SERVICE_CLIENTS_ENABLED",
     "issuer": "TESK_API_AUTHORISATION_SERVICE_CLIENTS_ISSUER",
     "jwksUri": "TESK_API_AUTHORISATION_SERVICE_CLIENTS_JWKS_URI",
-    "audience": "TESK_API_AUTHORISATION_SERVICE_CLIENTS_AUDIENCE",
     "claim": "TESK_API_AUTHORISATION_SERVICE_CLIENTS_CLIENT_CLAIM",
-    "clients": "TESK_API_AUTHORISATION_SERVICE_CLIENTS_CLIENT_IDS",
+    "clients": "TESK_API_AUTHORISATION_SERVICE_CLIENTS_CLIENTS",
     "requireAtJwt": "TESK_API_AUTHORISATION_SERVICE_CLIENTS_REQUIRE_ACCESS_TOKEN_TYPE",
     "requireClientSubject": (
         "TESK_API_AUTHORISATION_SERVICE_CLIENTS_REQUIRE_CLIENT_SUBJECT"
     ),
 }
+# The variables of tesk-api 2.0.0, with which 2.1.0 doesn't start, also
+# empty (tesk-api#215)
+TOKEN_CLIENTS_REMOVED = {
+    "TESK_API_AUTHORISATION_SERVICE_CLIENTS_CLIENT_IDS",
+    "TESK_API_AUTHORISATION_SERVICE_CLIENTS_AUDIENCE",
+}
 ISSUER = "https://login.example.org/oidc/"
 AUDIENCE = "https://tes.example.org"
+# The first tesk-api release with audiences per client (tesk-api#215)
+API_2_1 = ("--set", "tesk.image.tag=2.1.0")
 
 
 def token_clients(**values: Any) -> tuple[str, ...]:
     """`helm template` arguments with mode auth and `auth.tokenClients`.
 
+    With tesk-api 2.1.0, which the setting needs.
+
     Args:
-        values: Keys of `auth.tokenClients` on top of an issuer, an audience
-            and one client, with the setting on; None removes a key.
+        values: Keys of `auth.tokenClients` on top of an issuer and one
+            client with an audience, with the setting on; None removes a key.
 
     Returns:
         The arguments.
@@ -2000,17 +2009,29 @@ def token_clients(**values: Any) -> tuple[str, ...]:
     settings = {
         "enabled": True,
         "issuer": ISSUER,
-        "audience": AUDIENCE,
-        "clients": ["gateway"],
+        "clients": {"gateway": {"audiences": [AUDIENCE]}},
         **values,
     }
     settings = {key: value for key, value in settings.items() if value is not None}
     return (
+        *API_2_1,
         "--set",
         "auth.mode=auth",
         "--set-json",
         f"auth.tokenClients={json.dumps(settings)}",
     )
+
+
+def rendered_clients(variables: dict[str, Any]) -> Any:
+    """Get the clients that the chart passes on to tesk-api, parsed.
+
+    Args:
+        variables: The environment of the API container.
+
+    Returns:
+        The JSON of `TESK_API_AUTHORISATION_SERVICE_CLIENTS_CLIENTS`, parsed.
+    """
+    return json.loads(variables[TOKEN_CLIENTS["clients"]])
 
 
 @pytest.mark.parametrize(
@@ -2024,8 +2045,11 @@ def token_clients(**values: Any) -> tuple[str, ...]:
         (
             "--set-json",
             f'auth.tokenClients={{"enabled": false, "issuer": "{ISSUER}",'
-            ' "clients": ["gateway"], "requireAtJwt": false}',
+            ' "clients": {"gateway": {"audiences": ["a"]}},'
+            ' "requireAtJwt": false}',
         ),
+        # Off, an incomplete client isn't checked
+        ("--set-json", 'auth.tokenClients.clients={"gateway": {}}'),
     ],
 )
 def test_auth_token_clients_off(args: tuple[str, ...]) -> None:
@@ -2035,32 +2059,47 @@ def test_auth_token_clients_off(args: tuple[str, ...]) -> None:
         args: The `helm template` arguments.
     """
     manifests = render("--set", "auth.mode=auth", *args)
-    assert not set(TOKEN_CLIENTS.values()) & set(env(manifests))
+    variables = set(env(manifests))
+    assert not (set(TOKEN_CLIENTS.values()) | TOKEN_CLIENTS_REMOVED) & variables
     assert manifests == render("--set", "auth.mode=auth")
 
 
 def test_auth_token_clients_minimal() -> None:
-    """An issuer, an audience and clients turn it on, with the claim `client_id`.
+    """An issuer and clients with audiences turn it on, with the claim `client_id`.
 
-    The JWKS URI, the `typ` check and the `sub` check are left to tesk-api's
-    defaults (discovery, `at+jwt` required, `sub` the client ID).
+    The clients and the audiences of each are one JSON object; the variables
+    of tesk-api 2.0.0 aren't rendered. The JWKS URI, the `typ` check and the
+    `sub` check are left to tesk-api's defaults (discovery, `at+jwt`
+    required, `sub` the client ID).
     """
-    variables = env(render(*token_clients(clients=["gateway", "other"])))
-    assert {key: variables.get(name) for key, name in TOKEN_CLIENTS.items()} == {
+    clients = {
+        "gateway": {"audiences": [AUDIENCE]},
+        "smoke": {"audiences": [AUDIENCE, "tesk-smoke"]},
+    }
+    variables = env(render(*token_clients(clients=clients)))
+    assert {
+        key: variables.get(name)
+        for key, name in TOKEN_CLIENTS.items()
+        if key != "clients"
+    } == {
         "enabled": "true",
         "issuer": ISSUER,
         "jwksUri": None,
-        "audience": AUDIENCE,
         "claim": "client_id",
-        "clients": "gateway,other",
         "requireAtJwt": None,
         "requireClientSubject": None,
     }
+    assert rendered_clients(variables) == clients
+    assert not TOKEN_CLIENTS_REMOVED & set(variables)
 
 
 @pytest.mark.parametrize("enabled", [True, "true"])
 def test_auth_token_clients_all(enabled: bool | str) -> None:
     """All keys set are passed on; booleans as `true` and `false`.
+
+    Client IDs and audiences are trimmed, an `allowAnyAudience` that isn't
+    true is left out, and so are null clients (null removes a key, e.g.,
+    one that another values file sets).
 
     Args:
         enabled: `auth.tokenClients.enabled`.
@@ -2068,22 +2107,41 @@ def test_auth_token_clients_all(enabled: bool | str) -> None:
     args = token_clients(
         enabled=enabled,
         jwksUri="https://login.example.org/oidc/jwk",
-        audience="https://tes.example.org",
         claim="azp",
-        clients=[" a ", "\u000b", "b c"],
+        clients={
+            " a ": {"audiences": [" https://a.example.org ", "x"]},
+            "b c": {"audiences": ["y"], "allowAnyAudience": False},
+            "d": {"audiences": ["z"], "allowAnyAudience": "false"},
+            "e,f": {"allowAnyAudience": True},
+            "g": {"allowAnyAudience": "true", "audiences": []},
+            "h": {"allowAnyAudience": True, "audiences": None},
+            "i": {"audiences": ["w"], "allowAnyAudience": None},
+            "removed": None,
+        },
         requireAtJwt=False,
         requireClientSubject="false",
     )
     variables = env(render(*args))
-    assert {key: variables.get(name) for key, name in TOKEN_CLIENTS.items()} == {
+    assert {
+        key: variables.get(name)
+        for key, name in TOKEN_CLIENTS.items()
+        if key != "clients"
+    } == {
         "enabled": "true",
         "issuer": ISSUER,
         "jwksUri": "https://login.example.org/oidc/jwk",
-        "audience": "https://tes.example.org",
         "claim": "azp",
-        "clients": "a,b c",
         "requireAtJwt": "false",
         "requireClientSubject": "false",
+    }
+    assert rendered_clients(variables) == {
+        "a": {"audiences": ["https://a.example.org", "x"]},
+        "b c": {"audiences": ["y"]},
+        "d": {"audiences": ["z"]},
+        "e,f": {"allowAnyAudience": True},
+        "g": {"allowAnyAudience": True},
+        "h": {"allowAnyAudience": True},
+        "i": {"audiences": ["w"]},
     }
 
 
@@ -2117,31 +2175,8 @@ def test_auth_token_clients_optional(
     assert variables[TOKEN_CLIENTS["enabled"]] == "true"
 
 
-@pytest.mark.parametrize(
-    ("values", "expected"),
-    [
-        ({"audience": "", "allowAnyAudience": True}, None),
-        ({"audience": None, "allowAnyAudience": "true"}, None),
-        ({"allowAnyAudience": True}, AUDIENCE),
-        ({"allowAnyAudience": False}, AUDIENCE),
-    ],
-)
-def test_auth_token_clients_any_audience(
-    values: dict[str, Any], expected: str | None
-) -> None:
-    """Without an audience only with `allowAnyAudience`; a set one is passed on.
-
-    Args:
-        values: `audience` and `allowAnyAudience` of `auth.tokenClients`.
-        expected: The audience passed on, or None if it is left out.
-    """
-    variables = env(render(*token_clients(**values)))
-    assert variables.get(TOKEN_CLIENTS["audience"]) == expected
-    assert variables[TOKEN_CLIENTS["enabled"]] == "true"
-
-
 def test_auth_token_clients_values_file(tmp_path: Path) -> None:
-    """Booleans and a client ID that YAML reads as a number, from a file.
+    """Booleans, and a client ID and an audience that look like numbers.
 
     Args:
         tmp_path: A directory for the values file.
@@ -2153,14 +2188,30 @@ def test_auth_token_clients_values_file(tmp_path: Path) -> None:
         "  tokenClients:\n"
         "    enabled: true\n"
         f"    issuer: {ISSUER}\n"
-        f"    audience: {AUDIENCE}\n"
-        "    clients: [gateway, '12345']\n"
+        "    clients:\n"
+        "      gateway:\n"
+        f"        audiences: [{AUDIENCE}]\n"
+        "      12345:\n"
+        "        audiences: ['67890']\n"
+        "      any:\n"
+        "        allowAnyAudience: true\n"
         "    requireAtJwt: true\n"
     )
-    variables = env(render("-f", str(values)))
+    variables = env(render(*API_2_1, "-f", str(values)))
     assert variables[TOKEN_CLIENTS["enabled"]] == "true"
-    assert variables[TOKEN_CLIENTS["clients"]] == "gateway,12345"
+    assert rendered_clients(variables) == {
+        "gateway": {"audiences": [AUDIENCE]},
+        "12345": {"audiences": ["67890"]},
+        "any": {"allowAnyAudience": True},
+    }
     assert variables[TOKEN_CLIENTS["requireAtJwt"]] == "true"
+
+
+def test_auth_token_clients_json_escaped() -> None:
+    """Quotes, backslashes and other characters stay valid JSON."""
+    clients = {'a"b\\c': {"audiences": ['x"y\\z', "<&>", "ü\u00e9"]}}
+    variables = env(render(*token_clients(clients=clients)))
+    assert rendered_clients(variables) == clients
 
 
 def test_auth_token_clients_with_claim() -> None:
@@ -2176,41 +2227,85 @@ def test_auth_token_clients_with_claim() -> None:
     assert variables["TESK_API_AUTHORISATION_CLAIM_ENABLED"] == "true"
 
 
+NEEDS = "auth.tokenClients.enabled needs auth.tokenClients.issuer"
+NEEDS_MODE = "auth.tokenClients.enabled needs auth.mode auth"
+
+
 @pytest.mark.parametrize(
     ("args", "message"),
     [
         (
             ("--set", "auth.mode=noauth", "--set", "auth.tokenClients.enabled=true"),
-            "auth.tokenClients.enabled needs auth.mode auth",
+            NEEDS_MODE,
+        ),
+        ((*token_clients(), "--set", "auth.mode=noauth"), NEEDS_MODE),
+        ((*token_clients()[4:], *API_2_1, "--set-json", "auth.mode=null"), NEEDS_MODE),
+        (token_clients(issuer=None), NEEDS),
+        (token_clients(issuer=""), NEEDS),
+        (token_clients(clients=None), NEEDS),
+        (token_clients(clients={}), NEEDS),
+        (token_clients(clients={"gateway": None}), NEEDS),
+        (
+            token_clients(clients={"\u000b": {"audiences": ["a"]}}),
+            "auth.tokenClients.clients has a blank client ID",
         ),
         (
-            (*token_clients(), "--set", "auth.mode=noauth"),
-            "auth.tokenClients.enabled needs auth.mode auth",
+            token_clients(clients={"\u00a0": {"audiences": ["a"]}}),
+            "auth.tokenClients.clients has a blank client ID",
         ),
         (
-            (*token_clients()[2:], "--set-json", "auth.mode=null"),
-            "auth.tokenClients.enabled needs auth.mode auth",
+            token_clients(
+                clients={"a": {"audiences": ["x"]}, " a": {"audiences": ["y"]}}
+            ),
+            'auth.tokenClients.clients has client "a" twice',
         ),
-        (token_clients(audience=None), "auth.tokenClients.enabled needs"),
-        (token_clients(audience=""), "auth.tokenClients.enabled needs"),
         (
-            token_clients(audience="", allowAnyAudience=False),
-            "auth.tokenClients.enabled needs",
+            token_clients(clients={"gateway": {}}),
+            'auth.tokenClients.clients: client "gateway" needs audiences',
         ),
-        (token_clients(issuer=None), "auth.tokenClients.enabled needs"),
-        (token_clients(issuer=""), "auth.tokenClients.enabled needs"),
-        (token_clients(clients=None), "auth.tokenClients.enabled needs"),
-        (token_clients(clients=[]), "auth.tokenClients.enabled needs"),
-        (token_clients(clients=["\u000b"]), "auth.tokenClients.enabled needs"),
-        (token_clients(clients=["\u00a0"]), "auth.tokenClients.enabled needs"),
+        (
+            token_clients(clients={"gateway": {"audiences": []}}),
+            'client "gateway" needs audiences',
+        ),
+        (
+            token_clients(clients={"gateway": {"audiences": None}}),
+            'client "gateway" needs audiences',
+        ),
+        (
+            token_clients(
+                clients={"gateway": {"audiences": [], "allowAnyAudience": False}}
+            ),
+            'client "gateway" needs audiences',
+        ),
+        (
+            token_clients(clients={"gateway": {"audiences": ["a", "\u00a0"]}}),
+            'client "gateway" has a blank audience',
+        ),
+        (
+            token_clients(
+                clients={"gateway": {"audiences": ["a"], "allowAnyAudience": True}}
+            ),
+            'client "gateway" has both audiences and allowAnyAudience',
+        ),
+        (
+            token_clients(
+                clients={"gateway": {"audiences": ["a"], "allowAnyAudience": "true"}}
+            ),
+            'client "gateway" has both audiences and allowAnyAudience',
+        ),
     ],
 )
 def test_auth_token_clients_incomplete(args: tuple[str, ...], message: str) -> None:
-    """Turned on without an issuer, clients or mode auth, the chart fails.
+    """Turned on without an issuer, valid clients or mode auth, the chart fails.
+
+    It refuses what tesk-api 2.1.0 refuses at startup (tesk-api#215): no
+    client, a blank or duplicate client ID (after trimming), a client
+    without audiences (unless `allowAnyAudience` is true), with a blank
+    audience, or with both.
 
     Args:
         args: The `helm template` arguments.
-        message: The expected start of the error.
+        message: Part of the expected error.
     """
     with pytest.raises(subprocess.CalledProcessError) as error:
         render(*args)
@@ -2228,20 +2323,28 @@ def test_auth_token_clients_incomplete(args: tuple[str, ...], message: str) -> N
         {"issuer": "http://login.example.org/oidc/"},
         {"jwksUri": "http://login.example.org/jwk"},
         {"requireClientSubject": "no"},
-        {"allowAnyAudience": "yes"},
         {"clients": "gateway"},
-        {"clients": ["a,b"]},
-        {"clients": [""]},
-        {"clients": [" "]},
-        {"clients": [1]},
+        {"clients": {"": {"audiences": ["a"]}}},
+        {"clients": {" ": {"audiences": ["a"]}}},
+        {"clients": {"gateway": "a"}},
+        {"clients": {"gateway": ["a"]}},
+        {"clients": {"gateway": {"audiences": "a"}}},
+        {"clients": {"gateway": {"audiences": [""]}}},
+        {"clients": {"gateway": {"audiences": [" "]}}},
+        {"clients": {"gateway": {"audiences": [1]}}},
+        {"clients": {"gateway": {"audiences": [None]}}},
+        {"clients": {"gateway": {"audiences": [["a"]]}}},
+        {"clients": {"gateway": {"allowAnyAudience": "yes"}}},
+        {"clients": {"gateway": {"allowAnyAudience": 1}}},
+        {"clients": {"gateway": {"audiences": ["a"], "audience": "a"}}},
+        {"clients": {"gateway": {"audiences": ["a"], "clockSkew": 1}}},
         {"claim": ["azp"]},
-        {"audience": ["a"]},
         {"requireAtJwt": "yes"},
         {"client": ["gateway"]},
     ],
 )
 def test_auth_token_clients_invalid(values: dict[str, Any]) -> None:
-    """The schema rejects values that tesk-api would split or ignore.
+    """The schema rejects values that tesk-api would refuse or ignore.
 
     Args:
         values: Keys of `auth.tokenClients` on top of a complete setting.
@@ -2249,6 +2352,111 @@ def test_auth_token_clients_invalid(values: dict[str, Any]) -> None:
     with pytest.raises(subprocess.CalledProcessError) as error:
         render(*token_clients(**values))
     assert "values don't meet the specifications of the schema" in error.value.stderr
+
+
+# The section of the upgrade notes on audiences per client
+AUDIENCES_UPGRADING = "audiences-per-client-of-tokenclients"
+REMOVED_AUDIENCE = "auth.tokenClients.audience"
+REMOVED_ANY_AUDIENCE = "auth.tokenClients.allowAnyAudience"
+REMOVED_CLIENT_LIST = "auth.tokenClients.clients (a list)"
+
+
+@pytest.mark.parametrize(
+    ("values", "removed"),
+    [
+        ({"audience": AUDIENCE}, [REMOVED_AUDIENCE]),
+        ({"audience": ""}, [REMOVED_AUDIENCE]),
+        ({"allowAnyAudience": True}, [REMOVED_ANY_AUDIENCE]),
+        ({"allowAnyAudience": False}, [REMOVED_ANY_AUDIENCE]),
+        ({"clients": ["gateway"]}, [REMOVED_CLIENT_LIST]),
+        ({"clients": []}, [REMOVED_CLIENT_LIST]),
+        (
+            {"audience": AUDIENCE, "allowAnyAudience": False, "clients": ["a"]},
+            [REMOVED_AUDIENCE, REMOVED_ANY_AUDIENCE, REMOVED_CLIENT_LIST],
+        ),
+        # Also when off: tesk-api 2.1.0 doesn't start with the variables
+        # that they stood for, whether on or off
+        (
+            {"enabled": False, "audience": "", "clients": []},
+            [REMOVED_AUDIENCE, REMOVED_CLIENT_LIST],
+        ),
+    ],
+)
+def test_auth_token_clients_removed(values: dict[str, Any], removed: list[str]) -> None:
+    """The form of chart 0.4.0 fails with a hint to the upgrade notes.
+
+    A shared `audience` and `allowAnyAudience`, and `clients` as a list of
+    IDs: the schema lets them through, so that the chart can say what
+    replaces them.
+
+    Args:
+        values: Keys of `auth.tokenClients` on top of a complete setting.
+        removed: The keys that the error names.
+    """
+    with pytest.raises(subprocess.CalledProcessError) as error:
+        render(*token_clients(**values))
+    stderr = error.value.stderr
+    assert "a map from client ID" in stderr
+    assert f"upgrading/#{AUDIENCES_UPGRADING}" in stderr
+    for key in (REMOVED_AUDIENCE, REMOVED_ANY_AUDIENCE, REMOVED_CLIENT_LIST):
+        assert (f"  - {key}\n" in stderr) is (key in removed)
+
+
+def test_auth_token_clients_removed_null() -> None:
+    """A removed key fails also when null, as the other removed keys do."""
+    with pytest.raises(subprocess.CalledProcessError) as error:
+        render(*token_clients(), "--set-json", "auth.tokenClients.audience=null")
+    assert f"  - {REMOVED_AUDIENCE}\n" in error.value.stderr
+
+
+def test_auth_token_clients_upgrading_anchor() -> None:
+    """The hint links to a section of the upgrade notes that exists."""
+    upgrading = (CHART.parents[1] / "docs" / "upgrading.md").read_text()
+    assert "\n### Audiences per client of tokenClients\n" in upgrading
+
+
+@pytest.mark.parametrize(
+    ("tag", "refused"),
+    [
+        ("1.2.0", True),
+        ("2.0.0-rc.1", True),
+        ("2.0.0", True),
+        ("v2.0.0", True),
+        ("2.0.1", True),
+        # The pre-releases of 2.1.0 count as 2.1.0 (`tesk.tagBefore`)
+        ("2.1.0-rc.1", False),
+        ("2.1.0", False),
+        ("v2.1.0", False),
+        ("2.2.0", False),
+        ("dev", False),
+    ],
+)
+def test_auth_token_clients_old_api(tag: str, refused: bool) -> None:
+    """On with tesk-api before 2.1.0, the chart fails.
+
+    tesk-api 2.0.0 reads the clients in another form and doesn't start
+    without it; earlier versions ignore the setting and refuse the clients'
+    tokens. Tags that aren't versions (e.g., dev) aren't checked.
+
+    Args:
+        tag: `tesk.image.tag`.
+        refused: Whether the chart fails.
+    """
+    args = (*token_clients(), "--set", f"tesk.image.tag={tag}", *CORE_0_11)
+    if not refused:
+        assert env(render(*args))[TOKEN_CLIENTS["enabled"]] == "true"
+        return
+    with pytest.raises(subprocess.CalledProcessError) as error:
+        render(*args)
+    stderr = error.value.stderr
+    assert "auth.tokenClients needs tesk-api 2.1.0 or later" in stderr
+    assert f"upgrading/#{AUDIENCES_UPGRADING}" in stderr
+
+
+def test_auth_token_clients_old_api_off() -> None:
+    """Off, the setting doesn't restrict the version of tesk-api."""
+    variables = env(render("--set", "tesk.image.tag=1.2.0", *CORE_0_11))
+    assert TOKEN_CLIENTS["enabled"] not in variables
 
 
 LEGACY_USER_LABELS = "TESK_API_AUTHORISATION_LEGACY_USER_LABELS"
@@ -4547,44 +4755,6 @@ def test_notes_legacy_user_labels_old_api(
     )
     assert ("auth.legacyUserLabels is on, but tesk-api" in text) is warned
     assert "auth.legacyUserLabels is on" not in notes(tmp_path=tmp_path)
-
-
-@pytest.mark.parametrize(
-    ("args", "warned"),
-    [
-        (("--set", "tesk.image.tag=1.2.0"), True),
-        (("--set", "tesk.image.tag=v1.1.0"), True),
-        (("--set", "tesk.image.tag=1.2.0-rc.1"), True),
-        (("--set", "tesk.image.tag=1.1.0-beta"), True),
-        (("--set", "tesk.image.tag=1.2.1"), True),
-        (("--set", "tesk.image.tag=1.3.0"), True),
-        (("--set", "tesk.image.tag=1.3.0-rc.1"), True),
-        # 2.0.0 is the first release with the setting (tesk-api#153); its
-        # pre-releases have it too
-        (("--set", "tesk.image.tag=2.0.0-rc.1"), False),
-        (("--set", "tesk.image.tag=2.0.0"), False),
-        (("--set", "tesk.image.tag=v2.0.0"), False),
-        (("--set", "tesk.image.tag=2.1.0"), False),
-        (("--set", "tesk.image.tag=dev"), False),
-        # Without a tag, the chart's `appVersion`
-        ((), False),
-    ],
-)
-def test_notes_token_clients_old_api(
-    tmp_path: Path, args: tuple[str, ...], warned: bool
-) -> None:
-    """The notes warn if `auth.tokenClients` is on with tesk-api before 2.0.0.
-
-    Those versions ignore the setting, so they refuse the clients' tokens.
-
-    Args:
-        tmp_path: A directory for a copy of the chart.
-        args: Further `helm template` arguments (the image tag).
-        warned: Whether the notes warn.
-    """
-    text = notes(*token_clients(), *CORE_0_11, *args, tmp_path=tmp_path)
-    assert ("auth.tokenClients is on, but tesk-api" in text) is warned
-    assert "auth.tokenClients is on" not in notes(tmp_path=tmp_path)
 
 
 def _tags(api: str, taskmaster: str) -> tuple[str, ...]:

@@ -78,6 +78,37 @@
         }
       },
       "additionalProperties": false
+    },
+    "tokenClient": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "Settings of a client of auth.tokenClients.clients: audiences, or allowAnyAudience true (not both; the chart fails without one of them)",
+      "additionalProperties": false,
+      "properties": {
+        "audiences": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string",
+            "pattern": "\\S"
+          },
+          "description": "Audiences at which the client's tokens are accepted: the claim aud must be or contain one of them; non-blank"
+        },
+        "allowAnyAudience": {
+          "enum": [
+            true,
+            false,
+            "true",
+            "false",
+            null
+          ],
+          "description": "Whether the client's tokens are accepted for any audience, also tokens it got for other services; only without audiences"
+        }
+      }
     }
   },
   "properties": {
@@ -700,21 +731,10 @@
               "description": "JWKS URI of the issuer (an HTTPS URL); empty uses the one of the issuer's discovery document"
             },
             "audience": {
-              "type": [
-                "string",
-                "null"
-              ],
-              "description": "Audience that the claim aud must contain; required unless allowAnyAudience is true"
+              "description": "Removed: of chart 0.4.0; the chart fails and says what replaces it (clients as a map with audiences per client)"
             },
             "allowAnyAudience": {
-              "enum": [
-                true,
-                false,
-                "true",
-                "false",
-                null
-              ],
-              "description": "Whether tokens for any audience are accepted if audience is empty (also tokens a listed client got for other services)"
+              "description": "Removed: of chart 0.4.0; the chart fails and says what replaces it (clients as a map with audiences per client)"
             },
             "claim": {
               "type": [
@@ -725,14 +745,17 @@
             },
             "clients": {
               "type": [
+                "object",
                 "array",
                 "null"
               ],
-              "items": {
-                "type": "string",
-                "pattern": "^[^,]*[^,\\s][^,]*$"
+              "description": "Clients whose tokens are accepted: client ID (compared exactly, after trimming) to the client's settings; null clients are left out. A list (the form of chart 0.4.0) passes here, and the chart fails with a hint",
+              "propertyNames": {
+                "pattern": "\\S"
               },
-              "description": "IDs of the clients whose tokens are accepted; non-blank, without commas"
+              "additionalProperties": {
+                "$ref": "#/$defs/tokenClient"
+              }
             },
             "requireAtJwt": {
               "enum": [
