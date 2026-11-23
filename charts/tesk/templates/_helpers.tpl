@@ -884,12 +884,13 @@ variables of tesk-api 2.0.0 */ -}}
 {{- if eq (toString $tokenClients.allowAnyAudience) "true" -}}
 {{- $removed = append $removed "auth.tokenClients.allowAnyAudience" -}}
 {{- end -}}
-{{- $clientsOrList := $tokenClients.clients -}}
-{{- if kindIs "slice" $clientsOrList -}}
-{{- if $clientsOrList -}}
+{{- /* The clients as a map; the empty list of chart 0.4.0 counts as none */ -}}
+{{- $clientsMap := $tokenClients.clients -}}
+{{- if kindIs "slice" $clientsMap -}}
+{{- if $clientsMap -}}
 {{- $removed = append $removed "auth.tokenClients.clients (a list)" -}}
 {{- end -}}
-{{- $clientsOrList = dict -}}
+{{- $clientsMap = dict -}}
 {{- end -}}
 {{- if $removed -}}
 {{- fail (printf "\n\nThe values use the form of auth.tokenClients of chart 0.4.0, which tesk-api 2.1.0\nrefuses. Make auth.tokenClients.clients a map from client ID to {audiences: [...]}\n(or {allowAnyAudience: true}), and remove (see %s):\n  - %s\n" $upgrading (join "\n  - " $removed)) -}}
@@ -902,7 +903,7 @@ variables of tesk-api 2.0.0 */ -}}
 {{- fail (printf "auth.tokenClients needs tesk-api 2.1.0 or later, not %s (tesk.image.tag): tesk-api 2.0.0 reads the clients in another form and doesn't start without it, and earlier versions ignore the setting. Upgrade tesk-api, or turn auth.tokenClients off; see %s" (include "tesk.apiImageTag" .) $upgrading) -}}
 {{- end -}}
 {{- $clients := dict -}}
-{{- range $key, $settings := default dict $clientsOrList -}}
+{{- range $key, $settings := default dict $clientsMap -}}
 {{- if not (kindIs "invalid" $settings) -}}
 {{- $id := trim $key -}}
 {{- if not $id -}}

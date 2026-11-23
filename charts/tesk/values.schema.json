@@ -731,10 +731,17 @@
               "description": "JWKS URI of the issuer (an HTTPS URL); empty uses the one of the issuer's discovery document"
             },
             "audience": {
-              "description": "Removed: of chart 0.4.0; the chart fails and says what replaces it (clients as a map with audiences per client)"
+              "description": "Removed: of chart 0.4.0; empty or null (its default) passes, any other value fails with a hint to what replaces it (clients as a map with audiences per client)"
             },
             "allowAnyAudience": {
-              "description": "Removed: of chart 0.4.0; the chart fails and says what replaces it (clients as a map with audiences per client)"
+              "enum": [
+                true,
+                false,
+                "true",
+                "false",
+                null
+              ],
+              "description": "Removed: of chart 0.4.0; false or null (its default) passes, true fails with a hint to what replaces it (allowAnyAudience per client)"
             },
             "claim": {
               "type": [
@@ -749,7 +756,7 @@
                 "array",
                 "null"
               ],
-              "description": "Clients whose tokens are accepted: client ID (compared exactly, after trimming) to the client's settings; null clients are left out. A list (the form of chart 0.4.0) passes here, and the chart fails with a hint",
+              "description": "Clients whose tokens are accepted: client ID (compared exactly, after trimming) to the client's settings; null clients are left out. A list (the form of chart 0.4.0) passes here: empty (its default), it counts as no client, otherwise the chart fails with a hint",
               "propertyNames": {
                 "pattern": "\\S"
               },

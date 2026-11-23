@@ -2253,6 +2253,8 @@ NEEDS_MODE = "auth.tokenClients.enabled needs auth.mode auth"
         (token_clients(issuer=""), NEEDS),
         (token_clients(clients=None), NEEDS),
         (token_clients(clients={}), NEEDS),
+        # The empty list of chart 0.4.0 counts as no client
+        (token_clients(clients=[]), NEEDS),
         (token_clients(clients={"gateway": None}), NEEDS),
         (
             token_clients(clients={"\u000b": {"audiences": ["a"]}}),
@@ -2345,6 +2347,8 @@ def test_auth_token_clients_incomplete(args: tuple[str, ...], message: str) -> N
         {"clients": {"gateway": {"audiences": [["a"]]}}},
         {"clients": {"gateway": {"allowAnyAudience": "yes"}}},
         {"clients": {"gateway": {"allowAnyAudience": 1}}},
+        {"allowAnyAudience": "yes"},
+        {"allowAnyAudience": 1},
         {"clients": {"gateway": {"audiences": ["a"], "audience": "a"}}},
         {"clients": {"gateway": {"audiences": ["a"], "clockSkew": 1}}},
         {"claim": ["azp"]},
@@ -2458,13 +2462,6 @@ def test_auth_token_clients_removed_defaults_on(values: dict[str, Any]) -> None:
     assert not TOKEN_CLIENTS_REMOVED & set(variables)
 
 
-def test_auth_token_clients_removed_empty_list() -> None:
-    """On with the empty list of chart 0.4.0, the chart fails for no client."""
-    with pytest.raises(subprocess.CalledProcessError) as error:
-        render(*token_clients(clients=[]))
-    assert NEEDS in error.value.stderr
-
-
 def test_auth_token_clients_upgrading_anchor() -> None:
     """The hint links to a section of the upgrade notes that exists."""
     upgrading = (CHART.parents[1] / "docs" / "upgrading.md").read_text()
@@ -2510,14 +2507,27 @@ def test_auth_token_clients_old_api(tag: str, refused: bool) -> None:
 
 
 def test_auth_token_clients_default_api() -> None:
-    """Without a tag, the chart's `appVersion` decides, as a set tag would."""
-    args = token_clients()[len(API_2_1) :]
-    if not re.fullmatch(r"[01]\..*|2\.0\..*", str(METADATA["appVersion"])):
-        assert env(render(*args))[TOKEN_CLIENTS["enabled"]] == "true"
+    """Without a tag, the chart's `appVersion` decides as the same tag would."""
+    settings = {
+        "enabled": True,
+        "issuer": ISSUER,
+        "clients": {"gateway": {"audiences": [AUDIENCE]}},
+    }
+    args = (
+        "--set",
+        "auth.mode=auth",
+        "--set-json",
+        f"auth.tokenClients={json.dumps(settings)}",
+    )
+    tag = ("--set-string", f"tesk.image.tag={METADATA['appVersion']}")
+    try:
+        expected = render(*args, *tag)
+    except subprocess.CalledProcessError as error:
+        with pytest.raises(subprocess.CalledProcessError) as default:
+            render(*args)
+        assert default.value.stderr == error.stderr
         return
-    with pytest.raises(subprocess.CalledProcessError) as error:
-        render(*args)
-    assert "auth.tokenClients needs tesk-api 2.1.0 or later" in error.value.stderr
+    assert render(*args) == expected
 
 
 def test_auth_token_clients_old_api_off() -> None:

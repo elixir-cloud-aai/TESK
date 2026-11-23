@@ -575,7 +575,7 @@ from 2.1.0 on: with an older image (`tesk.image.tag` as a version number,
 by default the chart's `appVersion`), the chart fails, as tesk-api 2.0.0
 reads the clients in another form and doesn't start, and earlier versions
 ignore the setting. The form of chart 0.4.0 (one shared `audience` and
-`clients` as a list) fails with a hint; see
+`clients` as a list) fails with a hint, except for its defaults; see
 [Upgrading](upgrading.md#audiences-per-client-of-tokenclients).
 
 Every holder of a listed client's credentials can run any image with any
