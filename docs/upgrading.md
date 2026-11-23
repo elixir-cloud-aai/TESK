@@ -44,9 +44,14 @@ auth:
 
 Each client first gets the former shared audience; then give each client
 its own audiences where your provider lets you register them. Without an
-audience (`allowAnyAudience: true` in chart 0.4.0), give each client
-`allowAnyAudience: true` instead (`my-gateway: {allowAnyAudience: true}`),
-or better its audiences: any audience is no longer the default of a client.
+audience (`allowAnyAudience: true` in chart 0.4.0), give each client its
+audiences: any audience is no longer the default of a client.
+`my-gateway: {allowAnyAudience: true}` keeps the former behaviour for a
+client, but accepts every token that the issuer issues to it, also tokens
+meant for other services (so a token leaked from or replayed by another
+service works here): use it only for testing or while setting up a
+federation, not in production (see [Tokens of
+services](deployment.md#tokens-of-services)).
 The chart fails with a hint while the values still have the form of chart
 0.4.0 (a shared `audience`, `allowAnyAudience: true` or a list of
 `clients`), also with `auth.tokenClients` off, so that they aren't ignored

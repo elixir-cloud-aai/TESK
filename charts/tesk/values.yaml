@@ -316,7 +316,8 @@ auth:
   # may run tasks and see its own, without the user info and without groups.
   # Other tokens are checked at the user info endpoint as before. Off by
   # default; with `enabled: true`, the chart needs `issuer`, `clients` (each
-  # with `audiences`, or `allowAnyAudience: true`) and mode auth. Removed
+  # with `audiences`, or `allowAnyAudience: true` for testing only, see
+  # below) and mode auth. Removed
   # clients are refused only once the rollout of the new pod has completed.
   # Everyone who holds the credentials of a listed client can run any image
   # on the cluster. Needs tesk-api 2.1.0 or later (`tesk.image.tag`; chart
@@ -339,11 +340,16 @@ auth:
     # contain one of them, e.g., the URL of this deployment, so that tokens
     # that the client got for other services are refused; each client is
     # checked against its own audiences only. `allowAnyAudience: true`
-    # instead accepts the client's tokens for any audience, also those it got
-    # for other services: only for providers that can't set an audience per
-    # client. A client needs one of the two, not both. Quote client IDs and
-    # audiences that YAML reads as numbers or booleans (e.g., "012345",
-    # "yes"): Helm turns such keys into other IDs (5349, true). E.g.:
+    # instead (opt-in, off by default) accepts every token that the issuer
+    # issues to that client ID, whatever its `aud`, also tokens meant for
+    # other services, so a token leaked from or replayed by another service
+    # works here too: meant for testing and for setting up a federation while
+    # the client's audience at the provider is being sorted out; in
+    # production, list `audiences` (tesk-api logs a warning at startup for
+    # each such client). A client needs one of the two, not both. Quote
+    # client IDs and audiences that YAML reads as numbers or booleans (e.g.,
+    # "012345", "yes"): Helm turns such keys into other IDs (5349, true).
+    # E.g.:
     #   my-gateway:
     #     audiences: [https://tesk.example.org]
     clients: {}

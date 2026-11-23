@@ -589,10 +589,19 @@ gets for other services are refused; providers such as LS Login let you
 configure the audience per client. Each client is checked against its own
 audiences only: listing an audience for one client doesn't make other
 clients' tokens for it valid, so a gateway's tokens aren't accepted at the
-audience of, e.g., a client for smoke tests. Only if your provider can't
-set an audience, give the client `allowAnyAudience: true` instead of
-`audiences`: then every service that this client calls with its tokens
-can use them to run tasks here.
+audience of, e.g., a client for smoke tests.
+
+`allowAnyAudience: true` instead of `audiences` (opt-in, `false` by
+default) accepts the client's tokens whatever their `aud`. It is meant for
+testing, and for setting up a federation while the audiences at the
+identity provider are still being sorted out, e.g., if you don't run the
+provider yourself and every change to a client's registration takes a
+request and a wait. Its risk: every token that the issuer issues to that
+client ID is accepted, also tokens meant for other services, so a token
+that leaks from another service, or that another service that this client
+calls replays, can run tasks here until it expires. tesk-api logs a warning
+at startup for each such client. In production, give every client
+`audiences`.
 
 To revoke a client, remove it from `auth.tokenClients.clients` and upgrade
 the release: tesk-api reads the clients at startup, so the old pod keeps

@@ -106,7 +106,7 @@
             "false",
             null
           ],
-          "description": "Whether the client's tokens are accepted for any audience, also tokens it got for other services; only without audiences"
+          "description": "Whether the client's tokens are accepted for any audience, also tokens meant for other services (so a token leaked from or replayed by another service works); opt-in, for testing and setting up federations only, list audiences in production; only without audiences"
         }
       }
     }
