@@ -524,8 +524,8 @@ obtained with the OAuth 2.0 client credentials grant (e.g., a TES gateway
 in front of several TES instances). Such tokens have no user, so the user
 info endpoint may refuse them and releases no groups. With
 `auth.tokenClients`, tesk-api accepts the access tokens of the clients that
-you list, without the user info (tesk-api 2.0.0 or later; off by
-default, and needs `auth.mode: auth`):
+you list, each at its own audiences, without the user info (tesk-api 2.1.0
+or later; off by default, and needs `auth.mode: auth`):
 
 ```yaml
 auth:
@@ -534,17 +534,20 @@ auth:
     enabled: true
     # Compared exactly with the claim iss of the tokens
     issuer: https://login.example.org/oidc/
-    # The token's aud must contain it
-    audience: https://tes.example.org
+    # Client ID to the client's settings
     clients:
-      - my-gateway
+      my-gateway:
+        # The token's aud must be or contain one of them
+        audiences: [https://tes.example.org]
+      my-smoke-tests:
+        audiences: [https://tes.example.org, tesk-smoke-tests]
 ```
 
 tesk-api checks a bearer token that is a JWT itself first: its signature
 against the keys of the issuer (from `auth.tokenClients.jwksUri`, or by
 default from the issuer's discovery document,
 `<issuer>/.well-known/openid-configuration`), the issuer, the expiry, the
-audience (`auth.tokenClients.audience`), the type `at+jwt` in
+audience (one of the client's `audiences` in `auth.tokenClients.clients`), the type `at+jwt` in
 the header (RFC 9068; `auth.tokenClients.requireAtJwt: false` turns this
 off for providers that don't set it), the client ID in the claim
 `auth.tokenClients.claim` (default `client_id`; some providers use `azp`),
@@ -559,27 +562,35 @@ tokens keep working. For providers whose client tokens have another `sub`
 `auth.tokenClients.requireClientSubject: false`; then tokens of users
 obtained through a listed client count as the client's too, so list only
 clients that users can't log in with. The chart fails if the setting is on
-without an issuer, without an audience (unless
-`auth.tokenClients.allowAnyAudience` is `true`), without client IDs, or
-with an `auth.mode` other than `auth`; the issuer and the JWKS URI must be HTTPS URLs, and client IDs
-mustn't contain commas (quote numeric ones, as they must be strings).
-tesk-api before 2.0.0 ignores the setting and refuses the clients' tokens:
-`helm install` and `helm upgrade` print a warning if it is on with such an
-image (`tesk.image.tag` as a version number, by default the chart's
-`appVersion`).
+without an issuer, without a client, with a client without `audiences`
+(unless it has `allowAnyAudience: true`), with both, with a blank audience
+or a blank or duplicate client ID (after trimming), or with an
+`auth.mode` other than `auth`; the issuer and the JWKS URI must be HTTPS
+URLs. Quote client IDs and audiences that YAML reads as numbers or
+booleans. The chart passes the clients on as one JSON object
+(`TESK_API_AUTHORISATION_SERVICE_CLIENTS_CLIENTS`), which tesk-api reads
+from 2.1.0 on: with an older image (`tesk.image.tag` as a version number,
+by default the chart's `appVersion`), the chart fails, as tesk-api 2.0.0
+reads the clients in another form and doesn't start, and earlier versions
+ignore the setting. The form of chart 0.4.0 (one shared `audience` and
+`clients` as a list) fails with a hint; see
+[Upgrading](upgrading.md#audiences-per-client-of-tokenclients).
 
 Every holder of a listed client's credentials can run any image with any
 command on the cluster: list only clients that you trust, such as your own
 gateway, and keep their secrets as safe as an admin's login. Whoever
 controls the issuer's discovery document or keys can sign tokens for a
-listed client, which is why the chart accepts only HTTPS URLs for them. Set
-`auth.tokenClients.audience` to a value that the provider puts into the
-tokens for this deployment only (e.g., its URL), so that tokens which the
-same clients get for other services are refused; providers such as LS
-Login let you configure the audience per client. Only if your provider
-can't, set `auth.tokenClients.allowAnyAudience: true` and leave the
-audience empty: then every service that a listed client calls with its
-tokens can use them to run tasks here.
+listed client, which is why the chart accepts only HTTPS URLs for them.
+Give each client `audiences` that the provider puts into its tokens for
+this deployment only (e.g., its URL), so that tokens which the same client
+gets for other services are refused; providers such as LS Login let you
+configure the audience per client. Each client is checked against its own
+audiences only: listing an audience for one client doesn't make other
+clients' tokens for it valid, so a gateway's tokens aren't accepted at the
+audience of, e.g., a client for smoke tests. Only if your provider can't
+set an audience, give the client `allowAnyAudience: true` instead of
+`audiences`: then every service that this client calls with its tokens
+can use them to run tasks here.
 
 To revoke a client, remove it from `auth.tokenClients.clients` and upgrade
 the release: tesk-api reads the list at startup, so the old pod keeps
