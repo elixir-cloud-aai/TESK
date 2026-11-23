@@ -315,12 +315,15 @@ auth:
   # `iss`, `exp`, the audience, the client claim and `sub`): a listed client
   # may run tasks and see its own, without the user info and without groups.
   # Other tokens are checked at the user info endpoint as before. Off by
-  # default; with `enabled: true`, the chart needs `issuer`, `audience` (or
-  # `allowAnyAudience: true`), `clients` and mode auth. Removed clients are
-  # refused only once the rollout of the new pod has completed. Everyone who
-  # holds the credentials of a listed client can run any image on the
-  # cluster. Needs tesk-api 2.0.0 or later (`tesk.image.tag`); see the
-  # deployment guide (docs/deployment.md, "Tokens of services")
+  # default; with `enabled: true`, the chart needs `issuer`, `clients` (each
+  # with `audiences`, or `allowAnyAudience: true` for testing only, see
+  # below) and mode auth. Removed
+  # clients are refused only once the rollout of the new pod has completed.
+  # Everyone who holds the credentials of a listed client can run any image
+  # on the cluster. Needs tesk-api 2.1.0 or later (`tesk.image.tag`; chart
+  # 0.4.0 and tesk-api 2.0.0 had one shared `audience` and `clients` as a
+  # list, see docs/upgrading.md); see the deployment guide
+  # (docs/deployment.md, "Tokens of services")
   tokenClients:
     enabled: false
     # Issuer of the tokens (an HTTPS URL), compared exactly with `iss`, e.g.,
@@ -329,20 +332,27 @@ auth:
     # JWKS URI of the issuer (an HTTPS URL); empty uses the one of its
     # discovery document
     jwksUri: ""
-    # Audience that the token's `aud` must contain, e.g., the URL of this
-    # deployment, so that tokens meant for other services are refused.
-    # Required, unless `allowAnyAudience` is true
-    audience: ""
-    # true accepts tokens for any audience if `audience` is empty: then also
-    # tokens that a listed client got for other services are accepted. Only
-    # for providers that can't set an audience per client
-    allowAnyAudience: false
     # Claim of the token with the client ID (RFC 9068: client_id; some
     # providers use azp); empty uses tesk-api's default, client_id
     claim: client_id
-    # IDs of the clients whose tokens are accepted, e.g., [my-gateway]; no
-    # commas. Quote numeric IDs (e.g., "12345"): they must be strings
-    clients: []
+    # The clients whose tokens are accepted: client ID (compared exactly) to
+    # the client's settings. `audiences`: the token's `aud` must be or
+    # contain one of them, e.g., the URL of this deployment, so that tokens
+    # that the client got for other services are refused; each client is
+    # checked against its own audiences only. `allowAnyAudience: true`
+    # instead (opt-in, off by default) accepts every token that the issuer
+    # issues to that client ID, whatever its `aud`, also tokens meant for
+    # other services, so a token leaked from or replayed by another service
+    # works here too: meant for testing and for setting up a federation while
+    # the client's audience at the provider is being sorted out; in
+    # production, list `audiences` (tesk-api logs a warning at startup for
+    # each such client). A client needs one of the two, not both. Quote
+    # client IDs and audiences that YAML reads as numbers or booleans (e.g.,
+    # "012345", "yes"): Helm turns such keys into other IDs (5349, true).
+    # E.g.:
+    #   my-gateway:
+    #     audiences: [https://tesk.example.org]
+    clients: {}
     # Whether the token's header must have the type at+jwt (RFC 9068), so
     # that ID tokens aren't accepted; null leaves tesk-api's default (true)
     requireAtJwt: null

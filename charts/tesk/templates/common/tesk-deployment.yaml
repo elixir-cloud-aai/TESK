@@ -250,7 +250,8 @@ spec:
         {{- end }}
         {{- /* Tokens of allow-listed clients (e.g., of a gateway with the
         client credentials grant), which tesk-api checks without the user
-        info: only when on, with mode auth (tesk.tokenClientsEnv) */}}
+        info: only when on, with mode auth; fails on the removed form of
+        chart 0.4.0 also when off (tesk.tokenClientsEnv) */}}
         {{- with include "tesk.tokenClientsEnv" . }}
         {{- . | nindent 8 }}
         {{- end }}
